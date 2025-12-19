@@ -17,7 +17,6 @@
     <Page Remove="DDEReciever\**" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DDEReciever\DDEReciever.cs" />
     <Compile Include="DDEReciever\IQFeedReciever.cs" />
     <Compile Include="DDEReciever\SQLHelper.cs" />
   </ItemGroup>

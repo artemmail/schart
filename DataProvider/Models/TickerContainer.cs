@@ -128,7 +128,7 @@ namespace DataProvider.Models
             using (var socket = new TcpClient("127.0.0.1", 9100/* 5009*/))
             using (NetworkStream networkStream = socket.GetStream())
             {
-                TickerReciever.GetHistory(networkStream, iqticker, initDate);
+                //TickerReciever.GetHistory(networkStream, iqticker, initDate);
                 using (StreamReader streamReader = new StreamReader(networkStream))
                 {
                     var line = streamReader.ReadLine();

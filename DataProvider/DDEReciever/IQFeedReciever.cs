@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿
+/*
+using Newtonsoft.Json;
 using StockProject.Models;
 using System;
 using System.Collections.Concurrent;
@@ -145,3 +147,4 @@ namespace DataProvider.Models
 
     }
 }
+*/
