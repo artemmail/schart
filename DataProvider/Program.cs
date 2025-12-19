@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using DataProvider.Services;
 using StockChart.EventBus.RabbitMQ.DependencyInjection;
 using StockChart.Notification.WebApi.RabbitMQ.Subscriptions;
 using System;
@@ -41,6 +42,8 @@ namespace DataProvider
             builder.Services.AddRabbitMq(builder.Configuration.GetSection("EventBus"));
             builder.Services.AddSubscriber<Subscriber>();
 
+            builder.Services.AddSingleton<IMarketInfoService, MarketInfoService>();
+
             /*
              builder.Services.AddGrpc();         
             builder.WebHost.ConfigureKestrel(options =>
@@ -54,6 +57,8 @@ namespace DataProvider
             */
 
             var app = builder.Build();
+
+            MarketInfoServiceHolder.Configure(app.Services.GetRequiredService<IMarketInfoService>());
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

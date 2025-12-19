@@ -1,4 +1,4 @@
-﻿using StockProject.Models;
+﻿using DataProvider.Services;
 using System;
 using System.Globalization;
 
@@ -26,8 +26,7 @@ namespace DataProvider.Models
             OI = int.Parse(line[8]);
             name = line[11];
             market = 0;
-            if (DDEReciever1.Markets.ContainsKey(marketcode))
-                market = DDEReciever1.Markets[marketcode].MarketId;
+            ApplyMarketCode();
         }
 
 
@@ -51,11 +50,7 @@ namespace DataProvider.Models
             direction = line[15] == "B" ? 1 : 0;
             market = 0;
 
-            if (DDEReciever1.Markets.ContainsKey(marketcode))
-            {
-                market = DDEReciever1.Markets[marketcode].MarketId;
-                marketcode = DDEReciever1.Markets[marketcode].Name;
-            }
+            ApplyMarketCode(true);
         }
 
         public DBRecord(string[] line)
@@ -83,11 +78,7 @@ namespace DataProvider.Models
 
             market = 0;
 
-            if (DDEReciever1.Markets.ContainsKey(marketcode))
-            {
-                market = DDEReciever1.Markets[marketcode].MarketId;
-                marketcode = DDEReciever1.Markets[marketcode].Name;
-            }
+            ApplyMarketCode(true);
 
             if (SQLHelper.TickerDic.ContainsKey(ticker))
             {
@@ -148,8 +139,7 @@ namespace DataProvider.Models
 
                 market = 0;
 
-                if (DDEReciever1.Markets.ContainsKey(marketcode))
-                    market = DDEReciever1.Markets[marketcode].MarketId;
+                ApplyMarketCode();
 
 
             }
@@ -219,5 +209,16 @@ namespace DataProvider.Models
         public int direction;
         public int OI;
         //  public string className;
+
+        private void ApplyMarketCode(bool replaceMarketCodeWithName = false)
+        {
+            if (MarketInfoServiceHolder.TryGetMarket(marketcode, out var marketInfo))
+            {
+                market = marketInfo.MarketId;
+
+                if (replaceMarketCodeWithName)
+                    marketcode = marketInfo.Name;
+            }
+        }
     }
 }
