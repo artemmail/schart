@@ -15,20 +15,11 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using StockChart.Data;
-
-public class MissingIntervalWithTrades
-{
-    public DateTime MissingStart { get; set; }
-    public DateTime MissingEnd { get; set; }
-    public long? BeforeGapTradeNumber { get; set; }
-    public DateTime? BeforeGapTradeDate { get; set; }
-    public long? AfterGapTradeNumber { get; set; }
-    public DateTime? AfterGapTradeDate { get; set; }
-}
+using StockChart.Model;
 
 public class MissingIntervalsFetcherService : IHostedService, IDisposable
 {
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
     private Task _executingTask;
     private static readonly HttpClient httpClient = new HttpClient();
 
@@ -82,7 +73,8 @@ public class MissingIntervalsFetcherService : IHostedService, IDisposable
                             var specificId = x.id;
 
                             // Запрашиваем недостающие интервалы
-                            var missingIntervals = SQLHelper.GetMissingIntervalsWithTrades(specificId, startPeriod, endPeriod);
+                            using var context = DatabaseContextFactory.CreateStockProcContext(SQLHelper.ConnectionString);
+                            var missingIntervals = context.GetMissingIntervalsWithTrades(specificId, startPeriod, endPeriod);
 
                             // Разбиваем интервалы по дням и фильтруем
                             missingIntervals = SQLHelper

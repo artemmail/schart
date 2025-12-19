@@ -32,20 +32,6 @@ public class MaxNumberForts
 
 public static class SQLHelper
 {
-    public static List<MissingIntervalWithTrades> GetMissingIntervalsWithTrades(int specificId, DateTime startPeriod, DateTime endPeriod)
-    {
-        using var context = DatabaseContextFactory.CreateStockProcContext(ConnectionString);
-        var parameters = new[]
-        {
-            new SqlParameter("@SpecificID", SqlDbType.Int) { Value = specificId },
-            new SqlParameter("@StartPeriod", SqlDbType.DateTime) { Value = startPeriod },
-            new SqlParameter("@EndPeriod", SqlDbType.DateTime) { Value = endPeriod }
-        };
-
-        return context.Database
-            .SqlQueryRaw<MissingIntervalWithTrades>("EXEC sp_GetMissingTrades2 @SpecificID, @StartPeriod, @EndPeriod", parameters)
-            .ToList();
-    }
     public static string ConnectionString
     {
         get
