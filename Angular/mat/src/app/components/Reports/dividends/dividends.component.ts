@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { STOCK_TICKERS, TICK_DESCR } from 'src/app/data/companyinfo';
 
 @Component({
+  standalone: false,
   selector: 'app-dividends',
   templateUrl: './dividends.component.html',
   styleUrls: ['./dividends.component.css']

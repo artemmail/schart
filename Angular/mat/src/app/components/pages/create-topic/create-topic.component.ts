@@ -7,6 +7,7 @@ import { NewsService } from 'src/app/service/news.service';
 import { Title } from '@angular/platform-browser';
 
 @Component({
+  standalone: false,
   selector: 'app-create-topic',
   templateUrl: './create-topic.component.html',
   styleUrls: ['./create-topic.component.css']

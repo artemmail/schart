@@ -5,6 +5,7 @@ import { STOCK_TICKERS, TICK_DESCR } from 'src/app/data/companyinfo';
 
 
 @Component({
+  standalone: false,
   selector: 'app-financial',
   templateUrl: './financial.component.html',
   styleUrls: ['./financial.component.css']

@@ -4,6 +4,7 @@ import { PaymentModel } from 'src/app/service/payments.service';
 
 
 @Component({
+  standalone: false,
   selector: 'app-payment-dialog',
   templateUrl: './payments-dialog.component.html',
 })

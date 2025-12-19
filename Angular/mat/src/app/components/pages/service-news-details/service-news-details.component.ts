@@ -9,6 +9,7 @@ import { DialogService } from 'src/app/service/DialogService.service';
 import { DomSanitizer, SafeHtml, Title } from '@angular/platform-browser';
 
 @Component({
+  standalone: false,
   selector: 'app-service-news-details',
   templateUrl: './service-news-details.component.html',
   styleUrls: ['./service-news-details.component.css'],

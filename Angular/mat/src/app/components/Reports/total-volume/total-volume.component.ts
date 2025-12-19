@@ -14,6 +14,7 @@ import { SelectListItemNumber } from 'src/app/models/preserts';
 import { Title } from '@angular/platform-browser';
 
 @Component({
+  standalone: false,
   selector: 'app-total-volume',
   templateUrl: './total-volume.component.html',
   styleUrls: ['./total-volume.component.css'],

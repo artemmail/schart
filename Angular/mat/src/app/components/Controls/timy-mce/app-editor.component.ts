@@ -36,6 +36,7 @@ import 'tinymce/plugins/wordcount';
 declare const tinymce: any;
 
 @Component({
+  standalone: false,
   selector: 'app-editor',
   template: `<textarea id="{{elementId}}"></textarea>`,
   providers: [

@@ -5,6 +5,7 @@ import { AuthService } from 'src/app/service/auth.service';
 import { DialogService } from 'src/app/service/DialogService.service';
 
 @Component({
+  standalone: false,
   selector: 'app-register',
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.css'],

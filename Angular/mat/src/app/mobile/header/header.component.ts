@@ -4,6 +4,7 @@ import { NavigationEnd, Router } from '@angular/router';
 import { SettingsService } from 'src/app/service/settings.service';
 
 @Component({
+  standalone: false,
   selector: 'app-header',
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.css']

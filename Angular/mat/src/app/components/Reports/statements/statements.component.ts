@@ -5,6 +5,7 @@ import { STOCK_TICKERS } from 'src/app/data/companyinfo';
 
 
 @Component({
+  standalone: false,
   selector: 'app-statements',
   templateUrl: './statements.component.html',
   styleUrls: ['./statements.component.css']

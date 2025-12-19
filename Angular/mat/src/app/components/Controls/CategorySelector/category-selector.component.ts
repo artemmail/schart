@@ -13,6 +13,7 @@ import { CommonService } from 'src/app/service/common.service';
 
 
 @Component({
+  standalone: false,
   selector: 'app-category-selector',
   templateUrl: "./category-selector.component.html",
   styleUrls: [ "./category-selector.component.css"]

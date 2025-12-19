@@ -12,6 +12,7 @@ import { TopPreset } from 'src/app/models/preserts';
 import { Title } from '@angular/platform-browser';
 
 @Component({
+  standalone: false,
   selector: 'app-leader',
   templateUrl: './leaders-report.component.html',
   styleUrls: ['./leaders-report.component.css'],

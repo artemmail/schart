@@ -5,6 +5,7 @@ import { CommonService, FutInfo } from 'src/app/service/common.service';
 import { OptionCodeService } from 'src/app/service/OptionCodeParserService.service';
 
 @Component({
+  standalone: false,
   selector: 'app-futures-details',
   templateUrl: './futures-details.component.html',
   styleUrls: ['./futures-details.component.css']

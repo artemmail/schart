@@ -12,6 +12,7 @@ import { ViewContainerRef } from '@angular/core';
 import { DialogZIndexService } from 'src/app/service/dialog-zindex.service';
 
 @Component({
+  standalone: false,
   selector: 'app-non-modal-dialog',
   templateUrl: './non-modal-dialog.component.html',
   styleUrls: ['./non-modal-dialog.component.scss'],

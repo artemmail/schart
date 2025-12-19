@@ -3,6 +3,7 @@ import { FootPrintComponent } from '../../footprint/footprint.component';
 import { Injector } from '@angular/core';
 
 @Component({
+  standalone: false,
   selector: 'app-multi',
   templateUrl: './multi.component.html',
   styleUrls: ['./multi.component.css']

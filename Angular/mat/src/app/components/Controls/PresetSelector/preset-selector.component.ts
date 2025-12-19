@@ -5,7 +5,7 @@ import { SelectListItemText, SelectListItemNumber } from 'src/app/models/presert
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 
 
-@Component({ 
+@Component({ standalone: false, 
   selector: 'app-preset-selector',
   templateUrl: './preset-selector.component.html',
   styleUrls: ['./preset-selector.component.css']

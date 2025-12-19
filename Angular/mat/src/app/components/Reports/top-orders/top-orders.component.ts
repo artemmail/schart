@@ -14,6 +14,7 @@ interface Period {
 }
 
 @Component({
+  standalone: false,
   selector: 'app-top-orders',
   templateUrl: './top-orders.component.html',
   styleUrls: ['./top-orders.component.css']

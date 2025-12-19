@@ -22,6 +22,7 @@ import { HttpClient } from '@angular/common/http';
 import { Inject, PLATFORM_ID } from '@angular/core';
 
 @Component({
+  standalone: false,
   selector: 'angular-material-drawer',
   templateUrl: 'app.component.html',
   styleUrls: ['app.component.scss'],

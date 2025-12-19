@@ -15,6 +15,7 @@ import { PresetSelectorComponent1 } from '../../DateRangeSelector/date-range-sel
 import { ReportsService } from 'src/app/service/reports.service';
 
 @Component({
+  standalone: false,
   selector: 'app-marketmap',
   templateUrl: './market-map.component.html',
   styleUrls: ['./market-map.component.css'],

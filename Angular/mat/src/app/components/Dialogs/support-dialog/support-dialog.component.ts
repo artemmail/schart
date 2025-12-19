@@ -8,6 +8,7 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { DialogService } from 'src/app/service/DialogService.service';
 
 @Component({
+  standalone: false,
   selector: 'app-support-dialog',
   templateUrl: './support-dialog.component.html',
   styleUrls: ['./support-dialog.component.css'],

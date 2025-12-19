@@ -10,6 +10,7 @@ import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-pi
 import { PortfolioTableComponent } from '../portfolio copy/portfolio-table.component';
 
 @Component({
+  standalone: false,
   selector: 'app-portfolio-chart',
   templateUrl: './optimization.component.html',
   styleUrls: ['./optimization.component.css']

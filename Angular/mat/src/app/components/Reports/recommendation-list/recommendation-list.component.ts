@@ -4,6 +4,7 @@ import { DataService } from 'src/app/service/companydata.service';
 
 
 @Component({
+  standalone: false,
   selector: 'app-recommendation-list',
   templateUrl: './recommendation-list.component.html',
   styleUrls: ['./recommendation-list.component.css']

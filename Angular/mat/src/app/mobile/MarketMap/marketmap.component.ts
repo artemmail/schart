@@ -8,6 +8,7 @@ import {
 import { KendoTreemapComponent } from 'src/app/components/Controls/kendo-treemap/kendo-treemap.component';
 
 @Component({
+  standalone: false,
   selector: 'mobile-marketmap',
   templateUrl: './marketmap.component.html',
   styleUrl: './marketmap.component.css',

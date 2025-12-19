@@ -15,6 +15,7 @@ import { TopOrdersResult } from 'src/app/models/Barometer';
 import { FootPrintComponent } from '../../footprint/footprint.component';
 
 @Component({
+  standalone: false,
   selector: 'footprint-top-orders',
   templateUrl: './top-orders.component.html',
   styleUrls: ['./top-orders.component.css'],

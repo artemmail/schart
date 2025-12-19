@@ -5,6 +5,7 @@ import { STOCK_TICKERS } from 'src/app/data/companyinfo';
 
 
 @Component({
+  standalone: false,
   selector: 'app-shareholders',
   templateUrl: './shareholders.component.html',
   styleUrls: ['./shareholders.component.css']

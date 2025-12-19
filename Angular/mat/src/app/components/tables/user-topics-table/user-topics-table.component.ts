@@ -6,6 +6,7 @@ import { UserTopic, PaginatedResult } from 'src/app/models/UserTopic';
 import { NewsService } from 'src/app/service/news.service';
 
 @Component({
+  standalone: false,
   selector: 'app-user-topics-table',
   templateUrl: './user-topics-table.component.html',
   styleUrls: ['./user-topics-table.component.css'],

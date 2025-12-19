@@ -4,6 +4,7 @@ import { KendoTreemapComponent } from '../../Controls/kendo-treemap/kendo-treema
 import { DialogService } from 'src/app/service/DialogService.service';
 
 @Component({
+  standalone: false,
   selector: 'app-main-page',  
   templateUrl: './main-page.component.html',
   styleUrl: './main-page.component.css'

@@ -9,6 +9,7 @@ import { BillDetailsDialogComponent } from '../bill-details-dialog/bill-details-
 
 
 @Component({
+  standalone: false,
   selector: 'app-yoo-money-operations',
   templateUrl: './yoo-money-operations.component.html',
   styleUrls: ['./yoo-money-operations.component.css']

@@ -8,6 +8,7 @@ import { CommonService } from 'src/app/service/common.service';
 import { ReportsService } from 'src/app/service/reports.service';
 
 @Component({
+  standalone: false,
   selector: 'app-barometer-mobile',
   templateUrl: './barometer.component.html',
   styleUrls: ['./barometer.component.css'],

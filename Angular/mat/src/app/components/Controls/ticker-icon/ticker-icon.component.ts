@@ -2,6 +2,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 
 @Component({
+  standalone: false,
   selector: 'app-ticker-icon',
   templateUrl: './ticker-icon.component.html',
   styleUrls: ['./ticker-icon.component.scss']

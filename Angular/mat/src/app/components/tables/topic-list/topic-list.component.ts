@@ -3,6 +3,7 @@ import { NewsService } from 'src/app/service/news.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
+  standalone: false,
   selector: 'app-topic-list',
   templateUrl: './topic-list.component.html',
   styleUrls: ['./topic-list.component.css'],

@@ -8,6 +8,7 @@ import { FilteredDataResult } from 'src/app/models/fundamental.model';
 import { DataService } from 'src/app/service/companydata.service';
 
 @Component({
+  standalone: false,
   selector: 'app-filtered-data-chart',
   templateUrl: './filtered-data-chart.component.html',
   styleUrls: ['./filtered-data-chart.component.css']

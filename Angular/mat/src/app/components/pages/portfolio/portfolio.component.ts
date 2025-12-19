@@ -14,6 +14,7 @@ import { JsonEditorComponent } from 'ang-jsoneditor';
 import { FootPrintComponent } from '../../footprint/footprint.component';
 
 @Component({
+  standalone: false,
   selector: 'app-portfolio',
   templateUrl: './portfolio.component.html',
   styleUrls: ['./portfolio.component.css'],

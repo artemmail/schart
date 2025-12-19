@@ -7,6 +7,7 @@ import { TickerPresetNew } from 'src/app/models/tickerpreset';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 
 @Component({
+  standalone: false,
   selector: 'app-settings-dialog',
   templateUrl: './settings-dialog.component.html'
 })

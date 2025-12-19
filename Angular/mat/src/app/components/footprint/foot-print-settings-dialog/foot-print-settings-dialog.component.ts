@@ -20,6 +20,7 @@ import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { PresetSelectorComponent } from '../../Controls/PresetSelector/preset-selector.component';
 
 @Component({
+  standalone: false,
   selector: 'app-footprint-settings-dialog',
   templateUrl: './foot-print-settings-dialog.component.html',
   styleUrls: ['./foot-print-settings-dialog.component.css'],

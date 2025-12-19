@@ -7,6 +7,7 @@ import { DataService } from 'src/app/service/companydata.service';
 
 
 @Component({
+  standalone: false,
   selector: 'app-shareholders-chart',
   templateUrl: './shareholders-chart.component.html',
   styleUrls: ['./shareholders-chart.component.css']

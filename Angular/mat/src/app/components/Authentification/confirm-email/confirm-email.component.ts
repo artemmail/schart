@@ -4,6 +4,7 @@ import { AuthService } from 'src/app/service/auth.service';
 import { DialogService } from 'src/app/service/DialogService.service';
 
 @Component({
+  standalone: false,
   selector: 'app-confirm-email',
   templateUrl: './confirm-email.component.html',
   styleUrls: ['./confirm-email.component.css'],

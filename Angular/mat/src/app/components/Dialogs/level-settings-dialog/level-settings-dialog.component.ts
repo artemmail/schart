@@ -4,6 +4,7 @@ import { MarkLineLevel } from 'src/app/service/FootPrint/LevelMarks/level-marks.
 
 
 @Component({
+  standalone: false,
   selector: 'app-level-settings-dialog',
   templateUrl: './level-settings-dialog.component.html',
 })

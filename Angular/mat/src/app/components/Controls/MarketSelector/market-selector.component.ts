@@ -5,6 +5,7 @@ import { CommonService } from 'src/app/service/common.service';
 
 
 @Component({
+  standalone: false,
   selector: 'app-market-selector',
   templateUrl: './market-selector.component.html',
   styleUrls: ['./market-selector.component.css'],

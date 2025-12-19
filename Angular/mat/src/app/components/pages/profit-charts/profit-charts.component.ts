@@ -4,6 +4,7 @@ import { PaymentTableData, ProfitData, UserService } from 'src/app/service/users
 
 
 @Component({
+  standalone: false,
   selector: 'app-profit-charts',
   templateUrl: './profit-charts.component.html',
   styleUrls: ['./profit-charts.component.css'],

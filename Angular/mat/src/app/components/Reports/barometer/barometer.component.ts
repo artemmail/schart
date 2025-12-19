@@ -12,6 +12,7 @@ import { ReportsService } from 'src/app/service/reports.service';
 import { Title } from '@angular/platform-browser';
 
 @Component({
+  standalone: false,
   selector: 'app-barometer',
   templateUrl: './barometer.component.html',
   styleUrls: ['./barometer.component.css'],
