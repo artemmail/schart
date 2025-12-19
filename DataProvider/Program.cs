@@ -8,6 +8,7 @@ using StockChart.EventBus.RabbitMQ.DependencyInjection;
 using StockChart.Notification.WebApi.RabbitMQ.Subscriptions;
 using System;
 using StockChart.Data;
+using Microsoft.Extensions.Configuration;
 
 namespace DataProvider
 {
