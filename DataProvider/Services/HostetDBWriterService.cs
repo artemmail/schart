@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using StockChart.Model;
+using System.Linq;
 
 namespace DataProvider
 {
@@ -19,8 +20,10 @@ namespace DataProvider
     {
         private readonly IBroadCast _broadCast;
         private readonly IDbContextFactory<StockProcContext> _contextFactory;
+        private readonly ILastTradeCache _lastTradeCache;
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private Task _executingTask;
+        private record struct TradeMaxInfo(int TickerId, long MaxNumber, DateTime MaxTime);
 
         // Очереди для двух рынков
         public static ConcurrentQueue<DBRecord>[] sqlQueues = new ConcurrentQueue<DBRecord>[2]
@@ -29,10 +32,11 @@ namespace DataProvider
             new ConcurrentQueue<DBRecord>()
         };
 
-        public HostetDBWriterService(IBroadCast broadCast, IDbContextFactory<StockProcContext> contextFactory)
+        public HostetDBWriterService(IBroadCast broadCast, IDbContextFactory<StockProcContext> contextFactory, ILastTradeCache lastTradeCache)
         {
             _broadCast = broadCast;
             _contextFactory = contextFactory;
+            _lastTradeCache = lastTradeCache;
         }
 
         // Метод для добавления одной записи в очередь
@@ -159,6 +163,18 @@ namespace DataProvider
 
                     await context.Database.ExecuteSqlRawAsync(sql, jsonParameter);
 
+                    var maxInfo = filteredRecords
+                        .GroupBy(x => x.i)
+                        .Select(g =>
+                        {
+                            var maxNumber = g.Max(r => r.n);
+                            var maxTime = g.Where(r => r.n == maxNumber).Select(r => r.d).FirstOrDefault();
+                            return new TradeMaxInfo(g.Key, maxNumber, maxTime);
+                        })
+                        .ToList();
+
+                    await UpdateMaxTradesAsync(context, maxInfo);
+
                     // Если все прошло успешно, выходим из цикла
                     break;
                 }
@@ -256,6 +272,39 @@ namespace DataProvider
         {
             // Добавьте другие номера ошибок по мере необходимости
             return true;//  ..ex.Number == 19;
+        }
+
+        private async Task UpdateMaxTradesAsync(StockProcContext context, IEnumerable<TradeMaxInfo> tradeInfos)
+        {
+            var infoList = tradeInfos.ToList();
+            if (!infoList.Any())
+                return;
+
+            var ids = infoList.Select(x => x.TickerId).ToList();
+            var existing = await context.MaxTrades.Where(x => ids.Contains(x.Id)).ToListAsync();
+
+            foreach (var info in infoList)
+            {
+                var existingTrade = existing.FirstOrDefault(x => x.Id == info.TickerId);
+                if (existingTrade == null)
+                {
+                    context.MaxTrades.Add(new MaxTrade
+                    {
+                        Id = info.TickerId,
+                        MaxNumber = info.MaxNumber,
+                        MaxTime = info.MaxTime
+                    });
+                }
+                else if (info.MaxNumber > existingTrade.MaxNumber)
+                {
+                    existingTrade.MaxNumber = info.MaxNumber;
+                    existingTrade.MaxTime = info.MaxTime;
+                }
+
+                await _lastTradeCache.UpdateLastTradeNumberAsync(info.TickerId, info.MaxNumber);
+            }
+
+            await context.SaveChangesAsync();
         }
 
         private SqlException GetSqlException(Exception ex)

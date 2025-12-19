@@ -15,15 +15,17 @@ namespace DataProvider
         private readonly ITradesCacherRepository _tradesCacher;
         private readonly IBroadCast _broadCast;
         private readonly IEventBus _eventBus;
+        private readonly ILastTradeCache _lastTradeCache;
         private readonly ConcurrentQueue<DBRecord[]> _dbRecordsQueue = new ConcurrentQueue<DBRecord[]>();
 
         private DDEInfo.InfoServer _ddeServer;
 
-        public DDEServer(ITradesCacherRepository tradesCacher, IBroadCast broadCast, IEventBus eventBus)
+        public DDEServer(ITradesCacherRepository tradesCacher, IBroadCast broadCast, IEventBus eventBus, ILastTradeCache lastTradeCache)
         {
             _tradesCacher = tradesCacher;
             _broadCast = broadCast;
             _eventBus = eventBus;
+            _lastTradeCache = lastTradeCache;
         }
 
         public Task StartAsync(CancellationToken stoppingToken)
@@ -38,7 +40,7 @@ namespace DataProvider
             return Task.CompletedTask;
         }
 
-        private void ProcessRecords(DBRecord[] records)
+        private async Task ProcessRecordsAsync(DBRecord[] records)
         {
             foreach (var record in records)
             {
@@ -46,12 +48,9 @@ namespace DataProvider
 
                 _tradesCacher.PushTrade(record.ticker, new Trade(record));
 
-                if (ticker == null || LastIdsContainer.GetLastId(ticker.id) < record.number)
+                if (ticker == null || await ShouldEnqueueAsync(ticker.id, record.number))
                 {
                     HostetDBWriterService.Enqueue(0, record);
-
-                    if (ticker != null)
-                        LastIdsContainer.UpdateLastId(ticker.id, record.number);
                 }
             }
         }
@@ -66,10 +65,22 @@ namespace DataProvider
             return dataArgs.Cells.Select(cell => new DBRecord(cell)).ToArray();
         }
 
-        private void OnDdeServerDataPoked(object sender, DDEInfo.DataPokedEventArgs dataArgs)
+        private async void OnDdeServerDataPoked(object sender, DDEInfo.DataPokedEventArgs dataArgs)
         {
             var records = ConvertDdeDataToRecords(dataArgs);
-            ProcessRecords(records);
+            await ProcessRecordsAsync(records);
+        }
+
+        private async Task<bool> ShouldEnqueueAsync(int tickerId, long number)
+        {
+            var lastNumber = await _lastTradeCache.GetLastTradeNumberAsync(tickerId);
+            if (number > lastNumber)
+            {
+                await _lastTradeCache.UpdateLastTradeNumberAsync(tickerId, number);
+                return true;
+            }
+
+            return false;
         }
         public Task StopAsync(CancellationToken cancellationToken)
         {

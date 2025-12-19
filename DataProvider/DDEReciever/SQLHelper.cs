@@ -43,34 +43,6 @@ public class MaxNumberForts
 
 
 
-public static class LastIdsContainer
-{
-
-    static Dictionary<int, long> LastIds = new Dictionary<int, long>();
-
-    static Dictionary<KeyValuePair<int, int>, long> LastIdsEx = new Dictionary<KeyValuePair<int, int>, long>();
-    public static long GetLastId(int id)
-    {
-
-        {
-            if (!LastIds.ContainsKey(id))
-            {
-                var res = SQLHelper.ScalarFromQuery($"select top 1  maxnumber from [MaxTrades] where id = {id}");
-                if (res == null)
-                    LastIds[id] = 0;
-                else
-                    LastIds[id] = (long)res;
-            }
-            return LastIds[id];
-        }
-    }
-    public static void UpdateLastId(int id, long number)
-    {
-
-        LastIds[id] = number;
-
-    }
-}
 public static class SQLHelper
 {
     public static ConcurrentDictionary<string, TickerDIC> TickerDic = new ConcurrentDictionary<string, TickerDIC>();
