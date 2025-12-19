@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
+using StockChart.Data;
+using StockChart.Model;
 
 
 
@@ -74,12 +77,30 @@ public static class SQLHelper
     static SqlConnection sqlConn = new SqlConnection(SQLHelper.ConnectionString);
     public static void DIC()
     {
-        var tab = SQLHelper.DataTableFromQuery("SELECT SECURITYID,market,id, lotsize  FROM [stock].[dbo].[Dictionary]");
-        List<DicView> TickerList = SQLHelper.ConvertDataTable<DicView>(tab).Where(x => !TickerDic.ContainsKey(x.SECURITYID)).ToList();
+        using var context = DatabaseContextFactory.CreateStockProcContext(ConnectionString);
+        var tickerList = context.Dictionaries
+            .AsNoTracking()
+            .Select(x => new
+            {
+                x.Securityid,
+                x.Market,
+                x.Id,
+                x.Lotsize
+            })
+            .Where(x => !string.IsNullOrWhiteSpace(x.Securityid))
+            .ToList();
 
-        //TickerDic.Clear();
-        foreach (var v in TickerList)
-            TickerDic[v.SECURITYID] = new TickerDIC() { market = v.market, id = v.id, lotsize = v.lotsize };
+        foreach (var ticker in tickerList)
+        {
+            var mappedTicker = new TickerDIC
+            {
+                market = ticker.Market ?? 0,
+                id = ticker.Id,
+                lotsize = ticker.Lotsize ?? 0
+            };
+
+            TickerDic[ticker.Securityid!] = mappedTicker;
+        }
 
     }
     static SQLHelper()
