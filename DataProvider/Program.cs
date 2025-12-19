@@ -32,6 +32,7 @@ namespace DataProvider
             builder.Services.AddSingleton<ITradesCacherRepository, TradesCacherRepository>();
 
             builder.Services.AddSingleton<IBroadCast, BroadCast>();
+            builder.Services.AddSingleton<ILastTradeCache, LastTradeCache>();
 
 
             builder.Services.AddHostedService<HostetBinanceService>();
