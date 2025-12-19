@@ -36,7 +36,16 @@ namespace DataProvider.Services
 
         public MarketInfoService()
         {
-            var markets = SQLHelper.ConvertDataTable<MarketInfo>(SQLHelper.DataTableFromQuery("select MarketId, Name from class"));
+            using var context = DatabaseContextFactory.CreateStockProcContext(SQLHelper.ConnectionString);
+            var markets = context.Classes
+                .AsNoTracking()
+                .Select(x => new MarketInfo
+                {
+                    MarketId = x.MarketId,
+                    Name = x.Name
+                })
+                .ToList();
+
             _markets = markets.ToDictionary(x => x.Name, x => x);
             _tickerDictionary = LoadTickers();
         }
