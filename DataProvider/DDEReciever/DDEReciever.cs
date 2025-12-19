@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using StockChart.Data;
+using StockChart.Model;
 namespace StockProject.Models
 {
     public class CL
@@ -299,14 +300,20 @@ namespace StockProject.Models
                 r = records.Where(x => !SQLHelper.TickerDic.ContainsKey(x.ticker)).GroupBy(x => x.ticker).Select(y => y.First()).ToArray();
                 if (r.Any())
                 {
-                    var s = string.Concat(r.Select(record =>
-                         $"insert into Dictionary values( '{record.ticker}','{record.name.Replace("'", "''")}',null,null,{record.market},null,'{record.marketcode}',1,1,null,null,1,null,null,null);"));
-                    using (SqlConnection sqlCon = new SqlConnection(SQLHelper.ConnectionString))
+                    using var context = DatabaseContextFactory.CreateStockProcContext(SQLHelper.ConnectionString);
+                    var newDictionaries = r.Select(record => new Dictionary
                     {
-                        sqlCon.Open();
-                        SqlCommand cmd = new SqlCommand(s, sqlCon);
-                        cmd.ExecuteNonQuery();
-                    }
+                        Securityid = record.ticker,
+                        Shortname = record.name,
+                        Market = (byte)record.market,
+                        ClassName = record.marketcode,
+                        Minstep = 1,
+                        Volperqnt = 1,
+                        Lotsize = 1
+                    }).ToList();
+
+                    context.Dictionaries.AddRange(newDictionaries);
+                    context.SaveChanges();
                     SQLHelper.DIC();
                 }
                 r = records.Where(x => !SQLHelper.TickerDic.ContainsKey(x.ticker)).GroupBy(x => x.ticker).Select(y => y.First()).ToArray();

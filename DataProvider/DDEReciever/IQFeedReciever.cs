@@ -3,7 +3,6 @@ using StockProject.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -135,87 +134,14 @@ namespace DataProvider.Models
 
         public void fillDB2(CancellationToken token)
         {
-            using (SqlConnection sqlCon = new SqlConnection(SQLHelper.ConnectionString))
+            while (!token.IsCancellationRequested)
             {
-                sqlCon.Open();                
-                while (!token.IsCancellationRequested)
-                {                    
-                   
-                    if (queue().Any())
-                        DDEReciever1.InsertToDB(queue().Take(50000).ToArray(), 4);                    
-                    else
-                        Thread.Sleep(10);
-                }
+                if (queue().Any())
+                    DDEReciever1.InsertToDB(queue().Take(50000).ToArray(), 4);
+                else
+                    Thread.Sleep(10);
             }
         }
 
-        //public void fillDB2(CancellationToken token)
-        //{
-        //    using (SqlConnection sqlCon = new SqlConnection(SQLHelper.ConnectionString))
-        //    {
-        //        sqlCon.Open();
-        //        int count = 1;
-        //        while (!token.IsCancellationRequested)
-        //        {
-        //            if (count==0)
-        //                Thread.Sleep(20);
-        //            StringBuilder sb = new StringBuilder();
-        //            count=0;
-        //            try
-        //            {
-        //                TickerDIC ticker;
-        //                sb.Append("insert into dbo.fulltradesex values ");
-
-                        
-
-        //                while (count<1000)
-        //                {
-        //                    DBRecord record = Dequeue();
-        //                    if (record==null)
-        //                    {
-        //                        //if (isConnected)
-        //                        break;
-        //                    }
-        //                    else
-        //                        count++;
-        //                    lock (SQLHelper.TickerDic)
-        //                        ticker=SQLHelper.TickerDic[record.ticker];
-        //                    string s = string.Format("({0},{1},{2},'{3}','{4}',{5},{6},{7},{8},{9})",
-        //                        ticker.market, record.number, ticker.id, record.datetime.Floor(TimeSpan.FromMinutes(1)).ToStringInvariant(),
-        //                        record.datetime.ToStringInvariant(), record.price, record.quantity, record.volume, record.Oi, record.direction);
-        //                    sb.Append(s);
-        //                    sb.Append(",");
-        //                }
-        //            }
-        //            catch (Exception e)
-        //            {
-        //                using (StreamWriter sw = System.IO.File.AppendText("c:/log/throw1.txt"))
-        //                {
-        //                    sw.WriteLine(e.Message);
-        //                    sw.WriteLine(e.StackTrace);
-        //                    sw.WriteLine(e.Source);
-        //                }
-        //                throw e;
-        //            }
-        //            if (count>0)
-        //                try
-        //                {
-        //                    sb[sb.Length-1]=';';
-        //                    using (SqlCommand cmd2 = new SqlCommand(sb.ToString(), sqlCon))
-        //                        cmd2.ExecuteNonQuery();
-        //                }
-        //                catch (Exception e)
-        //                {
-        //                    using (StreamWriter sw = System.IO.File.AppendText("c:/log/throw2.txt"))
-        //                    {
-        //                        sw.WriteLine(e.Message);
-        //                        sw.WriteLine(e.StackTrace);
-        //                        sw.WriteLine(e.Source);
-        //                    }
-        //                    throw e;
-        //                }
-        //        }
-        //    }
-        //}
     }
 }

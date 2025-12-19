@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using StockChart.Data;
@@ -74,7 +74,6 @@ public static class LastIdsContainer
 public static class SQLHelper
 {
     public static ConcurrentDictionary<string, TickerDIC> TickerDic = new ConcurrentDictionary<string, TickerDIC>();
-    static SqlConnection sqlConn = new SqlConnection(SQLHelper.ConnectionString);
     public static void DIC()
     {
         using var context = DatabaseContextFactory.CreateStockProcContext(ConnectionString);
@@ -110,42 +109,17 @@ public static class SQLHelper
 
     public static List<MissingIntervalWithTrades> GetMissingIntervalsWithTrades(int specificId, DateTime startPeriod, DateTime endPeriod)
     {
-        var result = new List<MissingIntervalWithTrades>();
-
-        using (SqlConnection sqlConn = new SqlConnection(SQLHelper.ConnectionString))
+        using var context = DatabaseContextFactory.CreateStockProcContext(ConnectionString);
+        var parameters = new[]
         {
-            using (SqlCommand cmd = new SqlCommand("sp_GetMissingTrades2", sqlConn))
-            {
-                cmd.CommandType = CommandType.StoredProcedure;
+            new SqlParameter("@SpecificID", SqlDbType.Int) { Value = specificId },
+            new SqlParameter("@StartPeriod", SqlDbType.DateTime) { Value = startPeriod },
+            new SqlParameter("@EndPeriod", SqlDbType.DateTime) { Value = endPeriod }
+        };
 
-                // Добавляем параметры
-                cmd.Parameters.Add(new SqlParameter("@SpecificID", SqlDbType.Int) { Value = specificId });
-                cmd.Parameters.Add(new SqlParameter("@StartPeriod", SqlDbType.DateTime) { Value = startPeriod });
-                cmd.Parameters.Add(new SqlParameter("@EndPeriod", SqlDbType.DateTime) { Value = endPeriod });
-
-                sqlConn.Open();
-
-                using (SqlDataReader reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var interval = new MissingIntervalWithTrades
-                        {
-                            MissingStart = reader["MissingStart"] != DBNull.Value ? (DateTime)reader["MissingStart"] : default,
-                            MissingEnd = reader["MissingEnd"] != DBNull.Value ? (DateTime)reader["MissingEnd"] : default,
-                            BeforeGapTradeNumber = reader["BeforeGapTradeNumber"] != DBNull.Value ? (long?)reader["BeforeGapTradeNumber"] : null,
-                            BeforeGapTradeDate = reader["BeforeGapTradeDate"] != DBNull.Value ? (DateTime?)reader["BeforeGapTradeDate"] : null,
-                            AfterGapTradeNumber = reader["AfterGapTradeNumber"] != DBNull.Value ? (long?)reader["AfterGapTradeNumber"] : null,
-                            AfterGapTradeDate = reader["AfterGapTradeDate"] != DBNull.Value ? (DateTime?)reader["AfterGapTradeDate"] : null
-                        };
-
-                        result.Add(interval);
-                    }
-                }
-            }
-        }
-
-        return result;
+        return context.Database
+            .SqlQueryRaw<MissingIntervalWithTrades>("EXEC sp_GetMissingTrades2 @SpecificID, @StartPeriod, @EndPeriod", parameters)
+            .ToList();
     }
     public static string ConnectionString
     {
@@ -160,23 +134,39 @@ public static class SQLHelper
     }
     public static DataTable DataTableFromQuery(string s)
     {
-        using (SqlConnection sqlConn = new SqlConnection(ConnectionString))
+        using var context = DatabaseContextFactory.CreateStockProcContext(ConnectionString);
+        using var command = context.Database.GetDbConnection().CreateCommand();
+        command.CommandText = s;
+        command.CommandType = CommandType.Text;
+
+        context.Database.OpenConnection();
+        try
         {
-            sqlConn.Open();
-            SqlCommand cmd = new SqlCommand(s, sqlConn);
-            SqlDataReader reader = cmd.ExecuteReader();
+            using var reader = command.ExecuteReader();
             DataTable dt = new DataTable();
             dt.Load(reader);
             return dt;
         }
+        finally
+        {
+            context.Database.CloseConnection();
+        }
     }
     public static object ScalarFromQuery(string s)
     {
-        using (SqlConnection sqlConn = new SqlConnection(ConnectionString))
+        using var context = DatabaseContextFactory.CreateStockProcContext(ConnectionString);
+        using var command = context.Database.GetDbConnection().CreateCommand();
+        command.CommandText = s;
+        command.CommandType = CommandType.Text;
+
+        context.Database.OpenConnection();
+        try
         {
-            sqlConn.Open();
-            SqlCommand cmd = new SqlCommand(s, sqlConn);
-            return cmd.ExecuteScalar();
+            return command.ExecuteScalar();
+        }
+        finally
+        {
+            context.Database.CloseConnection();
         }
     }
 

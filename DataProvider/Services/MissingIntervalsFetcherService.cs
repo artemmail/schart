@@ -2,16 +2,18 @@
 
 
 using DataProvider.Models;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using StockChart.Data;
 
 public class MissingIntervalWithTrades
 {
@@ -330,8 +332,7 @@ public class MissingIntervalsFetcherService : IHostedService, IDisposable
                     }));
 
                     string sql = $@"
-                    DECLARE @json NVARCHAR(MAX)
-                    SET @json = N'{json}'
+                    DECLARE @json NVARCHAR(MAX) = @jsonParam
                     INSERT INTO tradesbinance
                     SELECT i, n, d, p, q, b
                     FROM OPENJSON(@json, '$')
@@ -346,14 +347,13 @@ public class MissingIntervalsFetcherService : IHostedService, IDisposable
                         b int          '$.b'
                     )";
 
-                    using (SqlConnection sqlCon = new SqlConnection(SQLHelper.ConnectionString))
+                    var jsonParameter = new SqlParameter("@jsonParam", System.Data.SqlDbType.NVarChar)
                     {
-                        await sqlCon.OpenAsync();
-                        using (SqlCommand cmd = new SqlCommand(sql, sqlCon))
-                        {
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                    }
+                        Value = json
+                    };
+
+                    using var context = DatabaseContextFactory.CreateStockProcContext(SQLHelper.ConnectionString);
+                    await context.Database.ExecuteSqlRawAsync(sql, jsonParameter);
                     break; // Успешная вставка, переходим к следующему батчу
                 }
                 catch (SqlException ex) when (IsTransient(ex))
