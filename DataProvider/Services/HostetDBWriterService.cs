@@ -1,17 +1,16 @@
 ﻿using DataProvider.Models;
 using DataProvider.Services;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
+using StockChart.Data;
 using StockChart.Model;
 
 namespace DataProvider
@@ -118,14 +117,14 @@ namespace DataProvider
 
                             return new
                             {
-                            n = record.number,
-                            i = tickerInfo.id,
-                            d = record.datetime,
-                            p = record.price,
-                            q = record.quantity,
-                            v = record.volume,
-                            o = record.OI,
-                            b = record.direction
+                                TickerId = tickerInfo.id,
+                                record.number,
+                                record.datetime,
+                                record.price,
+                                record.quantity,
+                                record.volume,
+                                record.OI,
+                                record.direction
                             };
                         })
                         .ToList();
@@ -133,50 +132,47 @@ namespace DataProvider
                     if (!filteredRecords.Any())
                         break;
 
-                    var json = JsonConvert.SerializeObject(filteredRecords);
-                    var jsonParameter = new SqlParameter("@json", SqlDbType.NVarChar)
+                    if (market == 1)
                     {
-                        Value = json
-                    };
+                        var binanceRecords = filteredRecords
+                            .Select(x => new Tradesbinance
+                            {
+                                Id = x.TickerId,
+                                Number = x.number,
+                                TradeDate = x.datetime,
+                                Price = x.price,
+                                Quantity = x.quantity,
+                                Direction = (byte)x.direction
+                            })
+                            .ToList();
 
-                    var sql = market == 1
-                        ? @"DECLARE @json NVARCHAR(MAX) = @json;
-                            INSERT INTO tradesbinance (ID, number, TradeDate, Price, Quantity, Direction)
-                            SELECT i, n, d, p, q, b
-                            FROM OPENJSON(@json, '$')
-                            WITH(
-                                n bigint '$.n',
-                                i int '$.i',
-                                d datetime2 '$.d',
-                                p decimal(18, 6) '$.p',
-                                q decimal(18, 6) '$.q',
-                                v decimal(18, 6) '$.v',
-                                o int '$.o',
-                                b int '$.b'
-                            );"
-                        : @"DECLARE @json NVARCHAR(MAX) = @json;
-                            INSERT INTO trades (ID, number, TradeDate, Price, Quantity, Volume, OI, Direction)
-                            SELECT i, n, d, p, q, v, o, b
-                            FROM OPENJSON(@json, '$')
-                            WITH(
-                                n bigint '$.n',
-                                i int '$.i',
-                                d datetime2 '$.d',
-                                p decimal(18, 6) '$.p',
-                                q decimal(18, 6) '$.q',
-                                v decimal(18, 6) '$.v',
-                                o int '$.o',
-                                b int '$.b'
-                            );";
+                        await context.InsertTradesBinanceBatchAsync(binanceRecords);
+                    }
+                    else
+                    {
+                        var trades = filteredRecords
+                            .Select(x => new Trade
+                            {
+                                Id = x.TickerId,
+                                Number = x.number,
+                                TradeDate = x.datetime,
+                                Price = x.price,
+                                Quantity = (int)x.quantity,
+                                Volume = x.volume,
+                                Oi = x.OI,
+                                Direction = (byte)x.direction
+                            })
+                            .ToList();
 
-                    await context.Database.ExecuteSqlRawAsync(sql, jsonParameter);
+                        await context.InsertTradesBatchAsync(trades);
+                    }
 
                     var maxInfo = filteredRecords
-                        .GroupBy(x => x.i)
+                        .GroupBy(x => x.TickerId)
                         .Select(g =>
                         {
-                            var maxNumber = g.Max(r => r.n);
-                            var maxTime = g.Where(r => r.n == maxNumber).Select(r => r.d).FirstOrDefault();
+                            var maxNumber = g.Max(r => r.number);
+                            var maxTime = g.Where(r => r.number == maxNumber).Select(r => r.datetime).FirstOrDefault();
                             return new TradeMaxInfo(g.Key, maxNumber, maxTime);
                         })
                         .ToList();
