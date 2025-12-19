@@ -2,6 +2,7 @@
 
 
 using DataProvider.Models;
+using DataProvider.Services;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -52,7 +53,7 @@ public class MissingIntervalsFetcherService : IHostedService, IDisposable
             try
             {
                 // 1) Собираем список тикеров для market = 20 и начинающихся на "BTCUS"
-                var s = SQLHelper.TickerDic
+                var s = MarketInfoServiceHolder.GetTickers()
                     .Where(x => x.Value.market == 20)
                     //.Where(x => x.Key.StartsWith("BTCUS"))
                     .OrderBy(x => x.Key)
@@ -319,17 +320,25 @@ public class MissingIntervalsFetcherService : IHostedService, IDisposable
             {
                 try
                 {
-                    string json = JsonConvert.SerializeObject(batch.Select(r => new
+                    var batchPayload = batch.Select(r =>
                     {
-                        n = r.number,
-                        i = SQLHelper.TickerDic[r.ticker].id,
-                        d = r.datetime,
-                        p = r.price,
-                        q = r.quantity,
-                        v = r.volume,
-                        o = r.OI,
-                        b = r.direction
-                    }));
+                        if (!MarketInfoServiceHolder.TryGetTicker(r.ticker, out var tickerInfo))
+                            throw new InvalidOperationException($"Ticker info not found for {r.ticker}");
+
+                        return new
+                        {
+                            n = r.number,
+                            i = tickerInfo.id,
+                            d = r.datetime,
+                            p = r.price,
+                            q = r.quantity,
+                            v = r.volume,
+                            o = r.OI,
+                            b = r.direction
+                        };
+                    }).ToList();
+
+                    string json = JsonConvert.SerializeObject(batchPayload);
 
                     string sql = $@"
                     DECLARE @json NVARCHAR(MAX) = @jsonParam

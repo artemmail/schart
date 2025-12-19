@@ -1,4 +1,5 @@
 ﻿using DataProvider.Models;
+using DataProvider.Services;
 using Microsoft.Extensions.Hosting;
 using StockChart.EventBus.Abstractions;
 using System;
@@ -44,7 +45,7 @@ namespace DataProvider
         {
             foreach (var record in records)
             {
-                var ticker = SQLHelper.TickerDic.TryGetValue(record.ticker, out var foundTicker) ? foundTicker : null;
+                var ticker = MarketInfoServiceHolder.TryGetTicker(record.ticker, out var foundTicker) ? foundTicker : null;
 
                 _tradesCacher.PushTrade(record.ticker, new Trade(record));
 

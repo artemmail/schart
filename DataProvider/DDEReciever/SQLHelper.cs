@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using Microsoft.Data.SqlClient;
@@ -7,18 +6,6 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using StockChart.Data;
 using StockChart.Model;
-
-
-
-public class TickerDIC
-{
-    public int market;
-    public int id;
-    public int lotsize;
-}
-
-
-
 
 public class DicView
 {
@@ -45,40 +32,6 @@ public class MaxNumberForts
 
 public static class SQLHelper
 {
-    public static ConcurrentDictionary<string, TickerDIC> TickerDic = new ConcurrentDictionary<string, TickerDIC>();
-    public static void DIC()
-    {
-        using var context = DatabaseContextFactory.CreateStockProcContext(ConnectionString);
-        var tickerList = context.Dictionaries
-            .AsNoTracking()
-            .Select(x => new
-            {
-                x.Securityid,
-                x.Market,
-                x.Id,
-                x.Lotsize
-            })
-            .Where(x => !string.IsNullOrWhiteSpace(x.Securityid))
-            .ToList();
-
-        foreach (var ticker in tickerList)
-        {
-            var mappedTicker = new TickerDIC
-            {
-                market = ticker.Market ?? 0,
-                id = ticker.Id,
-                lotsize = ticker.Lotsize ?? 0
-            };
-
-            TickerDic[ticker.Securityid!] = mappedTicker;
-        }
-
-    }
-    static SQLHelper()
-    {
-        DIC();
-    }
-
     public static List<MissingIntervalWithTrades> GetMissingIntervalsWithTrades(int specificId, DateTime startPeriod, DateTime endPeriod)
     {
         using var context = DatabaseContextFactory.CreateStockProcContext(ConnectionString);

@@ -80,9 +80,9 @@ namespace DataProvider.Models
 
             ApplyMarketCode(true);
 
-            if (SQLHelper.TickerDic.ContainsKey(ticker))
+            if (MarketInfoServiceHolder.GetTickers().ContainsKey(ticker))
             {
-                volume *= Math.Max(1, SQLHelper.TickerDic[ticker].lotsize);
+                volume *= Math.Max(1, MarketInfoServiceHolder.GetTickers()[ticker].lotsize);
             }
 
         }
