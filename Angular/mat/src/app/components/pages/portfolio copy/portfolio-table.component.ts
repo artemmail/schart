@@ -5,6 +5,7 @@ import { Subscription } from 'rxjs';
 import { PortfolioService } from 'src/app/service/portfolio.service';
 
 @Component({
+  standalone: false,
   selector: 'app-portfolio-table',
   templateUrl: './portfolio-table.component.html',
   styleUrls: ['./portfolio-table.component.css']

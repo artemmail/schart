@@ -6,6 +6,7 @@ import { formatDate } from '@angular/common';
 import { NpmStatService } from 'src/app/service/npmstat.service';
 
 @Component({
+  standalone: false,
   selector: 'app-npm-stat-chart',
   templateUrl: './npm-stat-chart.component.html',
   styleUrls: ['./npm-stat-chart.component.css']

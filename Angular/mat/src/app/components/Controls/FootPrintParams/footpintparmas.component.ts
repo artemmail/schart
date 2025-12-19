@@ -20,6 +20,7 @@ import { tap } from 'rxjs/operators';
 import { PresetSelectorComponent1 } from '../../DateRangeSelector/date-range-selector.component';
 
 @Component({
+  standalone: false,
   selector: 'footprint-params',
   templateUrl: './footpintparmas.component.html',
   styleUrls: ['./footpintparmas.component.css'],

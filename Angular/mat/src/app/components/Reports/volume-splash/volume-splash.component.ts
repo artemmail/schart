@@ -9,6 +9,7 @@ import { SelectListItemNumber } from 'src/app/models/preserts';
 import { Title } from '@angular/platform-browser';
 
 @Component({
+  standalone: false,
   selector: 'app-volume-splash',
   templateUrl: './volume-splash.component.html',
   styleUrls: ['./volume-splash.component.css'],

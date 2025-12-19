@@ -9,6 +9,7 @@ import {  DataService } from 'src/app/service/companydata.service';
 
 
 @Component({
+  standalone: false,
   selector: 'app-dividends-table',
   templateUrl: './dividends-table.component.html',
   styleUrls: ['./dividends-table.component.css']

@@ -16,6 +16,7 @@ export interface TreemapNode {
 
 
 @Component({
+  standalone: false,
   selector: 'app-tree-map',
   template: `
     <div #treeMapContainer class="tree-map-container" style="width: 500px;height:500px"></div>
@@ -61,6 +62,7 @@ export interface TreemapNode {
 
 
 @Component({
+  standalone: false,
   selector: 'app-treemap',
   templateUrl: './tree-map.component.html',
   styleUrls: ['./tree-map.component.css']

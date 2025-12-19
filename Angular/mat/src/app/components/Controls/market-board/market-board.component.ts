@@ -14,6 +14,7 @@ import { switchMap, startWith } from 'rxjs/operators';
 import { Router } from '@angular/router';
 
 @Component({
+  standalone: false,
   selector: 'app-market-board',
   templateUrl: './market-board.component.html',
   styleUrls: ['./market-board.component.css']

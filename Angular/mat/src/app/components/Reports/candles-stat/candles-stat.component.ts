@@ -50,6 +50,7 @@ interface CandleStats {
 }
 
 @Component({
+  standalone: false,
   selector: 'app-candles-stat',
   templateUrl: './candles-stat.component.html',
   styleUrls: ['./candles-stat.component.css'],

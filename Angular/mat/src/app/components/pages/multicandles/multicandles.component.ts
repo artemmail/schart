@@ -32,6 +32,7 @@ const DEFAULT_TICKERS =
   'GAZP,SBER,ROSN,LKOH,VTBR,GMKN,PLZL,T,NVTK,AFKS';
 
 @Component({
+  standalone: false,
   selector   : 'app-multicandles',
   templateUrl: './multicandles.component.html',
   styleUrls  : ['./multicandles.component.css']

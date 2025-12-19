@@ -7,6 +7,7 @@ import { SelectListItemText } from 'src/app/models/preserts';
 import { TickerService } from 'src/app/service/FootPrint/AutoComplete/AutoComplete';
 
 @Component({
+  standalone: false,
   selector: 'app-ticker-autocomplete',
   templateUrl: './ticker-autocomplete.component.html',
   styleUrls: ['./ticker-autocomplete.component.css'],

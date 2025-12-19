@@ -11,6 +11,7 @@ import { Title } from '@angular/platform-browser';
 import { ApplicationUserModel } from 'src/app/models/UsersTable.model';
 
 @Component({
+  standalone: false,
   selector: 'app-user-table',
   templateUrl: './user-table.component.html',
   styleUrls: ['./user-table.component.css']

@@ -4,6 +4,7 @@ import { DataItem } from 'src/app/models/fundamental.model';
 import {  DataService } from 'src/app/service/companydata.service';
 
 @Component({
+  standalone: false,
   selector: 'app-company-table',
   templateUrl: './company-table.component.html',
   styleUrls: ['./company-table.component.css']

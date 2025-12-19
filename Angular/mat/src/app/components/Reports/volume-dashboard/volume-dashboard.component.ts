@@ -10,6 +10,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
 @Component({
+  standalone: false,
   selector: 'app-volume-dashboard',
   templateUrl: './volume-dashboard.component.html',
   styleUrls: ['./volume-dashboard.component.css'],

@@ -7,6 +7,7 @@ import { trigger, state, style, transition, animate } from '@angular/animations'
 import { ReturnedUser } from 'src/app/models/UsersTable.model';
 
 @Component({
+  standalone: false,
   selector: 'app-user-payments',
   templateUrl: './users-pay-stats.component.html',
   styleUrls: ['./users-pay-stats.component.css'],

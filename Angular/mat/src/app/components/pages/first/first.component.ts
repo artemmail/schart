@@ -22,6 +22,7 @@ import { DialogService } from 'src/app/service/DialogService.service';
 import { Title } from '@angular/platform-browser';
 
 @Component({
+  standalone: false,
   selector: 'app-first',
   templateUrl: './first.component.html',
   styleUrls: ['./first.component.scss'],

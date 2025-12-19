@@ -7,6 +7,7 @@ import { OptionCodeModel, OptionData } from 'src/app/models/option-data.model';
 import {  OptionCodeService } from 'src/app/service/OptionCodeParserService.service';
 
 @Component({
+  standalone: false,
   selector: 'app-option-details',
   templateUrl: './option-details.component.html',
   styleUrls: ['./option-details.component.css']

@@ -9,6 +9,7 @@ import { DialogService } from 'src/app/service/DialogService.service';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 
 @Component({
+  standalone: false,
   selector: 'app-contract-chart',
   templateUrl: './contract-chart.component.html',
   styleUrls: ['./contract-chart.component.css']

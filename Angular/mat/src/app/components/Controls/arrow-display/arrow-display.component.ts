@@ -1,6 +1,7 @@
 import { Component, Input } from '@angular/core';
 
 @Component({
+  standalone: false,
   selector: 'app-arrow-display',
   templateUrl: './arrow-display.component.html',
   styleUrls: ['./arrow-display.component.css']

@@ -16,6 +16,7 @@ import { Leader } from 'src/app/models/Leaders';
 import { environment } from 'src/app/environment';
 
 @Component({
+  standalone: false,
   selector: 'app-leaderboard-table',
   templateUrl: './leaderboard-table.component.html',
   styleUrls: ['./leaderboard-table.component.css'],

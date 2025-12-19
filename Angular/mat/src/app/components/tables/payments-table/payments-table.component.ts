@@ -9,6 +9,7 @@ import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 
 @Component({
+  standalone: false,
   selector: 'app-payments-table',
   templateUrl: './payments-table.component.html',
   styleUrls: ['./payments-table.component.css']

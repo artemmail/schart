@@ -8,6 +8,7 @@ import { Topic } from 'src/app/models/UserTopic';
 import { Title } from '@angular/platform-browser';
 
 @Component({
+  standalone: false,
   selector: 'app-edit-topic',
   templateUrl: './edit-topic.component.html',
   styleUrls: ['./edit-topic.component.css']

@@ -13,6 +13,7 @@ import { ApplicationUser } from '../models/UserTopic';
 import * as Hammer from 'hammerjs';
 
 @Component({
+  standalone: false,
   selector: 'angular-material-drawer',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']

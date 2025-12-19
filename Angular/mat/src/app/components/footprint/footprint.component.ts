@@ -32,6 +32,7 @@ import { SelectListItemNumber } from 'src/app/models/preserts';
 import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
+  standalone: false,
   selector: 'app-footprint',
   templateUrl: './footprint.component.html',
   styleUrls: ['./footprint.component.css'],

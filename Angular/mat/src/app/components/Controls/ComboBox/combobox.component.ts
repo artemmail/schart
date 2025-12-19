@@ -4,6 +4,7 @@ import { SelectListItemNumber, SelectListItemText } from 'src/app/models/presert
 
 
 @Component({
+  standalone: false,
   selector: 'app-combobox',
   template: `
     <mat-form-field style="width: 100%;">

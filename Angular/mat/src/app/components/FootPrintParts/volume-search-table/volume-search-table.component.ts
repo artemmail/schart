@@ -24,6 +24,7 @@ export interface VolumeSearchParams {
 }
 
 @Component({
+  standalone: false,
   selector: 'app-volume-search-table',
   templateUrl: './volume-search-table.component.html',
   styleUrls: ['./volume-search-table.component.css'],

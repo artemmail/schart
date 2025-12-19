@@ -7,6 +7,7 @@ import { CommonService } from 'src/app/service/common.service';
 import { switchMap } from 'rxjs/operators';
 
 @Component({
+  standalone: false,
   selector: 'app-date-range-selector',
   templateUrl: './date-range-selector.component.html',
   styleUrls: ['./date-range-selector.component.css'],

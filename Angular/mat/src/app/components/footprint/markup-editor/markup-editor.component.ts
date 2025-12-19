@@ -9,6 +9,7 @@ import {
 } from 'src/app/models/preserts';
 
 @Component({
+  standalone: false,
   selector: 'app-markup-editor',
   templateUrl: './markup-editor.component.html',
   styleUrls: ['./markup-editor.component.css'],

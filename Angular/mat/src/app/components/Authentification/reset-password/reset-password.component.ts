@@ -5,6 +5,7 @@ import { DialogService } from 'src/app/service/DialogService.service';
 
 
 @Component({
+  standalone: false,
   selector: 'app-reset-password',
   templateUrl: './reset-password.component.html',
   styleUrls: ['./reset-password.component.css']

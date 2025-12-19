@@ -7,6 +7,7 @@ import { Title } from '@angular/platform-browser';
 import { Comment } from 'src/app/models/UserTopic';
 
 @Component({
+  standalone: false,
   selector: 'app-edit-comment',
   templateUrl: './edit-comment.component.html',
   styleUrls: ['./edit-comment.component.css']

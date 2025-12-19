@@ -3,6 +3,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { OpenPosition } from 'src/app/models/fundamental.model';
 
 @Component({
+  standalone: false,
   selector: 'app-open-positions-table',
   templateUrl: './open-positions-table.component.html',
   styleUrls: ['./open-positions-table.component.css']

@@ -4,6 +4,7 @@ import { contractGroups } from 'src/app/models/option-data.model';
 
 
 @Component({
+  standalone: false,
   selector: 'app-contract-groups',
   templateUrl: './contract-groups.component.html',
   styleUrls: ['./contract-groups.component.css']
