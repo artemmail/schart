@@ -4,7 +4,6 @@
 using DataProvider.Models;
 using DataProvider.Services;
 using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using System;
@@ -317,44 +316,19 @@ public class MissingIntervalsFetcherService : IHostedService, IDisposable
                         if (!MarketInfoServiceHolder.TryGetTicker(r.ticker, out var tickerInfo))
                             throw new InvalidOperationException($"Ticker info not found for {r.ticker}");
 
-                        return new
+                        return new Tradesbinance
                         {
-                            n = r.number,
-                            i = tickerInfo.id,
-                            d = r.datetime,
-                            p = r.price,
-                            q = r.quantity,
-                            v = r.volume,
-                            o = r.OI,
-                            b = r.direction
+                            Id = tickerInfo.id,
+                            Number = r.number,
+                            TradeDate = r.datetime,
+                            Price = r.price,
+                            Quantity = r.quantity,
+                            Direction = (byte)r.direction
                         };
                     }).ToList();
 
-                    string json = JsonConvert.SerializeObject(batchPayload);
-
-                    string sql = $@"
-                    DECLARE @json NVARCHAR(MAX) = @jsonParam
-                    INSERT INTO tradesbinance
-                    SELECT i, n, d, p, q, b
-                    FROM OPENJSON(@json, '$')
-                    WITH(
-                        n bigint       '$.n',
-                        i int          '$.i',
-                        d datetime2    '$.d',
-                        p decimal(18,6)'$.p',
-                        q decimal(18,6)'$.q',
-                        v decimal(18,6)'$.v',
-                        o int          '$.o',
-                        b int          '$.b'
-                    )";
-
-                    var jsonParameter = new SqlParameter("@jsonParam", System.Data.SqlDbType.NVarChar)
-                    {
-                        Value = json
-                    };
-
                     using var context = DatabaseContextFactory.CreateStockProcContext(SQLHelper.ConnectionString);
-                    await context.Database.ExecuteSqlRawAsync(sql, jsonParameter);
+                    await context.InsertTradesBinanceBatchAsync(batchPayload);
                     break; // Успешная вставка, переходим к следующему батчу
                 }
                 catch (SqlException ex) when (IsTransient(ex))
