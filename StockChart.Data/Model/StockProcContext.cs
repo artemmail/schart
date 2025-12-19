@@ -16,6 +16,7 @@ public partial class StockProcContext : ApplicationDbContext
     private DbSet<tickersdatesResult> tickersdates { get; set; }
     private DbSet<TopOrdersResult> TopOrders { get; set; }    
     private DbSet<VolumeSearchResult> VolumeSearch { get; set; }
+    private DbSet<MissingIntervalWithTrades> MissingIntervalsWithTrades { get; set; }
     public StockProcContext()
     {
     }
@@ -38,8 +39,23 @@ public partial class StockProcContext : ApplicationDbContext
         modelBuilder.Entity<tickersdatesResult>().HasNoKey();
         modelBuilder.Entity<TopOrdersResult>().HasNoKey();
         modelBuilder.Entity<VolumeSearchResult>().HasNoKey();
+        modelBuilder.Entity<MissingIntervalWithTrades>().HasNoKey();
         //Thanks Valecass!!!
         base.OnModelCreating(modelBuilder);
+    }
+
+    public List<MissingIntervalWithTrades> GetMissingIntervalsWithTrades(int specificId, DateTime startPeriod, DateTime endPeriod)
+    {
+        var parameters = new[]
+        {
+            new SqlParameter("@SpecificID", SqlDbType.Int) { Value = specificId },
+            new SqlParameter("@StartPeriod", SqlDbType.DateTime) { Value = startPeriod },
+            new SqlParameter("@EndPeriod", SqlDbType.DateTime) { Value = endPeriod }
+        };
+
+        return Database
+            .SqlQueryRaw<MissingIntervalWithTrades>("EXEC sp_GetMissingTrades2 @SpecificID, @StartPeriod, @EndPeriod", parameters)
+            .ToList();
     }
 
 
@@ -618,11 +634,11 @@ public partial class StockProcContext : ApplicationDbContext
     public sealed record VolumeDashboardRow(
     string name,
     string ticker,
-    decimal volume1Day,     // объём за текущую сессию
-    decimal avg3Days,       // среднее за 7 предыдущих торговых дней
-    decimal avg7Days,       // среднее за 7 предыдущих торговых дней
-    decimal avg30Days,      // среднее за 30 предыдущих торговых дней
-    decimal avg90Days,      // и т. д.
+    decimal volume1Day,     // Г®ГЎГєВёГ¬ Г§Г  ГІГҐГЄГіГ№ГіГѕ Г±ГҐГ±Г±ГЁГѕ
+    decimal avg3Days,       // Г±Г°ГҐГ¤Г­ГҐГҐ Г§Г  7 ГЇГ°ГҐГ¤Г»Г¤ГіГ№ГЁГµ ГІГ®Г°ГЈГ®ГўГ»Гµ Г¤Г­ГҐГ©
+    decimal avg7Days,       // Г±Г°ГҐГ¤Г­ГҐГҐ Г§Г  7 ГЇГ°ГҐГ¤Г»Г¤ГіГ№ГЁГµ ГІГ®Г°ГЈГ®ГўГ»Гµ Г¤Г­ГҐГ©
+    decimal avg30Days,      // Г±Г°ГҐГ¤Г­ГҐГҐ Г§Г  30 ГЇГ°ГҐГ¤Г»Г¤ГіГ№ГЁГµ ГІГ®Г°ГЈГ®ГўГ»Гµ Г¤Г­ГҐГ©
+    decimal avg90Days,      // ГЁ ГІ. Г¤.
     decimal avg180Days,
     decimal avg365Days);
 
