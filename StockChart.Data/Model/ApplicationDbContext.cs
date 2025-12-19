@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using StockChart.Model.Settings;
 
 namespace StockChart.Model;
@@ -47,8 +48,8 @@ public class ApplicationUser : IdentityUser<Guid>
 }
 
 
-    public class ApplicationDbContext2
-   : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>
+public class ApplicationDbContext2
+: IdentityDbContext<ApplicationUser, ApplicationRole, Guid>
 {
 
     public ApplicationDbContext2()
@@ -78,7 +79,7 @@ public class ApplicationUser : IdentityUser<Guid>
 
     public virtual DbSet<OpenPosition> OpenPositions { get; set; }
 
-   
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
