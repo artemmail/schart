@@ -1,0 +1,31 @@
+<h1 *ngIf="!fileUrl" mat-dialog-title>Сохранить скриншот графика</h1>
+<h1 *ngIf="fileUrl" mat-dialog-title>Скриншот сохранен</h1>
+<div mat-dialog-content>
+  <form [formGroup]="form" *ngIf="!fileUrl" style="width: 100%;">
+    <mat-form-field style="width: 100%;">
+      <mat-label>Типа файла</mat-label>
+      <mat-select formControlName="fileType">
+        <mat-option value="image/webp">WEBP - современный комактный</mat-option>
+        <mat-option value="image/jpeg">JPG - классика</mat-option>
+        <mat-option value="image/png">PNG - без потерь</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field style="width: 100%;">
+      <mat-label>Имя(не обязательно)</mat-label>
+      <input matInput formControlName="fileName">
+    </mat-form-field>
+  </form>
+  <div *ngIf="fileUrl">
+    <p>Предпросмотр</p>
+    <img [src]="fileUrl" alt="Saved Image" style="max-width: 100%;">
+    <mat-form-field style="width: 100%;">
+      <input matInput [value]="fileUrl" readonly>
+    </mat-form-field>
+  </div>
+</div>
+<div mat-dialog-actions>
+  <button mat-button (click)="onSaveClick()" [disabled]="saving" *ngIf="!fileUrl"><mat-icon>save</mat-icon>Сохранить</button>
+  <button mat-button (click)="onOkClick()" *ngIf="fileUrl"><mat-icon>check</mat-icon>Ok</button>
+  <button mat-button (click)="onCopyLinkClick()" [disabled]="linkCopied" *ngIf="fileUrl"><mat-icon>content_copy</mat-icon>Копировать</button>
+  <button mat-button (click)="onOkClick()" *ngIf="!fileUrl"><mat-icon>cancel</mat-icon>Отмена</button>
+</div>

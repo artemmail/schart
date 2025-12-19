@@ -1,0 +1,28 @@
+
+<!-- settings-dialog.component.html -->
+<h2 mat-dialog-title>Настройки</h2>
+<mat-dialog-content style=" width: 300px;">
+  <!-- Preset Selection -->
+  <mat-form-field class="elementWidth">
+    <mat-label>Выбор пресета</mat-label>
+    <mat-select
+      name="presetIndex"
+      [(ngModel)]="presetIndex"
+      (ngModelChange)="presetChange($event)"
+    >
+      <mat-option
+        *ngFor="let item of presetItems"
+        [value]="item.Value"
+      >
+        {{ item.Text }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <!-- Existing FootPrint Params Component -->
+  <footprint-params [params]="params"></footprint-params>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <button mat-button (click)="closeDialog()">Закрыть</button>
+  <button mat-button color="primary" (click)="applySettings()">Применить</button>
+</mat-dialog-actions>

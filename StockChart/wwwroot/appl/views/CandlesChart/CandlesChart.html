@@ -1,0 +1,25 @@
+﻿<div data-role="view" id="CandlesChart"
+     data-title="Свечной график"  
+     data-stretch="true"
+     data-use-native-scrolling="false"
+     data-model="APP.CandlesChart.model"
+     data-after-show = "APP.CandlesChart.events.afterShow"
+     data-init="APP.CandlesChart.events.init">
+    <header data-role="header">
+        <div data-role="navbar" style="height:3em; margin:0">
+            <a data-role="button" data-rel="drawer" href="#drawer" data-icon="drawer-icon" data-align="left"></a>            
+            <span data-role="view-title"></span>
+            <a data-role="button" data-rel="modalview" href="#CandlesChartModal" data-icon="settings-button" data-align="right"></a>            
+        </div>        
+    </header>    
+  
+
+    <div data-role="content" style="width:100%; height:100%;">
+        <div style="width:100%; height:100%;">
+            <canvas id="myCanvas"></canvas>
+        </div>
+    </div>
+
+    <footer data-role="footer" style=""></footer>
+</div>
+

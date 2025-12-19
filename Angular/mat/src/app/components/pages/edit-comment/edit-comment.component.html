@@ -1,0 +1,37 @@
+<div class="container">
+  <div class="edit-comment-container" *ngIf="loggedIn; else loginMessage">
+    
+    <form [formGroup]="editCommentForm" (ngSubmit)="onSubmit()">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Редактирование комментария</mat-card-title>          
+        </mat-card-header>
+        <mat-card-content>
+        <div class="tinymce-editor-container">
+          <!-- TinyMCE редактор, работающий с Reactive Forms -->
+          <app-editor formControlName="text" [elementId]="'tinymce-editor'" style="width: 100%;"></app-editor>
+          <mat-error *ngIf="editCommentForm.get('text').hasError('required')">
+            Текст обязателен
+          </mat-error>
+        </div>
+
+        <div class="actions">
+          <button mat-raised-button color="primary" type="submit" [disabled]="editCommentForm.invalid">
+            Сохранить изменения
+          </button>
+        </div>
+        </mat-card-content>
+      </mat-card>
+    </form>
+  </div>
+
+  <ng-template #loginMessage>
+    <mat-card>
+      <div class="login-message">
+        <p>
+          <a routerLink="/Identity/Account/Login">Login</a> to edit the comment.
+        </p>
+      </div>
+    </mat-card>
+  </ng-template>
+</div>

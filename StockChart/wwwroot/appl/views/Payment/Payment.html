@@ -1,0 +1,42 @@
+﻿<div data-role="view" id="Payment"
+     data-title="Оплата"
+     data-use-native-scrolling="false"
+     data-stretch="false"
+     data-init="APP.Payment.events.init"
+     data-after-show = "APP.Payment.events.afterShow"
+     data-model="APP.Payment.model">
+
+    <header data-role="header">
+        <div data-role="navbar">
+            <a data-role="button" data-rel="drawer" href="#drawer" data-icon="drawer-icon" data-align="left"></a>
+            <span data-role="view-title"></span>
+            <a data-role="button" data-rel="modalview" onclick="$('#alertsGrid').data('kendoGrid').dataSource.read();" data-icon="refresh-button" data-align="right"></a>            
+        </div>
+    </header>
+
+    <div data-role="content">
+
+        <div data-bind="visible: IsPayed">            
+            <p>
+                Оплатите, что бы получить премиум доступ к сайту http://StockChart.ru, мобильному приложению для андроид и приложению для iPad.
+            </p>
+            <div id="paymentGrid" style="width:100%"></div>          
+        </div>
+
+        <div data-bind="invisible: IsPayed" style="padding:1em">
+            <b>
+                <p class=MsoNormal style='margin-left:18.0pt'>
+                    Для оплаты необходимо залогиниться. 
+                    <br>
+                    Если логина нет, зарегистрировать по адресу  <a rel="nofollow" href="https://ru-ticker.com/Account/Register" >https://ru-ticker.com/Account/Register</a>                    
+                    <br>
+                    Логин нужен для более точной идентификации пользователя и что бы оплата прошла по адресу.
+                </p>
+            </b>
+        </div>
+
+    </div>
+    <div data-role="footer">
+        
+    </div>
+</div>

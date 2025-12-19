@@ -1,0 +1,35 @@
+﻿@{
+    ViewData["Title"] = "MemCache";
+}
+<h2>Кешированные объекты</h2>
+<div id="grid"></div>
+<script type="text/javascript">
+    function qq(a) { return JSON.stringify(a); }
+    $(document).ready(function () {
+        $("#grid").kendoGrid({
+            sortable: true,
+            groupable: false,
+            scrollable: false,
+            //      height: "300px",
+            dataSource: {
+                transport: {
+                    read: {
+                        url: "/Admin/jsonCached",
+                        dataType: "Json"
+                    }
+                }
+            },
+            columns: [
+                { field: "comment", title: "Объект" },
+                { field: "date", title: "Живет до" },
+                {                    field: "count", title: "Обращений" }
+            ]
+        });
+        setInterval(function () {
+            $('#grid').data('kendoGrid').dataSource.read();
+            kendo.ui.progress($('#grid'), false);
+       //     chart.queryCandlesUpdate();
+        }, 1500);
+    });
+</script>
+

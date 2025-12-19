@@ -1,0 +1,127 @@
+﻿@page
+@model PairTradingModel
+@{
+    Layout = "_FullScreen";
+    string title = "Сравнение доходности портфелей";
+    ViewBag.Title=title;
+    ViewBag.AddMenu=
+@"<li>
+<a>Инструменты</a>
+<ul>
+<li><a href='#' onclick='reload_with_params(); return false;'>Получить URL</a></li>
+<li><a href='#' onclick='c.freezeCanvas(); return false;'>Скриншот</a></li>
+</ul>
+</li>";
+}
+@{
+    string ticker1 = Model.ticker1;
+    string ticker2 = Model.ticker2;
+    List<SelectListItem> periods = Model.periods;
+    List<SelectListItem> rperiods = Model.rperiods;
+}
+
+    @using (Html.BeginForm(null, null, FormMethod.Get))
+    {
+        <fieldset class="k-block">
+            <legend>@title</legend>
+            <div class="spanner">&nbsp;</div>
+            <div style="display:block;float:left">
+                <div class="editor-label" style="color:DarkGoldenRod">Портфель 1</div>
+        <input class="k-textbox" id="ticker1" name="ticker1" type="textbox" value="@Model.ticker1" />
+            </div>
+            <div class="spanner">&nbsp;</div>
+            <div style="display:block;float:left">
+                <div class="editor-label" style="color:darkblue">Портфель 2</div>
+        <input class="k-textbox" id="ticker2" name="ticker2" type="textbox" value="@Model.ticker2" />
+            </div>
+            <div class="spanner">&nbsp;</div>
+            <div style="display:block;float:left">
+                <div class="editor-label">Период</div>
+                <div class="editor-field">@Html.DropDownList("period", periods)</div>
+            </div>
+            <div class="spanner">&nbsp;</div>
+            <div style="display:block;float:left">
+                <div class="editor-label">Промежуток</div>
+                <div class="editor-field">@Html.DropDownList("rperiod", rperiods, new { onchange = "updateStartEndDate()" })</div>
+            </div>
+            <div id="startEndDateCont">
+                <div class="spanner">&nbsp;</div>
+                <div style="display:block;float:left">
+                    <div class="editor-label">Начальная дата</div>
+                    <div class="editor-field">@Html.TextBox("startDate", null, new { @class = "date", @size = "10" })</div>
+                </div>
+                <div class="spanner">&nbsp;</div>
+                <div style="display:block;float:left">
+                    <div class="editor-label">Конечная дата</div>
+                    <div class="editor-field">@Html.TextBox("endDate", null, new { @class = "date", @size = "10" })</div>
+                </div>
+            </div>
+            <div id="timeCont">
+                <div class="spanner">&nbsp;</div>
+                <div style="display:block;float:left">
+                    <div class="editor-label">&nbsp;</div>
+                    <div class="editor-field">@Html.CheckBox("timeEnable")Время</div>
+                </div>
+                <div id="startEndTimeCont">
+                    <div class="spanner">&nbsp;</div>
+                    <div style="display:block;float:left">
+                        <div class="editor-label">Начальное время</div>
+                        <div class="editor-field">@Html.TextBox("startTime", null, new { @size = "12" })</div>
+                    </div>
+                    <div class="spanner">&nbsp;</div>
+                    <div style="display:block;float:left">
+                        <div class="editor-label">Конечное время</div>
+                        <div class="editor-field">@Html.TextBox("endTime", null, new { @size = "12" })</div>
+                    </div>
+                </div>
+            </div>
+            <div class="spanner">&nbsp;</div>
+            <input class="k-button" type="button" style="width:90px; height:40px" value="Показать" onclick="c.GetParams();    c.queryPair2();" />    <!--/fieldset-->
+        </fieldset>
+    }
+    <canvas id="myCanvas"></canvas>
+}
+<script type="text/javascript">
+    
+
+    $(document).ready(function () {
+        document.body.style.overflow = 'hidden';
+	MenuAddPair(menu);
+        c = new CandleChart('myCanvas');
+        c.SetMouseCallBacks();
+        c.SetWindowCallBacks();
+        c.GetParams();
+        c.queryPair2();
+        $("#ticker1").autocomplete({
+            source: function (request, response) {
+                $.get(
+                    '/api/common/findbymask', {
+                        type: "Candles",
+                        mask: request.term
+                    });
+            },
+            select: function (event, ui) {
+                  MouseAutoComplete('ticker1',event, ui);
+                c.GetParams(); c.queryPair2();
+                return false;
+            },
+            minLength: 1
+        });
+        $("#ticker2").autocomplete({
+            source: function (request, response) {
+                $.get(
+                    '/api/common/findbymask', {
+                        type: "Candles",
+                        mask: request.term
+                    });
+            },
+            select: function (event, ui) {
+                  MouseAutoComplete('ticker2',event, ui);
+                c.GetParams(); c.queryPair2();
+                return false;
+            },
+            minLength: 1
+        });
+    });
+</script>
+

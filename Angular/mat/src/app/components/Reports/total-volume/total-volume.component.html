@@ -1,0 +1,57 @@
+<mat-card>
+  <mat-card-header>
+    <mat-card-title>
+      Общий объем торгов Московской биржи по дням
+    </mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <form (ngSubmit)="updateChart()" class="form-inline">
+      <div class="flex-container">
+        <div class="flex-item">
+          <app-market-selector
+            [(ngModel)]="selectedMarket"
+            [ngModelOptions]="{ standalone: true }"
+            (selectionChange)="updateChart()"
+          ></app-market-selector>
+        </div>
+
+        <div class="flex-item">
+          <app-combobox
+            [label]="'Год от'"
+            [(value)]="selectedYear"
+            [items]="yearsList"
+            (selectionChange)="updateChart()"
+          ></app-combobox>
+        </div>
+
+        <div class="flex-item">
+          <app-combobox
+            [label]="'Год до'"
+            [(value)]="selectedYear2"
+            [items]="yearsList"
+            (selectionChange)="updateChart()"
+          ></app-combobox>
+        </div>
+
+        <div class="flex-item">
+          <app-combobox
+            [label]="'Шаг'"
+            [(value)]="selectedGroup"
+            [items]="groupList"
+            (selectionChange)="updateChart()"
+          ></app-combobox>
+        </div>
+
+        <div class="flex-item">
+          <button mat-raised-button color="primary" type="submit">
+            Показать
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <div class="canvas-container">
+      <canvas #chartCanvas></canvas>
+    </div>
+  </mat-card-content>
+</mat-card>

@@ -1,0 +1,54 @@
+
+
+    <table mat-table [dataSource]="dataSource" matSort class="mat-table custom-table">
+  
+      <ng-container matColumnDef="Time">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> Time </th>
+        <td mat-cell *matCellDef="let element"> {{element.Time | date:'short'}} </td>
+      </ng-container>
+  
+      <ng-container matColumnDef="Price">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> Price </th>
+        <td mat-cell *matCellDef="let element"> {{element.Price}} </td>
+      </ng-container>
+  
+      <ng-container matColumnDef="MaxVolume">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> Max Volume </th>
+        <td mat-cell *matCellDef="let element"> {{element.MaxVolume}} </td>
+      </ng-container>
+  
+      <ng-container matColumnDef="TotalVolume">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> Total Volume </th>
+        <td mat-cell *matCellDef="let element"> {{element.TotalVolume}} </td>
+      </ng-container>
+  
+      <ng-container matColumnDef="BarSize">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> Bar Size </th>
+        <td mat-cell *matCellDef="let element"> {{element.BarSize}} </td>
+      </ng-container>
+  
+      <ng-container matColumnDef="Trades">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> Trades </th>
+        <td mat-cell *matCellDef="let element"> {{element.Trades}} </td>
+      </ng-container>
+  
+      <ng-container matColumnDef="Ask">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> Ask </th>
+        <td mat-cell *matCellDef="let element"> {{element.Ask}} </td>
+      </ng-container>
+  
+      <ng-container matColumnDef="Bid">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> Bid </th>
+        <td mat-cell *matCellDef="let element"> {{element.Bid}} </td>
+      </ng-container>
+  
+      <ng-container matColumnDef="Delta">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> Delta </th>
+        <td mat-cell *matCellDef="let element"> {{element.Delta}} </td>
+      </ng-container>
+  
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+  
+    <mat-paginator [pageSize]="20" [pageSizeOptions]="[10, 15, 20]" showFirstLastButtons></mat-paginator>

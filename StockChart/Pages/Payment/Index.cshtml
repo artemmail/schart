@@ -1,0 +1,190 @@
+﻿@page
+@model PaymentModel
+@using Microsoft.AspNetCore.Identity
+@using StockChart.Model;
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@{
+
+    ViewData["Title"] = "Оформление подписки на сервис StockChart.ru";
+}
+
+<link href="/Content/payment.css" rel="stylesheet" type="text/css" />
+<!--script src="/Scripts/snow.js" type="text/javascript"></script-->
+
+<div class="widerightsidebar">
+    <div class="blogblock">
+
+        <div class="WordSection1" style="padding: 0px 10px 0px 10px;">
+
+            <!--h1>Администрация сервиса поздравляет с наступающим новым годом предлагает скидку 30% на годовую подписку.</!--h1>
+            <br>
+            <h3>Акция действует до 1 января 2024 года.</h3>
+            <br-->
+
+
+
+            <h6>Выберите подходящий тарифный план</h6>
+
+
+
+
+            <br>
+
+            <div id="example">
+
+
+                <fieldset class="k-block" style="padding:1em;width: 800px;">
+                    <legend style="font-size:20px;">Опции подписки</legend>
+                    <ul style="list-style-type: none; font-size:20px; ">
+                        <li>
+                            <input type="checkbox" id="checkbox1" class="k-checkbox" data-bind="events: { change: onChange }, checked: micex">
+                            <label class="k-checkbox-label" for="checkbox1">Доступ ко всем разделам сайта для ценных бумаг Московской Биржи</label>
+                        </li>
+                        <li>
+                            <input type="checkbox" id="checkbox2" class="k-checkbox" data-bind="events: { change: onChange }, checked: cme">
+                            <label class="k-checkbox-label" for="checkbox2">График FootPrint для Санкт-Петербуржской Биржи/Nasdaq/CME(задержка 10 минут) </label>
+                        </li>
+                        <li>
+                            <input type="checkbox" id="checkbox3" class="k-checkbox" data-bind="events: { change: onChange }, checked: crypto">
+                            <label class="k-checkbox-label" for="checkbox3">Криптовалюта: биржи Binance и Bittrex</label>
+                        </li>
+
+                    </ul>
+                </fieldset>
+
+                @if (Model.Referal != null)
+                {
+                    <p>
+                        <h6>Вас пригласил наш пользователь, а значит у вас есть возможность оформить подписку со значительной скидкой!</h6>
+                    </p>
+                }
+
+                <div id="grid" style="width: 800px; font-size: 18px"></div>
+                <br />
+                <b style="font-size: 13px">Залогинтесь и нажмите "Оформить". Оплата банковской картой или "Яндекс-деньгами". Премиум доступ активируется в течении минуты после оплаты.</b>
+            </div>
+
+            @if (Model.UserInfo != null && Model.UserInfo.ExpireDate != null)
+            {
+                <b>
+                    <p class=MsoNormal>
+                        Для вашего аккаунта уже оплачена подписка до @Model.UserInfo.ExpireDate.ToString("d MMMM yyyy г. hh:mm", System.Globalization.CultureInfo.GetCultureInfo("RU-ru")), оформленный срок подписки будет добавлен к этой дате
+                    </p>
+                </b>
+            }
+
+            <br />
+            <p>Премиум пользователи получают:</p>
+            <ul>
+                <li>Полное отключение рекламы</li>
+                <li>Поступление данных в реальном времени</li>
+                <li>Доступ к FootPrint with MarketDelta чарту с обновлениями в реальном времени</li>
+                <li>Доступ к Горизонтальным объемам обновлениями в реальном времени</li>
+                <li>Сканер рынка &ndash; максимальные всплески объемов. Отчет, который показывает бумаги с аномальной активностью последнее время</li>
+                <li>Сканер рынка &ndash; крупнейшие сделки. Поиск сделок максимального объема на истории</li>
+                <li>Мультиграфики (9 на странице) - обновление в реальном времени</li>
+                <li>Доступ к Горизонтальным объемам с обновлениями в реальном времени</li>
+                <li>Оптимизация портфеля по Портфельной Теории Марковица</li>
+                <li>Графики сравнения стоимости портфелей на истории</li>
+                <li>Обновление портфеля в реальном времени</li>
+                <li><a href="https://itunes.apple.com/us/app/ru-ticker-footprint-chart/id1092838399?l=ru&amp;ls=1&amp;mt=8">Приложения для Apple iPad и iPhone</a></li>
+            </ul>
+
+            <p>Стандартная премиум подписка включает срочный, фондовый и валютный рынки Московской биржи</p>
+            <p>Для доступа к западным рынкам - CME с 10 минутной задержкой и Nasdaq без задержек существуют отдельные тарифы. Для доступа к западным рынков временно доступна только помесячная оплата.</p>
+            <p>В случае возникших проблем и вопросов пишите на ruticker@gmail.com</p>
+
+            <p>Прежде чем написать в службу поддержк с вопросом по оплате, попробуйте найти ответ в разделе <a href="/ServiceNews/Details/97">FAQ по оплате</a></p>
+
+            @if (Model.UserInfo != null && Model.UserInfo.ExpireDate != null && Model.UserInfo.ExpireDate != Model.UserInfo.PayDate)
+            {
+                <b> <p class=MsoNormal>Оплачено до  @Model.UserInfo.ExpireDate.ToString("d MMMM yyyy г. hh:mm", System.Globalization.CultureInfo.GetCultureInfo("RU-ru"))</p> </b>
+            }
+        </div>
+
+        <div id="window">
+            <b>
+                <p class=MsoNormal style='margin-left:18.0pt'>
+                    Для оплаты нужно сделать следующее:
+                    <br>
+                    1. Получить логин (зарегестрироваться), если его нет, тут: <a rel="nofollow" href="http://ru-ticker.com/Account/Register" title="http://ru-ticker.com/Register">http://ru-ticker.com/Account/Register</a>
+                    <br>
+                    2. Залогинится тут: <a rel="nofollow" href="http://ru-ticker.com/Account/LogOn" title="http://ru-ticker.com/Account/LogOn">http://ru-ticker.com/Account/LogOn</a>
+                    <br>
+                    3. Зайти на эту страницу и еще раз и выбрать оформление снова
+                    <a rel="nofollow" href="http://ru-ticker.com/Payment" title="http://ru-ticker.com/Payment">http://ru-ticker.com/Payment</a>
+                    <br>
+                    Логин нужен для более точной идентификации пользователя и что бы оплата прошла по адресу!
+                </p>
+            </b>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+
+
+
+        function generateForm(params) {
+            let s = '<form method="POST" action="https://yoomoney.ru/quickpay/confirm.xml">';
+            for (let p in params)
+                s += '<input type="hidden" name="{0}" value="{1}">'.format(p, params[p]);
+            s += '<input type="submit" class="k-button k-button-icontext k-grid-Оформить" value="Оформить"></form>';
+            return s;
+        }
+
+        function getPaymentButton(data) {
+            let params = { receiver: 410011635522558, label: data.BillId, targets: data.message, sum: data.money, paymentType: viewModel.paymentType, "quickpay-form": "donate" };
+            return generateForm(params);
+        };
+
+
+        var refreshGrid = function (service) {
+            $("#grid").kendoGrid({
+                sortable: true,
+                groupable: false,
+                scrollable: false,
+                dataSource: {
+                    transport: {
+                        read: {
+                            url: sitePrefix + 'api/billing/Tarifs?service=' + service + '&guid=@Model.ProviderUserKey', dataType: "Json"
+                        }
+                    }
+                },
+                columns: [
+                    { field: "period", title: "Период подписки", template: '#=  data.period #' },
+                    { field: "price", title: "Цена подписки", template: '#=  data.price #' },
+                    { field: "monthprice", title: "Цена в месяц", template: '#=  data.monthprice #' },
+
+    @if (SignInManager.IsSignedIn(User))
+    {
+        @Html.Raw("{ title: '', template: getPaymentButton } ")
+    }
+    else
+    {
+        @Html.Raw("{ command: { text: 'Оформить', click: showDetails }, title: '', width: '80px' }")
+    }
+                    ]
+            });
+        };
+
+        var viewModel = kendo.observable({
+            micex: true, cme: false, nasdaq: false, crypto: false, paymentType: "AC",
+
+            onChange: function () {
+                var res = (this.micex ? 1 : 0) | (this.cme ? 2 : 0) | (this.crypto ? 4 : 0);
+                refreshGrid(res);
+            },
+        });
+
+        kendo.bind($("#example"), viewModel);
+        viewModel.onChange();
+        var myWindow = $("#window");
+        myWindow.kendoWindow({ title: "Оформление подписки", visible: false, actions: ["Close"], resizable: false }).data("kendoWindow").center();
+        function showDetails(e) {
+            myWindow.data("kendoWindow").open();
+        }
+    });
+</script>

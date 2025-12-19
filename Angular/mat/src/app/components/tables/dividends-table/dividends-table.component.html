@@ -1,0 +1,50 @@
+
+
+
+<h2>{{data.Description || "нет информации"}}</h2>
+
+
+
+<div class="canvas-container" style="position: relative; height:40vh;">
+    <canvas #chartCanvas></canvas>
+  </div>
+  
+
+<div *ngIf="dataSource$ | async as data">
+
+  <h2>{{data.Title}}</h2>
+
+<mat-card >      
+    <mat-table [dataSource]="data.Dividends" >
+      <!-- Buy Before Column -->
+      <ng-container matColumnDef="buyBefore">
+        <mat-header-cell *matHeaderCellDef> Купить до </mat-header-cell>
+        <mat-cell *matCellDef="let element"> {{element.BuyBefore}} </mat-cell>
+      </ng-container>
+  
+      <!-- Record Date Column -->
+      <ng-container matColumnDef="recordDate">
+        <mat-header-cell *matHeaderCellDef> Дата отсечки </mat-header-cell>
+        <mat-cell *matCellDef="let element"> {{element.RecordDate}} </mat-cell>
+      </ng-container>
+  
+      <!-- Dividend Column -->
+      <ng-container matColumnDef="dividend">
+        <mat-header-cell *matHeaderCellDef> Дивиденд </mat-header-cell>
+        <mat-cell *matCellDef="let element"> {{element.Dividend}} руб </mat-cell>
+      </ng-container>
+  
+      <!-- Yield Column -->
+      <ng-container matColumnDef="yield">
+        <mat-header-cell *matHeaderCellDef> Доходность </mat-header-cell>
+        <mat-cell *matCellDef="let element"> {{element.Yield}} </mat-cell>
+      </ng-container>
+  
+      <!-- Header and Rows -->
+      <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+    </mat-table>
+  </mat-card>
+
+
+</div>

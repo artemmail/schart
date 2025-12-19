@@ -1,0 +1,1472 @@
+[
+  {
+    "name": "revenue",
+    "year": "2022Q2",
+    "value": 6.9
+  },
+  {
+    "name": "revenue",
+    "year": "2022Q3",
+    "value": 4.23
+  },
+  {
+    "name": "revenue",
+    "year": "2022Q4",
+    "value": 4.08
+  },
+  {
+    "name": "revenue",
+    "year": "2023Q2",
+    "value": 8.56
+  },
+  {
+    "name": "revenue",
+    "year": "2023Q3",
+    "value": 5.98
+  },
+  {
+    "name": "revenue",
+    "year": "2023Q4",
+    "value": 6.34
+  },
+  {
+    "name": "revenue",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "revenue",
+    "year": "2024Q2",
+    "value": 12.66
+  },
+  {
+    "name": "ebitda",
+    "year": "2022Q2",
+    "value": 1.3
+  },
+  {
+    "name": "ebitda",
+    "year": "2022Q3",
+    "value": 1.27
+  },
+  {
+    "name": "ebitda",
+    "year": "2022Q4",
+    "value": 1.48
+  },
+  {
+    "name": "ebitda",
+    "year": "2023Q2",
+    "value": 2.51
+  },
+  {
+    "name": "ebitda",
+    "year": "2023Q3",
+    "value": 1.97
+  },
+  {
+    "name": "ebitda",
+    "year": "2023Q4",
+    "value": 1.94
+  },
+  {
+    "name": "ebitda",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "ebitda",
+    "year": "2024Q2",
+    "value": 2.858
+  },
+  {
+    "name": "net_income",
+    "year": "2022Q2",
+    "value": -0.45
+  },
+  {
+    "name": "net_income",
+    "year": "2022Q3",
+    "value": 0.54
+  },
+  {
+    "name": "net_income",
+    "year": "2022Q4",
+    "value": 0.72
+  },
+  {
+    "name": "net_income",
+    "year": "2023Q2",
+    "value": 0.73
+  },
+  {
+    "name": "net_income",
+    "year": "2023Q3",
+    "value": 0.67
+  },
+  {
+    "name": "net_income",
+    "year": "2023Q4",
+    "value": 0.53
+  },
+  {
+    "name": "net_income",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "net_income",
+    "year": "2024Q2",
+    "value": 0.523
+  },
+  {
+    "name": "ocf",
+    "year": "2023Q2",
+    "value": 2.95
+  },
+  {
+    "name": "ocf",
+    "year": "2023Q3",
+    "value": null
+  },
+  {
+    "name": "ocf",
+    "year": "2023Q4",
+    "value": null
+  },
+  {
+    "name": "ocf",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "ocf",
+    "year": "2024Q2",
+    "value": 3.5
+  },
+  {
+    "name": "capex",
+    "year": "2022Q2",
+    "value": 0.22
+  },
+  {
+    "name": "capex",
+    "year": "2022Q3",
+    "value": 0.1
+  },
+  {
+    "name": "capex",
+    "year": "2022Q4",
+    "value": 0.13
+  },
+  {
+    "name": "capex",
+    "year": "2023Q2",
+    "value": 0.34
+  },
+  {
+    "name": "capex",
+    "year": "2023Q3",
+    "value": 1.6
+  },
+  {
+    "name": "capex",
+    "year": "2023Q4",
+    "value": 0.36
+  },
+  {
+    "name": "capex",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "capex",
+    "year": "2024Q2",
+    "value": 0.218
+  },
+  {
+    "name": "fcf",
+    "year": "2023Q2",
+    "value": -0.369
+  },
+  {
+    "name": "fcf",
+    "year": "2023Q3",
+    "value": null
+  },
+  {
+    "name": "fcf",
+    "year": "2023Q4",
+    "value": null
+  },
+  {
+    "name": "fcf",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "fcf",
+    "year": "2024Q2",
+    "value": -2.275
+  },
+  {
+    "name": "opex",
+    "year": "2023Q2",
+    "value": 1.128
+  },
+  {
+    "name": "opex",
+    "year": "2023Q3",
+    "value": null
+  },
+  {
+    "name": "opex",
+    "year": "2023Q4",
+    "value": null
+  },
+  {
+    "name": "opex",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "opex",
+    "year": "2024Q2",
+    "value": 1.724
+  },
+  {
+    "name": "cost_of_production",
+    "year": "2023Q2",
+    "value": 5.561
+  },
+  {
+    "name": "cost_of_production",
+    "year": "2023Q3",
+    "value": null
+  },
+  {
+    "name": "cost_of_production",
+    "year": "2023Q4",
+    "value": null
+  },
+  {
+    "name": "cost_of_production",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "cost_of_production",
+    "year": "2024Q2",
+    "value": 8.994
+  },
+  {
+    "name": "amortization",
+    "year": "2023Q2",
+    "value": 0.391
+  },
+  {
+    "name": "amortization",
+    "year": "2023Q3",
+    "value": null
+  },
+  {
+    "name": "amortization",
+    "year": "2023Q4",
+    "value": null
+  },
+  {
+    "name": "amortization",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "amortization",
+    "year": "2024Q2",
+    "value": 0.592
+  },
+  {
+    "name": "interest_expenses",
+    "year": "2023Q2",
+    "value": 0.628
+  },
+  {
+    "name": "interest_expenses",
+    "year": "2023Q3",
+    "value": null
+  },
+  {
+    "name": "interest_expenses",
+    "year": "2023Q4",
+    "value": null
+  },
+  {
+    "name": "interest_expenses",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "interest_expenses",
+    "year": "2024Q2",
+    "value": 2.724
+  },
+  {
+    "name": "assets",
+    "year": "2021Q4",
+    "value": 18.8
+  },
+  {
+    "name": "assets",
+    "year": "2022Q2",
+    "value": null
+  },
+  {
+    "name": "assets",
+    "year": "2022Q3",
+    "value": null
+  },
+  {
+    "name": "assets",
+    "year": "2022Q4",
+    "value": 20.1
+  },
+  {
+    "name": "assets",
+    "year": "2023Q2",
+    "value": null
+  },
+  {
+    "name": "assets",
+    "year": "2023Q3",
+    "value": null
+  },
+  {
+    "name": "assets",
+    "year": "2023Q4",
+    "value": 36.4
+  },
+  {
+    "name": "assets",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "assets",
+    "year": "2024Q2",
+    "value": 37.121
+  },
+  {
+    "name": "net_assets",
+    "year": "2021Q4",
+    "value": 0.46
+  },
+  {
+    "name": "net_assets",
+    "year": "2022Q2",
+    "value": null
+  },
+  {
+    "name": "net_assets",
+    "year": "2022Q3",
+    "value": null
+  },
+  {
+    "name": "net_assets",
+    "year": "2022Q4",
+    "value": 3.04
+  },
+  {
+    "name": "net_assets",
+    "year": "2023Q2",
+    "value": null
+  },
+  {
+    "name": "net_assets",
+    "year": "2023Q3",
+    "value": null
+  },
+  {
+    "name": "net_assets",
+    "year": "2023Q4",
+    "value": 2.58
+  },
+  {
+    "name": "net_assets",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "net_assets",
+    "year": "2024Q2",
+    "value": 6.879
+  },
+  {
+    "name": "debt",
+    "year": "2021Q4",
+    "value": 6.1
+  },
+  {
+    "name": "debt",
+    "year": "2022Q2",
+    "value": null
+  },
+  {
+    "name": "debt",
+    "year": "2022Q3",
+    "value": null
+  },
+  {
+    "name": "debt",
+    "year": "2022Q4",
+    "value": 15.85
+  },
+  {
+    "name": "debt",
+    "year": "2023Q2",
+    "value": null
+  },
+  {
+    "name": "debt",
+    "year": "2023Q3",
+    "value": null
+  },
+  {
+    "name": "debt",
+    "year": "2023Q4",
+    "value": 29.75
+  },
+  {
+    "name": "debt",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "debt",
+    "year": "2024Q2",
+    "value": 27.943
+  },
+  {
+    "name": "cash",
+    "year": "2021Q4",
+    "value": 1.18
+  },
+  {
+    "name": "cash",
+    "year": "2022Q2",
+    "value": null
+  },
+  {
+    "name": "cash",
+    "year": "2022Q3",
+    "value": null
+  },
+  {
+    "name": "cash",
+    "year": "2022Q4",
+    "value": 1.61
+  },
+  {
+    "name": "cash",
+    "year": "2023Q2",
+    "value": null
+  },
+  {
+    "name": "cash",
+    "year": "2023Q3",
+    "value": null
+  },
+  {
+    "name": "cash",
+    "year": "2023Q4",
+    "value": 9.52
+  },
+  {
+    "name": "cash",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "cash",
+    "year": "2024Q2",
+    "value": 3.045
+  },
+  {
+    "name": "net_debt",
+    "year": "2020Q4",
+    "value": 0.0
+  },
+  {
+    "name": "net_debt",
+    "year": "2021Q4",
+    "value": 4.92
+  },
+  {
+    "name": "net_debt",
+    "year": "2022Q2",
+    "value": 0.0
+  },
+  {
+    "name": "net_debt",
+    "year": "2022Q3",
+    "value": 0.0
+  },
+  {
+    "name": "net_debt",
+    "year": "2022Q4",
+    "value": 14.24
+  },
+  {
+    "name": "net_debt",
+    "year": "2023Q2",
+    "value": 0.0
+  },
+  {
+    "name": "net_debt",
+    "year": "2023Q3",
+    "value": 0.0
+  },
+  {
+    "name": "net_debt",
+    "year": "2023Q4",
+    "value": 20.23
+  },
+  {
+    "name": "net_debt",
+    "year": "2024Q1",
+    "value": 0.0
+  },
+  {
+    "name": "net_debt",
+    "year": "2024Q2",
+    "value": 24.898
+  },
+  {
+    "name": "common_share",
+    "year": "2020Q4",
+    "value": 255.0
+  },
+  {
+    "name": "common_share",
+    "year": "2021Q4",
+    "value": 255.0
+  },
+  {
+    "name": "common_share",
+    "year": "2022Q2",
+    "value": null
+  },
+  {
+    "name": "common_share",
+    "year": "2022Q3",
+    "value": null
+  },
+  {
+    "name": "common_share",
+    "year": "2022Q4",
+    "value": 255.0
+  },
+  {
+    "name": "common_share",
+    "year": "2023Q2",
+    "value": null
+  },
+  {
+    "name": "common_share",
+    "year": "2023Q3",
+    "value": null
+  },
+  {
+    "name": "common_share",
+    "year": "2023Q4",
+    "value": 265.0
+  },
+  {
+    "name": "common_share",
+    "year": "2024Q1",
+    "value": 315.3
+  },
+  {
+    "name": "common_share",
+    "year": "2024Q2",
+    "value": 310.1
+  },
+  {
+    "name": "number_of_shares",
+    "year": "2020Q4",
+    "value": 172.0
+  },
+  {
+    "name": "number_of_shares",
+    "year": "2021Q4",
+    "value": 172.0
+  },
+  {
+    "name": "number_of_shares",
+    "year": "2022Q2",
+    "value": 208.0
+  },
+  {
+    "name": "number_of_shares",
+    "year": "2022Q3",
+    "value": 208.0
+  },
+  {
+    "name": "number_of_shares",
+    "year": "2022Q4",
+    "value": 172.0
+  },
+  {
+    "name": "number_of_shares",
+    "year": "2023Q2",
+    "value": 208.0
+  },
+  {
+    "name": "number_of_shares",
+    "year": "2023Q3",
+    "value": 208.0
+  },
+  {
+    "name": "number_of_shares",
+    "year": "2023Q4",
+    "value": 172.0
+  },
+  {
+    "name": "number_of_shares",
+    "year": "2024Q1",
+    "value": 172.0
+  },
+  {
+    "name": "number_of_shares",
+    "year": "2024Q2",
+    "value": 172.0
+  },
+  {
+    "name": "market_cap",
+    "year": "2020Q4",
+    "value": 43.86
+  },
+  {
+    "name": "market_cap",
+    "year": "2021Q4",
+    "value": 43.86
+  },
+  {
+    "name": "market_cap",
+    "year": "2022Q2",
+    "value": 0.0
+  },
+  {
+    "name": "market_cap",
+    "year": "2022Q3",
+    "value": 0.0
+  },
+  {
+    "name": "market_cap",
+    "year": "2022Q4",
+    "value": 43.86
+  },
+  {
+    "name": "market_cap",
+    "year": "2023Q2",
+    "value": 0.0
+  },
+  {
+    "name": "market_cap",
+    "year": "2023Q3",
+    "value": 0.0
+  },
+  {
+    "name": "market_cap",
+    "year": "2023Q4",
+    "value": 45.58
+  },
+  {
+    "name": "market_cap",
+    "year": "2024Q1",
+    "value": 54.2316
+  },
+  {
+    "name": "market_cap",
+    "year": "2024Q2",
+    "value": 53.3372
+  },
+  {
+    "name": "ev",
+    "year": "2020Q4",
+    "value": 43.86
+  },
+  {
+    "name": "ev",
+    "year": "2021Q4",
+    "value": 48.78
+  },
+  {
+    "name": "ev",
+    "year": "2022Q2",
+    "value": 0.0
+  },
+  {
+    "name": "ev",
+    "year": "2022Q3",
+    "value": 0.0
+  },
+  {
+    "name": "ev",
+    "year": "2022Q4",
+    "value": 58.1
+  },
+  {
+    "name": "ev",
+    "year": "2023Q2",
+    "value": 0.0
+  },
+  {
+    "name": "ev",
+    "year": "2023Q3",
+    "value": 0.0
+  },
+  {
+    "name": "ev",
+    "year": "2023Q4",
+    "value": 65.81
+  },
+  {
+    "name": "ev",
+    "year": "2024Q1",
+    "value": 54.2316
+  },
+  {
+    "name": "ev",
+    "year": "2024Q2",
+    "value": 78.2352
+  },
+  {
+    "name": "book_value",
+    "year": "2020Q4",
+    "value": 0.0
+  },
+  {
+    "name": "book_value",
+    "year": "2021Q4",
+    "value": 0.06
+  },
+  {
+    "name": "book_value",
+    "year": "2022Q2",
+    "value": 0.0
+  },
+  {
+    "name": "book_value",
+    "year": "2022Q3",
+    "value": 0.0
+  },
+  {
+    "name": "book_value",
+    "year": "2022Q4",
+    "value": 2.54
+  },
+  {
+    "name": "book_value",
+    "year": "2023Q2",
+    "value": 0.0
+  },
+  {
+    "name": "book_value",
+    "year": "2023Q3",
+    "value": 0.0
+  },
+  {
+    "name": "book_value",
+    "year": "2023Q4",
+    "value": 2.078
+  },
+  {
+    "name": "book_value",
+    "year": "2024Q1",
+    "value": 0.0
+  },
+  {
+    "name": "book_value",
+    "year": "2024Q2",
+    "value": 6.429
+  },
+  {
+    "name": "eps",
+    "year": "2020Q4",
+    "value": 0.0
+  },
+  {
+    "name": "eps",
+    "year": "2021Q4",
+    "value": 0.0
+  },
+  {
+    "name": "eps",
+    "year": "2022Q2",
+    "value": -2.16346153846
+  },
+  {
+    "name": "eps",
+    "year": "2022Q3",
+    "value": 2.59615384615
+  },
+  {
+    "name": "eps",
+    "year": "2022Q4",
+    "value": 4.18604651163
+  },
+  {
+    "name": "eps",
+    "year": "2023Q2",
+    "value": 3.50961538462
+  },
+  {
+    "name": "eps",
+    "year": "2023Q3",
+    "value": 3.22115384615
+  },
+  {
+    "name": "eps",
+    "year": "2023Q4",
+    "value": 3.08139534884
+  },
+  {
+    "name": "eps",
+    "year": "2024Q1",
+    "value": 0.0
+  },
+  {
+    "name": "eps",
+    "year": "2024Q2",
+    "value": 3.04069767442
+  },
+  {
+    "name": "fcf_share",
+    "year": "2020Q4",
+    "value": 0.0
+  },
+  {
+    "name": "fcf_share",
+    "year": "2021Q4",
+    "value": 0.0
+  },
+  {
+    "name": "fcf_share",
+    "year": "2022Q2",
+    "value": 0.0
+  },
+  {
+    "name": "fcf_share",
+    "year": "2022Q3",
+    "value": 0.0
+  },
+  {
+    "name": "fcf_share",
+    "year": "2022Q4",
+    "value": 0.0
+  },
+  {
+    "name": "fcf_share",
+    "year": "2023Q2",
+    "value": -1.77403846154
+  },
+  {
+    "name": "fcf_share",
+    "year": "2023Q3",
+    "value": 0.0
+  },
+  {
+    "name": "fcf_share",
+    "year": "2023Q4",
+    "value": 0.0
+  },
+  {
+    "name": "fcf_share",
+    "year": "2024Q1",
+    "value": 0.0
+  },
+  {
+    "name": "fcf_share",
+    "year": "2024Q2",
+    "value": -13.226744186
+  },
+  {
+    "name": "bv_share",
+    "year": "2020Q4",
+    "value": 0.0
+  },
+  {
+    "name": "bv_share",
+    "year": "2021Q4",
+    "value": 0.348837209302
+  },
+  {
+    "name": "bv_share",
+    "year": "2022Q2",
+    "value": 0.0
+  },
+  {
+    "name": "bv_share",
+    "year": "2022Q3",
+    "value": 0.0
+  },
+  {
+    "name": "bv_share",
+    "year": "2022Q4",
+    "value": 14.7674418605
+  },
+  {
+    "name": "bv_share",
+    "year": "2023Q2",
+    "value": 0.0
+  },
+  {
+    "name": "bv_share",
+    "year": "2023Q3",
+    "value": 0.0
+  },
+  {
+    "name": "bv_share",
+    "year": "2023Q4",
+    "value": 12.0813953488
+  },
+  {
+    "name": "bv_share",
+    "year": "2024Q1",
+    "value": 0.0
+  },
+  {
+    "name": "bv_share",
+    "year": "2024Q2",
+    "value": 37.3779069767
+  },
+  {
+    "name": "ebitda_margin",
+    "year": "2022Q2",
+    "value": 18.8405797101
+  },
+  {
+    "name": "ebitda_margin",
+    "year": "2022Q3",
+    "value": 30.023640661899996
+  },
+  {
+    "name": "ebitda_margin",
+    "year": "2022Q4",
+    "value": 36.2745098039
+  },
+  {
+    "name": "ebitda_margin",
+    "year": "2023Q2",
+    "value": 29.322429906500002
+  },
+  {
+    "name": "ebitda_margin",
+    "year": "2023Q3",
+    "value": 32.9431438127
+  },
+  {
+    "name": "ebitda_margin",
+    "year": "2023Q4",
+    "value": 30.599369085200003
+  },
+  {
+    "name": "ebitda_margin",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "ebitda_margin",
+    "year": "2024Q2",
+    "value": 22.5750394945
+  },
+  {
+    "name": "net_margin",
+    "year": "2022Q2",
+    "value": -6.52173913043
+  },
+  {
+    "name": "net_margin",
+    "year": "2022Q3",
+    "value": 12.7659574468
+  },
+  {
+    "name": "net_margin",
+    "year": "2022Q4",
+    "value": 17.6470588235
+  },
+  {
+    "name": "net_margin",
+    "year": "2023Q2",
+    "value": 8.52803738318
+  },
+  {
+    "name": "net_margin",
+    "year": "2023Q3",
+    "value": 11.2040133779
+  },
+  {
+    "name": "net_margin",
+    "year": "2023Q4",
+    "value": 8.359621451099999
+  },
+  {
+    "name": "net_margin",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "net_margin",
+    "year": "2024Q2",
+    "value": 4.13112164297
+  },
+  {
+    "name": "fcf_yield",
+    "year": "2020Q4",
+    "value": 0.0
+  },
+  {
+    "name": "fcf_yield",
+    "year": "2021Q4",
+    "value": 0.0
+  },
+  {
+    "name": "fcf_yield",
+    "year": "2022Q2",
+    "value": null
+  },
+  {
+    "name": "fcf_yield",
+    "year": "2022Q3",
+    "value": null
+  },
+  {
+    "name": "fcf_yield",
+    "year": "2022Q4",
+    "value": 0.0
+  },
+  {
+    "name": "fcf_yield",
+    "year": "2023Q2",
+    "value": null
+  },
+  {
+    "name": "fcf_yield",
+    "year": "2023Q3",
+    "value": null
+  },
+  {
+    "name": "fcf_yield",
+    "year": "2023Q4",
+    "value": 0.0
+  },
+  {
+    "name": "fcf_yield",
+    "year": "2024Q1",
+    "value": -0.680415108535
+  },
+  {
+    "name": "fcf_yield",
+    "year": "2024Q2",
+    "value": -4.2653157646099995
+  },
+  {
+    "name": "roe",
+    "year": "2021Q4",
+    "value": 0.0
+  },
+  {
+    "name": "roe",
+    "year": "2022Q2",
+    "value": null
+  },
+  {
+    "name": "roe",
+    "year": "2022Q3",
+    "value": null
+  },
+  {
+    "name": "roe",
+    "year": "2022Q4",
+    "value": 26.6447368421
+  },
+  {
+    "name": "roe",
+    "year": "2023Q2",
+    "value": null
+  },
+  {
+    "name": "roe",
+    "year": "2023Q3",
+    "value": null
+  },
+  {
+    "name": "roe",
+    "year": "2023Q4",
+    "value": 74.8062015504
+  },
+  {
+    "name": "roe",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "roe",
+    "year": "2024Q2",
+    "value": 25.0472452391
+  },
+  {
+    "name": "roa",
+    "year": "2021Q4",
+    "value": 0.0
+  },
+  {
+    "name": "roa",
+    "year": "2022Q2",
+    "value": null
+  },
+  {
+    "name": "roa",
+    "year": "2022Q3",
+    "value": null
+  },
+  {
+    "name": "roa",
+    "year": "2022Q4",
+    "value": 4.02985074627
+  },
+  {
+    "name": "roa",
+    "year": "2023Q2",
+    "value": null
+  },
+  {
+    "name": "roa",
+    "year": "2023Q3",
+    "value": null
+  },
+  {
+    "name": "roa",
+    "year": "2023Q4",
+    "value": 5.3021978022
+  },
+  {
+    "name": "roa",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "roa",
+    "year": "2024Q2",
+    "value": 4.64157754371
+  },
+  {
+    "name": "p_e",
+    "year": "2022Q2",
+    "value": 0.0
+  },
+  {
+    "name": "p_e",
+    "year": "2022Q3",
+    "value": 0.0
+  },
+  {
+    "name": "p_e",
+    "year": "2022Q4",
+    "value": 54.1481481481
+  },
+  {
+    "name": "p_e",
+    "year": "2023Q2",
+    "value": 0.0
+  },
+  {
+    "name": "p_e",
+    "year": "2023Q3",
+    "value": 0.0
+  },
+  {
+    "name": "p_e",
+    "year": "2023Q4",
+    "value": 23.6165803109
+  },
+  {
+    "name": "p_e",
+    "year": "2024Q1",
+    "value": 28.0992746114
+  },
+  {
+    "name": "p_e",
+    "year": "2024Q2",
+    "value": 30.9560069646
+  },
+  {
+    "name": "p_fcf",
+    "year": "2023Q2",
+    "value": 0.0
+  },
+  {
+    "name": "p_fcf",
+    "year": "2023Q3",
+    "value": null
+  },
+  {
+    "name": "p_fcf",
+    "year": "2023Q4",
+    "value": null
+  },
+  {
+    "name": "p_fcf",
+    "year": "2024Q1",
+    "value": -146.969105691
+  },
+  {
+    "name": "p_fcf",
+    "year": "2024Q2",
+    "value": -23.4449230769
+  },
+  {
+    "name": "p_s",
+    "year": "2022Q2",
+    "value": 0.0
+  },
+  {
+    "name": "p_s",
+    "year": "2022Q3",
+    "value": 0.0
+  },
+  {
+    "name": "p_s",
+    "year": "2022Q4",
+    "value": 2.88362919132
+  },
+  {
+    "name": "p_s",
+    "year": "2023Q2",
+    "value": 0.0
+  },
+  {
+    "name": "p_s",
+    "year": "2023Q3",
+    "value": 0.0
+  },
+  {
+    "name": "p_s",
+    "year": "2023Q4",
+    "value": 2.18295019157
+  },
+  {
+    "name": "p_s",
+    "year": "2024Q1",
+    "value": 2.59729885057
+  },
+  {
+    "name": "p_s",
+    "year": "2024Q2",
+    "value": 2.13519615693
+  },
+  {
+    "name": "p_bv",
+    "year": "2021Q4",
+    "value": 731.0
+  },
+  {
+    "name": "p_bv",
+    "year": "2022Q2",
+    "value": null
+  },
+  {
+    "name": "p_bv",
+    "year": "2022Q3",
+    "value": null
+  },
+  {
+    "name": "p_bv",
+    "year": "2022Q4",
+    "value": 17.2677165354
+  },
+  {
+    "name": "p_bv",
+    "year": "2023Q2",
+    "value": null
+  },
+  {
+    "name": "p_bv",
+    "year": "2023Q3",
+    "value": null
+  },
+  {
+    "name": "p_bv",
+    "year": "2023Q4",
+    "value": 21.9345524543
+  },
+  {
+    "name": "p_bv",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "p_bv",
+    "year": "2024Q2",
+    "value": 8.29634468813
+  },
+  {
+    "name": "ev_ebitda",
+    "year": "2022Q2",
+    "value": 0.0
+  },
+  {
+    "name": "ev_ebitda",
+    "year": "2022Q3",
+    "value": 0.0
+  },
+  {
+    "name": "ev_ebitda",
+    "year": "2022Q4",
+    "value": 14.3456790123
+  },
+  {
+    "name": "ev_ebitda",
+    "year": "2023Q2",
+    "value": 0.0
+  },
+  {
+    "name": "ev_ebitda",
+    "year": "2023Q3",
+    "value": 0.0
+  },
+  {
+    "name": "ev_ebitda",
+    "year": "2023Q4",
+    "value": 10.2507788162
+  },
+  {
+    "name": "ev_ebitda",
+    "year": "2024Q1",
+    "value": 8.44728971963
+  },
+  {
+    "name": "ev_ebitda",
+    "year": "2024Q2",
+    "value": 11.5595744681
+  },
+  {
+    "name": "debt_ebitda",
+    "year": "2022Q2",
+    "value": 0.0
+  },
+  {
+    "name": "debt_ebitda",
+    "year": "2022Q3",
+    "value": 0.0
+  },
+  {
+    "name": "debt_ebitda",
+    "year": "2022Q4",
+    "value": 3.51604938272
+  },
+  {
+    "name": "debt_ebitda",
+    "year": "2023Q2",
+    "value": 0.0
+  },
+  {
+    "name": "debt_ebitda",
+    "year": "2023Q3",
+    "value": 0.0
+  },
+  {
+    "name": "debt_ebitda",
+    "year": "2023Q4",
+    "value": 3.15109034268
+  },
+  {
+    "name": "debt_ebitda",
+    "year": "2024Q1",
+    "value": 0.0
+  },
+  {
+    "name": "debt_ebitda",
+    "year": "2024Q2",
+    "value": 3.67878250591
+  },
+  {
+    "name": "r_and_d_capex",
+    "year": "2022Q2",
+    "value": 0.0
+  },
+  {
+    "name": "r_and_d_capex",
+    "year": "2022Q3",
+    "value": 0.0
+  },
+  {
+    "name": "r_and_d_capex",
+    "year": "2022Q4",
+    "value": 0.0
+  },
+  {
+    "name": "r_and_d_capex",
+    "year": "2023Q2",
+    "value": 0.0
+  },
+  {
+    "name": "r_and_d_capex",
+    "year": "2023Q3",
+    "value": 0.0
+  },
+  {
+    "name": "r_and_d_capex",
+    "year": "2023Q4",
+    "value": 0.0
+  },
+  {
+    "name": "r_and_d_capex",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "r_and_d_capex",
+    "year": "2024Q2",
+    "value": 0.0
+  },
+  {
+    "name": "capex_revenue",
+    "year": "2022Q2",
+    "value": 3.1884057971
+  },
+  {
+    "name": "capex_revenue",
+    "year": "2022Q3",
+    "value": 2.36406619385
+  },
+  {
+    "name": "capex_revenue",
+    "year": "2022Q4",
+    "value": 3.1862745098
+  },
+  {
+    "name": "capex_revenue",
+    "year": "2023Q2",
+    "value": 3.9719626168200004
+  },
+  {
+    "name": "capex_revenue",
+    "year": "2023Q3",
+    "value": 26.7558528428
+  },
+  {
+    "name": "capex_revenue",
+    "year": "2023Q4",
+    "value": 5.6782334384899995
+  },
+  {
+    "name": "capex_revenue",
+    "year": "2024Q1",
+    "value": null
+  },
+  {
+    "name": "capex_revenue",
+    "year": "2024Q2",
+    "value": 1.72195892575
+  }
+]

@@ -1,0 +1,15 @@
+<div *ngIf="isInited; else loading">
+
+  <div class="content overflow-hidden">
+    <div id="container">
+      <app-footprint [params]="params" #footPrint></app-footprint>
+    </div>
+  </div>
+
+</div>
+
+<ng-template #loading>
+  <div class="spinner-container">
+    <mat-spinner></mat-spinner>
+  </div>
+</ng-template>

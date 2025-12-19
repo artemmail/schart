@@ -1,0 +1,34 @@
+/* Стили для компонента marketmap */
+.content {
+  position: relative;
+  /* Убираем height и overflow */
+}
+
+#container {
+  position: relative;
+  width: 100%;
+  /* Высота устанавливается через JavaScript */
+}
+
+/* Стили для родительских компонентов */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow: auto; /* Разрешаем прокрутку */
+}
+
+.sidenav-container {
+  height: 100%;
+}
+
+.sidenav-content {
+  flex: 1;
+  overflow: auto;
+}
+
+.main-content {
+  flex: 1;
+  position: relative;
+  overflow: auto;
+}

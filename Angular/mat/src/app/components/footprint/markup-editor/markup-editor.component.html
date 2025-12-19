@@ -1,0 +1,129 @@
+<mat-dialog-content class="dense-space">
+  <mat-toolbar>
+    <mat-button-toggle-group
+      #group="matButtonToggleGroup"
+      [multiple]="false"
+      [(ngModel)]="markup.mode"
+      [hideSingleSelectionIndicator]="true"
+    >
+      <mat-button-toggle value="Edit" (click)="onClick(group.value)" style="padding: 1px;"
+        ><mat-icon>open_with</mat-icon></mat-button-toggle
+      >
+      <mat-button-toggle value="Brush" (click)="onClick(group.value)"
+        ><mat-icon>brush</mat-icon></mat-button-toggle
+      >
+      <mat-button-toggle value="Line" (click)="onClick(group.value)"
+        ><mat-icon>timeline</mat-icon></mat-button-toggle
+      >
+      <mat-button-toggle value="Rect" (click)="onClick(group.value)"
+        ><mat-icon>crop_16_9</mat-icon></mat-button-toggle
+      >
+      <mat-button-toggle value="Text" (click)="onClick(group.value)"
+        ><mat-icon>title</mat-icon></mat-button-toggle
+      >
+      <mat-button-toggle value="Profile" (click)="onClick(group.value)"
+        >  <mat-icon class="rotate-icon">bar_chart</mat-icon></mat-button-toggle
+      >
+    </mat-button-toggle-group>
+  </mat-toolbar>
+
+  <fieldset class="markup-editor-fieldset">
+    <ul class="markup-editor-list">
+      <li>
+        {{markup.mode}}
+      </li>
+      <li *ngIf="markup.visible.id">
+        <h3><label for="elementid">ElementId</label></h3>
+        <input matInput id="elementid" [value]="markup.id" readonly />
+      </li>
+
+      <li *ngIf="markup.visible.toolbar">
+        <button mat-raised-button  (click)="onDelete($event)">
+          <mat-icon>delete</mat-icon>
+          Удалить
+        </button>
+      </li>
+
+      <li *ngIf="markup.visible.color">       
+        <palette-picker
+          [(ngModel)]="markup.color"
+          [colors]="[
+            '#F08080',
+            '#FFA500',
+            '#F0E68C',
+            '#90EE90',
+            '#87CEFA',
+            '#1E90FF',
+            '#FF90FF',
+            '#000000',
+          ]"
+          [squareSize]="25"
+          (colorChange)="markupchangecolor($event)"
+        ></palette-picker>
+      </li>
+
+      <li *ngIf="markup.visible.width">
+        <app-combobox
+          [label]="'Markup width'"
+          [(value)]="markup.width"
+          [items]="widths"
+          (selectionChange)="markupchangecolor($event)"
+        ></app-combobox>
+      </li>
+
+      <li *ngIf="markup.visible.font">
+        <app-combobox
+          [label]="'Font size'"
+          [(value)]="markup.font"
+          [items]="fonts"
+          (selectionChange)="markupchangecolor($event)"
+        ></app-combobox>
+      </li>
+
+      <li *ngIf="markup.visible.text">
+        <mat-form-field appearance="fill">
+          <mat-label>Text</mat-label>
+          <textarea
+            matInput
+            [(ngModel)]="markup.text"
+            (keyup)="markupchangecolor($event)"
+            (change)="markupchangecolor($event)"
+          ></textarea>
+        </mat-form-field>
+      </li>
+      
+      <li *ngIf="markup.visible.arrow">
+        <mat-checkbox
+          [(ngModel)]="markup.arrow"
+          (change)="markupchangecolor($event)"
+          >Arrow</mat-checkbox
+        >
+      </li>
+
+      <li *ngIf="markup.visible.profile">
+        <mat-checkbox
+          [(ngModel)]="markup.total"
+          (change)="markupchangecolor($event)"
+          >Total volume</mat-checkbox
+        >
+      </li>
+
+      <li *ngIf="markup.visible.profile">
+        <mat-checkbox
+          [(ngModel)]="markup.dockable"
+          (change)="markupchangecolor($event)"
+          >Dockable</mat-checkbox
+        >
+      </li>
+
+      <li *ngIf="markup.visible.profile">
+        <app-combobox
+          [label]="'Auto-profile'"
+          [(value)]="markup.profilePeriod"
+          [items]="profilePeriods"
+          (selectionChange)="onChange($event)"
+        ></app-combobox>
+      </li>
+    </ul>
+  </fieldset>
+</mat-dialog-content>

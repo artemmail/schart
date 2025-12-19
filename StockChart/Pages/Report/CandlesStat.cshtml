@@ -1,0 +1,189 @@
+﻿@page
+@model CandlesStatModel
+@{
+    string ticker = Model.ticker;
+    List<SelectListItem> periods = Model.Periods;
+    List<SelectListItem> rperiods = Model.RPeriods;
+    string startEndStyle = "";
+    string title = "Статистика свечного графика";
+    ViewData["Title"] = title + " для " + Model.tickername;
+    ViewData["rperiod"] = "month";
+    string repriod = "month";
+}
+<div class="widerightsidebar">
+    <div class="blogblock">
+        <h6>@title</h6>
+        <fieldset class="k-block" style="width:100%">
+            <legend>Количественный анализ котировок</legend>
+            @using (Html.BeginForm(null, null, FormMethod.Get))
+            {
+                <div class="spanner">&nbsp;</div>
+                <div style="display: block; float: left">
+                    <div class="k-label">Тикер</div>
+                    <input class="k-textbox" id="ticker" name="ticker" type="textbox" value="@ticker" />
+                </div>
+                <div class="spanner">&nbsp;</div>
+                <div style="display: block; float: left">
+                    <div class="editor-label">Период</div>
+                    <div class="editor-field">@Html.DropDownList("period", periods)</div>
+                </div>
+                <div class="spanner">&nbsp;</div>
+                <div style="display: block; float: left">
+                    <div class="editor-label">Промежуток</div>
+                    <div class="editor-field">@Html.DropDownList("rperiod", rperiods)</div>
+                </div>
+                <div id="startEndDateCont" style=@startEndStyle>
+                    <div class="spanner">&nbsp;</div>
+                    <div style="display: block; float: left">
+                        <div class="editor-label">Начальная дата</div>
+                        <div class="editor-field">@Html.TextBox("startDate", null, new { @class = "date", @size = "12" })</div>
+                    </div>
+                    <div class="spanner">&nbsp;</div>
+                    <div style="display: block; float: left">
+                        <div class="editor-label">Конечная дата</div>
+                        <div class="editor-field">@Html.TextBox("endDate", null, new { @class = "date", @size = "12" })</div>
+                    </div>
+                </div>
+                <div class="spanner">&nbsp;</div>
+                <input class="k-button" id="submit" type="button" style="width: 90px; height: 37px" value="Показать" onclick="ShowProfit();" />
+            }
+
+        </fieldset>
+    </div>
+</div>
+
+<div class="widerightsidebar">
+    <div class="blogblock">
+
+        <div style="width: 100%">
+            <div style="width: 100%; height: 450px; display: block; float: left;">
+                <div id="map4" style="width: 50%; height: 450px; display: block; float: left;"></div>
+                <div id="map3" style="width: 50%; height: 450px; display: block; float: left;"></div>
+            </div>
+            <div id="map2" style="width: 100%; height: 450px; display: block; float: left;"></div>
+            <div id="map1" style="width: 100%; height: 450px; display: block; float: left;"></div>
+        </div>
+    </div>
+</div>
+
+
+
+<script type="text/javascript">
+    function ShowProfit() {
+        var params = {};
+        var paramNames = ['ticker', 'period', 'rperiod', 'startDate', 'endDate'];
+        for (var key in paramNames)
+            if (document.getElementById(paramNames[key])) params[paramNames[key]] = document.getElementById(paramNames[key]).value;
+        $.get(
+            '/api/Candles/getStats',
+            params,
+            function (data) {
+                //alert(JSON.stringify(data));
+                $("#map3").kendoChart({
+                    dataSource: {
+                        data: data.Series.Grow
+                    },
+                    title: {
+                        text: 'Свечей роста подряд',
+                    },
+                    series: [{
+                        type: "line",
+                        aggregate: "avg",
+                        field: "Count",
+                        categoryField: "Candles"
+                    }]
+                });
+                $("#map4").kendoChart({
+                    dataSource: {
+                        data: data.Series.Fall
+                    },
+                    title: {
+                        text: 'Свечей падения подряд',
+                    },
+                    series: [{
+                        type: "line",
+                        aggregate: "avg",
+                        field: "Count",
+                        categoryField: "Candles"
+                    }]
+                });
+                $("#map2").kendoChart({
+                    dataSource: {
+                        data: data.VolumeStat
+                    },
+                    title: {
+                        text: 'Динамика объёма внутри дня (срееднее за период)',
+                    },
+                    categoryAxis: {
+                        labels: {
+                            rotation: 325,
+                            step: 1
+                        },
+                        majorGridLines: {
+                            visible: false
+                        }
+                    },
+                    series: [{
+                        type: "column",
+                        aggregate: "avg",
+                        field: "Volume",
+                        categoryField: "Date"
+                    }]
+                });
+                $("#map1").kendoChart({
+                    dataSource: {
+                        data: data.ATRStat
+                    },
+                    title: {
+                        text: 'Динамика ATR внутри дня',
+                    },
+                    legend: {
+                        position: "bottom"
+                    },
+                    seriesDefaults: {
+                        type: "line",
+                        gap: 0,
+                        spacing: 0
+                    },
+                    series: [{ "field": "Min", "name": "ATR(Min)" }, { "field": "Max", "name": "ATR(Max)" }, { "field": "Avg", "name": "ATR(Avg)" }],
+                    categoryAxis: {
+                        field: "Date",
+                        labels: {
+                            rotation: 325,
+                            step: 1
+                        },
+                        majorGridLines: {
+                            visible: false
+                        }
+                    },
+                    valueAxis: {
+                        line: {
+                            visible: false
+                        }
+                    }
+                });
+            });
+    }
+    $(document).ready(
+        function () {
+            $("#ticker").autocomplete({
+                source: function (request, response) {
+                    $.get(
+                        '/api/common/findbymask', {
+                        mask: request.term
+                    },
+                        function (data) {
+                            response(data);
+                        });
+                },
+                select: function (event, ui) {
+                    // MouseAutoComplete('ticker', event, ui);
+                    ShowProfit();
+                    return false;
+                },
+                minLength: 1
+            });
+            ShowProfit();
+        }
+    );
+</script>

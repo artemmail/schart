@@ -1,0 +1,96 @@
+﻿using StockProject.Cache;
+using StockProject.MemCache;
+using StockProject.Models;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Web.Mvc;
+using System.Web.Security;
+namespace StockProject.Controllers
+{
+    public class PortfolioController: BaseController
+    {
+        //
+        // GET: /PortfolioOptimization/
+        [LayoutInjecter("_LayoutReport")]
+        public ActionResult Index()
+        {
+            ViewBag.Periods=Service.MultiPeriods.GetSelectedList(1);
+            ViewBag.Portfolios=Service.PortfolioItems.GetSelectedList(0);
+            return View();
+        }
+        public JsonResult jsonPortfolio(int portfolionumber)
+        {
+            try
+            {
+                MembershipUser user = Membership.GetUser();
+                var userId = (Guid)user.ProviderUserKey;
+                var s = string.Format("exec dbo.getusershares '{0}',{1}", userId, portfolionumber);
+                //var t = SQLHelper.DataTableFromQuery(s);
+                var shares = SQLHelper.listFromQuery<Portfolio>(s);
+                s=string.Format("exec dbo.getuserballance '{0}',{1}", userId, portfolionumber);
+                decimal ballance = (decimal)SQLHelper.ScalarFromQuery(s);
+                decimal nowcost = 0;
+                decimal buycost = 0;
+                decimal profit = 0;
+                foreach (var v in shares)
+                {
+                    nowcost+=(decimal)v.nowcost;
+                    buycost+=(decimal)v.buycost;
+                    profit+=(decimal)v.profit;
+                }
+                if (shares.Count!=0)
+                    shares.Add(new Portfolio { ticker=ProtfolioTableToFormula(shares), name="Итого", nowcost=nowcost, buycost=buycost, profit=profit });
+                //if (portfolionumber!=0)
+                shares.Add(new Portfolio { name="Свободные средства", nowcost=ballance });
+                shares.Add(new Portfolio { name="Цена портфеля", nowcost=ballance+nowcost });
+                return Json(shares, JsonRequestBehavior.AllowGet);
+            }
+            catch
+            {
+                return Json("ok", JsonRequestBehavior.AllowGet);
+            }
+        }
+        public JsonResult jsonPortfolioOrder(string ticker, int quantity, int PortfolioNumber)
+        {
+            try
+            {
+                MembershipUser user = Membership.GetUser();
+                var userId = (Guid)user.ProviderUserKey;
+                var s = string.Format("exec dbo.UserMarketOrder '{0}','{1}',{2},{3}", userId, ticker, quantity, PortfolioNumber);
+                return Json(SQLHelper.listFromQuery<Portfolio>(s), JsonRequestBehavior.AllowGet);
+            }
+            catch
+            {
+                return Json("ok", JsonRequestBehavior.AllowGet);
+            }
+        }
+        public JsonResult jsonPortfolioformula(int portfolio1, int portfolio2)
+        {
+            try
+            {
+                return Json(new { res1 = PortfolioFormulaString(portfolio1), res2 = PortfolioFormulaString(portfolio2) }, JsonRequestBehavior.AllowGet);
+            }
+            catch
+            {
+                return Json("ok", JsonRequestBehavior.AllowGet);
+            }
+        }
+        private string ProtfolioTableToFormula(List<Portfolio> shares)
+        {
+            StringBuilder res = new StringBuilder();
+            foreach (var v in shares)
+            {
+                if (res.Length>0)
+                    res.Append('+');
+                res.Append(string.Format("{0}*{1}", v.ticker, v.quantity));
+            }
+            return res.ToString();
+        }
+        private string PortfolioFormulaString(int portfolionumber)
+        {
+            var s = string.Format("exec dbo.getusershares '{0}',{1}", (Guid)Membership.GetUser().ProviderUserKey, portfolionumber);
+            return ProtfolioTableToFormula(SQLHelper.listFromQuery<Portfolio>((s)));
+        }
+    }
+}

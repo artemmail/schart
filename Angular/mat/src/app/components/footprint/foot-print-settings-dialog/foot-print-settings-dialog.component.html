@@ -1,0 +1,200 @@
+<mat-dialog-content class="dense-space">
+  <mat-tab-group style="width: 520px;">
+    <mat-tab label="Блоки">
+      <div style="padding: 2px">
+        <h3>Общий объем</h3>
+        <mat-form-field appearance="fill">
+          <mat-label>Общий объем</mat-label>
+          <mat-select [(ngModel)]="fp.FPsettings.totalMode" (selectionChange)="onChange($event)">
+            <mat-option *ngFor="let mode of totalModes" [value]="mode.Value">{{ mode.Text }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <h3>Верхний блок</h3>
+        <div>
+          <mat-checkbox [(ngModel)]="fp.FPsettings.Head" (change)="onChange($event)">Head</mat-checkbox>
+        </div>
+        <div *ngIf="fp.FPsettings.Head">
+          <div>
+            <mat-checkbox [(ngModel)]="fp.FPsettings.TopVolumes" (change)="onChange($event)">Объемы вверху</mat-checkbox>
+          </div>
+          <div>
+            <mat-checkbox [(ngModel)]="fp.FPsettings.oiEnable" (change)="onChange($event)">Открытый интерес(дельта)</mat-checkbox>
+          </div>
+        </div>
+        <h3>Нижние блоки</h3>
+        <div>
+          <mat-checkbox [(ngModel)]="fp.FPsettings.SeparateVolume" (change)="onChange($event)">Объемы</mat-checkbox>
+        </div>
+        <div>
+          <mat-checkbox [(ngModel)]="fp.FPsettings.OI" (change)="onChange($event)">OI</mat-checkbox>
+        </div>
+        <div>
+          <mat-checkbox [(ngModel)]="fp.FPsettings.OIDelta" (change)="onChange($event)">OI Delta</mat-checkbox>
+        </div>
+        <div>
+          <mat-checkbox [(ngModel)]="fp.FPsettings.Delta" (change)="onChange($event)">Delta</mat-checkbox>
+        </div>
+        <div>
+          <mat-checkbox [(ngModel)]="fp.FPsettings.DeltaBars" (change)="onChange($event)">DeltaBars</mat-checkbox>
+        </div>
+      </div>
+    </mat-tab>
+    <mat-tab label="Поведение">
+      <div>
+        <div>
+          <mat-checkbox [(ngModel)]="fp.FPsettings.Contracts" (change)="onChange($event)">Объем в контрактах</mat-checkbox>
+        </div>
+        <div>
+          <mat-checkbox [(ngModel)]="fp.FPsettings.ShrinkY" (change)="onChange($event)">Adjust to viewport</mat-checkbox>
+        </div>
+        <div>
+          <mat-checkbox [(ngModel)]="fp.FPsettings.ToolTip" (change)="onChange($event)">Тултип</mat-checkbox>
+        </div>
+        <div>
+          <mat-checkbox [(ngModel)]="fp.FPsettings.ExtendedToolTip" (change)="onChange($event)">Buy/Sell в Тултип</mat-checkbox>
+        </div>
+      </div>
+    </mat-tab>
+    <mat-tab label="Кластера" style="width: 500px;">
+      <div  style="width: 500px; overflow: hidden;">
+      <div  style="width: 500px;">
+        <h3>Режим отображения кластеров</h3>
+        <mat-button-toggle-group [(ngModel)]="fp.FPsettings.style" (change)="onChange($event)" [hideSingleSelectionIndicator]="true">
+          
+            <mat-button-toggle value="Ruticker">Classic</mat-button-toggle>
+          
+          
+            <mat-button-toggle value="ASKxBID">MarketDelta</mat-button-toggle>
+          
+          
+            <mat-button-toggle value="VolumeDelta">Volume+Delta</mat-button-toggle>
+          
+          
+            <mat-button-toggle value="Volume">Volume</mat-button-toggle>
+          
+          
+            <mat-button-toggle value="Density">Плотность</mat-button-toggle>
+          
+        </mat-button-toggle-group>
+        
+      <div>        
+        <div  [innerHTML]="getHtmlContent()"></div>
+      </div>
+
+
+
+        <div *ngIf="fp.FPsettings.style=='Volume'">
+          <h3>Фильтрация кластеров</h3>
+          <mat-form-field appearance="fill">
+            <mat-label>Объем больше</mat-label>
+            <input matInput type="number" [(ngModel)]="fp.levelMarksService.markParamsData.filters.volume1" 
+            (change)="onChangeVolume($event)" style="background: Coral; width: 80px;">
+          </mat-form-field>
+          <mat-form-field appearance="fill">
+            <mat-label>Объем больше</mat-label>
+            <input matInput type="number" [(ngModel)]="fp.levelMarksService.markParamsData.filters.volume2"
+            (change)="onChangeVolume($event)" style="background: Gold; width: 80px;">
+          </mat-form-field>
+        </div>
+        <div *ngIf="fp.FPsettings.style=='Ruticker'">
+          <h3>Отображение ASK и BID</h3>
+          <mat-button-toggle-group [(ngModel)]="fp.FPsettings.classic" (change)="onChange($event)">            
+              <mat-button-toggle value="ASK+BID">ASK+BID</mat-button-toggle>                      
+              <mat-button-toggle value="ASK/BID">ASK/BID</mat-button-toggle>                      
+              <mat-button-toggle value="ASK-BID">ASK-BID</mat-button-toggle>                      
+              <mat-button-toggle value="ASK">ASK</mat-button-toggle>            
+              <mat-button-toggle value="BID">BID</mat-button-toggle>            
+              <mat-button-toggle value="Tree">Tree</mat-button-toggle>            
+          </mat-button-toggle-group>
+          <div >        
+            {{classicStyles[settings.classic]}}
+          </div>
+        </div>
+        <div *ngIf="fp.FPsettings.style=='VolumeDelta'">
+          <h3>Стиль</h3>
+          <mat-button-toggle-group [(ngModel)]="fp.FPsettings.deltaStyle" (change)="onChange($event)">            
+              <mat-button-toggle value="Tree">Tree</mat-button-toggle>            
+              <mat-button-toggle value="Delta">Delta</mat-button-toggle>            
+          </mat-button-toggle-group>
+          <div style="width: 600px;">        
+            {{deltaStyles[settings.deltaStyle]}}
+          </div>
+        </div>
+        <div>
+          <h3>Второй слой кластеров</h3>
+          <mat-form-field appearance="fill">
+            <mat-label>Второй слой кластеров</mat-label>
+            <mat-select [(ngModel)]="markup.profilePeriod" (selectionChange)="onChange($event)">
+              <mat-option *ngFor="let period of profilePeriods" [value]="period.Value">{{ period.Text }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <div>
+            <mat-checkbox [(ngModel)]="fp.FPsettings.MaxTrades" (change)="onChange($event)">Максимальные сделки</mat-checkbox>
+          </div>
+          <div>
+            <mat-checkbox [(ngModel)]="fp.FPsettings.Postmarket" (change)="onChange($event)">Postmarket</mat-checkbox>
+          </div>
+          <div>
+            <mat-checkbox [(ngModel)]="fp.FPsettings.OpenClose" (change)="onChange($event)">Open/Close</mat-checkbox>
+          </div>
+        </div>
+      </div>
+    </div>
+    </mat-tab>
+    <mat-tab label="Свечи">
+      
+        <div>
+          <mat-checkbox [(ngModel)]="fp.FPsettings.Bars" (change)="onChange($event)">Отображать свечи как бары</mat-checkbox>
+        </div>
+        <div>
+          <mat-checkbox [(ngModel)]="fp.FPsettings.CandlesOnly" (change)="onChangeReload($event)">Скачивать только свечи</mat-checkbox>
+        </div>
+        <mat-form-field appearance="fill">
+          <mat-label>Сжимать кластера в свечи</mat-label>
+          <mat-select [(ngModel)]="fp.FPsettings.CompressToCandles" (selectionChange)="onChangeReload($event)">
+            <mat-option *ngFor="let mode of candleModes" [value]="mode.Value">{{ mode.Text }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      
+    </mat-tab>
+
+
+
+    <mat-tab label="Пресет">
+      <div>
+        <mat-form-field>
+          <mat-label>Выбор пресета</mat-label>
+          <mat-select [(ngModel)]="fp.presetIndex" (ngModelChange)="presetChange($event)">
+            <mat-option *ngFor="let item of fp.presetItems" [value]="item.Value">{{  item.Text }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+        
+      <div>
+        <mat-form-field>
+          <mat-label>Имя пресета</mat-label>
+          <input matInput type="text" [(ngModel)]="fp.FPsettings.Name">
+        </mat-form-field>
+      </div>
+      <div>
+        
+      </div>
+      <div>
+        <mat-checkbox [(ngModel)]="fp.FPsettings.Default" (change)="onChange($event)">Использовать по умолчанию</mat-checkbox>
+      </div>
+
+      
+
+      <div>
+        <button mat-button (click)="delete()">
+          <mat-icon>delete</mat-icon>
+          Удалить
+        </button>
+        <button mat-button (click)="save()">Клонировать</button>
+      </div>
+      <div><br></div>
+    </mat-tab>
+
+    
+  </mat-tab-group>
+</mat-dialog-content>

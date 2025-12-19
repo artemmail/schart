@@ -1,0 +1,9 @@
+<div *ngIf="message; else errorTemplate">
+  <p>{{ message }}</p>
+  <a (click)="redirectToHome()">Вернуться на главную страницу</a>
+</div>
+
+<ng-template #errorTemplate>
+  <p>{{ error }}</p>
+  <a (click)="redirectToHome()">Вернуться на главную страницу</a>
+</ng-template>

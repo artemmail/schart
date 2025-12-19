@@ -1,0 +1,86 @@
+<div class="card-row-container">
+  <!-- Основная информация о фьючерсе -->
+  <mat-card *ngIf="futInfo">
+    <mat-card-header>
+      <mat-card-title>Детали Фьючерса</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <!-- Сообщение об ошибке -->
+      <div *ngIf="errorMessage">
+        <mat-error>{{ errorMessage }}</mat-error>
+      </div>
+
+      <!-- Основная информация о фьючерсе -->
+      <mat-list>
+
+        <mat-list-item>
+          <strong>Группа фьючерсов:</strong> {{ group }}
+        </mat-list-item>
+
+        <mat-list-item>
+          <strong>Базовый актив:</strong> {{ name }}
+        </mat-list-item>
+
+        <mat-list-item>
+          <strong>Короткое название (кластерный график):</strong> 
+          <a [routerLink]="['/FootPrint']" [queryParams]="{ ticker: futInfo.shortName, period: 1440, rperiod: 'year' }">{{futInfo.shortName}}</a>          
+        </mat-list-item>
+
+        <mat-list-item>
+          <strong>Полное название:</strong> {{ futInfo.fullName }}
+        </mat-list-item>
+
+        <mat-list-item>
+          <strong>Шаг цены:</strong> {{ futInfo.minStep }}
+        </mat-list-item>
+
+        <mat-list-item>
+          <strong>Дата истечения:</strong> {{ futInfo.expriation | date: 'dd.MM.yyyy' }}
+        </mat-list-item>
+
+        <mat-list-item>
+          <strong>Последняя цена:</strong> {{ futInfo.lastPrice }}
+        </mat-list-item>
+
+        <mat-list-item>
+          <strong>Объём:</strong> {{ futInfo.volume | moneyToStr }}
+        </mat-list-item>
+
+        <mat-list-item>
+          <strong>Open Interest (OI):</strong> {{ futInfo.oi }} (Δ: {{ futInfo.oiDelta }})
+        </mat-list-item>
+      </mat-list>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Карточка для других фьючерсов -->
+  <mat-card *ngIf="futInfo?.another_futures?.length > 0">
+    <mat-card-header>
+      <mat-card-title>Другие фьючерсы из серии</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <mat-list>
+        <mat-list-item *ngFor="let future of futInfo.another_futures">
+          <a [routerLink]="['/futures', future.Securityid]">{{ future.Securityid }}</a>: {{ future.lastPrice }}
+        </mat-list-item>
+      </mat-list>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Карточка для опционов -->
+  <mat-card *ngIf="futInfo?.options?.length > 0">
+    <mat-card-header>
+      <mat-card-title>Опционы</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <mat-list>
+        <mat-list-item *ngFor="let option of futInfo.options">
+          <a [routerLink]="['/option', option]">{{ option }}</a>
+        </mat-list-item>
+      </mat-list>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -1,0 +1,30 @@
+﻿@page
+@{
+    ViewBag.Title = "Персональная информация";
+}
+<h2>Персональная информация</h2>
+<div id="grid" style="width: 1380px;"></div>
+<div id="grid2" style="width: 1380px;"></div>
+<script type="text/javascript">    
+    $(document).ready(function () {
+        $("#grid").kendoGrid({
+            sortable: true,
+            groupable: false,
+            scrollable: false,
+            //      height: "300px",
+            dataSource: {
+                transport: {
+                    read: {
+                        url: "/api/Admin/ClientInfo",
+                        dataType: "Json"
+                    }
+                }
+            },
+            columns: [
+                { field: "Parameter", title: "Параметр" },
+                { field: "Value", title: "Значение" },
+            ]
+        });
+    });
+</script>
+<div style="width:1px;height:925px;display:block;"></div>

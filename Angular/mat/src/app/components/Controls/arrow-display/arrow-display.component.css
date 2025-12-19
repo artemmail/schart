@@ -1,0 +1,12 @@
+.arrow-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 4px; /* Вы можете изменить высоту контейнера */
+  }
+
+  .arrow {
+    
+   
+    transform-origin: center;
+  }

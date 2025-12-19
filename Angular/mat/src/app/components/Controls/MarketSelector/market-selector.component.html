@@ -1,0 +1,9 @@
+<!-- market-selector.component.html -->
+<mat-form-field style="width: 100%;">
+  <mat-label>Выберите рынок</mat-label>
+  <mat-select [value]="selectedMarketValue" (selectionChange)="onSelectionChange($event)">
+    <mat-option *ngFor="let market of markets" [value]="market.Value">
+      {{ market.Text }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>

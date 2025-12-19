@@ -1,0 +1,57 @@
+<!-- src/app/components/option-details/option-details.component.html -->
+<mat-card class="container">
+  <mat-card-header>
+    <mat-card-title>Детали Опциона</mat-card-title>
+  </mat-card-header>
+
+  <mat-card-content>
+    <!-- Сообщение об ошибке -->
+    <div *ngIf="errorMessage">
+      <mat-error>{{ errorMessage }}</mat-error>
+    </div>
+
+    <!-- Данные опции -->
+    <div *ngIf="optionData">
+      <mat-list>
+
+        <mat-list-item>        
+          <strong>Базовый актив</strong> {{ optionData.ContractResult.name }}
+        </mat-list-item>
+
+        <mat-list-item>
+          <strong>Короткий код</strong> {{ optionData.ContractResult.code_base }}
+        </mat-list-item>
+
+        <mat-list-item>
+          <strong>Длинный код</strong> {{ optionData.ContractResult.code_futures }}
+        </mat-list-item>
+        <mat-list-item>
+          <strong>Код Актива:</strong> {{ optionData.assetSymbol }}
+        </mat-list-item>
+        <mat-list-item>
+          <strong>Цена Страйка:</strong> {{ optionData.strikePrice }}
+        </mat-list-item>
+        <mat-list-item>
+          <strong>Тип Расчетов:</strong> {{ optionData.optionType }}
+        </mat-list-item>
+        <mat-list-item>
+          <strong>Дата Исполнения:</strong> {{ optionData.executionDate  | date:'dd.MM.yyyy'}}
+        </mat-list-item>
+        <mat-list-item *ngIf="optionData.expType">
+          <strong>Тип Экспирации:</strong> {{ optionData.expType }}
+        </mat-list-item>
+
+        <mat-list-item *ngIf="optionData.fullCalcType">
+          <strong>Тип Опциона:</strong> {{ optionData.fullCalcType }}
+        </mat-list-item>
+
+        
+
+        <mat-list-item>
+          <strong>Недельный:</strong> {{ optionData.isWeek ? 'Да' : 'Нет' }}
+        </mat-list-item>
+                   
+      </mat-list>
+    </div>
+  </mat-card-content>
+</mat-card>

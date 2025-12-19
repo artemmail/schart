@@ -1,0 +1,77 @@
+<div *ngIf="filename; else uploadForm">
+  <mat-card style="min-width: 600px;">
+    <mat-card-content>
+      <a mat-button color="primary" (click)="resetForm()">Загрузить на хостинг еще одно изображение...</a>
+      
+      <div style="display: flex; align-items: center; margin-top: 16px;">
+        <mat-form-field class="example-full-width" appearance="fill" style="flex: 1; margin-right: 16px;">
+          <mat-label>Ссылка на файл</mat-label>
+          <input matInput id="filename" type="text" [value]="filename" readonly />
+        </mat-form-field>
+        <button mat-raised-button color="primary" type="button" (click)="copy()">Copy to Clipboard</button>
+      </div>
+      
+      <img [src]="filename" alt="Изображение" style="margin-top: 20px; max-width: 100%;" />
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<ng-template #uploadForm>
+  <mat-card style="min-width: 600px;">
+    <mat-card-header>        
+      <mat-card-title lass="mat-h1">
+        Вставьте из буфера обмена, перетащите в область или загрузите с диска
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form (submit)="uploadImage($event)">
+       
+        
+        <div id="dropZone" class="drop"
+             style="border: 1px dashed #aaa; padding: 20px; text-align: center; margin-top: 16px;"
+             (dragover)="handleDragOver($event)" 
+             (drop)="handleDrop($event)">
+          <p>Перетащите картинку с диска или Ctrl+V для вставки из буфера обмена</p>
+        </div>
+    
+        <div [hidden]="true" id="inputContainer" style="margin-top: 16px;">
+          <mat-form-field class="example-full-width" appearance="fill">
+            <mat-label for="numberInput">Ужать по ширине до:</mat-label>
+            <input matInput type="number" id="numberInput" min="64" step="1" [(ngModel)]="targetWidth" name="numberInput" />
+          </mat-form-field>
+        </div>
+    
+
+     
+
+      <div>
+        <mat-form-field class="example-full-width" appearance="fill" style="margin-top: 16px;">
+          <mat-label>Введите уникальное имя или оставьте пустым для случайного имени</mat-label>
+          <input matInput id="name" type="text" [(ngModel)]="name" name="name" />
+        </mat-form-field>
+      </div>
+
+      <div>
+
+        <mat-form-field style="width: 100%;">
+          <mat-label>Тип файла</mat-label>
+          <mat-select [(ngModel)]="filetype" name="filetype">
+            <mat-option value="image/webp">WEBP - современный компактный</mat-option>
+            <mat-option value="image/jpeg">JPG - классика</mat-option>
+            <mat-option value="image/png">PNG - без потерь</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+        
+        <input type="file" id="fileUpload" (change)="handleFileInput($event)" hidden />
+        
+        <div style="margin-top: 16px;">
+          <button mat-raised-button color="primary" type="button" (click)="chooseFile()">Выбрать файл...</button>
+          <button mat-raised-button color="accent" type="submit" style="margin-left: 8px;">Отправить</button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</ng-template>
+
+

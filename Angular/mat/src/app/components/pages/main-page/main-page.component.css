@@ -1,0 +1,117 @@
+.container {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 450px;
+  gap: 12px;
+  width: calc(100vw - 20px);
+  max-width: 1800px;
+  height: 100vh;
+  padding: 12px;
+  box-sizing: border-box;
+  margin: 0 auto; /* Центрирование по ширине */
+}
+
+.left-block, .right-block, .center-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.menu-card {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.menu-toolbar {
+  border-radius: 12px;
+}
+
+.menu-toolbar a {
+  padding: 0 3px; /* Уменьшает отступы внутри ссылок */
+}
+
+.large-icon {
+  font-size: 96px; /* В 4 раза больше стандартного размера */
+}
+
+.toolbar-item {
+  display: flex;
+  align-items: center;
+  flex-direction: column; /* Иконка и текст располагаются по вертикали */
+  text-align: center;     /* Центрируем текст */
+}
+
+.toolbar-text {
+  white-space: normal; /* Разрешаем перенос текста */
+  word-wrap: break-word; /* Перенос слов, если они слишком длинные */
+  width: 100%; /* Чтобы текст не выходил за пределы контейнера */
+  margin-top: 8px; /* Добавляем отступ между иконкой и текстом */
+}
+
+mat-toolbar-row, .mat-toolbar-single-row {
+  height: 48px;
+}
+
+@media (max-width: 1300px) {
+  .container {
+    grid-template-columns: minmax(0, 1fr) 450px; /* Убираем левую панель */
+  }
+
+  .left-block {
+    display: none;
+  }
+}
+
+
+
+mat-nav-list {
+  width: 100%; /* Ширина меню */
+  margin-right: 12px;
+}
+
+mat-nav-list a {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  color: #333; /* Цвет текста */
+  text-decoration: none;
+}
+
+mat-nav-list a:hover {
+  background-color: #f5f5f5; /* Цвет при наведении */
+}
+
+
+
+
+
+mat-nav-list a.selected {
+  background-color: #e0e0e0; /* Цвет выбранного пункта меню */
+  border-left: 4px solid #2196F3; /* Линия выбора слева */
+}
+
+mat-nav-list a.selected mat-icon {
+  color: #2196F3; /* Цвет иконки для выбранного пункта */
+}
+
+
+mat-nav-list a {
+  display: flex;
+  align-items: center; /* Центрирование текста и иконки */
+  padding: 10px 10px;
+  color: #333;
+  text-decoration: none;
+}
+
+mat-icon {
+  color: #555;
+  font-size: 24px;
+  margin-right: 10px;
+  vertical-align: middle; /* Добавьте это для улучшения выравнивания иконки */
+}
+
+.menu-text {
+  font-size: 17px; /* Возможно уменьшить размер текста для лучшего выравнивания */
+  font-weight: 500;
+  font-family: 'Roboto';
+  line-height: 20px; /* Это может помочь выровнять текст по высоте */
+}

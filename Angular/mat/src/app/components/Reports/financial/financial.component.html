@@ -1,0 +1,28 @@
+<div class="table-container">
+  <h2>{{title}}</h2>
+  
+  <p>
+    <a [routerLink]="['/Dividends', ticker]">
+      <mat-icon>description</mat-icon>{{titlediv}}
+    </a>
+  </p>
+
+  <p>
+    <a [routerLink]="['/statements', ticker]">
+      <mat-icon>description</mat-icon>{{titlestat}}
+    </a>
+  </p>
+
+  <h1>Фундаментальные показатели компании {{companyName}} ({{ticker}})</h1>
+
+  <div class="ticker-container">
+    <p *ngIf="tickerDescription" [innerHTML]="tickerDescription"></p>
+    <img *ngIf="ticker" [src]="'assets/images/logos/' + ticker + '.webp'" alt="{{ticker}} logo" class="ticker-logo">
+  </div>
+
+  <h2>Мультипликаторы</h2>
+  <app-company-table [ticker]="ticker" standart="MULT" period="y"></app-company-table>
+
+  <h2>Финансовые показатели</h2>
+  <app-company-table [ticker]="ticker" standart="FIN" period="y"></app-company-table>
+</div>

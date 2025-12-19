@@ -1,0 +1,50 @@
+﻿@page
+@model TotalVolumeModel
+@{
+    ViewData["Title"] = "Объем торгов Московской биржи";
+    List<SelectListItem> YearsList = Model.YearsList;
+    List<SelectListItem> MarketList = Model.MarketList;
+    List<SelectListItem> GroupList = Model.GroupList;
+}
+<link href="/Content/index.css" rel="stylesheet" type="text/css" />
+<div class="widerightsidebar">
+    <div class="block">
+        <h6>Общий объем торгов Московской биржи по дням</h6>
+        <fieldset class="k-block">
+            <legend>Параметры</legend>
+            <div class="spanner">&nbsp;</div>
+            <div style="display:block;float:left">
+                <div class="editor-label">Год от</div>
+                <div class="editor-field">@Html.DropDownList("YearsList", YearsList, new { onchange = "onupdateVolYear()" })</div>
+            </div>
+            <div class="spanner">&nbsp;</div>
+            <div style="display:block;float:left">
+                <div class="editor-label">Год до</div>
+                <div class="editor-field">@Html.DropDownList("YearsList2", YearsList, new { onchange = "onupdateVolYear()" })</div>
+            </div>
+            <div class="spanner">&nbsp;</div>
+            <div style="display:block;float:left">
+                <div class="editor-label">Шаг</div>
+                <div class="editor-field">@Html.DropDownList("GroupList", GroupList, new { onchange = "onupdateVolYear()" })</div>
+            </div>
+            <div class="spanner">&nbsp;</div>
+            <div style="display:block;float:left">
+                <div class="editor-label">Маркет</div>
+                <div class="editor-field">@Html.DropDownList("MarketList", MarketList, new { onchange = "onupdateVolYear()" })</div>
+            </div>
+        </fieldset>
+        <div id="chart" style="width: 100%; height: 650px;"></div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    function onupdateVolYear() {
+        ShowMicexVol('chart', $('#YearsList').val(), $('#YearsList2').val(), $('#MarketList').val(), $('#GroupList').val());
+    };
+    $("#YearsList").width(80).kendoDropDownList();
+    $("#MarketList").width(180).kendoDropDownList();
+    $("#YearsList2").width(80).kendoDropDownList();
+    $("#GroupList").width(80).kendoDropDownList();
+    $(document).ready(onupdateVolYear);
+</script>
+

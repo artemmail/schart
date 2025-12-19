@@ -1,0 +1,23 @@
+.email-confirmation-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  
+  mat-card {
+    width: 400px;
+    margin: 20px;
+  }
+  
+  mat-card-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  
+  p {
+    font-size: 16px;
+  }
+  

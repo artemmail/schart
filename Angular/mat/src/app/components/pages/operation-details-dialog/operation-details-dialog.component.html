@@ -1,0 +1,95 @@
+<h2 mat-dialog-title>Детали операции</h2>
+
+<div mat-dialog-content>
+  <ng-container *ngIf="isLoading">
+    <p>Загрузка...</p>
+  </ng-container>
+
+  <ng-container *ngIf="!isLoading">
+    <ng-container *ngIf="!error">
+      <table>
+        <tr>
+          <th>Operation ID:</th>
+          <td>{{ operationDetails.operation_id }}</td>
+        </tr>
+        <tr>
+          <th>Статус:</th>
+          <td>{{ operationDetails.status }}</td>
+        </tr>
+        <tr>
+          <th>Дата и время:</th>
+          <td>{{ operationDetails.datetime | date: 'short' }}</td>
+        </tr>
+        <tr>
+          <th>Сумма:</th>
+          <td>{{ operationDetails.amount }}</td>
+        </tr>
+        <tr>
+          <th>Тип:</th>
+          <td>{{ operationDetails.type }}</td>
+        </tr>
+        <!-- Добавленные поля -->
+        <tr *ngIf="operationDetails.pattern_id">
+          <th>Идентификатор шаблона:</th>
+          <td>{{ operationDetails.pattern_id }}</td>
+        </tr>
+        <tr *ngIf="operationDetails.direction">
+          <th>Направление:</th>
+          <td>{{ operationDetails.direction }}</td>
+        </tr>
+        <tr *ngIf="operationDetails.amount_due">
+          <th>Сумма к оплате:</th>
+          <td>{{ operationDetails.amount_due }}</td>
+        </tr>
+        <tr *ngIf="operationDetails.fee">
+          <th>Комиссия:</th>
+          <td>{{ operationDetails.fee }}</td>
+        </tr>
+        <tr *ngIf="operationDetails.title">
+          <th>Заголовок:</th>
+          <td>{{ operationDetails.title }}</td>
+        </tr>
+        <tr *ngIf="operationDetails.sender">
+          <th>Отправитель:</th>
+          <td>{{ operationDetails.sender }}</td>
+        </tr>
+        <tr *ngIf="operationDetails.recipient">
+          <th>Получатель:</th>
+          <td>{{ operationDetails.recipient }}</td>
+        </tr>
+        <tr *ngIf="operationDetails.recipient_type">
+          <th>Тип получателя:</th>
+          <td>{{ operationDetails.recipient_type }}</td>
+        </tr>
+        <tr *ngIf="operationDetails.message">
+          <th>Сообщение:</th>
+          <td>{{ operationDetails.message }}</td>
+        </tr>
+        <tr *ngIf="operationDetails.comment">
+          <th>Комментарий:</th>
+          <td>{{ operationDetails.comment }}</td>
+        </tr>
+        <tr *ngIf="operationDetails.label">
+          <th>Метка:</th>
+          <td>{{ operationDetails.label }}</td>
+        </tr>
+        <tr *ngIf="operationDetails.digital_goods">
+          <th>Цифровые товары:</th>
+          <td>{{ operationDetails.digital_goods }}</td>
+        </tr>
+        <tr *ngIf="operationDetails.details">
+          <th>Детали:</th>
+          <td>{{ operationDetails.details }}</td>
+        </tr>
+      </table>
+    </ng-container>
+
+    <ng-container *ngIf="error">
+      <p>{{ error }}</p>
+    </ng-container>
+  </ng-container>
+</div>
+
+<div mat-dialog-actions>
+  <button mat-button mat-dialog-close>Закрыть</button>
+</div>

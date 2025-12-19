@@ -1,0 +1,68 @@
+﻿@page
+@model SupportPageModel
+@{
+    IEnumerable<SelectListItem> MessageTypes = ViewBag.MessageTypes;     
+}
+@using Microsoft.AspNetCore.Identity
+@using StockChart.Model;
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+<script src="/scripts/tinymce/tinymce.min.js"></script>
+<script src="/scripts/tinymcecfg.js"></script>
+
+<div class="widerightsidebar">
+    <div class="blogblock" >
+        <div>
+            <h6>@ViewBag.Title</h6>
+            <hr />
+            @if (SignInManager.IsSignedIn(User))
+            {
+            using (Html.BeginForm("Index", null, FormMethod.Post, new { enctype = "multipart/form-data" }))
+            {
+                @Html.AntiForgeryToken()
+                    <div class="form-group">
+                        <p>
+                            <h2>Тип вопроса или проблемы</h2>
+                        </p>
+                        <div class="editor-field">@Html.DropDownListFor(model => model.MessageType, Model.MessageTypes, 
+                            new { htmlAttributes =new { @class =  "form-control", style = "width: calc(100% - 14px);" }})</div>
+                    </div>
+                <div class="form-group">
+                    <p>
+                        <h2>Тема</h2>
+                    </p>
+                    <div class="col-md-10">
+                            @Html.EditorFor(model => model.Header, new { htmlAttributes = new { @class =  "form-control", style = "width: calc(100% - 14px);" } })                        
+                    </div>
+                </div>
+                <div class="form-group" style = "width: calc(100% - 14px);" >
+                    <p>
+                        <h2>Содержание (можно добавить картинки из буфера обмена в текст) </h2>
+                    </p>
+                    <div class="col-md-10">
+                            @Html.TextAreaFor(model => model.Text, new { htmlAttributes = new { @class = "form-control", style = "width: calc(100% - 14px);" } })
+                    </div>
+                </div>
+                <div class="form-group" style="width: calc(100% - 14px);">
+                    <p>
+                        <h2>Скриншот</h2>
+                    </p>
+                    <div class="col-md-10">
+                        <input type="file" class="k-button" id="UploadedFile" name='UploadedFile' />
+                    </div>
+                </div>
+                <div style="padding-top:10px">
+                    <input type="submit" value="Отправить" class="k-button" />                    
+                </div>
+                }
+            }
+            else
+            {
+                <div class="block blogblock">
+                    <p> <a href="/Identity/Account/LogIn">Залогинтесь</a>, что бы оставить сообщение в тех. поддержку</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>

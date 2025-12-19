@@ -1,0 +1,22 @@
+<!-- seasonality.component.html -->
+
+
+<mat-card>
+  <mat-card-header>
+    <mat-card-title>
+      Сезонная активность
+    </mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    
+      <app-ticker-autocomplete [(ngModel)]="ticker"
+        (tickerChange)="onTickerSelected($event )"></app-ticker-autocomplete>
+
+    
+
+<div [innerHTML]="chartHtml" >
+  <!-- Тут будет отображаться ваш график -->
+</div>
+
+</mat-card-content>
+</mat-card>

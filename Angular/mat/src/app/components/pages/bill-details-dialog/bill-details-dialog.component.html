@@ -1,0 +1,42 @@
+<h2 mat-dialog-title>Детали счета</h2>
+
+<div mat-dialog-content>
+  <ng-container *ngIf="isLoading">
+    <p>Загрузка...</p>
+  </ng-container>
+
+  <ng-container *ngIf="!isLoading">
+    <ng-container *ngIf="!error">
+      <table>
+        <tr>
+          <th>Дата:</th>
+          <td>{{ billDetails.date | date: 'short' }}</td>
+        </tr>
+        <tr>
+          <th>Имя пользователя:</th>
+          <td>{{ billDetails.userName }}</td>
+        </tr>
+        <tr>
+          <th>Сумма:</th>
+          <td>{{ billDetails.amount  }}</td>
+        </tr>
+        <tr>
+          <th>Количество:</th>
+          <td>{{ billDetails.count }}</td>
+        </tr>
+        <tr>
+          <th>Услуги:</th>
+          <td>{{ billDetails.services }}</td>
+        </tr>
+      </table>
+    </ng-container>
+
+    <ng-container *ngIf="error">
+      <p>{{ error }}</p>
+    </ng-container>
+  </ng-container>
+</div>
+
+<div mat-dialog-actions>
+  <button mat-button mat-dialog-close>Закрыть</button>
+</div>

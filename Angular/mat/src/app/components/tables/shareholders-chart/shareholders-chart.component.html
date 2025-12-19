@@ -1,0 +1,29 @@
+
+<div *ngIf="dataSource$ | async as structure">
+  <h2>{{ structure.Title }}</h2>
+  <p>Последнее обновление: {{ structure.LastUpdateDate | date }}</p>
+
+  <mat-card>
+    <mat-table [dataSource]="structure.Shareholders">
+      <!-- Name Column -->
+      <ng-container matColumnDef="name">
+        <mat-header-cell *matHeaderCellDef> Акционер </mat-header-cell>
+        <mat-cell *matCellDef="let shareholder"> {{shareholder.Name}} </mat-cell>
+      </ng-container>
+
+      <!-- Share Percentage Column -->
+      <ng-container matColumnDef="sharePercentage">
+        <mat-header-cell *matHeaderCellDef> Доля (%) </mat-header-cell>
+        <mat-cell *matCellDef="let shareholder"> {{shareholder.SharePercentage | number: '1.2-2'}} </mat-cell>
+      </ng-container>
+
+      <!-- Header and Row Definitions -->
+      <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+    </mat-table>
+  </mat-card>
+</div>
+
+<div class="canvas-container" style="position: relative; height:40vh;">
+  <canvas #chartCanvas></canvas>
+</div>

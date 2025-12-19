@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "defaultProvider": "unpkg",
+  "libraries": [
+    {
+      "library": "require-text@2.0.12",
+      "destination": "wwwroot/js/require-text/"
+    },
+    {
+      "library": "@microsoft/signalr@latest",
+      "destination": "wwwroot/js/signalr/"
+    },
+    {
+      "library": "requirejs@2.3.6",
+      "destination": "wwwroot/js/requirejs/"
+    }
+  ]
+}

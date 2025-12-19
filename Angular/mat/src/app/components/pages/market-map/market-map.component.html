@@ -1,0 +1,80 @@
+<div class="flex-container">
+  <div class="flex-item">
+    <app-market-selector
+      [(ngModel)]="selectedMarket"
+      (selectionChange)="onMarketChange($event)"
+    ></app-market-selector>
+  </div>
+
+  <div class="flex-item" *ngIf="market === 0">
+    <app-category-selector
+      [selectedCategories]="initialCategories"
+      (categoriesChange)="onCategoriesChange($event)"
+      (categoriesChangeString)="onCategoriesChangeString($event)"
+    ></app-category-selector>
+  </div>
+
+  <!-- Селектор стиля -->
+  <div class="flex-item">
+    <app-combobox
+      [label]="'Стиль'"
+      [(value)]="style"
+      [items]="styleOptions"
+      labelField="Text"
+      valueField="Value"
+      (valueChange)="onStyleChange($event)"
+    ></app-combobox>
+  </div>
+
+  <div class="flex-item">
+    <app-combobox
+      [label]="'Выборка'"
+      [(value)]="top"
+      [items]="topPreset"
+      (valueChange)="changeTop($event)"
+    ></app-combobox>
+  </div>
+
+  <div class="flex-item">
+    <app-date-range-selector
+      [(ngModel)]="ticker"
+      [ticker]="ticker"
+      [rperiod]="rperiod"
+      (selectionChange)="applyPreset($event)"
+    ></app-date-range-selector>
+  </div>
+
+  <div class="flex-item">
+    <app-date-range-picker
+      (selectionChange)="changeDate($event)"
+    ></app-date-range-picker>
+  </div>
+</div>
+
+<div class="content overflow-hidden">
+  <div id="container">
+    <!-- Режим карта -->
+    <app-kendo-treemap
+      *ngIf="style === 0"
+      [startDate]="dateRangePickerComponent?.getStart()"
+      [endDate]="dateRangePickerComponent?.getEnd()"
+      [categories]="initialCategories"
+      [rperiod]="rperiod"
+      [top]="top"
+      [market]="market"
+    ></app-kendo-treemap>
+
+    <!-- Режим доска -->
+  
+  </div>
+
+  <app-market-board
+  *ngIf="style === 1"
+  [startDate]="dateRangePickerComponent?.getStart()"
+  [endDate]="dateRangePickerComponent?.getEnd()"
+  [categories]="initialCategories"
+  [rperiod]="rperiod"
+  [top]="top"
+  [market]="market"
+></app-market-board>
+</div>

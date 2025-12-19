@@ -1,0 +1,190 @@
+﻿@page
+@{
+    ViewData["Title"] = "Доходы";
+}
+<script type="text/javascript">
+    function ShowProfit() {
+        $("#grid").kendoGrid({
+            sortable: true,
+            groupable: false,
+            scrollable: false,
+            detailInit: detailInit,
+            dataSource: {
+                transport: {
+                    read: {
+                        url: "/api/Admin/ActiveUsers",
+                        dataType: "Json"
+                    }
+                }
+            },
+            columns: [
+                { field: "UserName", title: "Пользователь" },
+                { field: "PayAmount", title: "Опл" },
+                {
+                    field: "PayDate",
+                    title: 'Дата Оплаты',
+                    template: '<span style="float:right">#= jDateToStr(PayDate) #</span>'
+                },
+                {
+                    field: "ExpireDate",
+                    title: 'Оплачено до',
+                    template: '<span style="float:right">#= jDateToStr(ExpireDate) #</span>'
+                }
+            ]
+        });
+        $("#grid2").kendoGrid({
+            sortable: true,
+            groupable: false,
+            scrollable: false,
+            dataSource: {
+                transport: {
+                    read: {
+                        url: "/api/Admin/PaymentTable",
+                        dataType: "Json"
+                    }
+                }
+            },
+            columns: [
+                { field: "comment", title: "Поле" },
+                { field: "info", title: "Значение", format: '{0:0,00}' }
+            ]
+        });
+        function detailInit(e) {
+            $("<div/>").appendTo(e.detailCell).kendoGrid({
+                dataSource: {
+                    transport: {
+                        read: {
+                            url: "/api/Admin/TotalPays?username=" + e.data.UserName,
+                            dataType: "Json"
+                        }
+                    }
+                },
+                scrollable: false,
+                sortable: false,
+                pageable: false,
+                columns: [
+                    { field: "PayDate", title: "PayDate", template: '#= jDateToStr(PayDate) #' },
+                    { field: "PayAmount", title: "PayAmount" },
+                    { field: "ExpireDate", title: "ExpireDate", template: '#= jDateToStr(ExpireDate) #' }
+                ]
+            });
+        }
+        // Make parallel AJAX calls to the two new endpoints
+        $.when(
+            $.ajax({
+                url: '/api/Admin/ShowProfit',
+                dataType: 'json'
+            }),
+            $.ajax({
+                url: '/api/Admin/ShowProfitTotal',
+                dataType: 'json'
+            })
+        ).done(function (monthData, totalData) {
+            // Extract data from the AJAX responses
+            var monthData = monthData[0]; // Data from ShowProfit
+            var totalData = totalData[0]; // Data from ShowProfitTotal
+
+            // Create the monthly profit chart
+            $("#map2").kendoChart({
+                dataSource: {
+                    data: monthData
+                },
+                title: {
+                    text: 'Доходы помесячно',
+                },
+                series: [{
+                    type: "column",
+                    aggregate: "avg",
+                    field: "profit",
+                    categoryField: "date",
+                    gap: 0.2,
+                    spacing: 0.2
+                }],
+                categoryAxis: {
+                    labels: {
+                        rotation: 325,
+                        template: "#= dateTools.monthName(DecodeDate(value)) #"
+                    },
+                    baseUnit: "weeks",
+                    majorGridLines: {
+                        visible: false
+                    }
+                },
+                tooltip: {
+                    visible: true,
+                    format: "##,# руб"
+                },
+                valueAxis: {
+                    line: {
+                        visible: false
+                    }
+                }
+            });
+            // Create the total profit chart
+            $("#map1").kendoChart({
+                dataSource: {
+                    data: totalData
+                },
+                title: {
+                    text: 'Общий доход',
+                },
+                series: [{
+                    type: "line",
+                    aggregate: "avg",
+                    field: "profit",
+                    categoryField: "date",
+                    gap: 0.2,
+                    spacing: 0.2
+                }],
+                categoryAxis: {
+                    labels: {
+                        rotation: 325,
+                        template: "#= dateTools.monthName(DecodeDate(value)) #"
+                    },
+                    baseUnit: "weeks",
+                    majorGridLines: {
+                        visible: false
+                    }
+                },
+                tooltip: {
+                    visible: true,
+                    format: "##,# руб"
+                },
+                valueAxis: {
+                    line: {
+                        visible: false
+                    }
+                }
+            });
+        });
+    }
+    $(document).ready(ShowProfit);
+</script>
+<div class="right-wrapper">
+    <div class="right">
+        <div style="width: 100%; ">
+            <div id="map1" style=" height: 450px; margin-top:5px; width:100%" class="grayblock"></div>
+            <div id="map2" style="height: 450px;  margin-top:5px;width:100%;" class="grayblock"></div>
+        </div>
+    </div>
+</div>
+<div class="left">
+    <div id="grid2" class="grayblock" style="margin:5px;"></div>
+    <div id="grid" class="grayblock" style="margin:5px;"></div>
+</div>
+<style>
+    .right {
+        margin-left: 450px;
+    }
+
+    .right-wrapper {
+        float: left;
+        width: 100%;
+    }
+
+    .left {
+        float: left;
+        width: 450px;
+        margin-left: -100%;
+    }
+</style>

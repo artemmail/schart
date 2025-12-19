@@ -1,0 +1,46 @@
+.container {
+  max-width: 1150px;
+  margin: 0 auto;
+}
+
+.flex-container {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 15px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.flex-item {
+  flex: 1 1 auto;
+  min-width: 150px;
+}
+
+.custom-table th,
+.custom-table td {
+  padding: 8px;
+}
+
+.ticker-container {
+  display: flex;
+  align-items: center;
+}
+
+.ticker-container app-ticker-icon {
+  margin-right: 6px;
+}
+
+/* мини‑график */
+.mini-chart {
+  display: flex;
+  align-items: flex-end;      /* выравниваем столбцы по нижнему краю */
+  height: 24px;               /* «высота графика» */
+  min-width: 56px;            /* чтобы узкие ячейки не обрезали бары */
+}
+
+.mini-bar {
+  flex: 1;                    /* все бары одинаковой ширины */
+  margin: 0 1px;
+  background: #42a5f5;        /* цвет столбиков — измените по вкусу */
+  border-radius: 2px 2px 0 0;
+}

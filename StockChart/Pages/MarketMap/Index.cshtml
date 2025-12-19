@@ -1,0 +1,100 @@
+﻿@page
+@model StockChart.Pages.MarketMap.IndexModel
+@using Microsoft.AspNetCore.Identity
+@using StockChart.Model;
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@{
+    Layout = "_FullScreen";
+    ViewData["Title"] = "Карта рынка акций российского рынка";
+    string startEndStyle = "";
+}
+
+@if (!SignInManager.IsSignedIn(User))
+{
+    <style>
+        .centered-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 48px; /* Крупный шрифт */
+        }
+
+        .login {
+            margin-top: 20px;
+            font-size: 24px;
+            text-decoration: none;
+            color: blue;
+        }
+
+            .login:hover {
+                text-decoration: underline;
+            }
+    </style>
+    <div class="centered-content">
+        <h1>Залогиньтесь для просмотра карты рынка</h1>
+        <a class="login" href="/Identity/Account/Login">Войти</a>
+    </div>
+}
+
+else
+{
+
+
+<link href="/Content/MarketMap.css" rel="stylesheet" type="text/css" />
+<script src="/Scripts/MarketMap.js" type="text/javascript"></script>
+<div>
+    <fieldset class="k-block">
+        <legend>Доска рынка акций Московской Биржи по отраслям</legend>
+        <div class="spanner">&nbsp;</div>
+        <div style="display: block; float: left">
+            <div class="editor-label">Рынок</div>
+            <div class="editor-field">@Html.DropDownList("marketList", Model.marketList)</div>
+        </div>
+        <div class="spanner">&nbsp;</div>
+        <div style="display: block; float: left">
+            <div class="editor-label">Стиль</div>
+            <div class="editor-field">@Html.DropDownList("stylelist", Model.stylelist)</div>
+        </div>
+        <div class="spanner">&nbsp;</div>
+        <div style="display: block; float: left">
+            <div class="editor-label">Промежуток</div>
+            <div class="editor-field">@Html.DropDownList("rperiod", Model.rperiods)</div>
+        </div>
+        <div id="startEndDateCont" style=@startEndStyle>
+            <div class="spanner">&nbsp;</div>
+            <div style="display: block; float: left">
+                <div class="editor-label">Начальная дата</div>
+                <div class="editor-field">@Html.TextBox("startDate", null, new { @class = "date" })</div>
+            </div>
+            <div class="spanner">&nbsp;</div>
+            <div style="display: block; float: left">
+                <div class="editor-label">Конечная дата</div>
+                <div class="editor-field">@Html.TextBox("endDate", null, new { @class = "date" })</div>
+            </div>
+            <div class="spanner">&nbsp;</div>
+            <div style="display: block; float: left; width: 500px;">
+                <div class="editor-label">Отрасли</div>
+                <div class="editor-field">@Html.DropDownList("categories", Model.categorylist, new { multiple = "multiple", data_placeholder = "Выбор отраслей..." })</div>
+            </div>
+            <div class="spanner">&nbsp;</div>
+            <div style="display: block; float: left">
+                <div class="editor-label">Показать</div>
+                <div class="editor-field">@Html.DropDownList("toplist", Model.toplist)</div>
+            </div>
+            <div class="spanner">&nbsp;</div>
+            <div style="display: block; float: left;">
+                <input class="k-button" id="submit" type="button" style="width: 90px; height: 40px;" value="Показать" onclick="resize()">
+            </div>
+        </div>
+    </fieldset>
+    <div id="desk"></div>
+</div>
+
+}

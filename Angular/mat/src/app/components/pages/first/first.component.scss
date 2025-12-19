@@ -1,0 +1,220 @@
+html, body, #container {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+
+
+.sidenav-container {
+  height: 100%;
+  overflow: hidden;
+}
+
+.content {
+  height: calc(100vh - 66px); /* Assuming the toolbar is 64px high */
+  overflow: hidden;
+}
+
+#container {
+    justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sidenav {
+  width: 200px;
+  transition: width 0.3s ease-in-out;
+  background-color: white;
+  padding: 10px;
+}
+
+.sidenav.expanded {
+  width: 140px;
+}
+
+.mat-sidenav-content.content-shifted {
+  margin-left: 140px;
+}
+
+.mat-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.mat-nav-list {
+  height: calc(100vh - 64px);
+  overflow: auto;
+}
+
+.sidenav-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nav-item {
+  width: 100%;
+}
+
+.nav-item.mat-list-item {
+  justify-content: flex-start;
+}
+
+.nav-item button,
+.nav-item a {
+  width: calc(100% - 20px);
+  display: flex;
+  justify-content: flex-start;
+  padding: 10px;
+}
+
+.toolbar {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.wrapper-menu {
+  width: 40px;
+  height: 25px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: transform 330ms ease-out;
+}
+
+.wrapper-menu.open {
+  transform: rotate(-45deg);
+}
+
+.line-menu {
+  background-color: #fff;
+  border-radius: 5px;
+  width: 100%;
+  height: 4px;
+}
+
+.line-menu.start,
+.line-menu.end {
+  transition: transform 330ms cubic-bezier(0.54, -0.81, 0.57, 0.57);
+}
+
+.line-menu.start {
+  transform-origin: right;
+}
+
+.open .line-menu.start {
+  transform: rotate(-90deg) translateX(3px);
+}
+
+.line-menu.end {
+  align-self: flex-end;
+  transform-origin: left;
+}
+
+.open .line-menu.end {
+  transform: rotate(-90deg) translateX(-3px);
+}
+
+.btn-toggle {
+  margin-right: 5px;
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+.right-nav {
+  display: flex;
+}
+
+.spinner-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.form-container {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.form-container > * {
+  width: calc(100% - 20px);
+}
+
+.non-modal-dialog {
+  position: fixed;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  z-index: 1000; // Ensure it appears above other elements
+}
+
+.non-modal-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: #3f51b5;
+  color: white;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  cursor: move; // Indicates that the header can be dragged
+}
+
+.non-modal-dialog-content {
+  padding: 20px;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.example-button-group {
+  display: flex;
+  gap: 10px; /* Расстояние между кнопками */
+}
+
+.icon-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0; /* Вверх и вниз, чтобы было больше места */
+  text-align: center; /* Центровка текста */
+  width: 82px; /* Минимальная ширина кнопки */
+  min-height: 80px; /* Минимальная высота кнопки */
+  line-height: 1.5; /* Высота строки для кнопок */
+}
+
+.icon-button mat-icon {
+  font-size: 19px; /* Размер иконки */
+  margin-bottom: 4px; /* Отступ между иконкой и текстом */  
+}
+
+.button-text {
+  display: block;
+  font-size: 14px; /* Размер текста */
+}

@@ -1,0 +1,30 @@
+.palette-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding-left: 2px;
+  padding-top: 2px;
+  max-width: 100%;
+}
+
+.palette-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.palette-square {
+  cursor: pointer;
+  position: relative;
+  border: 1px solid #ccc;
+}
+
+.palette-border {
+  position: absolute;
+  top: -2px;
+  left: -2px;    
+  border: 2px solid #444;
+  box-sizing: border-box;  
+  pointer-events: none;
+}

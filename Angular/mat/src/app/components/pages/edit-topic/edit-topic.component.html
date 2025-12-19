@@ -1,0 +1,43 @@
+<div class="container">
+  
+  <div class="edit-topic-container" *ngIf="loggedIn; else loginMessage">
+    
+    <form [formGroup]="editTopicForm" (ngSubmit)="onSubmit()">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Редактирование темы</mat-card-title>          
+        </mat-card-header>
+        <mat-card-content>
+        <mat-form-field style="width: 100%">
+          <mat-label>Название темы</mat-label>
+          <input matInput formControlName="header" required />
+          <mat-error *ngIf="editTopicForm.get('header').hasError('required')">
+            Заголовок обязательно
+          </mat-error>
+        </mat-form-field>
+        
+        <div>          
+          <app-editor formControlName="text" [elementId]="'tinymce-editor'" style="width: 100%;"></app-editor>
+          <mat-error *ngIf="editTopicForm.get('text').hasError('required')">
+            Текст обязательно
+          </mat-error>
+        </div>
+        
+        <div class="actions">
+          <button mat-raised-button color="primary" type="submit" [disabled]="editTopicForm.invalid">
+            Сохранить изменения
+          </button>
+        </div>
+      </mat-card-content>
+      </mat-card>
+    </form>
+  </div>
+
+  <ng-template #loginMessage>
+    <mat-card >
+      <div class="login-message">
+        <p><a routerLink="/Identity/Account/Login">Login</a> to edit the topic.</p>
+      </div>
+    </mat-card>
+  </ng-template>
+</div>

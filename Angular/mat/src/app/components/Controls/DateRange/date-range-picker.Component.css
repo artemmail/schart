@@ -1,0 +1,6 @@
+.empty-input {
+    display: inline-block;
+    width: 100%;
+    height: 2.5em; /* Высота, соответствующая высоте input */
+  }
+  

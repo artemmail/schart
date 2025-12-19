@@ -1,0 +1,25 @@
+.chart-container {
+    position: relative;
+    height: calc(100vh - 200px); /* Adjust as needed */
+  }
+  
+  canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  
+  .table-container {
+    position: relative;
+    height: calc(100vh - 200px); /* Adjust as needed */
+    overflow: auto;
+    width: 500px;
+  }
+  
+  table {
+    width: 100%;
+  }
+  
+  mat-header-cell, mat-cell {
+    padding: 8px;
+  }

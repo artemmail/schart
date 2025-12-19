@@ -1,0 +1,25 @@
+﻿<div data-role="view" id="MultiCandles"  data-title="Мультиграфики"  
+     data-stretch="true"
+     data-model="APP.MultiCandles.model"
+     data-after-show = "APP.MultiCandles.events.afterShow"
+     data-init="APP.MultiCandles.events.init">
+    <header data-role="header">
+        <div data-role="navbar"  style="height:3em; margin:0">
+            <a data-role="button" data-rel="drawer" href="#drawer" data-icon="drawer-icon" data-align="left"></a>
+            <span data-role="view-title"></span>           
+            <div data-align="right" class="editor-field">            
+                <select 
+                        id="period"
+                        style="width: 80px"
+                        data-role="dropdownlist"
+                        data-value-field="Value"
+                        data-text-field="Text"
+                        data-value-primitive="true"
+                        data-bind="value: period, source: periods, events: { change: onChange}"></select>                                       
+            </div>            
+        </div>        
+    </header>
+    <div data-role="content">
+        <div id="graphics"></div>
+    </div>
+</div>                      

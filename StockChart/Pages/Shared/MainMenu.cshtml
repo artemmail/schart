@@ -1,0 +1,187 @@
+﻿<style>
+    #menu h2 {
+        font-size: 1.4em;
+        text-transform: uppercase;
+        padding: 10px;      
+    }
+    #template {
+        width: 660px;
+        padding: 10px;
+    }
+    .pic {
+        border: 1px solid #ceced2; /* Граница вокруг блока */
+        background-color: #fff; /* Цвет фона */
+        color: navy; /* Цвет подписи */
+        padding: 10px; /* Поля вокруг содержимого */
+        width: 280px; /* Ширина блока */
+        text-align: center; /* Выравнивание контента по центру */
+        position: relative; /* Относительное позиционирование */
+        left: 50%; /* Выравниваем блок по центру */
+        margin-left: -125px; /* Сдвигаем блок влево на половину его ширины */
+    }
+        .pic:hover {
+            text-decoration: none;
+            background-color: #f5f5f5;
+        }
+        .pic img {
+            border: 1px solid #eee; /* Рамка вокруг Имаги */
+        }
+        .pic p {
+            margin: 0; /* Убираем отступы вокруг абзаца */
+            padding-top: 5px; /* Расстояние от рисунка до контента */
+        }
+</style>
+<ul id="menu" style="display:none;">
+    <li>
+        <a href="/">Главная</a>
+    </li>
+    <li>
+        Инструменты для трейдеров
+        <ul>
+            <li>
+                <h5> Анализ объемов</h5>
+                <ul>
+                    <li>
+                        <div id="template" style="padding: 0px; width: 350px">
+                            <h2>Инструменты анализа объемов</h2>
+                            <table width="305">
+                                <tr>
+                                    <td>
+                                        <div class="pic" onclick="document.location='/FootPrint'">
+                                            <img src="/images/FootPrintSmall.png" width="263" height="151" alt="Кластерный график">
+                                            <p>Кластерный график (FootPrint)</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="pic" onclick="document.location='/CandlestickChart'">
+                                            <img src="/images/CandlesSmall.png" width="263" height="151" alt="Горизонтальные объемы">
+                                            <p>Горизонтальные объемы</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="pic" onclick="document.location='/Report/TotalVolume'">
+                                            <img src="/images/MicexVolSmall.png" width="263" height="151" alt="Дневной объем торгов Московской Биржи">
+                                            <p>Дневной объем торгов Московской Биржи</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <h5>Обзор рынка</h5>
+                <ul>
+                    <li>
+                        <div id="template" style="padding: 0px; width: 350px">
+                            <h2>Чарты и таблицы для сводного анализа рынка</h2>
+                            <table width="305">
+                                <tr>
+                                    <td>
+                                        <div class="pic" onclick="document.location='/MarketMap'">
+                                            <img src="/images/MapSmall.png" width="263" height="151" alt="Тепловая Карта рынка">
+                                            <p>Тепловая Карта рынка</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="pic" onclick="document.location = '/MultiCandles'">
+                                            <img src="/images/MultiSmall.png" width="263" height="151" alt="Мультиграфики">
+                                            <p>Просмотр и сравнение нескольких графиков</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="pic" onclick="document.location='/Seasonality'">
+                                            <img src="/images/SeasonSmall.png" width="263" height="151" alt="Таблица сезонной зависимости">
+                                            <p>Таблица сезонной зависимости</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <h5>Портфель бумаг</h5>
+                <ul>
+                    <li>
+                        <div id="template" style="padding: 0px; width: 350px">
+                            <h2>Портфельные инвестиции</h2>
+                            <table width="305">
+                                <tr>
+                                    <td>
+                                        <div class="pic" onclick="document.location = '/Portfolio'">
+                                            <img src="/images/PortfolioSmall.png" width="263" alt="Торговля на демо-счете">
+                                            <p>Торговля на демо-счете</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="pic" onclick="document.location = '/Portfolio/Optimization'">
+                                            <img src="/images/MarkovitzSmall.png" width="263" alt="Оптимальный портфель Марковица">
+                                            <p>Оптимальный портфель Марковица</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="pic" onclick="document.location = '/CandlestickChart/PairTrading'">
+                                            <img src="/images/PairSmall.png" width="263" alt="Арбитраж и сравнение доходности">
+                                            <p>Арбитраж и сравнение доходности</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </li>
+                </ul>
+            </li>
+            <li style="font-size:40px">
+                <h5>
+                    Сканер рынка
+                </h5>
+                <ul>
+                    <li>
+                        <a href="/Report/Leaders">Лидеры объемов, роста, падения, BID, ASK</a>
+                    </li>
+                    <li>
+                        <a href="/Report/VolumeSearch?ticker=GAZP&period=15&rperiod=day">Volume Search</a>
+                    </li>
+                    <li>
+                        <a href="/Report/Barometer">Фрактальный бар-о-метръ</a>
+                    </li>
+                    <li>
+                        <a href="/Report/VolumeSplash">Необычные всплески объемов</a>
+                    </li>
+                    <li>
+                        <a href="/Report/TopOrders">Поиск крупнейших сделкок</a>
+                    </li>
+                    <li>
+                        <a href="/Report/CandlesStat">Статистика свечного графика</a>
+                    </li>
+                </ul>
+            </li>
+                   
+        </ul>
+    </li>  
+    
+        <li>
+            <a href="/Payment"><b>Тарифы</b></a>
+        </li>
+
+    <li>
+        <a href="https://stockchart.ru"><b>Новая версия</b></a>
+    </li>
+
+    
+</ul>

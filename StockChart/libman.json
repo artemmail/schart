@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "defaultProvider": "unpkg",
+  "libraries": [
+    {
+      "library": "@microsoft/signalr@latest",
+      "destination": "wwwroot/lib/signalr/"
+    },
+    {
+      "provider": "cdnjs",
+      "library": "require.js@2.3.6",
+      "destination": "wwwroot/lib/"
+    },
+    {
+      "provider": "cdnjs",
+      "library": "require-text@2.0.12",
+      "destination": "wwwroot/lib/require-text/"
+    },
+    {
+      "provider": "unpkg",
+      "library": "require.js@1.0.0",
+      "destination": "wwwroot/lib/require.js/"
+    }
+  ]
+}

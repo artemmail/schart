@@ -1,0 +1,40 @@
+<table mat-table [dataSource]="dataSource" class="custom-table">
+
+  <!-- Name Column -->
+  <ng-container matColumnDef="name">
+    <th mat-header-cell *matHeaderCellDef class="header"></th>
+    <td mat-cell *matCellDef="let element" class="row-header">
+      <ng-container *ngIf="shouldDisplayLink(element.nameForLink); else noLink">
+        <a [routerLink]="['/fundamental', standart, ticker, element.nameForLink]" class="row-link">
+          {{element.nameForDisplay}}
+        </a>
+      </ng-container>
+      <ng-template #noLink>
+        {{element.nameForDisplay}}
+      </ng-template>
+      <ng-container *ngIf="legend[element.nameForLink]">
+        <mat-icon 
+          matTooltip="{{ legend[element.nameForLink] }}" 
+          class="legend-icon" 
+          aria-label="Legend Info">info</mat-icon>
+      </ng-container>
+    </td>
+  </ng-container>
+
+  <!-- Dynamic Year Columns -->
+  <ng-container *ngFor="let year of displayedColumns.slice(1)" [matColumnDef]="year">
+    <th mat-header-cell *matHeaderCellDef class="header"> {{year}} </th>
+    <td mat-cell *matCellDef="let element">
+      <ng-container *ngIf="isLink(element[year]); else noLink">
+        <a [href]="element[year]" class="download-link" target="_blank">
+          <mat-icon class="pdf-icon" aria-hidden="false" aria-label="Download PDF">picture_as_pdf</mat-icon>
+        </a>
+      </ng-container>
+      <ng-template #noLink>{{ element[year] | moneyToStr }}</ng-template>
+    </td>
+  </ng-container>
+
+  <!-- Header and Row Definitions -->
+  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+</table>

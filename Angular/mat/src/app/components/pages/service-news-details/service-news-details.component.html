@@ -1,0 +1,78 @@
+@if(errorMessage)
+{
+  <p>Код ошибки: {{ errorCode }}</p>
+  <p>{{ errorMessage }}</p>
+}
+@else
+{
+<div class="container">
+  <!-- Блок для отображения кода ошибки и сообщения об ошибке -->
+  <mat-card class="blogblock ">
+
+    <mat-card-header>
+      <mat-card-title>
+        {{ header }}
+      </mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+
+      <b>{{ topicUser?.UserName }}</b>&nbsp; <i>{{ date | date: 'd MMM yyyy, H:mm' }}</i>
+      <br />
+      <div [innerHTML]="text" class="content"></div>
+      
+      <p>
+        <a href="#" (click)="goBack($event)">Назад</a>
+        <ng-container *ngIf="signed && loggedUser?.Id === topicUser?.Id">
+          <span>|</span>
+          <a [routerLink]="['/ServiceNews/Edit', id]">Редактировать</a>
+          <span>|</span>
+          <a href="#" (click)="deleteTopic($event)">Удалить</a>
+        </ng-container>
+      </p>
+    </mat-card-content>
+  </mat-card>
+
+  <ng-container *ngFor="let comment of userComments">
+    <mat-card class="blogblock ">
+      <mat-card-content>
+        <div [innerHTML]="comment.Text" class="content"></div>
+        <b>{{ comment.User.UserName }}</b>&nbsp;
+        <i>{{ comment.Date | date: 'd MMM yyyy, H:mm' }}</i>
+        <ng-container *ngIf="signed && comment.User.Id === loggedUser?.Id">&nbsp;
+          <a [routerLink]="['/ServiceNews/EditComment', comment.Id]">Редактировать</a>
+          <span>|</span>
+          <a href="#" (click)="deleteComment($event, comment.Id)">Удалить</a>
+        </ng-container>
+      </mat-card-content>
+    </mat-card>
+  </ng-container>
+
+  <mat-card *ngIf="signed" class="blogblock ">
+    <mat-card-content>
+      <form (ngSubmit)="onSubmit()">
+        <app-editor
+          [(ngModel)]="comment"
+          name="text"
+          [elementId]="'editor1'"
+          required
+          style="width: 100%; min-height: 200px;"
+        ></app-editor>
+
+        <div style="padding-top: 10px">
+          <button mat-raised-button color="primary" type="submit">
+            Комментировать
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+  
+  <mat-card *ngIf="!signed" class="blogblock ">
+    <mat-card-content>
+      <a routerLink="/Identity/Account/Login">Залогиньтесь</a>, чтобы оставить свой комментарий
+    </mat-card-content>
+  </mat-card>
+</div>
+<br><br><br><br><br><br><br><br><br><br>
+}

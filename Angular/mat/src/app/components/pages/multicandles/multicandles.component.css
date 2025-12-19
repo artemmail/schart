@@ -1,0 +1,49 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Полностью запрещаем скролл у body */
+  box-sizing: border-box;
+}
+
+.flex-container {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 15px;
+  align-items: center;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.flex-item {
+  flex: 1 1 auto;
+  min-width: 150px;
+}
+
+/* .container1 будет принимать высоту динамически из кода */
+.container1 {
+  display: grid;
+  grid-template-columns: repeat(var(--columns, 1), 1fr);
+  grid-template-rows: repeat(var(--rows, 1), 1fr);
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.footprint-item {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  overflow: hidden;
+  /* Можно убрать любые внешние отступы внутри компонентов, если они мешают */
+}
+
+mat-card {
+  padding: 16px;
+  margin: 0; /* Убираем доп. отступы, которые могут вызвать скролл */
+  box-sizing: border-box;
+}

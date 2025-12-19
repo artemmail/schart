@@ -1,0 +1,60 @@
+<div class="container">
+  <div class="blogblock">
+    <div style="float: left">
+      <h2>{{ "Крупнейшие сделки" }}</h2>
+      <mat-card>
+        <mat-card-title>Параметры</mat-card-title>
+        <mat-card-content>
+          <div class="flex-container">
+            <div class="flex-item">
+              <app-ticker-autocomplete [(ngModel)]="ticker" (tickerChange)="onTickerSelected($event)"></app-ticker-autocomplete>
+            </div>
+            <div class="flex-item">
+              <mat-form-field appearance="fill">
+                <mat-label>Глубина сканирования</mat-label>
+                <mat-select [(ngModel)]="bigPeriod" name="bigPeriod">
+                  <mat-option *ngFor="let period of bigPeriods" [value]="period.value">
+                    {{ period.viewValue }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+            <div class="flex-item">
+              <button mat-raised-button color="primary" (click)="onSubmit()">Показать</button>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+      <div>
+        <mat-table [dataSource]="dataSource" matSort class="custom-table">
+          <ng-container matColumnDef="quantity">
+            <mat-header-cell *matHeaderCellDef mat-sort-header>Кол-во</mat-header-cell>
+            <mat-cell *matCellDef="let element">{{ element.quantity }}</mat-cell>
+          </ng-container>
+
+          <ng-container matColumnDef="direction">
+            <mat-header-cell *matHeaderCellDef mat-sort-header>Тип</mat-header-cell>
+            <mat-cell *matCellDef="let element">
+              <span *ngIf="element.direction === 0" style="color: #d75442;">Продажа</span>
+              <span *ngIf="element.direction !== 0" style="color: #6ba583;">Покупка</span>
+            </mat-cell>
+          </ng-container>
+
+          <ng-container matColumnDef="tradeDate">
+            <mat-header-cell *matHeaderCellDef mat-sort-header>Дата сделки</mat-header-cell>
+            <mat-cell *matCellDef="let element">{{ element.tradeDate | date:'dd.MM.yyyy HH:mm:ss' }}</mat-cell>
+          </ng-container>
+
+          <ng-container matColumnDef="price">
+            <mat-header-cell *matHeaderCellDef mat-sort-header>Цена</mat-header-cell>
+            <mat-cell *matCellDef="let element">{{ element.price | number:'1.2-2' }}</mat-cell>
+          </ng-container>
+
+          <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+          <mat-row *matRowDef="let row; columns: displayedColumns"></mat-row>
+        </mat-table>
+        <mat-paginator [pageSize]="20" [pageSizeOptions]="[5, 10, 20, 50]"></mat-paginator>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,86 @@
+﻿@page
+@model StockChart.Pages.Seasonality.IndexModel
+@{
+    Layout = "_LayoutReport";
+    ViewData["Title"] = "Сезонная активность";  
+}
+<h6>@ViewData["Title"]</h6>
+<fieldset class="k-block">
+    <legend>Параметры</legend>
+    <div class="spanner">&nbsp;</div>
+    <div style="display: block; float: left">
+        <div class="k-label">Тикер</div>
+        <input style="height:23px;" class="k-textbox" id="ticker" name="ticker" type="textbox" value="@Model.ticker" />
+    </div>
+    <div class="spanner">&nbsp;</div>
+    <div style="display: block; float: left; width: 10px; height: 10px"> &nbsp; </div>
+    <div style="display: block; float: left">
+        <input class="k-button" id="submit" type="button" style="width: 90px; height: 37px" value="Показать" onclick=" SeasonalityChart('grid')">
+    </div>
+</fieldset>
+<center>
+    <div id="grid"></div>
+</center>
+<script type="text/javascript">
+    function madediv(data, color) {
+        return "<td  style = 'border-width:1px;border-color:#ceced2;background: {1};  ' ><div style = 'padding: 0.9em 0; text-align: center;font-size:13pt;width:74px;'>{0}</div></td>".format(data, color);
+    }
+    function buildChart(data) {
+        res = "";
+        var max = 0;
+        for (var i = 1; i < data.length; i++)
+            for (var j = 1; j < data[i].length; j++)
+                max = Math.max(max, Math.abs(data[i][j]));
+        for (var i = 0; i < data.length; i++) {
+            res += '<table  style="background:#ceced2;">';
+            res += '<tr>';
+            for (var j = 0; j < data[i].length; j++) {
+                var color = "#FFF";
+                var t = data[i][j];
+                if (i > 0 && j > 0) {
+                    if (t == null)
+                        t = '';
+                    else
+                        t = t / 100 + "%";
+                    if (data[i][j] < 0)
+                        color = getGradientColor('#eeeeee', '#f75442', -data[i][j] / max);
+                    else
+                        color = getGradientColor('#eeeeee', '#6be583', data[i][j] / max);
+                }
+                if (t == null)
+                    t = '';
+                //   if (data[i][j] != null)
+                res += madediv(t, color);
+            }
+            res += '</tr>';
+        }
+        res += '</table>';
+        return res;
+    }
+    SeasonalityChart = function (id) {
+        $.get('/api/Reports/Seasonality', { ticker: document.getElementById('ticker').value }, function (data) {
+            document.getElementById(id).innerHTML = buildChart(data);
+        });
+    }
+    $(document).ready(function () {
+        SeasonalityChart("grid");
+        $("#ticker").autocomplete({
+            source: function (request, response) {
+                $.get(
+                    '/api/common/findbymask', {                    
+                    mask: request.term
+                },
+                  function (data) {
+                      response(data);
+                  });
+            },
+            select: function (event, ui) {
+                MouseAutoComplete('ticker', event, ui);
+                SeasonalityChart("grid");
+                return false;
+            },
+            minLength: 1
+        });
+    })
+</script>
+

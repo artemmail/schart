@@ -1,0 +1,67 @@
+/* Общие стили для контейнера */
+.container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Левая панель с фиксированной шириной */
+.left-panel {
+  width: 400px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* Правая панель занимает всё оставшееся пространство */
+.right-panel {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* Контейнер для графика */
+#chart-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Сам график */
+#chart {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100%;
+}
+
+mat-card {
+  padding: 16px;
+  margin: 12px;
+  height: calc(100vh - 85px); /* Высота карточки адаптируется к окну */
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+mat-card-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+}
+
+mat-form-field.full-width {
+  width: 100%;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}

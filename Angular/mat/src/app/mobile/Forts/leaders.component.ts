@@ -1,0 +1,12 @@
+import { Component } from '@angular/core';
+import { LeaderboardTableComponent } from 'src/app/components/Controls/leaderboard-table/leaderboard-table.component';
+
+@Component({
+  selector: 'mobile-leaders-forts',
+  
+  templateUrl: './Leaders.component.html',
+  styleUrl: './Leaders.component.css'
+})
+export class LeadersFortsComponent {
+
+}

@@ -1,0 +1,85 @@
+<div class="container">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Дашборд объёмов торгов</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <!-- селектор рынка + кнопки -->
+      <div class="flex-container">
+        <div class="flex-item">
+          <app-market-selector
+            [(ngModel)]="selectedMarket"
+            (selectionChange)="onMarketChange($event)">
+          </app-market-selector>
+        </div>
+
+        <div class="flex-item">
+          <button mat-raised-button color="primary" (click)="loadDashboard()">Обновить</button>
+          <button mat-raised-button color="accent" class="ml-2" (click)="exportToExcel()">
+            Экспорт в Excel
+          </button>
+        </div>
+      </div>
+
+      <!-- таблица -->
+      <table mat-table [dataSource]="dataSource" matSort class="custom-table">
+
+        <!-- тикер -->
+        <ng-container matColumnDef="ticker">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Бумага</th>
+          <td mat-cell *matCellDef="let r">
+            <div class="ticker-container">
+              <app-ticker-icon [ticker]="r.ticker"></app-ticker-icon>
+              <a [routerLink]="['/FootPrint']"
+                 [queryParams]="{ ticker: r.ticker, period: 5, rperiod: 'day' }">
+                {{ r.name }}
+              </a>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Объём 1 день -->
+        <ng-container matColumnDef="volume1Day">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>1&nbsp;день</th>
+          <td mat-cell *matCellDef="let r">{{ r.volume1Day | number:'1.0-0' }}</td>
+        </ng-container>
+
+        <!-- Числовые средние (оставлены как были; можно скрыть, удалив эти блоки и колонки из displayedColumns) -->
+        <ng-container *ngFor="let key of ['avg3Days','avg7Days','avg30Days','avg90Days','avg180Days','avg365Days']"
+                      [matColumnDef]="key">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>
+            {{'Ср. ' +key.replace('avg','').replace('Days','') === '3' ? '3 дн.' :
+              'Ср. ' + key.replace('avg','').replace('Days','') === '7' ? '7 дн.' :
+              'Ср. ' + key.replace('avg','').replace('Days','') + ' дн.' }}
+          </th>
+          <td mat-cell *matCellDef="let r">{{ r[key] | number:'1.0-0' }}</td>
+        </ng-container>
+
+        <!-- ★ Новая колонка с мини‑графиком -->
+        <ng-container matColumnDef="avgBars">
+          <th mat-header-cell *matHeaderCellDef>График</th>
+          <td mat-cell *matCellDef="let r">
+            <div class="mini-chart">
+              <div
+                *ngFor="let v of getAvgArray(r)"
+                class="mini-bar"
+                [style.height.%]="(v / getMaxAvg(r)) * 100">
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- строки -->
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row        *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+
+      <mat-paginator
+        [pageSize]="100"
+        [pageSizeOptions]="[10, 50, 100]"
+        showFirstLastButtons>
+      </mat-paginator>
+    </mat-card-content>
+  </mat-card>
+</div>

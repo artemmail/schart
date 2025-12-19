@@ -1,0 +1,80 @@
+<h1 mat-dialog-title>Отправить сообщение поддержке</h1>
+
+<form (ngSubmit)="onSubmit()" enctype="multipart/form-data" *ngIf="isSignedIn" style="width: 100%;">
+  <div mat-dialog-content>
+    <!-- Тип вопроса или проблемы -->
+    <mat-form-field style="width: 100%;">
+      <mat-label>Тип вопроса или проблемы</mat-label>
+      <mat-select [(ngModel)]="messageType" name="messageType" required>
+        <mat-option *ngFor="let type of messageTypes" [value]="type.Value">
+          {{ type.Text }}
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="!messageType">
+        Выберите тип вопроса или проблемы
+      </mat-error>
+    </mat-form-field>
+
+    <!-- Тема -->
+    <mat-form-field style="width: 100%;">
+      <mat-label>Тема</mat-label>
+      <input matInput [(ngModel)]="header" name="header" required />
+      <mat-error *ngIf="!header">
+        Тема обязательна
+      </mat-error>
+    </mat-form-field>
+
+    <!-- Содержание -->
+    <div style="width: 100%; margin-bottom: 16px;">
+      <mat-label>Содержание (можно добавить картинки из буфера обмена в текст)</mat-label>
+      <app-editor
+        [(ngModel)]="text"
+        name="text"
+        [elementId]="'tinymce-edito1r'"
+        required
+        style="width: 100%; min-height: 200px;"
+      ></app-editor>
+      <mat-error *ngIf="!text">
+        Содержание обязательно
+      </mat-error>
+    </div>
+
+    <!-- Прикрепить файл -->
+    <div style="width: 100%; margin-bottom: 16px;">
+      <label for="uploadedFile">Прикрепить файл</label>
+      <input type="file" id="uploadedFile" (change)="onFileChange($event)" />
+    </div>
+  </div>
+
+  <div mat-dialog-actions style="justify-content: flex-end;">
+    <!-- Кнопка Отправить -->
+    <button
+    mat-button
+      color="primary"
+      type="submit"
+      [disabled]="!text || !header || !messageType"
+      style="margin-right: 8px;"
+    >
+      <mat-icon>send</mat-icon> Отправить
+    </button>
+
+    <!-- Кнопка Отмена -->
+    <button mat-button type="button" (click)="onCancelClick()">
+      <mat-icon>cancel</mat-icon> Отмена
+    </button>
+  </div>
+</form>
+
+<!-- Сообщение для незалогиненных пользователей -->
+<div mat-dialog-content *ngIf="!isSignedIn">
+  <p>
+    <a routerLink="/Identity/Account/Login">Залогинтесь</a>, чтобы оставить сообщение в техническую поддержку.
+  </p>
+</div>
+
+<div mat-dialog-actions *ngIf="!isSignedIn" style="justify-content: flex-end;">
+  <!-- Только кнопка Отмена для незалогиненных пользователей -->
+  <button mat-button (click)="onCancelClick()">
+    <mat-icon>cancel</mat-icon> Отмена
+  </button>
+</div>

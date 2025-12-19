@@ -1,0 +1,28 @@
+<div class="resend-email-container">
+    <ng-container *ngIf="done; else resendForm">
+      <p>Please check your email to confirm your account.</p>
+    </ng-container>
+    <ng-template #resendForm>
+      <mat-card>
+        
+        <mat-card-header><mat-card-title>Resend Email Confirmation</mat-card-title></mat-card-header>
+        
+
+        <mat-card-content>
+          <form [formGroup]="resendEmailForm" (ngSubmit)="onSubmit()">
+            <mat-form-field appearance="fill">
+              <mat-label>Email</mat-label>
+              <input matInput type="email" formControlName="email" required>
+              <mat-error *ngIf="submitted && f.email.errors?.required">Email is required</mat-error>
+              <mat-error *ngIf="submitted && f.email.errors?.email">Invalid email address</mat-error>
+            </mat-form-field>
+  
+            <div class="resend-button">
+              <button mat-raised-button color="primary" type="submit">Resend</button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </ng-template>
+  </div>
+  

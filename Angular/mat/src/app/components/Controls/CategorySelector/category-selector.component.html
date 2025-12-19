@@ -1,0 +1,9 @@
+
+  <mat-form-field style="width: 100%;">
+    <mat-label>Отрасли</mat-label>
+    <mat-select [formControl]="categoryControl" multiple (selectionChange)="onSelectionChange()">
+      <mat-option *ngFor="let category of categories" [value]="category.Value">
+        {{ category.Text }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>

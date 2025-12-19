@@ -1,0 +1,68 @@
+﻿@page
+@{
+    Layout = "_Layout.Mobile";
+    ViewData["Title"] = "Мобильный рутикер";
+}
+<link href='https://fonts.googleapis.com/css?family=Fira+Sans' rel='stylesheet' type='text/css'>
+<style type="text/css">
+    html, body {
+        height: 100%;
+        margin: 0px;
+        padding: 0px;
+    }
+    #h21 {
+        font-family: 'Fira Sans', sans-serif;
+        color: #555;
+        font-size: 36px;
+        margin: 0;
+        padding: 0;
+    }
+    #h31 {
+        font-family: 'Fira Sans', sans-serif;
+        color: rgba(221, 65, 42, 1);
+        font-size: 36px;
+        margin: 0;
+        padding: 0;
+    }
+    .k-treemap-tile.k-leaf {
+        padding: 0em;
+    }
+  #fieldlist1 label {
+        display: block;
+        padding-bottom: 0.5em;
+        padding-top: 0.5em;
+        line-height: 0.5em;
+        font-weight: bold;
+        font-size: 12px;
+    }
+ .km-close:after,
+    .km-close:before {
+        content: "\e038";
+    }
+    .km-drawer-button:after,
+    .km-drawer-button:before {
+        content: "\E077";
+    }
+    .km-settings-button:after,
+    .km-settings-button:before {
+        content: "\e30f";
+    }
+        #full {
+            height: 100%;
+            width: 100%;
+            background: #fff;            
+            display: table;
+        }
+        #child {
+            display: table-cell;
+            vertical-align: middle;             
+            text-align:center;
+        }      
+    </style>
+    <div id="full">        
+            <div id="child">
+                <b>  <span id="h31">Stock</span><span id="h21">Chart<span id="h31">.</span>ru</span> </b>
+            </div>        
+    </div>
+    <script src="~/lib/signalr/dist/browser/signalr.js"></script>
+    <script src="/lib/require.js" data-main="/appl/main.js"></script>

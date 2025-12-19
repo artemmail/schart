@@ -1,0 +1,110 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+ 
+  overflow: hidden; /* Убираем скроллбары */
+}
+
+.container {
+  width: alc(100vw - 15px);
+  margin: 0 auto;
+  
+
+  padding: 10px;
+}
+
+.widerightsidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.blogblock {
+  width: 100%;
+}
+
+.flex-container {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 15px; /* Интервал между элементами */
+  align-items: center; /* Выравнивание элементов по вертикальной оси */
+}
+
+.flex-item {
+  flex: 1 1 auto; /* Пропорциональное растягивание элементов */
+  min-width: 150px; /* Минимальная ширина элементов */
+}
+
+
+
+
+.mat-form-field {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+::ng-deep .mat-header-cell, ::ng-deep .mat-cell {
+  padding: 8px;
+}
+
+.form-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Это добавляет отступы между элементами */
+}
+
+.form-field {
+  flex-grow: 1; /* Это позволяет матформе занять доступное пространство */
+}
+
+.submit-button {
+  flex-shrink: 0; /* Чтобы кнопка не сжималась */
+}
+
+
+mat-card {
+  padding: 16px; /* Отступ внутри карточки */
+  margin-bottom: 20px; /* Отступ снизу */
+  height: calc(100vh - 85px);
+}
+
+mat-card {
+
+  margin: 0 auto;
+margin-top: 12px;
+margin-left: 12px;
+margin-right: 12px;
+}
+
+
+canvas { 
+
+  width: 100%;
+  height: calc(100vh - 15px); /* Вы можете настроить этот размер в зависимости от ваших нужд */
+}
+
+
+mat-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Разделить содержимое */
+  height: calc(100vh - 85px);
+}
+
+#chart-container {
+  flex-grow: 1; /* График займет оставшееся пространство */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+#chart {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto; /* Автоматическая ширина */
+  height: auto; /* Автоматическая высота */
+}

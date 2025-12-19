@@ -1,0 +1,124 @@
+<mat-card class="table-card">
+    <mat-card-header>
+      <mat-card-title>YooMoney</mat-card-title>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <table mat-table [dataSource]="dataSource" class="custom-table">
+        
+        <!-- Столбец Operation ID -->
+        <ng-container matColumnDef="operation_id">
+          <th mat-header-cell *matHeaderCellDef>Operation ID</th>
+          <td mat-cell *matCellDef="let operation">
+            <a href="#" (click)="openOperationDetails(operation.operation_id); $event.preventDefault();">
+              {{ operation.operation_id }}
+            </a>
+          </td>
+        </ng-container>
+        
+        <!-- Столбец Date -->
+        <ng-container matColumnDef="datetime">
+          <th mat-header-cell *matHeaderCellDef>Дата</th>
+          <td mat-cell *matCellDef="let operation">{{ operation.datetime | date: 'short' }}</td>
+        </ng-container>
+        
+        <!-- Столбец Title -->
+        <ng-container matColumnDef="title">
+          <th mat-header-cell *matHeaderCellDef>Описание</th>
+          <td mat-cell *matCellDef="let operation">{{ operation.title }}</td>
+        </ng-container>
+        
+        <!-- Столбец Amount -->
+        <ng-container matColumnDef="amount">
+          <th mat-header-cell *matHeaderCellDef>Сумма</th>
+          <td mat-cell *matCellDef="let operation">{{ operation.amount }} {{ operation.amount_currency }}</td>
+        </ng-container>
+        
+        <!-- Столбец Type -->
+        <ng-container matColumnDef="type">
+          <th mat-header-cell *matHeaderCellDef>Тип</th>
+          <td mat-cell *matCellDef="let operation">{{ operation.type }}</td>
+        </ng-container>
+        
+        <!-- Столбец Direction (заменён на иконку) -->
+        <ng-container matColumnDef="direction">
+          <th mat-header-cell *matHeaderCellDef>Направление</th>
+          <td mat-cell *matCellDef="let operation">
+            <mat-icon 
+              *ngIf="operation.direction === 'in'" 
+              color="primary" 
+              aria-label="Входящая операция">
+              arrow_downward
+            </mat-icon>
+            <mat-icon 
+              *ngIf="operation.direction === 'out'" 
+              color="warn" 
+              aria-label="Исходящая операция">
+              arrow_upward
+            </mat-icon>
+          </td>
+        </ng-container>
+        
+        <!-- Столбец Label -->
+        <ng-container matColumnDef="label">
+          <th mat-header-cell *matHeaderCellDef>Метка</th>
+          <td mat-cell *matCellDef="let operation">
+            <a href="#" (click)="openBillDetails(operation.label); $event.preventDefault();">
+              {{ operation.label }}
+            </a>
+          </td>
+        </ng-container>
+        
+        <!-- Столбец Group ID -->
+        <ng-container matColumnDef="group_id">
+          <th mat-header-cell *matHeaderCellDef>Группа</th>
+          <td mat-cell *matCellDef="let operation">{{ operation.group_id }}</td>
+        </ng-container>
+        
+        <!-- Столбец Is SBP Operation (заменён на иконку) -->
+        <ng-container matColumnDef="is_sbp_operation">
+          <th mat-header-cell *matHeaderCellDef>СБП Операция</th>
+          <td mat-cell *matCellDef="let operation">
+            <mat-icon 
+              *ngIf="operation.is_sbp_operation" 
+              color="accent" 
+              aria-label="СБП операция">
+              check_circle
+            </mat-icon>
+            <mat-icon 
+              *ngIf="!operation.is_sbp_operation" 
+              color="warn" 
+              aria-label="Не СБП операция">
+              cancel
+            </mat-icon>
+          </td>
+        </ng-container>
+        
+        <!-- Столбец Spending Categories -->
+        <ng-container matColumnDef="spendingCategories">
+          <th mat-header-cell *matHeaderCellDef>Категории расходов</th>
+          <td mat-cell *matCellDef="let operation">
+            <ng-container *ngFor="let category of operation.spendingCategories">
+              {{ category.name }}<br>
+            </ng-container>
+          </td>
+        </ng-container>
+        
+        <!-- Строка заголовка -->
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        
+        <!-- Строка данных -->
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+      
+      <!-- Пагинация -->
+      <mat-paginator
+        [length]="totalItems"
+        [pageSize]="pageSize"
+        [pageIndex]="pageIndex"
+        showFirstLastButtons
+        (page)="onPageChange($event)">
+      </mat-paginator>
+    </mat-card-content>
+  </mat-card>
+  

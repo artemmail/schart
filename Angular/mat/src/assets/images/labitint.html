@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>Wolfenstein-style Corridor</title>
+<style>
+body {
+    margin:0;
+    overflow:hidden;
+    background:#000;
+    font-family:sans-serif;
+    color:#fff;
+    -webkit-user-select:none;
+    -webkit-touch-callout:none;
+    user-select:none;
+    touch-action:none;
+}
+
+#info {
+    position:absolute;top:10px;left:10px;z-index:10;
+    background:rgba(0,0,0,0.5);padding:5px;border-radius:5px;
+    font-size:14px;
+    color:#fff;
+    max-width:200px;
+}
+
+#overlay {
+    position:absolute;top:0;left:0;width:100%;height:100%;
+    display:flex;justify-content:center;align-items:center;
+    color:#fff; font-size:20px; cursor:pointer;
+    background:rgba(0,0,0,0.5);
+    text-align:center;
+    padding:20px;
+    z-index:9999;
+}
+</style>
+</head>
+<body>
+<div id="info"></div>
+<div id="overlay"></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script>
+// Определение устройства
+function isMobileDevice() {
+    return /Android|iPhone|iPad|iPod|Windows Phone|Mobile/i.test(navigator.userAgent) 
+        || (typeof window.orientation !== "undefined");
+}
+const isMobile = isMobileDevice();
+
+// Параметры игры
+const MAP_WIDTH = 40;
+const MAP_HEIGHT = 40;
+const CELL_SIZE = 2;    
+const WALL_HEIGHT = 2;  
+const PLAYER_SPEED = 0.05;
+const PLAYER_RADIUS = 0.3;
+
+// Генерация лабиринта
+let labyrinth = [];
+for (let y = 0; y < MAP_HEIGHT; y++) {
+    labyrinth[y] = [];
+    for (let x = 0; x < MAP_WIDTH; x++) {
+        if (y === 0 || y === MAP_HEIGHT-1 || x === 0 || x === MAP_WIDTH-1) {
+            labyrinth[y][x] = 1;
+        } else {
+            labyrinth[y][x] = (Math.random()<0.2)?1:0;
+        }
+    }
+}
+let startX = Math.floor(MAP_WIDTH/2);
+let startY = Math.floor(MAP_HEIGHT/2);
+labyrinth[startY][startX] = 0;
+
+// Процедурные текстуры
+function createGrassTexture(){
+    const size=256;
+    const c=document.createElement('canvas');
+    c.width=size;c.height=size;
+    const ctx=c.getContext('2d');
+    ctx.fillStyle='#7dbf59';
+    ctx.fillRect(0,0,size,size);
+    ctx.fillStyle='#4a7c31';
+    for (let i=0;i<500;i++){
+        let x=Math.random()*size;
+        let y=Math.random()*size;
+        let r=1+Math.random()*3;
+        ctx.beginPath();
+        ctx.arc(x,y,r,0,2*Math.PI);
+        ctx.fill();
+    }
+    return c;
+}
+
+function createSkyTexture(){
+    const size=1024;
+    let c=document.createElement('canvas');
+    c.width=size;c.height=size;
+    let ctx=c.getContext('2d');
+
+    let grad=ctx.createLinearGradient(0,0,0,size);
+    grad.addColorStop(0,"#87CEEB");
+    grad.addColorStop(1,"#5EBBD4");
+    ctx.fillStyle=grad;
+    ctx.fillRect(0,0,size,size);
+
+    ctx.fillStyle="rgba(255,255,255,0.7)";
+    for (let i=0; i<30; i++){
+        let cx=Math.random()*size;
+        let cy=Math.random()*size*0.5;
+        let cw=50+Math.random()*150;
+        let ch=20+Math.random()*50;
+        ctx.beginPath();
+        ctx.ellipse(cx,cy,cw,ch,Math.random()*Math.PI,0,2*Math.PI);
+        ctx.fill();
+    }
+    return c;
+}
+
+function createBrickTexture(){
+    const size = 256;
+    let c = document.createElement('canvas');
+    c.width = size;
+    c.height = size;
+    let ctx = c.getContext('2d');
+    ctx.fillStyle = '#8B0000';
+    ctx.fillRect(0,0,size,size);
+
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 4;
+    let brickH = 32; 
+    let brickW = 64;
+    for (let y=0; y<size; y+=brickH) {
+        ctx.beginPath();
+        ctx.moveTo(0,y);
+        ctx.lineTo(size,y);
+        ctx.stroke();
+        let offset = (y/brickH)%2===0?0:brickW/2;
+        for (let x=offset; x<size; x+=brickW) {
+            ctx.beginPath();
+            ctx.moveTo(x,y);
+            ctx.lineTo(x,y+brickH);
+            ctx.stroke();
+        }
+    }
+    return c;
+}
+
+let floorCanvas = createGrassTexture();
+let wallCanvas = createBrickTexture();
+let skyCanvas = createSkyTexture();
+
+function canvasToTexture(canvas, repeatX=1, repeatY=1) {
+    let tex = new THREE.Texture(canvas);
+    tex.needsUpdate = true;
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.generateMipmaps = true;
+    tex.repeat.set(repeatX, repeatY);
+    return tex;
+}
+let floorTexture = canvasToTexture(floorCanvas, MAP_WIDTH, MAP_HEIGHT);
+let wallTexture = canvasToTexture(wallCanvas,1,1);
+let skyTexture = new THREE.Texture(skyCanvas);
+skyTexture.needsUpdate = true;
+skyTexture.wrapS = THREE.ClampToEdgeWrapping;
+skyTexture.wrapT = THREE.ClampToEdgeWrapping;
+skyTexture.minFilter = THREE.LinearFilter;
+skyTexture.magFilter = THREE.LinearFilter;
+
+// Инициализация Three.js
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+const camera = new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
+camera.position.set(startX*CELL_SIZE+CELL_SIZE/2,1.0,startY*CELL_SIZE+CELL_SIZE/2);
+camera.rotation.order='YXZ';
+
+const playerLight = new THREE.PointLight(0xffffff,1.5,10,2);
+playerLight.position.set(camera.position.x, camera.position.y, camera.position.z);
+scene.add(playerLight);
+
+const ambient = new THREE.AmbientLight(0x444444);
+scene.add(ambient);
+
+const hemiLight = new THREE.HemisphereLight(0xddddff,0x222222,0.5);
+scene.add(hemiLight);
+
+const floorGeometry = new THREE.PlaneGeometry(MAP_WIDTH*CELL_SIZE, MAP_HEIGHT*CELL_SIZE);
+const floorMaterial = new THREE.MeshPhongMaterial({map:floorTexture});
+const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
+floorMesh.rotation.x = -Math.PI/2;
+floorMesh.position.set(MAP_WIDTH*CELL_SIZE/2,0,MAP_HEIGHT*CELL_SIZE/2);
+scene.add(floorMesh);
+
+const wallMaterial = new THREE.MeshPhongMaterial({map:wallTexture});
+for (let y=0;y<MAP_HEIGHT;y++){
+    for (let x=0;x<MAP_WIDTH;x++){
+        if (labyrinth[y][x]===1){
+            const wallGeometry = new THREE.BoxGeometry(CELL_SIZE,WALL_HEIGHT,CELL_SIZE);
+            const wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
+            wallMesh.position.set(x*CELL_SIZE+CELL_SIZE/2,WALL_HEIGHT/2,y*CELL_SIZE+CELL_SIZE/2);
+            scene.add(wallMesh);
+        }
+    }
+}
+
+const skyGeometry = new THREE.SphereGeometry(500,32,32);
+const skyMaterial = new THREE.MeshBasicMaterial({map: skyTexture, side: THREE.BackSide});
+const skyMesh = new THREE.Mesh(skyGeometry, skyMaterial);
+scene.add(skyMesh);
+
+let moveForward=false,moveBackward=false,moveLeft=false,moveRight=false;
+
+function canMoveTo(nx, nz) {
+    let radius = PLAYER_RADIUS;
+    let points = [
+        [nx+radius, nz+radius],
+        [nx+radius, nz-radius],
+        [nx-radius, nz+radius],
+        [nx-radius, nz-radius]
+    ];
+    for (let p of points) {
+        let cellX = Math.floor(p[0]/CELL_SIZE);
+        let cellY = Math.floor(p[1]/CELL_SIZE);
+        if (cellX<0||cellX>=MAP_WIDTH||cellY<0||cellY>=MAP_HEIGHT) return false;
+        if (labyrinth[cellY][cellX]===1) return false;
+    }
+    return true;
+}
+
+// Десктопное управление
+function initDesktopControls(){
+    document.getElementById('info').innerText="Десктоп:\nW,S - вперёд/назад\nA,D - стрейф\nКлик для захвата мыши";
+    const overlay = document.getElementById('overlay');
+    overlay.innerText = "Кликните для захвата мыши";
+    overlay.onclick = ()=>{
+        overlay.style.display='none';
+        document.body.requestPointerLock();
+    };
+
+    document.addEventListener('pointerlockchange', ()=>{
+        if(document.pointerLockElement===document.body){
+            document.addEventListener('mousemove', onDesktopMouseMove);
+        } else {
+            document.removeEventListener('mousemove', onDesktopMouseMove);
+            overlay.style.display='flex';
+        }
+    });
+
+    document.addEventListener('keydown',(e)=>{
+        if(e.code==='KeyW') moveForward=true;
+        if(e.code==='KeyS') moveBackward=true;
+        if(e.code==='KeyA') moveLeft=true;
+        if(e.code==='KeyD') moveRight=true;
+    });
+    document.addEventListener('keyup',(e)=>{
+        if(e.code==='KeyW') moveForward=false;
+        if(e.code==='KeyS') moveBackward=false;
+        if(e.code==='KeyA') moveLeft=false;
+        if(e.code==='KeyD') moveRight=false;
+    });
+}
+
+function onDesktopMouseMove(e){
+    let ROTATION_SPEED=0.002;
+    camera.rotation.y -= e.movementX * ROTATION_SPEED;
+    camera.rotation.x -= e.movementY * ROTATION_SPEED;
+    camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
+}
+
+// Мобильное управление с акселерометром
+let alpha=0, beta=0, gamma=0;  
+// Сглаживание
+let smoothAlpha=0, smoothBeta=0, smoothGamma=0;
+let smoothFactor=0.05; 
+
+function initMobileControls(){
+    document.getElementById('info').innerText="Мобильное:\nНаклон устройства - камера\nВерх экрана - вперёд\nНиз экрана - назад";
+    const overlay = document.getElementById('overlay');
+    overlay.innerText="Тапните, чтобы начать";
+
+    overlay.addEventListener('click',()=>{
+        overlay.style.display='none';
+        if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+            DeviceOrientationEvent.requestPermission().then((perm)=>{
+                if(perm==='granted'){
+                    window.addEventListener('deviceorientation', onDeviceOrientation);
+                } else {
+                    window.addEventListener('deviceorientation', onDeviceOrientation);
+                }
+            }).catch(e=>{
+                window.addEventListener('deviceorientation', onDeviceOrientation);
+            });
+        } else {
+            window.addEventListener('deviceorientation', onDeviceOrientation);
+        }
+    });
+
+    function onDeviceOrientation(event){
+        let a = event.alpha||0;
+        let b = event.beta||0;
+        let g = event.gamma||0;
+
+        smoothAlpha += smoothFactor*(a - smoothAlpha);
+        smoothBeta += smoothFactor*(b - smoothBeta);
+        smoothGamma += smoothFactor*(g - smoothGamma);
+
+        alpha = smoothAlpha;
+        beta = smoothBeta;
+        gamma = smoothGamma;
+    }
+
+    document.addEventListener('touchstart',(e)=>{
+        let touch = e.touches[0];
+        let y = touch.clientY;
+        if(y < window.innerHeight/2){
+            moveForward=true;
+        } else {
+            moveBackward=true;
+        }
+    }, {passive:true});
+    document.addEventListener('touchend',(e)=>{
+        moveForward=false;
+        moveBackward=false;
+    }, {passive:true});
+    document.addEventListener('touchcancel',(e)=>{
+        moveForward=false;
+        moveBackward=false;
+    }, {passive:true});
+}
+
+if(isMobile) {
+    initMobileControls();
+} else {
+    initDesktopControls();
+    document.getElementById('overlay').style.display='flex';
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    if(isMobile) {
+        // Преобразуем beta: 
+        // beta=90 - вертикаль прямо (0 по x)
+        // >90 - наклон вперёд к полу, камера вниз
+        // <90 - наклон назад к потолку, камера вверх
+        let radAlpha = alpha * Math.PI/180;
+        let radX = (beta - 90)*Math.PI/180;
+        // Ограничим наклон, чтобы не перевернуть камеру
+        radX = Math.max(-Math.PI/2, Math.min(Math.PI/2, radX));
+
+        camera.rotation.y = -radAlpha;
+        camera.rotation.x = radX;
+
+        let dir = new THREE.Vector3();
+        camera.getWorldDirection(dir);
+        dir.normalize();
+        let moveX=0,moveZ=0;
+        if(moveForward) {
+            moveX+=dir.x*PLAYER_SPEED;
+            moveZ+=dir.z*PLAYER_SPEED;
+        }
+        if(moveBackward) {
+            moveX-=dir.x*PLAYER_SPEED;
+            moveZ-=dir.z*PLAYER_SPEED;
+        }
+        let newX = camera.position.x+moveX;
+        let newZ = camera.position.z+moveZ;
+        if(canMoveTo(newX, camera.position.z)) camera.position.x=newX;
+        if(canMoveTo(camera.position.x, newZ)) camera.position.z=newZ;
+
+    } else {
+        // Десктоп
+        let dir = new THREE.Vector3();
+        camera.getWorldDirection(dir);
+        dir.normalize();
+        let right = new THREE.Vector3();
+        right.crossVectors(camera.up, dir).normalize().multiplyScalar(-1);
+
+        let moveX=0,moveZ=0;
+        if(moveForward) {
+            moveX+=dir.x*PLAYER_SPEED;
+            moveZ+=dir.z*PLAYER_SPEED;
+        }
+        if(moveBackward) {
+            moveX-=dir.x*PLAYER_SPEED;
+            moveZ-=dir.z*PLAYER_SPEED;
+        }
+        if(moveLeft) {
+            moveX+=right.x*PLAYER_SPEED;
+            moveZ+=right.z*PLAYER_SPEED;
+        }
+        if(moveRight) {
+            moveX-=right.x*PLAYER_SPEED;
+            moveZ-=right.z*PLAYER_SPEED;
+        }
+
+        let newX = camera.position.x+moveX;
+        let newZ = camera.position.z+moveZ;
+        if(canMoveTo(newX, camera.position.z)) camera.position.x=newX;
+        if(canMoveTo(camera.position.x, newZ)) camera.position.z=newZ;
+    }
+
+    playerLight.position.set(camera.position.x, camera.position.y, camera.position.z);
+    renderer.render(scene,camera);
+}
+
+animate();
+
+window.addEventListener('resize',()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth,window.innerHeight);
+});
+</script>
+</body>
+</html>

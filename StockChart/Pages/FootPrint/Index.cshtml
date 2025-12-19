@@ -1,0 +1,770 @@
+﻿@page
+@model StockChart.Pages.FootPrint.IndexModel
+@{
+    Layout = "_FullScreen";
+    ViewData["Title"] = "Кластерный/свечной график";    
+}
+
+
+<script>
+'use strict';
+   try { eval(' class foo {}'); } catch (e) { 
+      document.title =  'Обновите браузер';
+      document.body.innerHTML = '<h1>Текущая версия браузера устарела. Установите обновление. Сайт лучше всего работает под Google Chrome</h1>'; 
+ }
+</script>
+
+<script>
+    var profileId = @Model.ProfileId; 
+</script>
+
+
+
+
+<script src="/Scripts/Clusters/Columns/ClusterCoumnBase.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/Columns/BarColumn.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/Columns/CandleColumn.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/Columns/ClassicColumn.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/Columns/ClassicColumnTotal.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/Columns/DeltaVolumeColumn.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/Columns/DensityDeltaColumn.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/Columns/MarketDeltaColumn.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/Columns/VolfixColumn.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/Columns/VolfixColumnTotal.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/Columns/VolumeDeltaColumn.js" type="text/javascript"></script>
+
+<script src="/Scripts/Clusters/clusterData.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/smoothCanvas.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/config.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/matrixExt.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/canvasPart.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/viewBackground.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/viewBackground1.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/viewHead.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/viewMain.js" type="text/javascript"></script>
+
+<script src="/Scripts/Clusters/viewPrices.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/viewDates.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/viewTotal.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/viewAnim.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/viewVolumes.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/viewScrollBars.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/viewVolumesSeparated.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/viewOI.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/viewOIDelta.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/viewDelta.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/viewDeltaBars.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/main.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/page.js" type="text/javascript"></script>
+
+
+
+
+
+
+<script src="/Scripts/controls.js" type="text/javascript"></script>
+<script src="/Scripts/Clusters/MarkUp.js" type="text/javascript"></script>
+
+<div id="example">
+
+    <fieldset class="k-block">
+        <legend>Кластерный график FootPrint</legend>
+        <ul id="fieldlist">
+            <li><label for="ticker">Тикер</label> <input id="ticker" data-bind="value: controls.ticker, events: { change: changeticker }" class="k-textbox" /></li>
+            <li>
+                <label for="period">Период</label>
+                <select style="width: 90px"
+                        data-role="dropdownlist"
+                        data-value-field="Value"
+                        data-text-field="Text"
+                        data-value-primitive="true"
+                        data-bind="value: controls.period, source: periodlist"></select>
+            </li>
+            <li>
+                <label for="startTime">Шаг цен</label>
+                <input id="ps"
+                       data-min="0"
+                       data-format="n8"
+                       data-decimals="8"
+                       data-step="0.00000001"
+                       data-role="numerictextbox"
+                       data-bind="value: controls.priceStep" style="width: 120px" />
+            </li>
+            <li>
+                <label for="rperiod">Промежуток</label>
+                <select style="width: 140px"
+                        data-role="dropdownlist"
+                        data-value-field="Value"
+                        data-text-field="Text"
+                        data-value-primitive="true"
+                        data-bind="value: controls.rperiod, source: rperiodlist, events: { change: changerperiod }"></select>
+            </li>
+            <li>
+                <label for="startDate">Начальная дата</label>
+                <input style="width: 100px" data-format="dd.MM.yyyy" data-role="datepicker" data-bind="value: controls.startDate , events: { change: changedate }" class="editor-field" />
+            </li>
+            <li>
+                <label for="endDate">Конечная дата</label>
+                <input style="width: 100px" data-format="dd.MM.yyyy" data-role="datepicker" data-bind="value: controls.endDate , events: { change: changedate }" class="editor-field" />
+            </li>
+            <li data-bind="visible: controls.timeEnable">
+                <label for="startTime">Нач. время</label>
+                <input style="width: 75px" data-format="HH:mm" data-min="9:30" data-role="timepicker" data-bind="value: controls.startTime , events: { change: changetime}" class="editor-field" />
+            </li>
+            <li data-bind="visible: controls.timeEnable">
+                <label for="endTime">Кон. время</label>
+                <input style="width: 75px" data-format="HH:mm" data-min="10:00" data-role="timepicker" data-bind="value: controls.endTime , events: { change: changetime }" class="editor-field" />
+            </li>
+            <li>
+                <div data-bind="visible: timeVisible">
+                    <input type="checkbox" id="TimeEnable" class="k-checkbox" data-bind="checked: controls.timeEnable">
+                    <label class="k-checkbox-label" for="TimeEnable">Время</label>
+                </div>
+            </li>
+             <li>
+                     <label for="presetList1">Стиль</label>
+
+                        <select id="presetList1"
+                    style="width: 200px"
+                    data-role="dropdownlist"
+                    data-value-field="Value"
+                    data-text-field="Text"
+                    data-value-primitive="true"
+                    data-bind="value: profileId, source: profileList, events: { change: onProfileSelect }"></select>
+            </li>
+
+            <li><label for="but"> <br /> </label> <button id="but" data-bind="click: apply" class="k-button k-primary">Показать</button></li>
+            <li><label for="undo"> <br /> </label> <button id="undo" class="k-button" data-bind="click: showSettings ">Настройки</button></li>            
+            <li><label for="undo"> <br /> </label> <button id="undo" class="k-button" data-bind="click: showMarkUp ">Пометки</button></li>   
+        </ul>
+    </fieldset>
+    <canvas id="graph"></canvas>
+    <div id="window1"
+         data-role="window"
+         data-resizable="false"
+         data-title="Markup editor"
+         style="display:none; top:10px; padding-top:0px; padding-bottom:0px;"
+          data-bind="events: { close: close1 }"> 
+        <div  class="k-block" style="margin:0em" id="toolbar" data-role="toolbar" data-width="485" data-items='[
+             {
+                 type: "buttonGroup",
+                  click: onClick,             
+                 buttons: [
+                     {group: "myGroup", icon: "edit", id: "Edit", text: "Edit", togglable: true, toggle: true, selected: true, toggle: onClick },
+                     {group: "myGroup",icon: "brush", text: "Brush", togglable: true, toggle: onClick },
+                     {group: "myGroup", icon: "line", text: "Line", togglable: true, toggle: onClick },                    
+                     {group: "myGroup", icon: "checkbox", text: "Rect", togglable: true, toggle: onClick },                    
+                     {group: "myGroup", icon: "font-family", text: "Text", togglable: true, toggle: onClick },                    
+                     {group: "myGroup", icon: "table-align-middle-left", text: "Profile", togglable: true, toggle: onClick },    
+                    {group: "myGroup", icon: "checkbox", text: "Strenght", togglable: true, toggle: onClick },
+                    {group: "myGroup", icon: "checkbox", text: "Ballance", togglable: true, toggle: onClick }    
+                 ]
+             },                
+        ]'>
+        </div>
+        <fieldset class="k-block" style="padding:1em">
+            <ul style="list-style-type: none; ">
+                <li data-bind="visible: markup.visible.id">
+                    <h3><label for="elementid">ElementId</label></h3>
+                    <br />
+                    <input id="elementid" type="text" readonly="readonly" data-bind="value: markup.id" class="k-textbox" style="width:240px;height:30px" />
+                </li>
+                <li data-bind="visible: markup.visible.toolbar">
+                    <div id="toolbar2" data-role="toolbar" data-width="385" data-items='[{ type: "button", text: "Delete", click: onDelete, icon: "delete" }]'>
+                    </div>
+                </li>
+                <li data-bind="visible: markup.visible.color">
+                    <h3><label for="colorpicker">Color</label></h3>
+                    <br />
+                    <div id="elementcolor"
+                         style="width:240px;height:30px"
+                         data-role="colorpalette"
+                         data-palette='[ "#F08080", "#FFA500", "#F0E68C", "#90EE90",  "#87CEFA", "#1E90FF", "#FF90FF", "#333333"]' data-bind="value: markup.color, events: { change: markupchangecolor }"></div>
+                </li>
+                <li data-bind="visible: markup.visible.width">
+                    <h3><label for="elementid">Markup width</label></h3>
+                    <br />
+                    <select style="width: 140px"
+                            data-role="dropdownlist"
+                            data-value-field="Value"
+                            data-text-field="Text"
+                            data-value-primitive="true"
+                            data-bind="value: markup.width, source: widths, events: { change: markupchangecolor }"></select>
+                </li>
+                <li data-bind="visible: markup.visible.font">
+                    <h3><label for="elementid">Font size</label></h3>
+                    <br />
+                    <select style="width: 140px"
+                            data-role="dropdownlist"
+                            data-value-field="Value"
+                            data-text-field="Text"
+                            data-value-primitive="true"
+                            data-bind="value: markup.font, source: fonts, events: { change: markupchangecolor }"></select>
+                </li>
+                <li data-bind="visible: markup.visible.text">
+                    <h3><label for="classicEditor">Text</label></h3>
+                    <br />
+                    <textarea style="width:240px;height:50px"
+                              data-value-update="keyup"
+                              data-bind="value: markup.text, events: { keyup: markupchangecolor,  change: markupchangecolor }"
+                              data-resizable="false" cols="20" rows="3" class="small-editor" name="classicEditor" id="classicEditor">                    
+                    </textarea>
+                </li>
+                <li data-bind="visible: markup.visible.arrow">
+                    <h3>
+                        <input type="checkbox" id="markuparrow" class="k-checkbox" data-bind="events: { change: markupchangecolor }, checked: markup.arrow" />
+                        <label class="k-checkbox-label" for="markuparrow">Arrow</label>
+                    </h3>
+                </li>
+                <li data-bind="visible: markup.visible.profile">
+                    <h3>
+                        <input type="checkbox" id="markuptotal" class="k-checkbox" data-bind="events: { change: markupchangecolor }, checked: markup.total" />
+                        <label class="k-checkbox-label" for="markuptotal">Total volume</label>
+                    </h3>
+                </li>
+                <li data-bind="visible: markup.visible.profile">
+                    <h3>
+                        <input type="checkbox" id="markupdockable" class="k-checkbox" data-bind="events: { change: markupchangecolor }, checked: markup.dockable" />
+                        <label class="k-checkbox-label" for="markupdockable">Dockable</label>
+                    </h3>
+                </li>
+                <li data-bind="visible: markup.visible.profile">
+                    <h3><label for="elementid">Auto-profile</label></h3>
+                    <br />
+                    <select style="width: 140px"
+                            data-role="dropdownlist"
+                            data-value-field="Value"
+                            data-text-field="Text"
+                            data-value-primitive="true"
+                            data-bind="value: markup.profilePeriod, source: profilePeriods, events: { change: onChange }"></select>
+                </li>
+                <!----li>
+        <h3><label for="colorpicker">Комментарий</label></h3>
+        <br />
+        <input id="comment" style="width:200px;" data-bind="value: level.comment, events: { change: changecomment }" class="k-textbox" />
+    </li-->
+            </ul>
+        </fieldset>
+    </div>
+  
+    
+    <div style="display:none"
+         id="window"
+         data-role="window"
+      data-resizable="false" 
+         data-title="Настройки отображения"
+         data-bind=" visible: settingsVisible ">
+
+         
+     <div id="tabstrip">
+        <ul>               
+          <li class="k-state-active" id="tab1">Блоки</li>
+          <li id="tab2">Поведение</li>
+          <li id="tab3">Кластера</li>
+          <li id="tab5">Свечи</li>
+          <li id="tab4">Пресет</li>
+        </ul>
+
+       
+  
+         <div id="tab1">  
+            <fieldset class="k-block" style="padding:1em">
+            <div>
+                <div>
+                    <h3><label for="elementid">Общий объем</label></h3>
+                    <br />
+                    <select style="width: 180px"
+                            data-role="dropdownlist"
+                            data-value-field="Value"
+                            data-text-field="Text"
+                            data-value-primitive="true"
+                            data-bind="value: settings.totalMode, source: totalModes, events: { change: onChange }"></select>
+                </div>
+                <h3>Верхний блок</h3>
+                <ul style="list-style-type: none; ">
+
+                     <li>
+                        <input type="checkbox" id="Head" class="k-checkbox" data-bind="events: { change: onChange }, checked: settings.Head">
+                        <label class="k-checkbox-label" for="Head">Head</label>
+                    </li>
+
+                    <li>
+                        <input type="checkbox" id="checkbox3" class="k-checkbox" data-bind="visible: controls.Head, events: { change: onChange }, checked: settings.TopVolumes">
+                        <label class="k-checkbox-label" for="checkbox3">Объемы вверху</label>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="checkbox4" class="k-checkbox" data-bind="visible: controls.Head, events: { change: onChange }, checked: settings.oiEnable">
+                        <label class="k-checkbox-label" for="checkbox4">Открытый интерес(дельта)</label>
+                    </li>
+                    </ul>
+                    <h3>Нижние блоки</h3>
+                    <ul style="list-style-type: none; ">
+
+                        <li>
+                        <input type="checkbox" id="Postmarket11" class="k-checkbox" data-bind="events: { change: onChange }, checked: settings.SeparateVolume">
+                        <label class="k-checkbox-label" for="Postmarket11">Объемы</label>
+                    </li>
+                     <li>
+                        <input type="checkbox" id="OI" class="k-checkbox" data-bind="events: { change: onChange }, checked: settings.OI">
+                        <label class="k-checkbox-label" for="OI">OI</label>
+                    </li>
+
+                     <li>
+                        <input type="checkbox" id="OiD" class="k-checkbox" data-bind="events: { change: onChange }, checked: settings.OIDelta">
+                        <label class="k-checkbox-label" for="OiD">OI Delta</label>
+                    </li>
+
+                     <li>
+                        <input type="checkbox" id="Delta" class="k-checkbox" data-bind="events: { change: onChange }, checked: settings.Delta">
+                        <label class="k-checkbox-label" for="Delta">Delta</label>
+                    </li>
+
+                    <li>
+                        <input type="checkbox" id="DeltaBars" class="k-checkbox" data-bind="events: { change: onChange }, checked: settings.DeltaBars">
+                        <label class="k-checkbox-label" for="DeltaBars">DeltaBars</label>
+                    </li>
+
+                    </ul>
+                     
+                </div>
+                 
+                   
+        </fieldset>
+      </div>  
+            
+         <div id="tab2">
+             <fieldset class="k-block" style="padding:1em">                   
+                <ul style="list-style-type: none; ">                  
+                <li>
+                    <input type="checkbox" id="Postmarket114" class="k-checkbox" data-bind="events: { change: onChange }, checked: settings.Contracts">
+                    <label class="k-checkbox-label" for="Postmarket114">Объем в контрактах</label>
+                </li>
+                <li>
+                    <input type="checkbox" id="Postmarket1" class="k-checkbox" data-bind="events: { change: onChange }, checked: settings.ShrinkY">
+                    <label class="k-checkbox-label" for="Postmarket1">Adjust to viewport</label>
+                </li>
+                <li>
+                    <input type="checkbox" id="ToolTip" class="k-checkbox" data-bind="events: { change: onChange }, checked: settings.ToolTip">
+                    <label class="k-checkbox-label" for="ToolTip">Тултип</label>
+                </li>                                      
+                <li>
+                    <input type="checkbox" id="ExtendedToolTip" class="k-checkbox" data-bind="events: { change: onChange }, checked: settings.ExtendedToolTip">
+                    <label class="k-checkbox-label" for="ExtendedToolTip">Buy/Sell в Тултип</label>
+                </li>      
+             </ul>
+            </fieldset>
+         </div>
+          
+         <div id="tab3">
+             <div id="grid">
+        <fieldset class="k-block" style="padding:1em">
+            <div>                              
+                <h3>Режим отображения кластеров</h3>
+                <ul style="list-style-type: none; ">
+                    <li>
+                        <input type="radio" name="radio" id="radio2" class="k-radio" value="Ruticker" data-bind="events: { change: onChange },checked: settings.style">
+                        <label class="k-radio-label" for="radio2">Ru-ticker classic</label>
+                    </li>
+                    <li>
+                        <input type="radio" name="radio" id="checked-radio" class="k-radio" value="ASKxBID" data-bind="events: { change: onChange },checked: settings.style">
+                        <label class="k-radio-label" for="checked-radio">MarketDelta</label>
+                    </li>
+                    <li>
+                        <input type="radio" name="radio" id="disabled-radio3x" class="k-radio" value="VolumeDelta" data-bind="events: { change: onChange },checked: settings.style">
+                        <label class="k-radio-label" for="disabled-radio3x">Volume+Delta</label>
+                    </li>
+                    <li>
+                        <input type="radio" name="radio" id="disabled-radio" class="k-radio" value="Volume" data-bind="events: { change: onChange },checked: settings.style">
+                        <label class="k-radio-label" for="disabled-radio">Volfix</label>
+                    </li>
+                    <li>
+                        <input type="radio" name="radio" id="disabled-radio2" class="k-radio" value="Density" data-bind="events: { change: onChange },checked: settings.style">
+                        <label class="k-radio-label" for="disabled-radio2">Плотность сделок</label>
+                    </li>
+                </ul>
+                <div data-bind="visible: settingsVolumeVisible ">
+                    <h3>Фильтрация кластеров</h3>
+                    <ul style="list-style-type: none; ">
+                        <li>
+                            <label for="volume1">Объем 1</label>
+                            <input id="volume1"
+                                   style="background:Coral; width: 80px"
+                                   data-min="0"
+                                   data-format="n0"
+                                   data-decimals="0"
+                                   data-step="1"
+                                   data-role="numerictextbox"
+                                   data-bind="events: { change: onChangeVolume }, value: settings.volume1" />
+                        </li>
+                        <li>
+                            <label for="volume2">Объем 2</label>
+                            <input id="volume2"
+                                   style="background:Gold; width: 80px"
+                                   data-min="0"
+                                   data-format="n0"
+                                   data-decimals="0"
+                                   data-step="1"
+                                   data-role="numerictextbox"
+                                   data-bind="events: { change: onChangeVolume }, value: settings.volume2" />
+                        </li>
+                    </ul>
+                </div>
+                <div data-bind="visible: settingsRutickerVisible ">
+                    <h3>Отображение ASK и BID</h3>
+                    <ul style="list-style-type: none; ">
+                        <li>
+                            <input type="radio" name="radio1" id="radio1" class="k-radio" value="ASK+BID" data-bind="events: { change: onChange },checked: settings.classic">
+                            <label class="k-radio-label" for="radio1">ASK+BID</label>
+                        </li>
+                        <li>
+                            <input type="radio" name="radio1" id="checked-radio2" class="k-radio" value="ASK/BID" data-bind="events: { change: onChange },checked: settings.classic">
+                            <label class="k-radio-label" for="checked-radio2">ASK/BID</label>
+                        </li>
+                        <li>
+                            <input type="radio" name="radio1" id="checked-radio5" class="k-radio" value="ASK-BID" data-bind="events: { change: onChange },checked: settings.classic">
+                            <label class="k-radio-label" for="checked-radio5">ASK-BID</label>
+                        </li>
+                        <li>
+                            <input type="radio" name="radio1" id="disabled-radio3" class="k-radio" value="ASK" data-bind="events: { change: onChange },checked: settings.classic">
+                            <label class="k-radio-label" for="disabled-radio3">ASK</label>
+                        </li>
+                        <li>
+                            <input type="radio" name="radio1" id="disabled-radio4" class="k-radio" value="BID" data-bind="events: { change: onChange },checked: settings.classic">
+                            <label class="k-radio-label" for="disabled-radio4">BID</label>
+                        </li>
+                        <li>
+                            <input type="radio" name="radio1" id="disabled-radio14" class="k-radio" value="Tree" data-bind="events: { change: onChange },checked: settings.classic">
+                            <label class="k-radio-label" for="disabled-radio14">Tree</label>
+                        </li>
+                    </ul>
+                </div>
+                <div data-bind="visible: settingsDeltaVisible ">
+                    <h3>Стиль</h3>
+                    <ul style="list-style-type: none; ">
+                        <li>
+                            <input type="radio" name="radio11" id="radio11" class="k-radio" value="Tree" data-bind="events: { change: onChange },checked: settings.deltaStyle">
+                            <label class="k-radio-label" for="radio11">Tree</label>
+                        </li>
+                        <li>
+                            <input type="radio" name="radio11" id="checked-radio21" class="k-radio" value="Delta" data-bind="events: { change: onChange },checked: settings.deltaStyle">
+                            <label class="k-radio-label" for="checked-radio21">Delta</label>
+                        </li>
+                     
+                    </ul>
+                </div>
+               
+                
+                <div>
+                    <h3><label for="elementid">Второй слой кластеров</label></h3>
+                    <br />
+                    <select style="width: 180px"
+                            data-role="dropdownlist"
+                            data-value-field="Value"
+                            data-text-field="Text"
+                            data-value-primitive="true"
+                            data-bind="value: markup.profilePeriod, source: profilePeriods, events: { change: onChange }"></select>
+                </div>
+
+                <ul>
+                <li>
+                        <input type="checkbox" id="checkbox6" class="k-checkbox" data-bind="events: { change: onChange }, checked: settings.MaxTrades">
+                        <label title="Отображать в виде треугольников <br/> 10 крупнейших сделок. Зеленый - покупка,<br/> красный - продажа. Размер <br/>пропорционален объему"
+                               data-role="tooltip" data-position="right" class="k-checkbox-label" for="checkbox6">Максимальные сделки</label>
+                </li>
+                <li>
+                        <input type="checkbox" id="Postmarket" class="k-checkbox" data-bind="events: { change: onChange }, checked: settings.Postmarket">
+                        <label class="k-checkbox-label" for="Postmarket">Postmarket</label>
+                 </li>
+                  <li>
+                        <input type="checkbox" id="checkbox1" class="k-checkbox" data-bind="events: { change: onChange }, checked: settings.OpenClose">
+                        <label class="k-checkbox-label" for="checkbox1">Open/Close</label>
+                    </li>              
+                  
+                    </ul>
+            </div>
+        </fieldset>
+
+        </div></div>
+
+          <div id="tab5">
+              <fieldset class="k-block" style="padding:1em">                   
+                    <ul style="list-style-type: none; ">  
+
+                    <li>
+                        <input type="checkbox" id="checkbox5" class="k-checkbox" data-bind="events: { change: onChange }, checked: settings.Bars">
+                        <label title="Отображать свечи как  <br/> бары в режиме свечей" data-role="tooltip" data-position="right" class="k-checkbox-label" for="checkbox5">Отображать свечи как бары</label>
+                    </li>      
+
+                   
+
+                        <li>
+                        <input type="checkbox" id="Postmarket14" class="k-checkbox" data-bind="events: { change: onChangeReload }, checked: settings.CandlesOnly">
+                        <label class="k-checkbox-label" for="Postmarket14">Только свечи</label>
+                </li>
+
+                  <li>
+
+                             <div>
+                    <h3><label for="elementid">Сжимать кластера в свечи</label></h3>
+                    <br />
+                    <select style="width: 180px"
+                            data-role="dropdownlist"
+                            data-value-field="Value"
+                            data-text-field="Text"
+                            data-value-primitive="true"
+                            data-bind="value: settings.CompressToCandles, source: candleModes, events: { change: onChange }"></select>
+                </div>
+
+
+                        </li>
+                     
+                                                   
+                </ul>
+              </fieldset>
+         </div>
+                                      
+
+         <div id="tab4">
+              <fieldset class="k-block" style="padding:1em">                   
+                    <ul style="list-style-type: none; ">  
+
+                    <li>
+                        <select id="profileList"
+                    style="width: 200px"
+                    data-role="dropdownlist"
+                    data-value-field="Value"
+                    data-text-field="Text"
+                    data-value-primitive="true"
+                    data-bind="value: profileId, source: profileList, events: { change: onProfileSelect }"></select>
+                    </li>
+                    
+                    <li>
+                        <label class="k-textkbox-label" for="textbox1" style=" display: block;">Сохранять под именем</label>                         
+                        <input data-value-field="Value" id="textbox1" class="k-textbox" data-bind="value: settings.Name" > 
+                        <button class=" k-icon k-i-delete" style="margin-left: 10px;" data-bind="click: delete"  ></button>                                               
+                    </li>     
+
+                    <li>
+                        <input type="checkbox" id="markuptotal3" class="k-checkbox" data-bind="events: { change: onChange }, checked: settings.Default" />
+                        <label class="k-checkbox-label" for="markuptotal3">Загружать по умолчанию</label>
+                    </li>
+                     
+                                                   
+                </ul>
+              </fieldset>
+         </div>
+
+          
+      <div style="width:100%;display:block">
+            <div style="width:45%;display:block;float:left;padding:0.3em">
+                <button style="width:100%"  data-bind="click: save"  class="k-button">Сохранить</button>
+            </div>
+            <div style="width:45%;display:block;float:right;padding:0.3em">
+                <button style="width:100%" data-bind="click: close" class="k-button">Закрыть</button>
+            </div>
+        </div>
+</div>
+</div>
+    <div id="levelsSettings"
+     style="display:none"
+     data-role="window"
+     data-resizable="false" 
+     data-title="Настройки уровня">
+    <div>
+        <fieldset class="k-block" style="padding:1em">
+            <ul style="list-style-type: none; ">
+                <li>
+                    <h3><label for="colorpicker">Цвет</label></h3>
+                    <br />
+                    <div id="colorpicker"
+                         style="width:200px;height:30px"
+                         data-role="colorpalette"
+                         data-palette='[ "#F08080", "#FFA500", "#F0E68C", "#90EE90",  "#87CEFA", "#1E90FF", "#FF90FF" ]' data-bind="value: level.color, events: { change: changecolor }"></div>
+                </li>
+                <li>
+                    <h3><label for="colorpicker">Комментарий</label></h3>
+                    <br />
+                    <input id="comment" style="width:200px;" data-value-update="keyup" data-bind="value: level.comment, events: { change: changecomment,  keyup: changecomment  }" class="k-textbox" />
+                </li>
+            </ul>
+        </fieldset>
+    </div>
+</div>
+<div id="settings"> </div>
+<ul id="context-menu">
+    <li onclick="freezeCanvas()">Ссылка на скриншот</li>
+    <li onclick="window.open('/FootPrint?' + (ClusterParams()))">URL на текущий график</li>
+    <li onclick="window.open('/CandlestickChart?VisualVolume=true&' + (ClusterParams().replace('ticker', 'ticker').replace('period', 'period')))">Перейти на горизонтальные объемы</li>
+    <li onclick="viewModel.showMarkUp()">Пометки на графике</li>
+    <li onclick="viewModel.showSettings()"> Настройки отображения</li>
+</ul>
+<script>
+function onClick(e) {
+    NP.markupManager.changeMode(e.target.text());
+}
+
+function onDelete(e) {
+    NP.markupManager.deleteCurrent();
+}
+@{ <text>var preset = </text>@Html.Raw(Model.preset)<text>;</text> }
+
+function CreateSettingsViewModel() {
+    var viewModel = kendo.observable({
+        level: {
+            color: 'red',
+            comment: ''
+        },
+        changecolor: function() {
+            globalvar.color = this.level.color;
+            drawGraph();
+            putLevelsToStorage(markset);
+        },
+        changecomment: function() {
+            globalvar.comment = this.level.comment;
+            drawGraph();
+            putLevelsToStorage(markset);
+        },
+        close: function() {
+            $("#levelsSettings").data("kendoWindow").close();
+        }
+    });
+    return viewModel;
+}
+var connection;
+$(document).ready(function() {
+    document.body.style.overflow = 'hidden';
+
+    $("#tabstrip").kendoTabStrip({        
+        animation: {
+            open: {
+                effects: "No"
+            }
+        }
+    });
+
+
+    function onOpen(e) {
+       
+        if ('event' in e) {
+            if (NP.onRightClick(e.event))
+                e.preventDefault();
+        }
+       
+    }
+    $("#context-menu").kendoContextMenu({
+        target: "#graph",
+        open: onOpen
+    });
+    $("#context-menu").show();
+    
+    var contextMenu = $("#context-menu").data("kendoContextMenu");
+    contextMenu.close();
+    
+    levelSettingsModel = CreateSettingsViewModel();
+    kendo.bind($("#levelsSettings"), levelSettingsModel);
+    MenuAddCluster(menu);
+    ApplyTicker = function() {
+        queryClusterProfileGraph(false, ControlsToParamsFootPrint(viewModel));
+    }
+    viewModel = CreateViewModel(preset, ApplyTicker);
+    FPsettings = viewModel.settings;
+  
+    $("#ticker").autocomplete({
+        source: function(request, response) {
+            $.get(
+                '/api/common/findbymask', {
+                    mask: request.term
+                },
+                function(data) {
+                    response(data);
+                });
+        },
+        select: function(event, ui) {
+            MouseAutoComplete('ticker', event, ui);
+            viewModel.set("controls.ticker", document.getElementById("ticker").value);
+            UpdateControls(viewModel, ControlsToParamsTicker(viewModel.controls), ApplyTicker);
+            return false;
+        },
+        minLength: 1
+    });
+});
+
+connection = new signalR.HubConnectionBuilder().withUrl("/CandlesHub").build();
+
+
+connection.on("recieveCluster", function(answ) {           
+   $.each(answ,  function (index, value) {                value.x = new Date(value.x)            });     
+   var data =  {clusterData: answ};    
+   if(NP.isWrongMerge(data))
+       queryClusterProfileGraph(true);   
+   else
+       NP.mergeData(data);
+});
+
+
+connection.on("recieveTicks", function(answ) {        
+
+       var data = {clusterData: answ};
+
+
+         data.clusterData = $.map(data.clusterData, 
+             
+             function ( value) {
+
+                    var xx =
+                    {
+                        Number:  value.number,
+                        "x": new Date(value.tradeDate),
+                        "o": value.price,
+                        c: value.price,
+                        l: value.price,
+                        h: value.price,
+                        q: value.quantity,
+                        bq: value.quantity * value.direction,
+                        v: value.volume,
+                        bv: value.volume * value.direction,
+                        oi: value.oi
+                    };
+
+                    return xx;
+                }
+                
+                );
+         
+                NP.mergeData(data);
+});
+
+  connection.on("recieveLadder",
+  function (ladder) {
+                
+                if (Object.keys(ladder).length>2)
+                {
+                var res = {};
+                
+                for (let key in ladder) {
+                    let newkey =  Math.round(key / NP.data.priceScale) * NP.data.priceScale;
+                    if (newkey == 0)
+                        newkey = key;
+                    if (newkey in res)
+                        res[newkey] += ladder[key];
+                    else
+                        res[newkey] = ladder[key];
+                }
+                
+                NP.data.ladder = res;
+                NP.drawClusterView();
+                }
+            });
+
+connection.start().then(function() {
+    console.log("Connect..");
+    ApplyTicker();
+}).catch(function(err) {
+    return console.error(err.toString());
+});
+connection.onclose(() => {
+    console.log("Disconnect");
+    setTimeout(() => connection.start(), 5000);
+});
+
+</script>

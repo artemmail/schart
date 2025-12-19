@@ -1,0 +1,35 @@
+<div *ngFor="let group of contractGroups">
+    <mat-card class="group-card">
+        <mat-card-header>
+      <mat-card-title>{{ group.group }}</mat-card-title>
+        </mat-card-header>
+      <mat-card-content>
+        <table mat-table [dataSource]="group.contracts" >
+          <!-- Code Base Column -->
+          <ng-container matColumnDef="code_base">
+            <th mat-header-cell *matHeaderCellDef> Короткий код </th>
+            <td mat-cell *matCellDef="let contract">
+              <a [routerLink]="['/futures', contract.code_base]">{{ contract.code_base }}</a>
+            </td>
+          </ng-container>
+  
+          <!-- Code Futures Column -->
+          <ng-container matColumnDef="code_futures">
+            <th mat-header-cell *matHeaderCellDef> Длинный код </th>
+            <td mat-cell *matCellDef="let contract">{{ contract.code_futures }}</td>
+          </ng-container>
+  
+          <!-- Name Column -->
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef> Базовый актив </th>
+            <td mat-cell *matCellDef="let contract">{{ contract.name }}</td>
+          </ng-container>
+  
+          <!-- Header and Row Definitions -->
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+      </mat-card-content>
+    </mat-card>
+  </div>
+  

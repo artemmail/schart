@@ -1,0 +1,72 @@
+<div class="container">
+  <!-- Десктопная версия: старая вёрстка с кнопкой Load More -->
+  <div class="desktop-only">
+    <ng-container *ngFor="let topic of topics">
+      <mat-card class="blogblock">
+        <mat-card-header>
+          <mat-card-title>
+            <a [routerLink]="['/ServiceNews/Content', topic.slug]">{{ topic.header }}</a>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <b>{{ topic.user }}</b>&nbsp;
+          <i>{{ topic.date | date: 'd MMM yyyy, H:mm' }}</i>
+          <div *ngIf="topic.CommentCount > 0">
+            <br>
+            <a [routerLink]="['/ServiceNews/Content', topic.slug]">
+              <span><b>Число ответов:</b> {{ topic.CommentCount }}</span>
+            </a>
+          </div>
+          <!-- Текст темы -->
+          <div [class.collapsed]="topic.collapsed" class="content" [innerHTML]="topic.text"></div>
+          <!-- Кнопка сворачивания/разворачивания текста -->
+          <p *ngIf="topic.textIsTooLong">
+            <button (click)="toggleCollapse(topic)">
+              {{ topic.collapsed ? 'Развернуть' : 'Свернуть' }}
+            </button>
+          </p>
+        </mat-card-content>
+      </mat-card>
+    </ng-container>
+    <div class="desktop-pagination">
+      <button (click)="onLoadMore()" [disabled]="loading">Load More</button>
+    </div>
+  </div>
+
+  <!-- Мобильная версия: та же вёрстка, но с infinite scroll -->
+  <div class="mobile-only">
+    <ng-container *ngFor="let topic of topics">
+      <mat-card class="blogblock">
+        <mat-card-header>
+          <mat-card-title>
+            <a [routerLink]="['/ServiceNews/Content', topic.slug]">{{ topic.header }}</a>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <b>{{ topic.user }}</b>&nbsp;
+          <i>{{ topic.date | date: 'd MMM yyyy, H:mm' }}</i>
+          <div *ngIf="topic.CommentCount > 0">
+            <br>
+            <a [routerLink]="['/ServiceNews/Content', topic.slug]">
+              <span><b>Число ответов:</b> {{ topic.CommentCount }}</span>
+            </a>
+          </div>
+          <div [class.collapsed]="topic.collapsed" class="content" [innerHTML]="topic.text"></div>
+          <p *ngIf="topic.textIsTooLong">
+            <button (click)="toggleCollapse(topic)">
+              {{ topic.collapsed ? 'Развернуть' : 'Свернуть' }}
+            </button>
+          </p>
+        </mat-card-content>
+      </mat-card>
+    </ng-container>
+
+    <!-- Infinite scroll для мобильной версии -->
+    <div infiniteScroll
+         [infiniteScrollDistance]="2"
+         [infiniteScrollThrottle]="300"
+         (scrolled)="onScrollDown()">
+      <mat-spinner *ngIf="loading"></mat-spinner>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,29 @@
+.spacer {
+  flex: 1 1 auto;
+}
+
+
+#h21 {
+  font-family: 'Fira Sans', sans-serif;
+  color: #555;
+  font-size: 30px;
+}
+#h31 {
+  font-family: 'Fira Sans', sans-serif;
+  color: rgba(221, 65, 42, 1);
+  font-size: 30px;
+}
+mat-toolbar {
+  position: relative;
+}
+
+.center-text {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: bold;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}

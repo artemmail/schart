@@ -1,0 +1,14 @@
+<ng-template #dialogTemplate>
+  <div class="non-modal-dialog" cdkDrag (cdkDragStarted)="onDragStart()" (cdkDragEnded)="onDragEnd()">
+    <div class="non-modal-dialog-header" cdkDragHandle>
+      {{ title }}
+      <button class="close-button" (click)="closeDialog()">
+        <mat-icon class="close-icon">close</mat-icon>
+      </button>
+    </div>
+    <div class="non-modal-dialog-content">
+      <ng-content></ng-content>
+    </div>
+  </div>
+</ng-template>
+<div class="invisible-overlay" *ngIf="isDragging"></div>

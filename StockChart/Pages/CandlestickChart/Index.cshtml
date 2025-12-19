@@ -1,0 +1,163 @@
+﻿@page
+@model StockChart.Pages.CandlestickChart.IndexModel
+@{
+    Layout = "_FullScreen";
+    ViewData["Title"] = "Сезонная активность";    
+}
+<script src="~/Scripts/controls.js" type="text/javascript" ></script>
+<div id="example">
+    <fieldset class="k-block">
+        <legend>Свечной график с Горизонтальными объемами</legend>
+        <ul id="fieldlist">
+            <li><label for="ticker">Тикер</label> <input id="ticker" data-bind="value: controls.ticker, events: { change: changeticker }" class="k-textbox" /></li>
+            <li>
+                <label for="period">Период</label>
+                <select style="width: 90px"
+                        data-role="dropdownlist"
+                        data-value-field="Value"
+                        data-text-field="Text"
+                        data-value-primitive="true"
+                        data-bind="value: controls.period, source: periodlist"></select>
+            </li>
+            <li data-bind="visible: controls.visualVolume">
+                <label for="startTime">Шаг цен</label>
+                <input id="ps"
+                       data-min="0"
+                       data-format="n4"
+                       data-decimals="4"
+                       data-step="0.0001"
+                       data-role="numerictextbox"
+                       data-bind="value: controls.priceStep" style="width: 80px" />
+            </li>
+            <li>
+                <label for="rperiod">Промежуток</label>
+                <select style="width: 140px"
+                        data-role="dropdownlist"
+                        data-value-field="Value"
+                        data-text-field="Text"
+                        data-value-primitive="true"
+                        data-bind="value: controls.rperiod, source: rperiodlist, events: { change: changerperiod }"></select>
+            </li>
+            <li>
+                <label for="startDate">Начальная дата</label>
+                <input style="width: 100px" data-format="dd.MM.yyyy" data-role="datepicker" data-bind="value: controls.startDate , events: { change: changedate }" class="editor-field" />
+            </li>
+            <li>
+                <label for="endDate">Конечная дата</label>
+                <input style="width: 100px" data-format="dd.MM.yyyy" data-role="datepicker" data-bind="value: controls.endDate , events: { change: changedate }" class="editor-field" />
+            </li>
+            <li data-bind="visible: controls.timeEnable">
+                <label for="startTime">Нач. время</label>
+                <input style="width: 75px" data-format="HH:mm" data-min="9:30" data-role="timepicker" data-bind="value: controls.startTime , events: { change: changetime}" class="editor-field" />
+            </li>
+            <li data-bind="visible: controls.timeEnable">
+                <label for="endTime">Кон. время</label>
+                <input style="width: 75px" data-format="HH:mm" data-min="10:00" data-role="timepicker" data-bind="value: controls.endTime , events: { change: changetime }" class="editor-field" />
+            </li>
+            <li data-bind="visible: controls.isCluster">
+                <div>
+                    <input type="checkbox" class="k-checkbox" id="visualVolume" data-bind="checked: controls.visualVolume, events: { change: switchHR }">
+                    <label class="k-checkbox-label" for="visualVolume">Горизонтальные объемы</label>
+                </div>
+                <div data-bind="visible: controls.visualVolume">
+                    <input type="checkbox" class="k-checkbox" id="horizStyle" data-bind="checked: settings.horizStyle, events: { change: refreshCandles }">
+                    <label class="k-checkbox-label" for="horizStyle">Старый стиль объемов</label>
+                </div>
+                <div>
+                    <input type="checkbox" class="k-checkbox" id="delta" data-bind="checked: settings.Delta, events: { change: refreshCandles }">
+                    <label class="k-checkbox-label" for="delta">Накопл. Дельта(ASK-BID)</label>
+                </div>
+                <div>
+                    <input type="checkbox" class="k-checkbox" id="contracts" data-bind="checked: settings.Contracts, events: { change: refreshCandles }">
+                    <label class="k-checkbox-label" for="contracts">Контракты</label>
+                </div>
+            </li>
+            <li>
+                <div data-bind="visible: controls.isFuture" class="editor-field">
+                    <input type="checkbox" class="k-checkbox" id="oiEnable" data-bind="checked: settings.oiEnable, events: { change: refreshCandles }">
+                    <label class="k-checkbox-label" for="oiEnable">Открытый интерес</label>
+                </div>
+                <div>
+                    <input type="checkbox" class="k-checkbox" id="bars" data-bind="checked: settings.Bars, events: { change: refreshCandles }">
+                    <label class="k-checkbox-label" for="bars">Бары</label>
+                </div>
+                <div data-bind="visible: timeVisible" class="editor-field">
+                    <input type="checkbox" id="TimeEnable" class="k-checkbox" data-bind="checked: controls.timeEnable">
+                    <label class="k-checkbox-label" for="TimeEnable">Время</label>
+                </div>
+                <div data-bind="invisible: IsPayed">
+                    <label><a href="/Payment">Автообновление в премиум доступе</a></label>
+                </div>
+            </li>
+            <li><label for="but"> <br /> </label> <button id="but" data-bind="click: apply" class="k-button k-primary">Показать</button></li>
+        </ul>
+    </fieldset>
+</div>
+<script>
+    
+var connection;
+@{<text>var preset = </text>@Html.Raw(Model.preset)<text>;</text>}
+var c;
+var viewModel;
+ApplyTicker = function() {
+    c.paramshorizontal = ControlsToParamsHorizontal(viewModel.controls);
+    c.queryCandlesFullParams(ControlsToParams(viewModel.controls));
+}
+$(document).ready(function() {
+    connection = new signalR.HubConnectionBuilder().withUrl("/CandlesHub").build();
+    connection.on("recieveCandle", function(message) {
+
+        var answ;
+        eval("answ=" + message);
+        candlesObjects[JSON.stringify(answ.key)].updateMerge(answ.data);
+        console.log(JSON.stringify(answ.key));
+    });
+connection.start().then(function() {
+    console.log("Connect..");
+    ApplyTicker();
+}).catch(function(err) {
+    return console.error(err.toString());
+});
+connection.onclose(() => {
+    console.log("Disconnect");
+    setTimeout(() => connection.start(), 5000);
+});
+
+
+    $("#ticker").autocomplete({
+        source: function(request, response) {
+            $.get(
+                '/api/common/findbymask', {
+                    mask: request.term
+                },
+                function(data) {
+                    response(data);
+                });
+        },
+        select: function(event, ui) {
+            MouseAutoComplete('ticker', event, ui);
+            viewModel.set("controls.ticker", document.getElementById("ticker").value);
+            UpdateControls(viewModel, ControlsToParamsTicker(viewModel.controls), ApplyTicker);
+            //InitControls(ControlsToParamsTicker(viewModel.controls), ApplyTicker);
+            return false;
+        },
+        minLength: 1
+    });
+    document.body.style.overflow = 'hidden';
+    MenuAddCandles(menu);
+    c = new CandleChart('myCanvas');
+    c.SetMouseCallBacks();
+    c.SetWindowCallBacks();
+    viewModel = CreateViewModel(preset, ApplyTicker);
+    settings = viewModel.settings;
+    /*
+        setInterval(function () {
+            if (viewModel.controls.autoUpd &&
+		       //!c.params.timeEnable &&
+		(((typeof (c.params.rperiod) != 'undefined') && c.params.rperiod != 'custom') || (lastDateStr  == c.params.endDate)))
+                c.queryCandlesUpdate();
+        }, 500);*/
+});
+</script>
+<img style="display: none" id="freezedCanvas" />
+<canvas id="myCanvas"></canvas>

@@ -1,0 +1,99 @@
+﻿<div data-role="modalview" id="CandlesChartModal"
+     data-title="Выбор тикера" 
+     data-use-native-scrolling="true"
+     data-stretch="false"
+     data-init="APP.CandlesChartModal.events.init"
+     data-model="APP.CandlesChartModal.model"
+     style="width:275px;height:80%; min-height:270px; max-height:400px;display:none;">
+    <div id="modalheader" data-role="header">
+        <div data-role="navbar">
+            <span data-role="view-title"></span>
+            <a data-role="button" data-bind="click: closeCandles" data-align="right" data-icon="close"></a>
+        </div>
+    </div>
+    <div data-role="content">
+        <ul id="fieldlist1" data-role="listview" data-style="inset">   
+            <li><label for="ticker">Тикер</label> <input id="ticker" data-bind="value: controls.ticker, events: { change: changeticker }" class="k-textbox" /></li>
+            <li>
+                <div style="display:block;float:left">
+                    <label for="period">Период</label>
+                    <select style="width: 90px"
+                            data-role="dropdownlist"
+                            data-value-field="Value"
+                            data-text-field="Text"
+                            data-value-primitive="true"
+                            data-bind="value: controls.period, source: periodlist"></select>
+                </div>
+            </li>
+            <li>
+                <div style="display:block;float:left">
+                    <label for="rperiod">Промежуток</label>
+                    <select style="width: 140px"
+                            data-role="dropdownlist"
+                            data-value-field="Value"
+                            data-text-field="Text"
+                            data-value-primitive="true"
+                            data-bind="value: controls.rperiod, source: rperiodlist, events: { change: changerperiod }"></select>
+                </div>
+            </li>
+            <li>
+                <div>
+                    <div id="startenddatecont">
+                        <div style="display:block;float:left">
+                            <label for="startDate">Начальная дата</label>
+                            <input style="width: 100px" data-format="dd.MM.yyyy" data-role="datepicker" data-bind="value: controls.startDate , events: { change: changedate }" class="editor-field" />
+                        </div>
+
+                        <div class="spanner">&nbsp;</div>
+                        <div class="spanner">&nbsp;</div>
+
+                        <div style="display:block;float:right">
+                            <label for="endDate">Конечная дата</label>
+                            <input style="width: 100px" data-format="dd.MM.yyyy" data-role="datepicker" data-bind="value: controls.endDate , events: { change: changedate }" class="editor-field" />
+                        </div>
+                    </div>
+                </div>
+            </li>
+
+            <li data-bind="visible: controls.visualVolume">
+                <label for="startTime">Шаг цен</label>
+                <input id="ps"
+                       data-min="0"
+                       data-format="n4"
+                       data-decimals="4"
+                       data-step="0.0001"
+                       data-role="numerictextbox"
+                       data-bind="value: controls.priceStep" style="width: 80px" />
+
+            </li>
+            <li>
+                <div>
+                    <input type="checkbox" class="k-checkbox" id="visualVolume" data-bind="visible: controls.isCluster,checked: controls.visualVolume, events: { change: switchHR }">
+                    <label class="k-checkbox-label" for="visualVolume">Горизонтальные объемы</label>
+                </div>
+                <div>
+                    <input type="checkbox" class="k-checkbox" id="delta" data-bind="visible: controls.isCluster,checked: settings.Delta, events: { change: refreshCandles }">
+                    <label class="k-checkbox-label" for="delta">Накопл. Дельта(ASK-BID)</label>
+                </div>
+                <div>
+                    <input type="checkbox" class="k-checkbox" id="contracts" data-bind="visible: controls.isCluster,checked: settings.Contracts, events: { change: refreshCandles }">
+                    <label class="k-checkbox-label" for="contracts">Контракты</label>
+                </div>
+                <div data-bind="visible: controls.isFuture" class="editor-field">
+                    <input type="checkbox" class="k-checkbox" id="oiEnable" data-bind="checked: settings.oiEnable, events: { change: refreshCandles }">
+                    <label class="k-checkbox-label" for="oiEnable">Открытый интерес</label>
+                </div>                                
+            </li>
+        </ul>        
+    </div>
+    <div data-role="footer">
+        <div data-role="navbar" >
+            <div style="width:50%;display:block;float:left;padding:0.3em">
+                <button id="but" data-bind="click: apply" class="k-button k-primary">Показать</button>            
+            </div>
+            <div style="width:50%;display:block;float:left;padding:0.3em">
+                <button id="but" data-bind="click: closeCandles" class="k-button">Закрыть</button>
+            </div>                       
+        </div>
+</div>
+</div>

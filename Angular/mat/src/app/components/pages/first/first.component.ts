@@ -1,0 +1,194 @@
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  OnInit,
+  ViewChild,
+  ViewEncapsulation,
+  AfterViewChecked,
+} from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { ActivatedRoute } from '@angular/router';
+import { TickerPresetNew } from 'src/app/models/tickerpreset';
+import { ChartSettingsService } from 'src/app/service/chart-settings.service';
+import { CommonService } from 'src/app/service/common.service';
+import { NavService } from 'src/app/service/nav.service';
+import { MatSidenav } from '@angular/material/sidenav';
+import { FootPrintComponent } from '../../footprint/footprint.component';
+import { FootPrintParamsComponent } from '../../Controls/FootPrintParams/footpintparmas.component';
+import { NonModalDialogComponent } from '../../FootPrintParts/NonModal/non-modal-dialog.component';
+import { DialogService } from 'src/app/service/DialogService.service';
+
+import { Title } from '@angular/platform-browser';
+
+@Component({
+  selector: 'app-first',
+  templateUrl: './first.component.html',
+  styleUrls: ['./first.component.scss'],
+  encapsulation: ViewEncapsulation.None,
+})
+export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
+  @ViewChild(FootPrintComponent) footPrint: FootPrintComponent;
+  @ViewChild(FootPrintParamsComponent)
+  footPrintParamsComponent: FootPrintParamsComponent;
+
+  @ViewChild('markupDialog', { static: false })
+  markupDialog: NonModalDialogComponent;
+  @ViewChild('settingsDialog', { static: false })
+  settingsDialog: NonModalDialogComponent;
+  @ViewChild('topOrdersDialog', { static: false })
+  topOrdersDialog: NonModalDialogComponent;
+  @ViewChild('volumeSearchDialog', { static: false })
+  volumeSearchDialog: NonModalDialogComponent;
+
+  // Reference to MatSidenav
+  @ViewChild(MatSidenav, { static: false }) appDrawer: MatSidenav;
+
+  params: TickerPresetNew;
+  isInited = false;
+  isCandlestick: boolean = false;
+
+  // Флаги для отображения диалогов
+  showMarkupDialog: boolean = false;
+  showSettingsDialog: boolean = false;
+  showTopOrdersDialog: boolean = false;
+  showVolumeSearchDialog: boolean = false;
+
+  constructor(
+    private commonService: CommonService,
+    public navService: NavService,
+    private chartSettingsService: ChartSettingsService,
+    public dialog: MatDialog,
+    private route: ActivatedRoute,
+    private dialogService: DialogService,
+    private cdr: ChangeDetectorRef,
+    private titleService: Title
+  ) {
+    titleService.setTitle('Кластерный график');
+  }
+
+  private sidenavInitialized = false;
+
+  ngOnInit(): void {
+    this.route.queryParams.subscribe((params) => {
+      // Обработка параметров маршрута, если необходимо
+
+      this.commonService
+        .getControlsNew(params)
+        .subscribe((data: TickerPresetNew) => {
+          this.params = { ...this.params, ...data };
+          this.isCandlestick = this.route.snapshot.url
+            .join('/')
+            .includes('CandlestickChart');
+          this.isInited = true;
+
+          if (this.footPrintParamsComponent) {
+            this.footPrintParamsComponent.applyPreset(this.params);
+            this.load();
+          }
+        });
+    });
+  }
+
+  ngAfterViewChecked(): void {
+    if (this.isInited && this.appDrawer && !this.sidenavInitialized) {
+      this.navService.setSidenav(this.appDrawer);
+      this.sidenavInitialized = true;
+    }
+  }
+
+  ngAfterViewInit(): void {
+    // Передаем MatSidenav в NavService после инициализации представления
+    this.navService.setSidenav(this.appDrawer);
+  }
+
+  public load() {
+    const a: any = this.footPrintParamsComponent.GetModel();
+    this.footPrint.ServerRequest(a);
+
+    // Сбрасываем флаги диалогов, чтобы они обновились при следующем открытии
+    this.resetDialogFlags();
+  }
+
+  private resetDialogFlags() {
+    this.showMarkupDialog = false;
+    this.showSettingsDialog = false;
+    this.showTopOrdersDialog = false;
+    this.showVolumeSearchDialog = false;
+  }
+
+  openNonModalSettings() {
+    // Обновляем данные перед открытием диалога
+    this.showSettingsDialog = false;
+    setTimeout(() => {
+      this.showSettingsDialog = true;
+      setTimeout(() => {
+        if (this.settingsDialog) {
+          this.settingsDialog.openDialog();
+        }
+      });
+    });
+  }
+
+  openNonModalVolumeSearch() {
+    this.showVolumeSearchDialog = false;
+    setTimeout(() => {
+      this.showVolumeSearchDialog = true;
+      setTimeout(() => {
+        if (this.volumeSearchDialog) {
+          this.volumeSearchDialog.openDialog();
+        }
+      });
+    });
+  }
+
+  async openNonModalMarkUp() {
+    this.showMarkupDialog = false;
+    setTimeout(() => {
+      this.showMarkupDialog = true;
+      setTimeout(() => {
+        if (this.markupDialog) {
+          this.markupDialog.openDialog();
+        }
+      });
+    });
+  }
+
+  openNonModalTopOrders() {
+    this.showTopOrdersDialog = false;
+    setTimeout(() => {
+      this.showTopOrdersDialog = true;
+      setTimeout(() => {
+        if (this.topOrdersDialog) {
+          this.topOrdersDialog.openDialog();
+        }
+      });
+    });
+  }
+
+  onCloseMarkUp() {
+    this.footPrint.markupManager.changeMode('Edit');
+    this.showMarkupDialog = false; // Скрываем диалог при закрытии
+  }
+
+  presetChange(a: number) {
+    this.chartSettingsService.getChartSettings(a).subscribe((x) => {
+      if (this.isCandlestick) x.CandlesOnly = true;
+
+      this.footPrint.FPsettings = x;
+      this.footPrint.resize();
+    });
+  }
+
+  toggleSidenav() {
+    this.navService.toggleNav();
+  }
+
+  async uploadImage() {
+    await this.dialogService.saveImage(this.footPrint.canvas);
+  }
+
+  GetCSV() {
+    this.footPrint.GetCSV();
+  }
+}

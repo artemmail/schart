@@ -1,0 +1,32 @@
+<h1 mat-dialog-title>Настройки уровня</h1>
+<div mat-dialog-content>
+ 
+  
+  
+  <mat-form-field style="width: 100%;">
+    <mat-label>Комментарий</mat-label>
+    <input matInput [(ngModel)]="data.comment" />
+  </mat-form-field>
+  <div style="width: 100%;">
+    <mat-label>Цвет</mat-label>
+    <palette-picker
+      [(ngModel)]="data.color"
+      [colors]="[
+        '#F08080',
+        '#FFA500',
+        '#F0E68C',
+        '#90EE90',
+        '#87CEFA',
+        '#1E90FF',
+        '#FF90FF',
+        '#9370DB',
+        '#40E0D0'
+      ]"
+      [squareSize]="26"   
+    ></palette-picker>
+  </div>
+  
+</div>
+<div mat-dialog-actions> 
+  <button mat-button (click)="onSaveClick()">Ok</button>
+</div>

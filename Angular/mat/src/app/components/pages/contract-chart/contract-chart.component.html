@@ -1,0 +1,51 @@
+<mat-card>
+  <mat-card-header>
+    <mat-card-title>Открытые позиции по фьючерсным контрактам</mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <div class="container">
+      <!-- Левая часть с фиксированной шириной -->
+      <div class="left-panel">
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>Выберите контракт</mat-label>
+          <mat-select [(ngModel)]="selectedContract" (selectionChange)="onContractChange()">
+            <mat-option *ngFor="let contract of contracts" [value]="contract">{{ contract }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>Показать</mat-label>
+          <mat-select [(ngModel)]="showPositions" (selectionChange)="onToggleChange()">
+            <mat-option [value]="true">Позиции</mat-option>
+            <mat-option [value]="false">Число лиц</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-checkbox [(ngModel)]="showJuridicalLong" (change)="onToggleChange()">{{ juridicalLongLabel }}</mat-checkbox>
+        <mat-checkbox [(ngModel)]="showJuridicalShort" (change)="onToggleChange()">{{ juridicalShortLabel }}</mat-checkbox>
+        <mat-checkbox [(ngModel)]="showPhysicalLong" (change)="onToggleChange()">{{ physicalLongLabel }}</mat-checkbox>
+        <mat-checkbox [(ngModel)]="showPhysicalShort" (change)="onToggleChange()">{{ physicalShortLabel }}</mat-checkbox>
+        
+        <p>
+        <span>Дату можно поменять щелкнув на графике</span>
+      </p>
+        <!-- Компонент для выбора даты -->
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>Выберите дату</mat-label>
+          <input matInput [matDatepicker]="picker" [(ngModel)]="selectedDate" (dateChange)="onDateChange()">
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+
+        <app-open-positions-table [openPositions]="openPosition"></app-open-positions-table>
+      </div>
+
+      <!-- Правая часть с графиком -->
+      <div class="right-panel">
+        <div id="chart-container">
+          <canvas id="chart"></canvas>
+        </div>
+      </div>
+    </div>
+  </mat-card-content>
+</mat-card>

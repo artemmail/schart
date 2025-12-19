@@ -1,0 +1,23 @@
+<mat-card>
+  <mat-card-content>
+    <div class="chart-container">
+      <canvas #chartCanvas></canvas>
+    </div>
+  </mat-card-content>
+  <mat-card-actions>
+    <mat-form-field appearance="fill">
+      <mat-label>Package Name</mat-label>
+      <input matInput [(ngModel)]="packageName" />
+    </mat-form-field>
+    <mat-form-field appearance="fill">
+      <mat-label>Time Range</mat-label>
+      <mat-select [(value)]="timeRange" (selectionChange)="updateTimeRange()">
+        <mat-option value="week">Last Week</mat-option>
+        <mat-option value="month">Last Month</mat-option>
+        <mat-option value="year">Last Year</mat-option>
+        <mat-option value="3years">Last 3 Years</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <button mat-raised-button color="primary" (click)="updatePackageName()">Update</button>
+  </mat-card-actions>
+</mat-card>

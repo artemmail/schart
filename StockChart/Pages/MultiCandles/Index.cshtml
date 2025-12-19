@@ -1,0 +1,154 @@
+﻿@page
+@model StockChart.Pages.MultiCandles.IndexModel
+@using Microsoft.AspNetCore.Identity
+@using StockChart.Model;
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@{    
+    Layout = "_FullScreen";
+    ViewData["Title"] ="Быстрый обзор рынков";
+    List<SelectListItem> periods = Model.periods;
+    string tickersline = string.IsNullOrEmpty(Model.tickersline) ? "USD000000TOD,BR,ED,Si,RI,SBER,EUR_RUB__TOD,MX,GAZP" : Model.tickersline;
+}
+
+
+@if (!SignInManager.IsSignedIn(User))
+{
+    <style>
+        .centered-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 48px; /* Крупный шрифт */
+        }
+
+        .login {
+            margin-top: 20px;
+            font-size: 24px;
+            text-decoration: none;
+            color: blue;
+        }
+
+            .login:hover {
+                text-decoration: underline;
+            }
+    </style>
+    <div class="centered-content">
+        <h1>Залогиньтесь для мультиграфиков</h1>
+        <a class="login" href="/Identity/Account/Login">Войти</a>
+    </div>
+}
+
+else
+{
+@using (Html.BeginForm(null, null, FormMethod.Get))
+{
+    <fieldset class="k-block">
+        <legend>Свечные графики с автообновлением</legend>
+        <div class="spanner">&nbsp;</div>
+        <div style="display:block;float:left">
+            <div class="editor-label">Период</div>
+            <div class="editor-field">@Html.DropDownList("period", periods, new { onchange = "ChangeMultiPeriod()" })</div>
+        </div>
+        <div class="spanner">&nbsp;</div>
+        <div style="display: block; float: left">
+            <div class="editor-label">Тикеры для отображения</div>
+            <div class="editor-field">
+                <input name="tickers"  id="tickers" class="k-textbox" type="textbox" value="@tickersline" style="width:540px">
+            </div>
+        </div>
+        <div class="spanner">&nbsp;</div>
+        <div style="display: block; float: left">
+            <div style="height:13px;"></div>
+            <button class="k-button" type="submit">Показать</button>
+        </div>
+        @if(User.Identity.IsAuthenticated)
+        {
+            <div class="spanner">&nbsp;</div>
+            <div style=" display: block; float: left">
+                <div class="editor-field">
+                    <input type="checkbox" id="autoUpd" class="k-checkbox">
+                    <label class="k-checkbox-label" for="autoUpd">Автообновление</label>
+                </div>
+            </div>
+        }
+        <!--input type="button" style="width: can.length0px; height: 37px" value="Показать" onclick="InitMultiPage(); InitMultiPage()"-->
+    </fieldset>
+}
+<div id="graphics"></div>
+<script type="text/javascript">
+    function ChangeMultiPeriod() {
+        var v = $('#period').val();
+        for (var i = 0; i < can.length; i++) {
+            let p = CloneObject(can[i].params);
+            p.period = v;
+            p.rperiod = RperiodFromPeriod(v);
+            can[i].queryCandlesFullParams(p);
+        }
+    }
+    var connection;
+    $(document).ready(function () {
+        @if(Model.tickers == null)
+        {
+		<text>
+            names = ['CNYRUB_TOM', 'BR', 'ED','Si',  'RI', 'SBER',  'EUR_RUB__TOD', 'MX',  'GAZP', /*'LKOH', 'GMKN'*/];
+            desc = ['Юань/RUR','Нефть', 'EUR/USD', "Si(Фьючерс на Рубль)",  "RTS FUT", "SBER(Сбербанк)", "EUR/RUR", "MICEX FUT", "GAZP(Газпром)",/* "LKOH(Лукойл)", "GMKN(Норникель)"*/];
+        </text>
+        }
+        else
+        {
+  		<text>names = </text>@Html.Raw(Model.tickers)<text>;</text>
+		<text>desc = </text>@Html.Raw(Model.tickersdesc)<text>;</text>
+        }
+
+
+
+        connection = new signalR.HubConnectionBuilder().withUrl("/CandlesHub").build();
+     
+            connection.on("recieveCandle", function (message) {
+            var answ = JSON.parse(message);
+
+            var z1= JSON.stringify(answ.key);
+
+            if (!(z1 in candlesObjects))
+            {
+                answ.key.ticker = toAlias(answ.key.ticker);
+                z1 = JSON.stringify(answ.key);
+            }
+
+            if (z1 in candlesObjects)
+                candlesObjects[JSON.stringify(answ.key)].updateMerge(answ.data);
+            
+            
+            console.log(JSON.stringify(answ.key));
+        });
+
+        connection.start().then(function () {
+             
+         InitMultiPage(names, desc);
+        }).catch(function (err) {
+            return console.error(err.toString());
+        });
+
+
+        /*
+        setInterval(function () {
+            if (IsPayedUser){
+                for (i = 0; i < can.length; i++) {
+                    can[i].queryCandlesUpdate();
+                }
+            }
+        }, 1500);
+        */
+        window.addEventListener('resize', MultiResize, false);
+        if (names.length < 17)
+	 document.body.style.overflow = 'hidden';
+    })
+</script>
+}

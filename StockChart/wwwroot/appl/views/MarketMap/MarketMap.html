@@ -1,0 +1,16 @@
+﻿ <div data-role="view" id="MarketMap"  data-title="Карта рынка"  
+      data-model="APP.MarketMap.model"
+      data-after-show="APP.MarketMap.events.afterShow"
+      data-init="APP.MarketMap.events.init"
+      data-stretch="true">
+    <header data-role="header">
+        <div data-role="navbar" style="height:3em; margin:0">            
+            <span data-role="view-title"></span>
+            <a data-role="button" data-rel="drawer" href="#drawer" data-icon="drawer-icon" data-align="left"></a>
+        </div>
+    </header>
+    <div id="mcon" data-role="content" style="width:100%; height:100%;">                        
+            <div id="treemap" style="width:100%; height:100%;"></div>        
+    </div>
+    <footer  data-role="footer">           </footer>
+</div>

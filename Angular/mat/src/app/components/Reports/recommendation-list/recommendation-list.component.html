@@ -1,0 +1,23 @@
+<div *ngIf="recommendation">
+  <div *ngIf="hasReasonsUp()">
+    <h2>Причины купить</h2>
+    <ul>
+      <li *ngFor="let reason of recommendation.ReasonsUp">
+        <mat-icon color="primary">thumb_up</mat-icon> <span [innerHTML]="reason"></span>
+      </li>
+    </ul>
+  </div>
+
+  <div *ngIf="hasReasonsDown()">
+    <h2>Причины продать</h2>
+    <ul>
+      <li *ngFor="let reason of recommendation.ReasonsDown">
+        <mat-icon color="warn">thumb_down</mat-icon> <span [innerHTML]="reason"></span>
+      </li>
+    </ul>
+  </div>
+
+  <div *ngIf="!hasReasonsUp() && !hasReasonsDown()">
+    <p><mat-icon>info</mat-icon> No recommendations available.</p>
+  </div>
+</div>

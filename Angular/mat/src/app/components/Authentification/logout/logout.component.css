@@ -1,0 +1,17 @@
+.logout-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  
+  mat-card {
+    width: 400px;
+    margin: 10px; /* добавим немного пространства между картами */
+  }
+  
+  mat-card-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }

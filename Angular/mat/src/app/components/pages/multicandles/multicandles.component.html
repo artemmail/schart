@@ -1,0 +1,45 @@
+<div #topPanel class="flex-container">
+  <!-- Период -->
+  <div style="width:200px">
+    <app-combobox
+      label="Период"
+      [items]="periodList"
+      [(value)]="period"
+      (selectionChange)="applyPeriod($event)">
+    </app-combobox>
+  </div>
+
+  <!-- Диапазон дат -->
+  <div style="width:260px">
+    <app-date-range-picker
+      (selectionChange)="onDateChange($event)">
+    </app-date-range-picker>
+  </div>
+
+  <!-- Пресеты диапазона -->
+  <div style="width:260px">
+    <app-date-range-selector
+      #presetSel
+      [ticker]="currentTicker"      
+      (selectionChange)="applyDateRange($event)">
+    </app-date-range-selector>
+  </div>
+
+  <!-- Тикеры -->
+  <div class="flex-item" style="width:600px">
+    <mat-form-field style="width:100%">
+      <mat-label>Введите тикеры через запятую</mat-label>
+      <input matInput [(ngModel)]="tickerInput" placeholder="GAZP,Si…" />
+    </mat-form-field>
+  </div>
+
+  <!-- Кнопка -->
+  <div class="flex-item">
+    <button mat-raised-button color="primary" (click)="updateTickers()">
+      Обновить
+    </button>
+  </div>
+</div>
+
+<!-- Контейнер с графиками -->
+<div #container class="container1"></div>

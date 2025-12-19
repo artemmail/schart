@@ -1,0 +1,42 @@
+<mat-table [dataSource]="dataSource">
+
+    <!-- Метка строки -->
+    <ng-container matColumnDef="label">
+      <mat-header-cell *matHeaderCellDef> </mat-header-cell>
+      <mat-cell *matCellDef="let element" > <span style="text-align: left; margin-left: -21px;"><b> {{ element.label }} </b></span> </mat-cell>
+    </ng-container>
+  
+    <!-- Юридические лица (Длинные) -->
+    <ng-container matColumnDef="juridicalLong">
+      <mat-header-cell *matHeaderCellDef> Юр. лица лонг </mat-header-cell>
+      <mat-cell *matCellDef="let element"> {{ element.juridicalLong }} </mat-cell>
+    </ng-container>
+  
+    <!-- Юридические лица (Короткие) -->
+    <ng-container matColumnDef="juridicalShort">
+      <mat-header-cell *matHeaderCellDef> Юр. лица шорт </mat-header-cell>
+      <mat-cell *matCellDef="let element"> {{ element.juridicalShort }} </mat-cell>
+    </ng-container>
+  
+    <!-- Физические лица (Длинные) -->
+    <ng-container matColumnDef="physicalLong">
+      <mat-header-cell *matHeaderCellDef> Физ. лица лонг </mat-header-cell>
+      <mat-cell *matCellDef="let element"> {{ element.physicalLong }} </mat-cell>
+    </ng-container>
+  
+    <!-- Физические лица (Короткие) -->
+    <ng-container matColumnDef="physicalShort">
+      <mat-header-cell *matHeaderCellDef> Физ. лица шорт </mat-header-cell>
+      <mat-cell *matCellDef="let element"> {{ element.physicalShort }} </mat-cell>
+    </ng-container>
+  
+    <!-- Сумма -->
+    <ng-container matColumnDef="total">
+      <mat-header-cell *matHeaderCellDef> Итого </mat-header-cell>
+      <mat-cell *matCellDef="let element"> {{ element.total }} </mat-cell>
+    </ng-container>
+  
+    <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+    <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+  </mat-table>
+  

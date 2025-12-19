@@ -1,0 +1,54 @@
+<mat-sidenav-container class="sidenav-container">
+  <mat-sidenav #drawer mode="over" [opened]="false" class="sidenav">
+    <mat-nav-list>
+      <a mat-list-item routerLink="/" (click)="drawer.toggle()">
+        <mat-icon>map</mat-icon>
+        Карта рынка
+      </a>
+      <a mat-list-item routerLink="/Barometer" (click)="drawer.toggle()">
+        <mat-icon>bar_chart</mat-icon>
+        Бар-о-метръ рынка
+      </a>
+      <a mat-list-item routerLink="/FootPrint" (click)="drawer.toggle()">
+        <mat-icon>insert_chart</mat-icon>
+        FootPrint
+      </a>
+      <mat-divider></mat-divider>
+      <a mat-list-item routerLink="/Leaders" (click)="drawer.toggle()">
+        <mat-icon>emoji_events</mat-icon>
+        Лидеры рынка
+      </a>
+      <a mat-list-item routerLink="/Forts" (click)="drawer.toggle()">
+        <mat-icon>attach_money</mat-icon>
+        Фьючерсы и Валюта
+      </a>
+      <a mat-list-item routerLink="/LeadersBinance" (click)="drawer.toggle()">
+        <mat-icon>currency_bitcoin</mat-icon>
+        Котировки Binance
+      </a>
+      <mat-divider></mat-divider>
+      <a mat-list-item routerLink="/ServiceNews/List" (click)="drawer.toggle()">
+        <mat-icon>announcement</mat-icon>
+        Новости
+      </a>
+      <ng-container *ngIf="isSignedIn; else guestTemplate">
+        <a mat-list-item routerLink="/Identity/Account/Logout" class="auth-action" (click)="drawer.toggle()">
+          <mat-icon>logout</mat-icon>
+          Выйти {{ user?.UserName }}
+        </a>
+      </ng-container>
+      <ng-template #guestTemplate>
+        <a mat-list-item routerLink="/Identity/Account/Login" class="auth-action" (click)="drawer.toggle()">
+          <mat-icon>account_circle</mat-icon>
+          Вход
+        </a>
+      </ng-template>
+    </mat-nav-list>
+  </mat-sidenav>
+  <mat-sidenav-content class="sidenav-content">
+    <app-header (menuToggle)="drawer.toggle()"></app-header>
+    <div class="main-content">
+      <router-outlet></router-outlet>
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container>

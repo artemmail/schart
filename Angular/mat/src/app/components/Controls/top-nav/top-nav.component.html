@@ -1,0 +1,307 @@
+<div class="main-container">
+  <mat-toolbar color="primary" class="mat-elevation-z1">
+    <button *ngIf="isFootPrintSelected" class="btn-toggle" mat-icon-button id="menu" (click)="toggle()">
+      <div class="wrapper-menu" [ngClass]="isDrawerOpened ? 'open' : 'close'">
+        <div class="line-menu half start"></div>
+        <div class="line-menu"></div>
+        <div class="line-menu half end"></div>
+      </div>
+    </button>
+    
+  
+    
+  
+    <b><span id="h31">Stock</span><span id="h21">Chart<span id="h31">.</span>ru</span></b>
+    
+  
+    <button mat-button routerLink="/">
+      <mat-icon>home</mat-icon> Главная
+    </button>
+    
+  
+    <a mat-button href='https://stock-charts.ru' target="_blank">
+      <mat-icon>history</mat-icon>Старая версия
+    </a>
+  
+  
+    <button mat-button routerLink="/Payment">
+      <mat-icon>payment</mat-icon> Тарифы
+    </button>
+  
+    
+    <mat-menu #abMenu="matMenu">    
+      <button mat-menu-item routerLink="/ServiceNews/Content/klasternyy-grafik-dlya-nachinayuschikh">
+        <mat-icon>menu_book</mat-icon>
+        Кластерный график для начинающих
+      </button>
+      <button mat-menu-item routerLink="/ServiceNews/Content/tikovyy-i-potreydovyy-grafik">
+        <mat-icon>menu_book</mat-icon>
+        Тиковый и потрейдовый график
+      </button>
+      <button mat-menu-item routerLink="/ServiceNews/Content/mobilnaya-versiya">
+        <mat-icon>menu_book</mat-icon>
+        Мобильная версия
+      </button>
+    </mat-menu>
+
+
+    <ng-container *ngIf="isAdmin">
+      <button mat-button [matMenuTriggerFor]="adminMenu">
+        <mat-icon>admin_panel_settings</mat-icon> Админка
+      </button>
+    
+      <mat-menu #adminMenu="matMenu">
+        <button mat-menu-item routerLink="/YooMoney">
+          <mat-icon>account_balance_wallet</mat-icon> YooMoney
+        </button>
+        <button mat-menu-item routerLink="/UserPaymentsStat">
+          <mat-icon>assessment</mat-icon> Статистика пользователей
+        </button>
+        <button mat-menu-item routerLink="/Payments">
+          <mat-icon>payment</mat-icon> Платежи
+        </button>
+        <button mat-menu-item routerLink="/UserTable">
+          <mat-icon>people</mat-icon> Пользователи
+        </button>
+        <button mat-menu-item routerLink="/ProfitCharts">
+          <mat-icon>insert_chart</mat-icon> ProfitCharts
+        </button>
+        
+        <button mat-menu-item routerLink="/npm-stat-chart/palette-picker">
+          <mat-icon>insert_chart</mat-icon> Статистика npm
+        </button>
+
+
+  
+
+
+      </mat-menu>
+    </ng-container>
+    
+  
+  
+  
+    <button mat-button [matMenuTriggerFor]="topMenu">
+      <mat-icon>build</mat-icon> Инструменты для трейдеров
+    </button>
+    
+  
+    <button mat-button [matMenuTriggerFor]="abMenu">
+      <mat-icon>library_books </mat-icon>Возможности
+    </button>
+  
+    <button *ngIf="isFootPrintSelected" mat-button [matMenuTriggerFor]="footp">
+      <mat-icon>settings</mat-icon> <b>Доп. инструменты</b>
+    </button>
+  
+    <mat-menu #footp="matMenu">
+      <button mat-menu-item (click)="openNonModalVolumeSearch()">
+        <mat-icon>search</mat-icon>
+        <p>Volume Search</p>
+      </button>
+      <button mat-menu-item (click)="openNonModalSettings()">
+        <mat-icon>visibility</mat-icon>
+        <p>Визуальные настройки</p>
+      </button>
+      <button mat-menu-item (click)="openNonModalMarkUp()">
+        <mat-icon>edit</mat-icon>
+        Пометки на графике
+      </button>
+      <button mat-menu-item (click)="openNonModalTopOrders()">
+        <mat-icon>attach_money</mat-icon>
+        Крупнейшие сделки
+      </button>
+      <button mat-menu-item (click)="uploadImage()">
+        <mat-icon>camera_alt</mat-icon>
+        Сделать скриншот
+      </button>
+      <button mat-menu-item (click)="GetCSV()">
+        <mat-icon>file_download</mat-icon>
+        Скачать CSV
+      </button>
+    </mat-menu>
+  
+    <mat-menu #addMenu="matMenu">
+      <button mat-menu-item appOpenSupportDialog>
+        <mat-icon>contact_support</mat-icon>
+        Написать в поддержку
+      </button>
+      
+      <button mat-menu-item routerLink="/ServiceNews/Create">
+        <mat-icon>create</mat-icon>
+        Создать тему
+      </button>
+      <button mat-menu-item routerLink="/ShareImage">
+        <mat-icon>image</mat-icon>
+        Опубликовать картинку
+      </button>
+      <!--button mat-menu-item routerLink="/npm-stat-chart/palette-picker">
+        <mat-icon>bar_chart</mat-icon>
+        Статистика пакетов NPM
+      </button>
+      <button mat-menu-item routerLink="/UserTable">
+        <mat-icon>create</mat-icon>
+        UserTable
+      </button-->
+    </mat-menu>
+  
+    <mat-menu #topMenu="matMenu">
+      <button mat-menu-item [matMenuTriggerFor]="submenu1">
+        <mat-icon>assessment</mat-icon>
+        Анализ объемов
+      </button>
+      <button mat-menu-item [matMenuTriggerFor]="submenu2">
+        <mat-icon>trending_up</mat-icon>
+        Обзор рынка
+      </button>
+      <button mat-menu-item [matMenuTriggerFor]="submenu3">
+        <mat-icon>work</mat-icon>
+        Портфель бумаг
+      </button>
+      <button mat-menu-item [matMenuTriggerFor]="submenu4">
+        <mat-icon>search</mat-icon>
+        Сканер рынка
+      </button>
+      <button mat-menu-item [matMenuTriggerFor]="submenu5">
+        <mat-icon>calculate</mat-icon>
+        Дериативы
+      </button>
+      <button mat-menu-item [matMenuTriggerFor]="addMenu">
+        <mat-icon>menu</mat-icon> Служебное
+      </button>
+    </mat-menu>
+  
+    <mat-menu #submenu1="matMenu">
+      <button [routerLink]="'/FootPrint'" mat-menu-item>
+        <img
+          src="assets/images/FootPrintSmall.webp"
+          width="263"
+          height="151"
+          alt="Кластерный график"
+        />
+        <p>Кластерный график (FootPrint)</p>
+      </button>
+      <button mat-menu-item routerLink="/Report/TotalVolume">
+        <img
+          src="assets/images/MicexVolSmall.webp"
+          width="263"
+          height="151"
+          alt="Дневной объем торгов Московской Биржи"
+        />
+        <p>Дневной объем торгов Московской Биржи</p>
+      </button>
+      <!-- Дополнительные пункты меню для FootPrint -->
+    </mat-menu>
+  
+    <mat-menu #submenu2="matMenu">
+      <button mat-menu-item [routerLink]="'/MarketMap'">
+        <img
+          width="263"
+          height="151"
+          src="assets/images/MapSmall.webp"
+          alt="Тепловая Карта рынка"
+        />
+        <p>Тепловая Карта рынка</p>
+      </button>
+      <button mat-menu-item [routerLink]="'/MultiCandles'">
+        <img
+          width="263"
+          height="151"
+          src="assets/images/MultiSmall.webp"
+          alt="Мультиграфики"
+        />
+        <p>Просмотр и сравнение нескольких графиков</p>
+      </button>
+      <button mat-menu-item [routerLink]="'/Report/Seasonality'">
+        <img
+          width="263"
+          height="151"
+          src="assets/images/SeasonSmall.webp"
+          alt="Таблица сезонной зависимости"
+        />
+        <p>Таблица сезонной зависимости</p>
+      </button>
+    </mat-menu>
+  
+    <mat-menu #submenu3="matMenu">
+      <button mat-menu-item [routerLink]="'/Portfolio'">
+        <img
+          width="263"
+          height="151"
+          src="assets/images/PortfolioSmall.webp"
+          alt="Торговля на демо-счете"
+        />
+        <p>Торговля на демо-счете</p>
+      </button>
+      <button mat-menu-item [routerLink]="'/Portfolio/Optimization'">
+        <img
+          width="263"
+          height="151"
+          src="assets/images/MarkovitzSmall.webp"
+          alt="Оптимальный портфель Марковица"
+        />
+        <p>Оптимальный портфель Марковица</p>
+      </button>
+      <button mat-menu-item [routerLink]="'/CandlestickChart/PairTrading'">
+        <img
+          width="263"
+          height="151"
+          src="assets/images/PairSmall.webp"
+          alt="Арбитраж и сравнение доходности"
+        />
+        <p>Арбитраж и сравнение доходности</p>
+      </button>
+    </mat-menu>
+  
+    <mat-menu #submenu5="matMenu">
+      <button mat-menu-item routerLink="/OpenPositions">
+        <mat-icon>assignment</mat-icon>
+        Открытые позиции
+      </button>
+      <button mat-menu-item routerLink="/FuturesList">
+        <mat-icon>show_chart</mat-icon>
+        Список фьючерсов
+      </button>   
+    </mat-menu>
+  
+    <mat-menu #submenu4="matMenu">
+      <button mat-menu-item routerLink="/Report/Leaders">
+        <mat-icon>emoji_events</mat-icon>
+        Лидеры объемов, роста, падения, BID, ASK
+      </button>
+      <button mat-menu-item routerLink="/Report/Barometer">
+        <mat-icon>show_chart</mat-icon>
+        Фрактальный бар-о-метръ
+      </button>
+      <button mat-menu-item routerLink="/Report/VolumeSplash">
+        <mat-icon>bubble_chart</mat-icon>
+        Необычные всплески объемов
+      </button>
+      <button mat-menu-item routerLink="/Report/CandlesStat">
+        <mat-icon>insights</mat-icon>
+        Статистика свечного графика
+      </button>
+    </mat-menu>
+  
+    <span class="spacer"></span>
+  
+    <ng-container *ngIf="isSignedIn; else guestTemplate">
+      <button mat-button routerLink="/Identity/Account/Logout" style="margin-left: auto;">
+        <mat-icon>logout</mat-icon> Выйти {{ user?.UserName }}
+      </button>
+    </ng-container>
+  
+    <ng-template #guestTemplate>
+      <button mat-button routerLink="/Identity/Account/Login" style="margin-left: auto;">
+        <mat-icon>account_circle</mat-icon> Вход
+      </button>
+      <button mat-button routerLink="/Identity/Account/Register" style="margin-left: 1px;">
+        <mat-icon>person_add</mat-icon> Регистрация
+      </button>
+    </ng-template>
+  </mat-toolbar>
+  
+  <div class="content-wrapper">
+    <router-outlet></router-outlet>
+  </div>
+</div>

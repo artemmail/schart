@@ -1,0 +1,83 @@
+<div class="container">
+
+  
+<mat-card>
+  <mat-card-header>
+    <mat-card-title>
+      {{ title }}
+    </mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    
+    <div class="widerightsidebar">
+    
+     
+        <form (ngSubmit)="showProfit()">
+          <div class="flex-container">
+            <div class="flex-item">
+              <app-ticker-autocomplete
+                [(ngModel)]="ticker"
+                class="form-element"
+                (tickerChange)="onTickerSelected($event)"
+              ></app-ticker-autocomplete>
+            </div>
+  
+            <div class="flex-item">
+              <app-date-range-picker
+                (selectionChange)="applyPresetX($event)"
+                class="form-element"
+              ></app-date-range-picker>
+            </div>
+  
+            <div class="flex-item">
+              <app-combobox
+                class="form-element"
+                [label]="'Промежуток'"
+                [(value)]="selectedPreset"
+                [items]="presets"
+                (selectionChange)="applyPreset($event)"
+              ></app-combobox>
+            </div>
+  
+            <div class="flex-item">
+              <app-combobox
+                class="form-element"
+                [label]="'Период'"
+                [(value)]="selectedValue"
+                [items]="smallPeriodPresetShort"
+                (selectionChange)="applyPresetX($event)"
+              ></app-combobox>
+            </div>
+          </div>
+        </form>
+      
+    </div>
+  
+    <div class="widerightsidebar">
+      <div class="blogblock">
+        <div class="chart-container">
+          <div class="chart-row">
+            <div class="chart-item">
+              <canvas id="map3"></canvas>
+            </div>
+            <div class="chart-item">
+              <canvas id="map4"></canvas>
+            </div>
+          </div>
+          <div class="chart-item-full">
+            <canvas id="map2"></canvas>
+          </div>
+          <div class="chart-item-full">
+            <canvas id="map1"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+</mat-card-content>
+</mat-card>
+
+
+
+
+  
+</div>

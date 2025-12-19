@@ -1,0 +1,16 @@
+<!-- header.component.html -->
+<mat-toolbar>
+  <button mat-icon-button (click)="menuToggle.emit()">
+    <mat-icon>menu</mat-icon>
+  </button>
+
+  <b class="center-text">
+    <span id="h31">Stock</span><span id="h21">Chart<span id="h31">.</span>ru</span>
+  </b>
+
+  <span class="spacer"></span>
+
+  <button *ngIf="showSettingsButton" mat-icon-button (click)="openSettings()">
+    <mat-icon>settings</mat-icon>
+  </button>
+</mat-toolbar>

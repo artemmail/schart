@@ -1,0 +1,21 @@
+<div>
+    <b>
+      <p class="MsoNormal" style="margin-left:18.0pt">
+        Для оплаты нужно сделать следующее:
+        <br>
+        1. Получить логин (зарегистрироваться), если его нет, тут: 
+        <a rel="nofollow" [href]="currentUrl + '/Identity/Account/Register'" title="{{currentUrl + '/Identity/Account/Register'}}">{{currentUrl + '/Identity/Account/Register'}}</a>
+        <br>
+        2. Залогиниться тут: 
+        <a rel="nofollow" [href]="currentUrl + '/Identity/Account/Login'" title="{{currentUrl + '/Identity/Account/Login'}}">{{currentUrl + '/Identity/Account/Login'}}</a>
+        <br>
+        3. Зайти на эту страницу еще раз и выбрать оформление снова:
+        <a rel="nofollow" [href]="currentUrl + '/Payment'" title="{{currentUrl + '/Payment'}}">{{currentUrl + '/Payment'}}</a>
+        <br>
+        Логин нужен для более точной идентификации пользователя и чтобы оплата прошла по адресу!
+      </p>
+    </b>
+    <button mat-button (click)="closeDialog()">Закрыть</button>
+  </div>
+  
+

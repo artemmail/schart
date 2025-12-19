@@ -1,0 +1,193 @@
+﻿@page
+@using Microsoft.AspNetCore.Mvc.RazorPages
+@model StockChart.Pages.Admin.IndexModel
+@{
+    ViewData["Title"] = "Публикация картинок из буфера обмена";
+}
+
+
+
+@if (Model.filename != null)
+{
+
+    <a href="@Url.Page(null)">Загрузить на хостинг еще одно изображение...</a>
+    <br />
+    <label>Ссылка на файл </label>
+    
+    <br>
+    <input id="filename" type="text" width="500" style="width:600px" readonly="readonly" value="@Model.filename" />
+    <button type="button" onclick="copy()">Copy to Clipboard</button>
+    <br />
+    
+    <img src="@Model.filename" alt="Изображение" />
+
+    @section Scripts {
+    <script>
+        function copy() {
+            navigator.clipboard.writeText(document.getElementById("filename").value).then(function () {
+                console.log('Async: Copying to clipboard was successful!');
+            }, function (err) {
+                console.error('Async: Could not copy text: ', err);
+            });
+        }
+    </script>
+}
+
+
+}
+else
+{
+
+    <form id="myForm" method="post" enctype="multipart/form-data">
+        <div>
+
+            <h1>Вставьте из буфера обмена, перетащите в область или загрузите с диска</h1>
+
+
+            <div id="dropZone" style="border: 1px dashed #aaa; padding: 20px; text-align: center;">
+                <p>Перетащите картинку с дика или Ctrl+V для вставки из буфера обмена</p>
+            </div>
+
+            <div>
+            </div>
+            <br>
+            <div id="inputContainer" style="display:none;">
+                <label for="numberInput">Ужать по ширине до:</label>
+                <input type="number" id="numberInput" name="numberInput" min="64" step="1">
+            </div>
+            <br />
+            <label>Введите уникальное имя или оставьте пустым для случайного имени</label>
+            <br>
+            <input id="name" type="text" width="500" style="width:600px" value="@Model.name" />
+            <input id="filename" type="hidden" asp-for="filename" />
+            <input type="file" name="fileUpload" id="fileUpload" style="display: none;" />
+            <button type="button" onclick="chooseFile()">Выбрать файл..</button>
+            <button type="button" onclick="fun()">Отправить</button>
+        </div>
+    </form>
+
+
+    @section Scripts {
+    <script>
+
+        function showInput(defaultValue) {
+            var inputContainer = document.getElementById('inputContainer');
+            var numberInput = document.getElementById('numberInput');
+
+            numberInput.value = defaultValue;
+            numberInput.max = defaultValue;
+            inputContainer.style.display = 'block';
+        }
+
+        var dropZone = document.getElementById("dropZone");
+        var fileUpload = document.getElementById("fileUpload");
+
+        dropZone.addEventListener("dragover", handleDragOver, false);
+        dropZone.addEventListener("drop", handleDrop, false);
+
+        document.addEventListener("paste", handlePaste, false);
+
+        function handleDragOver(event) {
+            event.stopPropagation();
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "copy";
+        }
+
+        function handleDrop(event) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            var file = event.dataTransfer.files[0];
+            if (file.type.match("image.*")) {
+                displayImage(file);
+            }
+        }
+
+        function handlePaste(event) {
+            var items = event.clipboardData && event.clipboardData.items;
+            var file = null;
+
+            if (items && items.length) {
+                for (var i = 0; i < items.length; i++) {
+                    if (items[i].type.match("image.*")) {
+                        file = items[i].getAsFile();
+                        break;
+                    }
+                }
+            }
+
+            if (file) {
+                displayImage(file);
+            }
+        }
+
+        function chooseFile() {
+            fileUpload.click();
+        }
+
+        fileUpload.addEventListener("change", function () {
+            var file = fileUpload.files[0];
+            if (file.type.match("image.*")) {
+                displayImage(file);
+            }
+        });
+
+        function displayImage(file) {
+            var reader = new FileReader();
+            reader.onload = function (event) {
+                var img = document.createElement("img");                
+                img.src = event.target.result;
+                img.id = "previewImage";
+                img.onload = function () {
+                    showInput(img.width);                    
+                };
+                                           
+                while (dropZone.firstChild) {
+                    dropZone.removeChild(dropZone.lastChild);
+                }
+
+                dropZone.appendChild(img);              
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        var fun = async function (event) {
+            var canvas = document.createElement('canvas');
+            var img = document.getElementById('previewImage');
+            var ctx = canvas.getContext('2d');                     
+            var targetWidth = document.getElementById('numberInput').value; 
+            if (isNaN(targetWidth) || targetWidth > img.width || targetWidth < 64)
+                targetWidth = img.width;        
+            canvas.width = targetWidth;
+            canvas.height = img.height * (targetWidth / img.width);
+            ctx.drawImage(img, 0, 0, targetWidth, canvas.height);
+            
+
+            canvas.toBlob(function (blob) {
+                var formData = new FormData();
+                formData.append('image/webp', blob, 'image1.webp');
+                fetch('/shots/upload?name=' + document.getElementById("name").value, {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(function (response) {
+                        if (response.ok) {
+                            return response.text();
+                        } else {
+                            console.error('Error saving image!');
+                        }
+                    })
+                    .then(function (data) {
+                        var filenameInput = document.getElementById("filename");
+                        filenameInput.value = data;
+                        document.getElementById("myForm").submit();
+                    });
+            }, 'image/webp', 1);
+        };
+
+
+        document.querySelector('form').addEventListener('submit', fun);
+    </script>
+}
+}

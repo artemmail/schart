@@ -1,0 +1,39 @@
+<div class="login-container">
+  <mat-card>
+    <mat-card-header>
+    <mat-card-title>Вход в систему</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form (ngSubmit)="login()">
+        <mat-form-field appearance="fill">
+          <mat-label>Пользователь</mat-label>
+          <input matInput type="text" [(ngModel)]="username" name="username" required>
+        </mat-form-field>
+        <mat-form-field appearance="fill">
+          <mat-label>Пароль</mat-label>
+          <input matInput type="password" [(ngModel)]="password" name="password" required>
+        </mat-form-field>
+        <div class="login-button">
+          <button mat-raised-button color="primary" type="submit">Войти</button>
+        </div>
+      </form>
+      <div *ngIf="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
+    </mat-card-content>
+    <div>
+      <a mat-button id="forgot-password" routerLink="/Identity/Account/ForgotPassword">Забыли пароль?</a>
+    </div>
+    <div>
+      <a mat-button routerLink="/Identity/Account/Register" >Новая регистрация</a>
+    </div>
+    <div>
+      <a mat-button id="resend-confirmation" routerLink="/Identity/Account/ResendEmailConfirmation">Переотправить подтверждение на почту</a>
+    </div>
+    
+
+    
+  </mat-card>
+
+
+</div>

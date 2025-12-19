@@ -1,0 +1,27 @@
+﻿@page "{Id}"
+@using StockChart.Model;
+@model EditCommentModel
+<script src="/scripts/tinymce/tinymce.min.js"></script>
+<script src="/scripts/tinymcecfg.js"></script>
+<div class="widerightsidebar">
+    <div class="blogblock">   
+        <p>
+            <h2>Содержание</h2>
+        </p>
+    @using (Html.BeginForm())
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(m => m.Date)
+        @Html.HiddenFor(m => m.Id)
+        
+            <div class="form-group">
+                @Html.TextAreaFor(model => model.Text, new { htmlAttributes = new {@style="height:600px;", @class = " form-control" } })
+        </div>
+
+        <div style="padding-top:10px">
+            <input type="submit" value="Опубликовать" class="k-button" />
+        </div>
+    }
+</div>
+</div>
+

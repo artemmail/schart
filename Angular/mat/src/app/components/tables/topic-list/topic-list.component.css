@@ -1,0 +1,60 @@
+.container {
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.blogblock {
+  border: 1px solid #ceced2;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #fff;
+}
+
+.blogblock img {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  margin-bottom: 5px;
+  box-sizing: border-box;
+}
+
+.blogblock img:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease-in-out;
+}
+
+.content.collapsed {
+  max-height: 600px;
+  overflow: hidden;
+}
+
+button {
+  margin-top: 10px;
+  background-color: transparent;
+  border: none;
+  color: rgb(26, 115, 232);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+button:hover {
+  text-decoration: none;
+}
+
+/* Разделение на десктопную и мобильную версии */
+.desktop-only {
+  display: block;
+}
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .desktop-only {
+    display: none;
+  }
+  .mobile-only {
+    display: block;
+  }
+}

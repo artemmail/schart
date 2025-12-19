@@ -1,0 +1,68 @@
+﻿@page
+@{
+    ViewBag.Title = "Оплатившие пользователи";
+    List<SelectListItem> YearsList = ViewBag.YearsList;
+    List<SelectListItem> MarketList = ViewBag.MarketList;
+}
+<script type="text/javascript">
+    function ShowProfit() {
+        $("#grid2").kendoGrid({
+            sortable: true,
+            groupable: false,
+            scrollable: false,
+            detailInit: detailInit,
+            dataSource: {
+                transport: {
+                    read: {
+                        url: "/api/Admin/ReturnedUsers",
+                        dataType: "Json"
+                    }
+                }
+            },
+            columns: [
+                { field: "username", title: "Пользователь" },
+                { field: "Email", title: "Email" },
+                { field: "total", title: "Оплачено" },
+                { field: "cnt", title: "Платежей" },
+                { field: "max", title: "Максимальный" },
+                { field: "min", title: "Минимальный" },             
+                {
+                    field: "lastdate",
+                    title: 'Последний заход',
+                    template: '<span style="float:right">#= jDateToStr(lastdate) #</span>'
+                },
+                {
+                    field: "expdate",
+                    title: 'Оплачено до',
+                    template: '<span style="float:right">#= jDateToStr(expdate) #</span>'
+                }
+            ]
+        });
+    }
+    function detailInit(e) {
+        $("<div/>").appendTo(e.detailCell).kendoGrid({            
+            dataSource: {
+                transport: {
+                    read: {
+                        url: "/api/Admin/TotalPays?username=" + e.data.username,
+                        dataType: "Json"
+                    }
+                }
+            },
+            scrollable: false,
+            sortable: false,
+            pageable: false,
+            columns: [                                 
+                { field: "PayDate", title: "PayDate", template: '#= jDateToStr(PayDate) #' },
+                { field: "PayAmount", title: "PayAmount"},
+                { field: "ExpireDate", title: "ExpireDate", template: '#= jDateToStr(ExpireDate) #' }
+            ]
+        });
+    }
+    $(document).ready(ShowProfit);
+</script>
+<div style="width: 900px">
+    <h2>@ViewBag.Title</h2>
+    <div id="grid2"></div>
+</div>
+

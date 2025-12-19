@@ -1,0 +1,15 @@
+.container {
+  display: grid;
+  grid-template-columns: repeat(var(--columns, 3), 1fr); /* Используем CSS переменную для колонок */
+  grid-template-rows: repeat(var(--rows, 3), 1fr);
+  height: 100%; /* 100% от высоты родительского контейнера */
+  width: 100%; /* 100% от ширины родительского контейнера */
+}
+
+.footprint-item {
+  width: calc(100% - 1px); /* Добавлены пробелы для корректного синтаксиса */
+  height: 300px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

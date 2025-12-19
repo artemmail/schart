@@ -1,0 +1,38 @@
+﻿<div data-role="view" id="Alerts"
+     data-title="Алерты"
+     data-use-native-scrolling="false"
+     data-stretch="false"
+     data-init="APP.Alerts.events.init"
+     data-after-show = "APP.Alerts.events.afterShow"
+     data-model="APP.Alerts.model">
+
+    <header data-role="header">
+        <div data-role="navbar">
+            <a data-role="button" data-rel="drawer" href="#drawer" data-icon="drawer-icon" data-align="left"></a>
+            <span data-role="view-title"></span>
+            <a data-role="button" data-rel="modalview" onclick="$('#alertsGrid').data('kendoGrid').dataSource.read();" data-icon="refresh-button" data-align="right"></a>            
+        </div>
+    </header>
+
+    <div data-role="content">
+
+        <div data-bind="visible: IsPayed">
+	
+       
+            <div id="alertsGrid" style="width:100%"></div>
+       
+        </div>
+
+        <div data-bind="invisible: IsPayed" style="padding:1em">
+            Пожалуйста, залогинтесь с оплаченного аккаунта, что бы получать сообщения на телефон сообщения о достижении заданной цены фьючерсами, акциями и валютными парами.
+            <br /><br />
+            Для получения сообщений вы должны иметь оплаченный аккаунт на сайте http://StockChart.ru
+            <br /><br />
+            Для регистрации и оплаты на сайте лучше использовать ноутбук или компьютер, что бы открылась полная версия сайта.
+        </div>
+
+    </div>
+    <div data-role="footer">
+        
+    </div>
+</div>

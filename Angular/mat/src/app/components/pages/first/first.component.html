@@ -1,0 +1,108 @@
+<div *ngIf="isInited; else loading">
+  <mat-sidenav-container class="sidenav-container">
+    <mat-sidenav
+      #appDrawer
+      mode="side"
+      [opened]="(navService.isOpenedObs$ | async)"
+      style="width: 270px;"
+      (openedChange)="footPrint.resize()"
+    >
+      <div id="params" class="sidenav-content form-container">
+        <div class="example-button-group">
+          <button
+            mat-button
+            class="icon-button"
+            (click)="uploadImage($event)"
+            matTooltip="URL на скриншот графика"
+          >
+            <mat-icon>camera_alt</mat-icon>
+            <span class="button-text">Снимок</span>
+          </button>
+          <button
+            mat-button
+            class="icon-button"
+            (click)="openNonModalSettings()"
+            matTooltip="Менеджер настроек отображения"
+          >
+            <mat-icon>visibility</mat-icon>
+            <span class="button-text">Настройки</span>
+          </button>
+          <button
+            mat-button
+            class="icon-button"
+            (click)="openNonModalMarkUp()"
+            matTooltip="Рисовать на графике"
+          >
+            <mat-icon>edit</mat-icon>
+            <span class="button-text">Пометки</span>
+          </button>
+        </div>
+        <footprint-params [params]="params" name="ddddd"></footprint-params>
+        <div>
+          <mat-form-field class="elementWidth">
+            <mat-label>Выбор пресета</mat-label>
+            <mat-select
+              name="presetIndex"
+              [(ngModel)]="footPrint.presetIndex"
+              (ngModelChange)="presetChange($event)"
+            >
+              <mat-option
+                *ngFor="let item of footPrint.presetItems"
+                [value]="item.Value"
+                >{{ item.Text }}</mat-option
+              >
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <button mat-raised-button color="primary" (click)="load()">
+          Показать
+        </button>
+      </div>
+    </mat-sidenav>
+    <mat-sidenav-content>
+      <div class="content overflow-hidden">
+        <div id="container">
+          <app-footprint [params]="params" #footPrint></app-footprint>
+        </div>
+      </div>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+
+    <!-- Ленивое подключение диалогов с помощью *ngIf -->
+    <ng-container *ngIf="showMarkupDialog">
+      <app-non-modal-dialog
+        #markupDialog
+        title="Пометки"
+        (onCloseCallback)="onCloseMarkUp()"
+      >
+        <app-markup-editor [NP]="footPrint"></app-markup-editor>
+      </app-non-modal-dialog>
+    </ng-container>
+  
+    <ng-container *ngIf="showSettingsDialog">
+      <app-non-modal-dialog #settingsDialog title="Настройки">
+        <app-footprint-settings-dialog [fp]="footPrint">
+        </app-footprint-settings-dialog>
+      </app-non-modal-dialog>
+    </ng-container>
+  
+    <ng-container *ngIf="showTopOrdersDialog">
+      <app-non-modal-dialog #topOrdersDialog title="Крупнейшие сделки">
+        <footprint-top-orders [NP]="footPrint"></footprint-top-orders>
+      </app-non-modal-dialog>
+    </ng-container>
+  
+    <ng-container *ngIf="showVolumeSearchDialog">
+      <app-non-modal-dialog #volumeSearchDialog title="Volume search">
+        <app-volume-search-table [NP]="footPrint">
+        </app-volume-search-table>
+      </app-non-modal-dialog>
+    </ng-container>
+  </div>
+  
+  <ng-template #loading>
+    <div class="spinner-container">
+      <mat-spinner></mat-spinner>
+    </div>
+  </ng-template>
+  

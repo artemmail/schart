@@ -1,0 +1,24 @@
+#dropZone {
+    border: 1px dashed #aaa;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .example-full-width {
+    width: 100%;
+  }
+  
+  mat-card {
+    margin: 12px;
+  }
+  
+  form h1 {
+    margin-bottom: 16px;
+  }
+  
+
+  
+  #inputContainer {
+    margin-top: 16px;
+  }
+

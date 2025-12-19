@@ -1,0 +1,47 @@
+<mat-form-field class="elementWidth">
+  <mat-label>Загрузка</mat-label>
+  <mat-select [(ngModel)]="params.candlesOnly" name="svech">
+    <mat-option [value]="true">Свечи</mat-option>
+    <mat-option [value]="false">Свечи+Кластера</mat-option>
+  </mat-select>
+</mat-form-field>
+
+<div class="elementWidth" style="width: 250px;">
+  <app-ticker-autocomplete
+    name="autocomplete1"
+    [(ngModel)]="params.ticker"
+    (tickerChange)="onTickerSelected($event)"
+  ></app-ticker-autocomplete>
+
+  <app-date-range-picker enableSetTime="true"></app-date-range-picker>
+</div>
+
+<div class="elementWidth" style="width: 250px;">
+  <app-date-range-selector
+    #presetSelector
+    [ticker]="params.ticker"
+    (selectionChange)="applyPreset($event)"
+  ></app-date-range-selector>
+</div>
+
+<div class="elementWidth" style="width: 250px;">
+  <app-combobox
+    [label]="'Период'"
+    [(value)]="params.period"
+    [items]="presets2"
+    (selectionChange)="SelectPeriod($event)"
+  ></app-combobox>
+</div>
+
+<mat-form-field class="elementWidth">
+  <mat-label>Шаг</mat-label>
+  <input
+    name="sh"
+    matInput
+    [(ngModel)]="params.priceStep"
+    [min]="params.minStep"
+    [step]="params.minStep"
+    type="number"
+    (input)="refresh()"
+  />
+</mat-form-field>

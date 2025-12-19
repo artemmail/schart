@@ -1,0 +1,20 @@
+.table-card {
+    max-width: 1600px;
+    margin: 20px auto; /* Центрирование карточки с отступом сверху и снизу */
+  }
+  
+  .custom-table {
+    width: 100%;
+    overflow-x: auto; /* Добавляет горизонтальную прокрутку при необходимости */
+  }
+  
+  .toolbar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .filter-field {
+    flex: 1;
+  }
+  

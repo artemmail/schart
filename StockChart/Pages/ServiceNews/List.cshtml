@@ -1,0 +1,26 @@
+﻿@page
+@model ListModel
+<div class="widerightsidebar">
+    @foreach (var item in Model.News)
+    {
+        <div class="blogblock">
+            <p>
+                <h6><a href="/ServiceNews/Content/@item.Slug">@Html.Raw(item.Header)</a></h6>
+                <br />
+                <b>@Html.Raw("sssss") </b>
+                <i>@Html.Raw(item.Date)</i>
+            </p>
+            @Html.Raw(item.Text)
+            <p>
+                @Html.ActionLink((item.UserComments.Count>0) ? string.Format("Комменарии({0})", item.UserComments.Count) : "Прокомментировать первым", "Details", "ServiceNews", new { id = item.Id }, null)
+                @if(Model.userId == item.UserId.ToString())
+                {
+                    <span>|</span> @Html.ActionLink("Редактировать", "Edit", new { id = item.Id })
+                    <span>|</span> @Html.ActionLink("Удалить", "Delete", new { id = item.Id })
+                }
+            </p>
+            <br />
+        </div>
+    }
+</div>
+

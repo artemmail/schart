@@ -1,0 +1,40 @@
+﻿<div data-role="view" id="Splash" data-title="Всплески объемов"
+     data-use-native-scrolling="false"
+     data-model="APP.Splash.model"
+     data-init="APP.Splash.events.init">
+    <header data-role="header">
+        <div data-role="navbar">
+            <span data-role="view-title"></span>
+            <a data-role="button" data-rel="drawer" href="#drawer" data-icon="drawer-icon" data-align="left"></a>
+        </div>        
+    </header>
+    <div data-role="content" style="width: 100%; ">
+        <ul id="fieldlist2">
+            <li>
+
+                <label for="period">Среднее из:</label>
+                <select id="bigPeriod"
+                        style="width: 90px"
+                        data-role="dropdownlist"
+                        data-value-field="Value"
+                        data-text-field="Text"
+                        data-value-primitive="true"
+                        data-bind="value: bigPeriod, source: bigPeriods, events: { change: apply}"></select>
+            </li>
+            <li>
+                <label for="rperiod">Сканировать:</label>
+                <select id="smallPeriod"
+                        style="width: 140px"
+                        data-role="dropdownlist"
+                        data-value-field="Value"
+                        data-text-field="Text"
+                        data-value-primitive="true"
+                        data-bind="value: smallPeriod, source: smallPeriods, events: { change: apply}"></select>
+
+            </li>
+        </ul>
+
+        <div id="splashgrid"></div>
+    </div>
+</div>
+

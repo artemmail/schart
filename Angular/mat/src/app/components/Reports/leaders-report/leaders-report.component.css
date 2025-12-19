@@ -1,0 +1,51 @@
+.flex-container {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 15px; /* Интервал между элементами */
+    align-items: center; /* Выравнивание элементов по вертикальной оси */
+  }
+  
+  .flex-item {
+    flex: 1 1 auto; /* Пропорциональное растягивание элементов */
+    min-width: 150px; /* Минимальная ширина элементов */
+  }
+  
+  mat-card {
+    padding: 16px; /* Отступ внутри карточки */
+    margin-bottom: 20px; /* Отступ снизу */
+  }
+
+  .container {
+    max-width: 1150px;
+    margin: 0 auto;
+  
+  }
+  mat-card {
+    margin: 12px;
+  }
+
+  .custom-table th, .custom-table td {
+    padding: 8px;
+  }
+  
+  .icon-cell {
+    text-align: center;
+    width: 50px; /* Adjust the width of the column */
+  }
+  
+  .mat-icon {
+    vertical-align: middle;
+  }
+  
+  .ticker-container {
+    display: flex;
+    align-items: center; 
+  }
+  
+  .ticker-container app-ticker-icon {
+    margin-right: 8px; 
+  }
+  
+  .ticker-container a {
+    white-space: nowrap;  
+  }

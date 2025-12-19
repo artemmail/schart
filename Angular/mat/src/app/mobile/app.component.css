@@ -1,0 +1,54 @@
+/* Обеспечиваем, чтобы mat-sidenav-container занимал всю высоту */
+.sidenav-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* mat-sidenav должен занимать 100% высоты */
+.sidenav {
+  height: 100%;
+}
+
+/* mat-sidenav-content использует flex для распределения пространства */
+.sidenav-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Заголовок имеет фиксированную высоту */
+app-header {
+  flex: 0 0 60px; /* Настройте высоту заголовка по необходимости */
+}
+
+/* Основной контент занимает оставшееся пространство */
+.main-content {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Стили для элементов навигации */
+a.mat-list-item {
+  display: flex;
+  align-items: center;
+}
+
+/* Стили для иконок */
+mat-icon {
+  vertical-align: middle;
+  font-size: 24px;
+  margin-right: 8px;
+}
+
+/* Стили для разделителей */
+mat-divider {
+  margin: 8px 0;
+  border-color: lightgray;
+}
+
+/* Выравнивание ссылок аутентификации вправо */
+.auth-action {
+  margin-left: auto;
+}

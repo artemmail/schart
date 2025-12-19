@@ -1,0 +1,8 @@
+<div class="icon-container" [ngStyle]="{'width.px': radius * 2, 'height.px': radius * 2}">
+  <ng-container *ngIf="!showLetter">
+    <img [src]="logoPath" alt="{{ticker}}">
+  </ng-container>
+  <ng-container *ngIf="showLetter">
+    <span class="ticker-letter">{{ ticker[0].toUpperCase() }}</span>
+  </ng-container>
+</div>

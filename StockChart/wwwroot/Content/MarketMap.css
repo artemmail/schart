@@ -1,0 +1,45 @@
+﻿.k-list .k-item {
+    position: relative;
+}
+.k-item input {
+    position: absolute;
+    right: 0
+}
+.ticker {
+    border-style: solid;
+    border-color: #ceced2;
+    border-width: 1px;
+    width: 91px;
+    height: 90px;
+    display: inline-block;
+    margin: 3px;
+    cursor: pointer
+}
+.category {
+    padding: 2px;
+    margin: 3px 3px 3px 3px;
+    display: inline-block;
+   //    box-shadow: 0 3px 8px 0 rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.08);
+    border-style: solid;
+    border-color: #ceced2;
+    border-width: 1px;
+    background-color: white
+}
+dt {
+    padding-left: 3px;
+    margin: 0px;
+    font-size: 19px;
+    line-height: 18px;
+    background-color: rgba(128, 128, 128,0.3)
+}
+dl {
+    padding-bottom: 3px;
+    margin: 0px;
+    padding-top: 6px;
+}
+dd {
+    padding-right: 5px;
+    margin: 0px;
+    text-align: right;
+    font-size: 11px;
+}

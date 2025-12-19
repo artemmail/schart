@@ -1,0 +1,38 @@
+<div class="board-container">
+  <ng-container *ngIf="boardData && boardData.length > 0; else noData">
+    <ng-container *ngFor="let sector of boardData[0]?.items">
+      <mat-card class="category">
+        <mat-card-header>
+          <mat-card-title>
+            <a (click)="navigateToMultiCandles(getTickers(sector))"
+               style="cursor:pointer;">
+              {{ sector.name }} 
+            </a>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="tickers">
+            <div
+              *ngFor="let n of sector.items"
+              class="ticker"
+              [style.backgroundColor]="n.color"
+              (click)="onTickerClick(n)"
+            >
+              <dl>
+                <dt>{{ n.ticker }}<br /><span style="font-size:14px;">{{ n.name1 }}</span></dt>
+                <div style="padding: 2px;">
+                <dd><h2 style="margin:5px 0; font-size:14px;">{{ n.cls }}</h2></dd>
+                <dd>{{ formatPercent(n.percent) }}</dd>
+                <dd>V: {{n.value | moneyToStr }}</dd>
+              </div>
+              </dl>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </ng-container>
+  </ng-container>
+  <ng-template #noData>
+    <p>Нет данных</p>
+  </ng-template>
+</div>

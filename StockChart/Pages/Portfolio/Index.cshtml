@@ -1,0 +1,291 @@
+﻿@page
+@model PortfolioModel
+@using Microsoft.AspNetCore.Identity
+@using StockChart.Model;
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@{
+    ViewData["Title"] = "Торговля на демо портфеле";
+    var ticker = "SBER";
+    List<SelectListItem> periods = Model.Periods;
+    List<SelectListItem> portfolios = Model.Portfolios;
+}
+<div class="widerightsidebar">
+    <div class="blogblock">
+        @if (SignInManager.IsSignedIn(User))
+        {
+            <p>
+                <h6>@ViewData["Title"]</h6>
+            </p>
+            <!--h2>Сделка по текущей рыночной цене.  </h2-->
+            <fieldset class="k-block" style="display:block; float: left; width:40%;">
+                <legend>Сделка  по текущей рыночной цене</legend>
+                <div class="spanner">&nbsp;</div>
+                <div style="display:block;float:left">
+                    <div class="editor-label">Номер Портфеля</div>
+                    <div class="editor-field">@Html.DropDownList("PortfolioNumber", portfolios, new { onchange = "ShowPortfolioLocal()" })</div>
+                </div>
+                <div style="display:block;float:left;width:10px;height:10px">&nbsp;</div>
+                <div style="display: block; float: left">
+                    <div class="k-label">Тикер</div>
+                    <input style="height:24px;width:80px" class="k-textbox" id="ticker" name="ticker" value="@ticker" />
+                </div>
+                <div class="spanner">&nbsp;</div>
+                <div style="display:block;float:left">
+                    <div class="editor-label">Кол-во</div>
+                    <!--div class="editor-field">Html.DropDownList("ticker", tickers)</div-->
+                    <input value="1" min="1" type="number" id="quantity" class="numericOnly" />
+                </div>
+                <div class="spanner">&nbsp;</div>
+                <div style="display: block; float: left">
+                    <div style="height:13px;"></div>
+                    <input class="k-button" type="button" value="Купить" onclick=" BuySell(1)">
+                </div>
+                <div style="display: block; float: left; width: 10px; height: 10px"> &nbsp; </div>
+                <div style="display: block; float: left">
+                    <div style="height:13px;"></div>
+                    <input class="k-button" type="button" value="Продать" onclick=" BuySell(-1)">
+                </div>
+            </fieldset>
+            <div class="spanner">&nbsp;</div>
+            <fieldset class="k-block" style="display:block; float: left; width:23%;">
+                <legend>Манипуляции над портфелем</legend>          
+                <div style="display:block;float:left">
+                    <div class="editor-label">Цена</div>
+                    <!--div class="editor-field">Html.DropDownList("ticker", tickers)</div-->
+                    <input style="height:24px;width:60px" value="1" min="1" type="number" id="price" class="numericOnly" data-min="0" data-format="n8" data-decimals="8" data-step="0.00000001" />                    
+                </div>
+                <div class="spanner">&nbsp;</div>
+                <div style="display: block; float: left">
+                    <div style="height:13px;"></div>
+                    <input class="k-button" type="button" value="Занести"  onclick=" BuySpec()">
+                </div>
+                <div style="display: block; float: left; width: 10px; height: 10px"> &nbsp; </div>
+                <div style="display: block; float: left">
+                    <div style="height:13px;"></div>
+                    <input class="k-button" type="button" value="Сбросить" onclick=" CleanUp()">
+                </div>
+            </fieldset>
+            <div class="spanner">&nbsp;</div>
+            <fieldset class="k-block" style="width:34%;">
+                <legend>Сравнение доходности портфелей</legend>
+                <div style="display: block; float: left; width: 10px; height: 10px"> &nbsp; </div>
+                <div style="display:block;float:left">
+                    <div class="editor-label">Первый портфель</div>
+                    <div class="editor-field">@Html.DropDownList("PortfolioComp1", portfolios)</div>
+                </div>
+                <div style="display: block; float: left; width: 10px; height: 10px"> &nbsp; </div>
+                <div style="display:block;float:left">
+                    <div class="editor-label">Второй портфель</div>
+                    <div class="editor-field">@Html.DropDownList("PortfolioComp2", portfolios)</div>
+                </div>
+                <div class="spanner">&nbsp;</div>
+                <div style="display: block; float: left">
+                    <div style="height:13px;"></div>
+                    <input class="k-button" type="button" value="Сравнить" onclick="Comparator()">
+                </div>
+                <div class="spanner">&nbsp;</div>
+            </fieldset>
+            <div id="grid"></div>
+            <fieldset class="k-block" style="padding: 0px 10px 10px 10px; width:100%">
+                <legend>Быстрый просмотр свечного графика</legend>
+                <div style="display:block;float:left">
+                    <div class="editor-label">Период</div>
+                    <div class="editor-field">@Html.DropDownList("period", periods, new { onchange = "ChangePeriod()" })</div>
+                </div>
+            </fieldset>
+            <center>
+                <canvas id="myCanvas1" width="1250" height="400"></canvas>
+            </center>
+            <script type="text/javascript">
+                var chart;
+                function ShowPortfolioLocal() {
+                    ShowPotfolio("#grid", document.getElementById('PortfolioNumber').value, { externalLink: false });
+                }
+                var x;
+                function InitCanvas2(canvas, ticker, period, text) {
+                    chart = new CandleChart(canvas, true);
+                    chart.SetMouseCallBacks();
+                    UpdCanvas2(chart, ticker, period, text);
+                    return c;
+                }
+                function ChangePeriod() {
+                    var v = document.getElementById('period').value;
+                    var params = CloneObject(chart.params);
+                    params.period = v;
+                    params.rperiod = RperiodFromPeriod(v);
+                    chart.queryCandlesFullParams(params);
+                }
+                function UpdCanvas2(c, ticker, period, text) {
+                    c.text = text;
+                    c.queryCandlesFullParams({
+                        ticker: ticker,
+                        period: period,
+                        rperiod: RperiodFromPeriod(period),
+                        count: 300
+                    });
+                    return c;
+                }
+                BuySell = function (sign) {
+                    var params = {
+                        ticker: document.getElementById('ticker').value,
+                        quantity: sign * document.getElementById('quantity').value,
+                        PortfolioNumber: document.getElementById('PortfolioNumber').value
+                    };
+                    $.get('/api/portfolio/MakeOrder', params, function (data) {
+                        ShowPortfolioLocal();
+                    });
+                }
+                BuySpec = function () {
+                    var params = {
+                        ticker: document.getElementById('ticker').value,
+                        quantity: document.getElementById('quantity').value,
+                        price: document.getElementById('price').value,
+                        PortfolioNumber: document.getElementById('PortfolioNumber').value
+                    };
+                    $.get('/api/portfolio/MakeOrderSpec', params, function (data) {
+                        ShowPortfolioLocal();
+                    });
+                }
+                CleanUp = function () {
+                    var params = {                       
+                        PortfolioNumber: document.getElementById('PortfolioNumber').value
+                    };
+                    $.get('/api/portfolio/CleanUpPortfolio', params, function (data) {
+                        ShowPortfolioLocal();
+                    });
+                }
+                function SelectTicker(ticker, text) {
+                    chart = InitCanvas2('myCanvas1', ticker, 1, text);
+                }
+                function UpdateTickerBox(ticker, text) {
+                    ticker = unescape(ticker);
+                    UpdCanvas2(chart, ticker, document.getElementById('period').value, text);
+                    document.getElementById('ticker').value = ticker;
+                }
+                function Comparator() {
+                    var num1 = document.getElementById('PortfolioComp1').value;
+                    var num2 = document.getElementById('PortfolioComp2').value;
+                    if (num1 == num2)
+                        alert("Нужно выбрать 2 разных портфеля");
+                    else
+                        $.get('/api/Portfolio/PortfolioCompares',
+                            { portfolio1: num1, portfolio2: num2 },
+                            function (data) {
+                                //console.log(data.res1);
+                               // console.log(data.res2);
+                                if (data.res1 != '' && data.res2 != '')
+                                    window.open(sitePrefix + "CandlestickChart/PairTrading?ticker1=" +
+                                        encodeURIComponent(data.res1) + "&ticker2=" + encodeURIComponent(data.res2));
+                                else
+                                    alert("Один из портфелей пуст");
+                            });
+                }
+                var connection;
+                $(document).ready(function () {
+                    connection = new signalR.HubConnectionBuilder().withUrl("/CandlesHub").build();
+                    connection.on("recieveCandle", function (message) {
+                        var answ;
+                        eval("answ=" + message);
+                        candlesObjects[JSON.stringify(answ.key)].updateMerge(answ.data);
+                        //console.log(JSON.stringify(answ.key));
+                    });
+                    async function start() {
+                        try {
+                            await connection.start();
+                            MenuAddPortfolio(menu);
+                            $("#PortfolioNumber").width(130).kendoDropDownList();
+                            $("#PortfolioComp1").width(130).kendoDropDownList();
+                            $("#PortfolioComp2").width(130).kendoDropDownList();
+                            $("#quantity").width(80).kendoNumericTextBox({ decimals: 0, format: "#" });
+
+                            $("#ticker").autocomplete({
+                                source: function (request, response) {
+                                    $.get(
+                                        '/api/common/findbymask', {
+                                        type: "Candles",
+                                        mask: request.term
+                                    },
+                                        function (data) {
+                                            response(data);
+                                        });
+                                },
+                                select: function (event, ui) {
+                                        MouseAutoComplete('ticker', event, ui);
+                                       SelectTicker(document.getElementById('ticker').value, document.getElementById('ticker').value)
+                                    return false;
+                                },
+                                minLength: 1
+                            });
+
+                            ShowPortfolioLocal();
+                            
+                            
+                            if (IsPayedUser)
+                                setInterval(function () {
+                                    if (MarketWorks() > 0) {
+                                        $('#grid').data('kendoGrid').dataSource.read();
+                                        kendo.ui.progress($('#grid'), false);
+                                        //chart.queryCandlesUpdate();
+                                    }
+                                }, 2500);
+
+                                SelectTicker(document.getElementById('ticker').value, document.getElementById('ticker').value);
+
+                        } catch (err) {
+                            console.log(err);
+                            setTimeout(start, 5000);
+                        }
+                    };
+                    connection.onclose(async () => {
+                        await start();
+                    });
+                    // Start the connection.
+                    start();
+                });
+                function GetPortfolioGraph() {
+                    var l = encodeURIComponent(GetPortfolioLine("#grid"));
+                    if (l != '')
+                        window.open(sitePrefix + "CandlestickChart?ticker=" + l);
+                }
+                function GetPortfolioCompare() {
+                    var l = encodeURIComponent(GetPortfolioLine("#grid"));
+                    if (l != '')
+                        window.open(sitePrefix + "CandlestickChart/PairTrading?ticker2=MXXX&ticker1=" + l);
+                }
+                function GetTickers() {
+                    var displayedData = $("#grid").data().kendoGrid.dataSource.view();
+                    if (displayedData.length > 3) {
+                        out = '';
+                        for (var i = 0; i < displayedData.length - 3; i++) {
+                            out += displayedData[i].ticker;
+                            if (i < displayedData.length - 4)
+                                out += ",";
+                        }
+                        return out;
+                    }
+                    return '';
+                }
+                function GetDeposit() {
+                    var displayedData = $("#grid").data().kendoGrid.dataSource.view();
+                    return Math.round(displayedData[displayedData.length - 1].nowcost);
+                }
+                function GetPortfolioMultiCandles() {
+                    out = GetTickers();
+                    if (out != '')
+                        window.open(sitePrefix + "MultiCandles?tickers=" + out);
+                }
+                function GetPortfolioOptimization() {
+                    out = GetTickers();
+                    if (out != '')
+                        window.open(sitePrefix + "Portfolio/Optimization?deposit=" + GetDeposit() + "&tickers=" + out);
+                }
+            </script>
+        }
+        else
+        {
+            <div>        <h2>Зарегистрируйтесь и зайдите в систему, что бы получить возможность торговать виртуальными акциями. Регистрация и функционал бесплатны. </h2> </div>
+            <center>        <img src="http://stockchart.ru/images/Portfolio.png"> </center>
+        }
+    </div>
+</div>

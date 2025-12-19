@@ -1,0 +1,21 @@
+.card-row-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between; /* Распределяет карточки по горизонтали */
+    gap: 12px; /* Отступ между карточками */
+    flex-wrap: nowrap; /* Не переносить карточки на следующий ряд */
+    margin-left: 12px;
+    margin-right: 12px;
+    margin-bottom: 12px;
+  }
+  
+  mat-card {
+    width: 300px; /* Устанавливаем фиксированную ширину для карточек */
+    flex-grow: 1; /* Позволяет карточкам занимать одинаковое пространство */   
+    margin-top: 12px;
+  }
+  
+  .container {
+    margin: 12px;
+  }
+  

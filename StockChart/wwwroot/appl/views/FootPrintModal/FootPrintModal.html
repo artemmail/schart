@@ -1,0 +1,123 @@
+﻿<div data-role="modalview" id="FootPrintModal"
+     data-title="Выбор тикера" 
+     data-use-native-scrolling="true"
+     data-stretch="false"
+     data-init="APP.FootPrintModal.events.init"
+     data-open="APP.FootPrintModal.events.open"
+     data-model="APP.FootPrintModal.model"
+     style="width:275px;height:80%; min-height:270px; max-height:400px; display:none;">
+    <div id="modalheader" data-role="header">
+        <div data-role="navbar">
+            <span data-role="view-title"></span>
+            <a data-role="button" data-bind="click: closeFootPrint" data-align="right" data-icon="close"></a>
+        </div>
+    </div>
+    <div data-role="content">
+        <ul id="fieldlist1" data-role="listview" data-style="inset">   
+            <li><label for="ticker">Тикер</label> <input id="ticker" data-bind="value: controls.ticker, events: { change: changeticker }" class="k-textbox" /></li>
+            <li>
+                <div style="display:block;float:left">
+                    <label for="period">Период</label>
+                    <select style="width: 90px"
+                            data-role="dropdownlist"
+                            data-value-field="Value"
+                            data-text-field="Text"
+                            data-value-primitive="true"
+                            data-bind="value: controls.period, source: periodlist"></select>
+                </div>
+            </li>
+            <li>
+                <div style="display:block;float:left">
+                    <label for="rperiod">Промежуток</label>
+                    <select style="width: 140px"
+                            data-role="dropdownlist"
+                            data-value-field="Value"
+                            data-text-field="Text"
+                            data-value-primitive="true"
+                            data-bind="value: controls.rperiod, source: rperiodlist, events: { change: changerperiod }"></select>
+                </div>
+            </li>
+            <li>
+                <div>
+                    <div id="startenddatecont">
+                        <div style="display:block;float:left">
+                            <label for="startDate">Начальная дата</label>
+                            <input style="width: 100px" data-format="dd.MM.yyyy" data-role="datepicker" data-bind="value: controls.startDate , events: { change: changedate }" class="editor-field" />
+                        </div>
+
+                        <div class="spanner">&nbsp;</div>
+                        <div class="spanner">&nbsp;</div>
+
+                        <div style="display:block;float:right">
+                            <label for="endDate">Конечная дата</label>
+                            <input style="width: 100px" data-format="dd.MM.yyyy" data-role="datepicker" data-bind="value: controls.endDate , events: { change: changedate }" class="editor-field" />
+                        </div>
+                    </div>
+                </div>
+            </li>
+
+            <li>
+                <label for="startTime">Шаг цен</label>
+                <input id="psfp"
+                       data-min="0"
+                       data-format="n4"
+                       data-decimals="4"
+                       data-step="0.0001"
+                       data-role="numerictextbox"
+                       data-bind="value: controls.priceStep" style="width: 80px" />
+
+            </li>         
+            <li>
+                <input type="checkbox" id="checkbox1" class="k-checkbox" data-bind="events: { change: onChange }, checked: settings.OpenClose">
+                <label class="k-checkbox-label" for="checkbox1">Open/Close</label>
+            </li>
+            <li>
+                <ul id="buttongroup"  name = "buttongroup"  data-index="2" data-role="buttongroup" data-bind="events: { select: onChangeMobile }">
+                    <li>Delta</li>
+                    <li>ASKxBID</li>
+                    <li>Volume</li>
+                </ul>
+            </li>  
+
+ 	    <li data-bind="visible: settingsVolumeVisible ">                    
+                    <ul style="list-style-type: none; ">
+                        <li style="display:block;float:left">
+                            <label for="volume1">Объем 1</label>
+                            <input id="volume1"
+                                   style="background:Coral; width: 80px"
+                                   data-min="0"
+                                   data-format="n0"
+                                   data-decimals="0"
+                                   data-step="1"
+                                   data-role="numerictextbox"
+                                   data-bind="events: { change: onChangeVolume }, value: settings.volume1" />
+                        </li>
+
+                        <li style="display:block;float:left;">                        <div class="spanner">&nbsp;</div>                      </li>
+
+                        <li style="display:block;float:left">
+                            <label for="volume2">Объем 2</label>
+                            <input id="volume2"
+                                   style="background:Gold; width: 80px"
+                                   data-min="0"
+                                   data-format="n0"
+                                   data-decimals="0"
+                                   data-step="1"
+                                   data-role="numerictextbox"
+                                   data-bind="events: { change: onChangeVolume }, value: settings.volume2" />
+                        </li>
+                    </ul>
+                </li>                 
+        </ul>        
+    </div>
+    <div data-role="footer">
+        <div data-role="navbar" >
+            <div style="width:50%;display:block;float:left;padding:0.3em">
+                <button id="but" data-bind="click: apply" class="k-button k-primary">Показать</button>            
+            </div>
+            <div style="width:50%;display:block;float:left;padding:0.3em">
+                <button id="but" data-bind="click: closeFootPrint" class="k-button">Закрыть</button>
+            </div>                       
+        </div>
+</div>
+</div>

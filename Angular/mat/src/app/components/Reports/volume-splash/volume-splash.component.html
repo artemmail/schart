@@ -1,0 +1,140 @@
+<div class="container">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>
+         Поиск бумаг с объемами выше среднего
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+
+ 
+     
+          <div class="flex-container">
+            <div class="flex-item">
+              <app-market-selector
+                [(ngModel)]="selectedMarket"
+                (selectionChange)="onMarketChange($event)"
+              ></app-market-selector>
+            </div>
+            <div class="flex-item">
+              <app-combobox
+                [label]="'Считать среднее по'"
+                [(value)]="bigPeriod"
+                [items]="bigPeriods"
+                (selectionChange)="refresh()"
+              ></app-combobox>
+            </div>
+            <div class="flex-item">
+              <app-combobox
+                [label]="'Глубина сканирования'"
+                [(value)]="smallPeriod"
+                [items]="smallPeriods"
+                (selectionChange)="refresh()"
+              ></app-combobox>
+            </div>
+
+            <div class="flex-item">
+              <mat-form-field appearance="fill">
+                <mat-label>Минимальный всплеск</mat-label>
+                <input
+                  matInput
+                  [(ngModel)]="splash"
+                  type="number"
+                  (input)="refresh()"
+                />
+              </mat-form-field>
+            </div>
+            <div class="flex-item">
+              <button mat-raised-button color="primary" (click)="refresh()">
+                Показать
+              </button>
+            </div>
+          </div>
+    
+      <div>
+        <mat-table [dataSource]="dataSource" matSort>
+          <ng-container matColumnDef="ticker">
+            <mat-header-cell *matHeaderCellDef mat-sort-header
+              >Бумага</mat-header-cell
+            >
+            <mat-cell *matCellDef="let element">
+              <a
+                [routerLink]="['/FootPrint']"
+                [queryParams]="{
+                  ticker: element.ticker,
+                  period: 5,
+                  rperiod: 'day'
+                }"
+              >
+                {{ element.name.substring(0, 25) }}
+              </a>
+              <span *ngIf="!isPayed">Открыто в премиум доступе</span>
+            </mat-cell>
+          </ng-container>
+
+          <ng-container matColumnDef="avgval">
+            <mat-header-cell *matHeaderCellDef mat-sort-header
+              >Средний объем</mat-header-cell
+            >
+            <mat-cell *matCellDef="let element">{{
+              element.avgval.toFixed(0)
+            }}</mat-cell>
+          </ng-container>
+
+          <ng-container matColumnDef="max">
+            <mat-header-cell *matHeaderCellDef mat-sort-header
+              >Максимальный объем</mat-header-cell
+            >
+            <mat-cell *matCellDef="let element">{{
+              element.max.toFixed(0)
+            }}</mat-cell>
+          </ng-container>
+
+          <ng-container matColumnDef="huge">
+            <mat-header-cell *matHeaderCellDef mat-sort-header
+              >Всплеск</mat-header-cell
+            >
+            <mat-cell *matCellDef="let element">{{
+              element.huge.toFixed(1)
+            }}</mat-cell>
+          </ng-container>
+
+          <ng-container matColumnDef="cls">
+            <mat-header-cell *matHeaderCellDef mat-sort-header
+              >Последняя цена</mat-header-cell
+            >
+            <mat-cell *matCellDef="let element">{{ element.cls }}</mat-cell>
+          </ng-container>
+
+          <ng-container matColumnDef="name">
+            <mat-header-cell *matHeaderCellDef>Поиск новостей</mat-header-cell>
+            <mat-cell *matCellDef="let element">
+              <a
+                *ngIf="isPayed"
+                [href]="
+                  'https://www.google.ru/search?q=' +
+                  element.name +
+                  '&newwindow=1&tbm=nws'
+                "
+                target="_blank"
+              >
+                {{ element.name }}
+              </a>
+              <span *ngIf="!isPayed">Ссылка в премиум доступе</span>
+            </mat-cell>
+          </ng-container>
+
+          <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+          <mat-row *matRowDef="let row; columns: displayedColumns"></mat-row>
+        </mat-table>
+        <mat-paginator
+          [pageSize]="20"
+          [pageSizeOptions]="[5, 10, 20, 50]"
+        ></mat-paginator>
+      </div>
+   
+
+</mat-card-content>
+</mat-card>
+
+</div>

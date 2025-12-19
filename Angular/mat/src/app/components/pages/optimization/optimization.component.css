@@ -1,0 +1,42 @@
+.container {
+  padding: 16px;
+  width: 900px;
+  margin: 0 auto;
+}
+.chart-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 16px;
+}
+
+mat-card {
+  margin-bottom: 24px;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+button {
+  height: 56px; /* Для выравнивания с mat-form-field */
+}
+
+@media (max-width: 600px) {
+  /* Адаптивность для мобильных устройств */
+  .container {
+    padding: 8px;
+  }
+  
+  div[fxLayout="row"] {
+    flex-direction: column;
+  }
+
+  div[fxFlex="50%"],
+  mat-form-field[fxFlex="33%"],
+  mat-form-field[fxFlex="34%"],
+  mat-form-field[fxFlex="65%"],
+  button[fxFlex="35%"] {
+    fxFlex: 100%;
+  }
+}

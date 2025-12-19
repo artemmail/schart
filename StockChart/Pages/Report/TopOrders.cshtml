@@ -1,0 +1,152 @@
+﻿@page
+@model TopOrdersModel
+@{
+    ViewData["Title"] = "Крупнейшие сделки";
+    List<SelectListItem> bigPeriods = Model.BigPeriods;
+    string bigPeriod = Model.bigPeriod;
+    string ticker = Model.ticker;
+}
+<div class="widerightsidebar">
+    <div class="blogblock">
+        <div style="float:left ">
+            <h6>@ViewData["Title"]</h6>
+            <fieldset class="k-block">
+                <legend>Параметры</legend>
+                <div class="spanner">&nbsp;</div>
+                <div style="display: block; float: left">
+                    <div class="k-label">Тикер</div>
+                    <input style="height:24px;" class="k-textbox" id="ticker" name="ticker" value="@ticker" />
+                </div>
+                <div class="spanner">&nbsp;</div>
+                <div style="display:block;float:left">
+                    <div class="editor-label">Глубина сканир.</div>
+                    <div class="editor-field">@Html.DropDownList("bigPeriod", bigPeriods)</div>
+                </div>
+                <div style="display: block; float: left; width: 10px; height: 10px"> &nbsp; </div>
+                <div style="display: block; float: left">
+                    <input class="k-button" style="height:40px;" id="submit" type="button" value="Показать" onclick="ReportTopOrdersProtected()">
+                </div>
+            </fieldset>
+            <div id="grid"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function ReportTopOrdersMobile(grid, ticker, bigPeriod) {
+        $(grid).kendoGrid({
+            sortable: true,
+            groupable: false,
+            scrollable: false,
+            toolbar: ["excel"],
+            excelExport: function (e) {
+                var sheet = e.workbook.sheets[0];
+                for (var rowIndex = 1; rowIndex < sheet.rows.length; rowIndex++) {
+                    var row = sheet.rows[rowIndex];
+                    row.cells[4].format = "dd.MM.yyyy hh:mm:ss"
+                }
+            },
+            excel: {
+                allPages: true,
+                fileName: "TopOrders_{0}_{1}.xlsx".format(ticker, bigPeriod),
+                filterable: true
+            },
+            dataSource: {
+                transport: {
+                    read: {
+                        url: sitePrefix + 'api/Reports/TopOrders?' + jQuery.param({ ticker: ticker, bigPeriod: bigPeriod }),
+                        dataType: "Json"
+                    }
+                },
+                schema: {
+                    model: {
+                        id: "tradeDate",
+                        fields: {
+                            tradeDate: {
+                                type: "date",
+                                parse: function (data) { return new Date(data); }
+                            }
+                        }
+                    }
+                }
+            },
+            columns: [
+                {
+                    field: "quantity",
+                    title: 'Кол-во',
+                    template: function (data) {
+                        //              alert(                                data.tradeDate);
+                        var date = data.tradeDate;// (new Date(data.tradeDate + '+0300'));
+                        return LinkToCandles(
+                            {
+                                ticker: ticker,
+                                period: 0,
+                                rperiod: 'custom',
+                                startDate: jDateToStrD(date),
+                                endDate: jDateToStrD(date),
+                                timeEnable: true,
+                                startTime: jDateToStrT(date),
+                                endTime: jDateToStrT(date)
+                            }, data.quantity);
+                    }
+                },
+                {
+                    field: "Direction",
+                    title: 'Тип',
+                    template: function (data) {
+                        if (data.Direction == 0) return '<font color="red">Продажа</font >';
+                        else return '<font color="green">Покупка</font >';
+                    }
+                }, {
+                    field: "price",
+                    title: 'Цена',
+                    template: '<span style="float:right">#= data.price #</span>'
+                }, {
+                    field: "volume",
+                    title: 'Объем',
+                    template: '<span style="float:right">#=  Math.round(data.volume) #</span>'
+                }, {
+                    field: "tradeDate",
+                    title: 'Дата',
+                    template: '<span style="float:right">#= jDateToStrD(tradeDate) + " " + jDateToStrT(tradeDate) #</span>'
+                }]
+        });
+    }
+    function ReportTopOrdersProtected() {
+        CheckPayedTicker();
+        ReportTopOrdersMobile("#grid", document.getElementById('ticker').value, document.getElementById('bigPeriod').value);
+    }
+    $(document).ready(function () {
+
+
+
+        $("#ticker").autocomplete({
+            source: function (request, response) {
+                $.get(
+                    '/api/common/findbymask', {
+                    mask: request.term
+                },
+                    function (data) {
+                        response(data);
+                    });
+            },
+            select: function (event, ui) {
+                MouseAutoComplete('ticker', event, ui);
+                ReportTopOrdersProtected();
+                return false;
+            },
+            minLength: 1
+        });
+
+
+
+
+
+
+
+
+
+
+        ReportTopOrdersProtected();
+    })
+</script>

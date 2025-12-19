@@ -1,0 +1,160 @@
+﻿@page
+@model VolumeSplashModel
+@{
+    ViewData["Title"] = "Поиск бумаг с объемами выше среднего";
+    var bigPeriods = Model.BigPeriods;
+    var smallPeriods = Model.SmallPeriods;
+    List<SelectListItem> bigPeriod;
+    List<SelectListItem> smallPeriod;
+}
+
+<div class="widerightsidebar">
+    <div class="blogblock">
+        <div style="float:left;">
+            <h6>@ViewData["Title"]</h6>
+            <fieldset class="k-block">
+                <legend>Параметры</legend>
+                <div class="spanner">&nbsp;</div>
+                <!--legend>Период</legend-->
+                <div id="zzz">
+                    <div style="display: block; float: left">
+                        <div class="editor-label">Биржа: </div>
+                        <select id="marketList"
+                                class="editor-field"
+                                data-role="dropdownlist"
+                                data-value-field="Value"
+                                data-text-field="Text"
+                                data-value-primitive="true"
+                                data-bind="value: market, source: marketList, events: { change: onMarketChange }"></select>
+                    </div>
+                    <div class="spanner">&nbsp;</div>
+                    <div style="display: block; float: left">
+                        <div class="editor-label">Считать среднее по: </div>
+                        <div class="editor-field">@Html.DropDownList("bigPeriod",  Model.BigPeriods) </div>
+                    </div>
+                    <div class="spanner">&nbsp;</div>
+                    <div style="display: block; float: left">
+                        <div class="editor-label">Глубина сканирования: </div>
+                        <div class="editor-field">@Html.DropDownList("smallPeriod",  Model.SmallPeriods) </div>
+                    </div>
+                    <div class="spanner">&nbsp;</div>
+                    <div style="display: block; float: left">
+                        <div class="editor-label">Минимальный всплеск: </div>
+                        <div class="editor-field">
+                            <input id="splash"
+                                   data-min="2"
+                                   data-format="n3"
+                                   data-decimals="1"
+                                   data-step="0.5"
+                                   data-role="numerictextbox"
+                                   data-bind="value: splash" style="width: 120px" />
+                        </div>
+                    </div>
+                    <div class="spanner">&nbsp;</div>
+                    <div style="display: block; float: left">
+                        <div class="editor-label">.</div>
+                        <div class="editor-field"> <input class="k-button" id="submit" type="button" value="Показать" onclick=" refresh();"></div>
+                    </div>
+                    <div class="spanner">&nbsp;</div>
+                </div>
+            </fieldset>
+            <div id="grid"></div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    function ReportVolumeSplash(grid, bigPeriod, smallPeriod, market, splash) {
+
+
+        if (typeof (bigPeriod) == 'undefined')
+            bigPeriod = $('#bigPeriod').val();
+        if (typeof (smallPeriod) == 'undefined')
+            smallPeriod = $('#smallPeriod').val();
+
+        if (typeof (market) == 'undefined')
+            market = 0;
+        if (typeof (splash) == 'undefined')
+            splash = 3;
+
+
+        $(grid).kendoGrid({
+            sortable: true,
+            groupable: false,
+            scrollable: false,
+            toolbar: ["excel"],
+            excel: {
+                allPages: true,
+                fileName: "Всплески({0})_{1}-{2}.xlsx".format(dateTools.toStr(new Date()),
+                    $('#bigPeriod').val(), $('#smallPeriod').val()),
+                filterable: true
+            },
+            //      height: "300px",
+            dataSource: {
+                transport: {
+                    read: {
+                        url: sitePrefix + 'api/reports/VolumeSplash',
+                        data: { bigperiod: bigPeriod, smallPeriod: smallPeriod, market: market, splash: splash },
+                        dataType: "Json"
+                    }
+                }
+            },
+            columns: [{
+                field: "ticker",
+                title: 'Бумага',
+                template: function (data) {
+                    if (IsPayed)
+                        return LinkToCandles({ rperiod: 'year', ticker: data.ticker }, data.ticker);
+                    //return '<a href="/CandlestickChart?rperiod=year&ticker=' + data.ticker + '">' + data.ticker + '</a>';
+                    else
+                        return '<a href="' + sitePrefix + 'Payment">Открыто в премиум доступе</a>';
+                }
+            }, {
+                field: "avgval",
+                title: 'Средний объем',
+                template: '<span style="float:right">#= avgval.toFixed(0) #</span>'
+            }, {
+                field: "max",
+                title: 'Максимальный объем',
+                template: '<span style="float:right">#= max.toFixed(0) #</span>'
+            }, {
+                field: "huge",
+                title: 'Всплеск',
+                template: '<span style="float:right">#= huge.toFixed(1) #</span>'
+            }, {
+                field: "cls",
+                title: 'Последняя цена',
+                template: '<span style="float:right">#= cls #</span>'
+            }, {
+                field: "name",
+                title: 'Поиск новостей',
+                template: function (data) {
+                    if (IsPayed)
+                        return '<a href="https://www.google.ru/search?q=' + data.name + '&newwindow=1&tbm=nws">' + data.name + '</a>';
+                    else
+                        return 'Ссылка в премиум доступе';
+                }
+            }]
+        });
+    }
+    function refresh() {
+        ReportVolumeSplash(" #grid", $('#bigPeriod').val(), $('#smallPeriod').val(), viewModel.market, viewModel.splash);
+    }
+    var markets = new kendo.data.DataSource({
+        serverFiltering: true,
+        transport: {
+            read: "/api/common/markets"
+        }
+    });
+    var viewModel = kendo.observable({
+        market: 0,
+        splash: 3,
+        marketList: markets,
+        onMarketChange: function () {
+            refresh();
+        }
+    });
+    kendo.bind($("#zzz"), viewModel);
+    refresh();
+</script>
+<script>
+</script>

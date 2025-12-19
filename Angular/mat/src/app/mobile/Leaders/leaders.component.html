@@ -1,0 +1,25 @@
+
+
+<mat-tab-group>
+    <mat-tab label="Топ торгов">
+      <app-leaderboard-table
+        [market]="'0'"
+        [type]="'0'"
+        [instanceId]="'leaderboard1'"
+      ></app-leaderboard-table>
+    </mat-tab>           
+    <mat-tab label="Топ роста">
+      <app-leaderboard-table
+        [market]="'0'"
+        [type]="'1'"
+        [instanceId]="'leaderboard1'"
+      ></app-leaderboard-table>
+    </mat-tab>        
+    <mat-tab label="Топ падения">
+      <app-leaderboard-table
+        [market]="'0'"
+        [type]="'2'"
+        [instanceId]="'leaderboard1'"
+      ></app-leaderboard-table>
+    </mat-tab>        
+  </mat-tab-group>

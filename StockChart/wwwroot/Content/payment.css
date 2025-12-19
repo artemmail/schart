@@ -1,0 +1,88 @@
+﻿ /* Font Definitions */
+    font-face {
+        font-family: Wingdings;
+    }
+    font-face {
+        font-family: "Cambria Math";
+    }
+    font-face {
+        font-family: "Calibri Light";
+    }
+    font-face {
+        font-family: Calibri;
+    }
+    /* Style Definitions */
+    p.MsoNormal, li.MsoNormal, div.MsoNormal {
+        margin-top: 0cm;
+        margin-right: 0cm;
+        margin-bottom: 8.0pt;
+        margin-left: 0cm;
+        line-height: 107%;
+        font-size: 11.0pt;
+        font-family: "Calibri",sans-serif;
+    }
+    p.MsoListParagraph, li.MsoListParagraph, div.MsoListParagraph {
+        margin-top: 0cm;
+        margin-right: 0cm;
+        margin-bottom: 8.0pt;
+        margin-left: 36.0pt;
+        line-height: 107%;
+        font-size: 11.0pt;
+        font-family: "Calibri",sans-serif;
+    }
+    p.MsoListParagraphCxSpFirst, li.MsoListParagraphCxSpFirst, div.MsoListParagraphCxSpFirst {
+        margin-top: 0cm;
+        margin-right: 0cm;
+        margin-bottom: 0cm;
+        margin-left: 36.0pt;
+        margin-bottom: .0001pt;
+        line-height: 107%;
+        font-size: 11.0pt;
+        font-family: "Calibri",sans-serif;
+    }
+    p.MsoListParagraphCxSpMiddle, li.MsoListParagraphCxSpMiddle, div.MsoListParagraphCxSpMiddle {
+        margin-top: 0cm;
+        margin-right: 0cm;
+        margin-bottom: 0cm;
+        margin-left: 36.0pt;
+        margin-bottom: .0001pt;
+        line-height: 107%;
+        font-size: 11.0pt;
+        font-family: "Calibri",sans-serif;
+    }
+    p.MsoListParagraphCxSpLast, li.MsoListParagraphCxSpLast, div.MsoListParagraphCxSpLast {
+        margin-top: 0cm;
+        margin-right: 0cm;
+        margin-bottom: 8.0pt;
+        margin-left: 36.0pt;
+        line-height: 107%;
+        font-size: 11.0pt;
+        font-family: "Calibri",sans-serif;
+    }
+    span.1 {        
+        font-family: "Calibri Light",sans-serif;
+        color: #2E74B5;
+    }
+    .MsoChpDefault {
+        font-family: "Calibri",sans-serif;
+    }
+    .MsoPapDefault {
+        margin-bottom: 8.0pt;
+        line-height: 107%;
+    }
+    page WordSection1 {
+        margin: 2.0cm 42.5pt 2.0cm 3.0cm;
+    }
+    div.WordSection1 {
+        page: WordSection1;
+    }
+    /* List Definitions */
+    ol {
+        margin-bottom: 0cm;
+    }
+    ul {
+        margin-bottom: 0cm;
+    }
+    p.MsoListParagraphCxSpMiddle {
+        text-indent: -18.0pt;
+    }

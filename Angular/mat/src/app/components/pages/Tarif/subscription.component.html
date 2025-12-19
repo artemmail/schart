@@ -1,0 +1,78 @@
+<div class="subscription-wrapper" [ngClass]="{'festive-decor': isFestive}">
+  <div class="subscription-container">
+    <!-- Если до 1 января 2025 -->
+    <h2 *ngIf="isFestive">С Новым годом и Рождеством! Специально для вас — скидки до 40% на подписку!</h2>
+    <!-- Иначе -->
+    <h2 *ngIf="!isFestive">Выберите подходящий тарифный план</h2>
+
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Опции подписки</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-checkbox [(ngModel)]="micex" (change)="onServiceChange($event, 1)">
+          Доступ ко всем разделам сайта для ценных бумаг Московской Биржи
+        </mat-checkbox>
+        <mat-checkbox [(ngModel)]="crypto" (change)="onServiceChange($event, 4)">
+          Криптовалюта: биржа Binance
+        </mat-checkbox>
+
+        <div *ngIf="paymentInfo?.Referal">
+          <h2>
+            Вас пригласил наш пользователь, а значит у вас есть возможность оформить
+            подписку со значительной скидкой!
+          </h2>
+        </div>
+
+        <table mat-table [dataSource]="subscriptions">
+          <ng-container matColumnDef="period">
+            <th mat-header-cell *matHeaderCellDef><b>Период подписки</b></th>
+            <td mat-cell *matCellDef="let subscription">{{ subscription.period }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="price">
+            <th mat-header-cell *matHeaderCellDef><b>Цена подписки</b></th>
+            <!-- Отображение HTML -->
+            <td mat-cell *matCellDef="let subscription" [innerHTML]="subscription.price"></td>
+          </ng-container>
+
+          <ng-container matColumnDef="monthPrice">
+            <th mat-header-cell *matHeaderCellDef><b>Цена в месяц</b></th>
+            <!-- Отображение HTML -->
+            <td mat-cell *matCellDef="let subscription" [innerHTML]="subscription.monthprice"></td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let subscription" class="center-button-cell">
+              <button mat-raised-button color="primary" (click)="onSubscribe(subscription)">
+                Оформить
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+      </mat-card-content>
+    </mat-card>
+
+    <div *ngIf="paymentInfo?.UserInfo?.ExpireDate !== null">
+      <b>
+        <p>
+          Для вашего аккаунта оплачена подписка до
+          {{ paymentInfo.UserInfo.ExpireDate | date : "d MMMM yyyy г. HH:mm" }}
+        </p>
+      </b>
+    </div>
+
+    <h3>Доступ к кластерным графикам торгов на Московской бирже(MOEX) и крипто-бирже Binance</h3>
+    <p>Если есть активная подписка, купленный период добавляется к концу существующей</p>
+    <p>Самый дешевый доступ стоит всего 100 рублей в сутки при этом вы можете покупать его неограниченное число раз.</p>
+    <p>С полным функционалом вы можете ознакомиться на примере Газпром (GAZP) <a [routerLink]="['/FootPrint']" [queryParams]="{ ticker: 'GAZP' }">тут</a></p>
+    <p>Вы можете смотреть потиковый, потрейдовый и кластерный график на любом таймфрейме и любом промежутке&nbsp;</p>
+    <p>По акциям доступна потиковая история за 25 лет с начала 2000 года, по фьючерсам с 2012 года.</p>
+    <p>Есть возможность приобрести базу данных всех сделок - стоимость 10000 рублей</p>
+    <p>Если возникли проблемы с оплатой или вопросы по приобретению базы данных, пишите в <a href="#" (click)="openSupportDialog($event)">поддержку</a></p>
+  </div>
+</div>

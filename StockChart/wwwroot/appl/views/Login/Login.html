@@ -1,0 +1,65 @@
+﻿<div data-role="view" id="Login"
+     data-title="Авторизация"  
+     data-use-native-scrolling="false"
+     data-stretch="false"
+     data-init="APP.Login.events.init"
+     data-model="APP.Login.model">
+
+    <header data-role="header">
+        <div data-role="navbar">
+            <a data-role="button" data-rel="drawer" href="#drawer" data-icon="drawer-icon" data-align="left"></a>            
+            <span data-role="view-title"></span>            
+        </div>
+    </header>    
+
+    <div data-role="content">
+        
+        <ul data-bind="invisible: result.validated" id="fieldlist1" data-role="listview" data-style="inset" style="margin:2em">   
+            <div data-bind="visible: wrongPassword">Пользователь либо пароль неверен</div>
+            <li><label for="ticker">Пользователь</label> <input style="width:95%" data-bind="value: login" class="k-textbox" name="username" autocomplete="username" /></li>            
+            <li><label for="ticker">Пароль</label> <input style="width:95%" data-bind="value: password" class="k-textbox" name="password" autocomplete="current-password" /></li>                                    
+        </ul>        
+
+        
+        <ul data-bind="visible: result.validated" id="fieldlist1" data-role="listview" data-style="inset" style="margin:2em">
+            <li><label for="ticker">Пользователь</label> <input readonly style="width:95%" data-bind="value: result.userInfo.UserName" class="k-textbox" /></li>
+            <li><label for="ticker">EMail</label> <input readonly style="width:95%" data-bind="value: result.userInfo.Email" class="k-textbox" /></li>
+            <li data-bind="invisible: active">
+                <label for="ticker">Стасус</label> <input readonly style="width:95%" value="Подписка истекла или не оплачена" class="k-textbox" />
+            </li>            
+            <li data-bind="invisible: active">
+                <label for="ticker">Горизонтальные объемы и FootPrint</label> <input readonly style="width:95%" value="Доступно только для GAZP" class="k-textbox" />
+            </li>                        
+            <li data-bind="invisible: active">
+                <label for="ticker">Автообновление котировок</label> <input readonly style="width:95%" value="Отключено" class="k-textbox" />
+            </li>            
+            <li data-bind="visible: active">
+                <label for="ticker">Дата оплаты</label> <input data-format="dd.MM.yyyy" readonly   style="width:95%" data-bind="value: result.userInfo.PayDate" class="k-textbox" />
+            </li>            
+            <li data-bind="visible: active">
+                <label for="ticker">Дата истечения</label> <input data-format="dd.MM.yyyy"  readonly style="width:95%" data-bind="value: result.userInfo.ExpireDate" class="k-textbox" />
+            </li>            
+            <li data-bind="visible: active">
+                <label for="ticker">Сумма</label> <input readonly style="width:95%" data-bind="value: result.userInfo.PayAmount" class="k-textbox" />
+            </li>            
+
+        </ul>        
+    </div>
+    <div data-role="footer">
+        <div data-bind="invisible: result.validated" data-role="navbar" >
+            <div style="width:50%;display:block;float:left;padding:0.3em">
+                <button style="width:50%"  data-bind="click: okCall" class="k-button k-primary">Вход</button>            
+            </div>
+            <div style="width:50%;display:block;float:left;padding:0.3em">              
+                <button  style="width:50%" data-bind="click: cancelCall" class="k-button">Отмена</button>
+            </div>                       
+        </div>
+        <div data-bind="visible: result.validated" data-role="navbar">
+            <div style="width:25%;display:block;float:left;padding:0.3em">                
+            </div>                       
+            <div style="width:50%;display:block;float:left;padding:0.3em">
+                <button style="width:50%" data-bind="click: exitCall" class="k-button k-primary">Выход</button>
+            </div>            
+        </div>
+</div>
+</div>

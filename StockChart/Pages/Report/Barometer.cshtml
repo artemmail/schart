@@ -1,0 +1,92 @@
+﻿@page
+@{
+    ViewData["Title"] = "\"Фрактальный бар-о-метръ\" рынка Николая Старченко";
+}
+
+<div class="widerightsidebar">
+    <div class="blogblock">
+        <h6>@ViewData["Title"]</h6>
+        <div id="zzz" class="block">
+            <h6><a href="/MarketMap">Выбор рынка</a> </h6>
+            <select id="marketList"
+                    style="width: 200px"
+                    data-role="dropdownlist"
+                    data-value-field="Value"
+                    data-text-field="Text"
+                    data-value-primitive="true"
+                    data-bind="value: market, source: marketList, events: { change: onMarketChange }"></select>
+        </div>
+        <div id="barometergrid"></div>
+    </div>
+</div>
+<script type="text/javascript">
+    function ReportBarometer(grid, market) {
+        $(grid).kendoGrid({
+            toolbar: ["excel"],
+            excel: { fileName: "Barometer_{0}.xlsx".format(dateTools.toStr(new Date())), filterable: false },
+            sortable: true,
+            groupable: false,
+            scrollable: false,
+            //      height: "300px",
+            dataSource: {
+                transport: {
+                    read: {
+                        url: sitePrefix + "api/Reports/Barometer",
+                        data: { market: market },
+                        dataType: "Json"
+                    }
+                }
+            },
+            columns: [{
+                field: "ticker",
+                title: 'Наименование',
+                template: function (data) {
+                    return LinkToCandles({ rperiod: 'year', ticker: data.ticker }, data.tickerName);
+                    //return '<a href="/CandlestickChart?rperiod=year&ticker=' + data.ticker + '">' + data.tickerName + '</a>';
+                }
+            }, {
+                field: "price",
+                title: 'Цена',
+                template: '<span style="float:right">#= opn #</span>'
+            },
+            {
+                field: "rec1",
+                title: 'Краткосрочно(часы)',
+                template: '#= RecommendationColor(data.rec1)  #'
+            },
+            {
+                field: "rec2",
+                title: 'Среднесрочно(дневки)',
+                template: '#= RecommendationColor(data.rec2)  #'
+            },
+            {
+                field: "rec3",
+                title: 'Дальнесрочно(недельки)',
+                template: '#= RecommendationColor(data.rec3)  #'
+            },
+            {
+                field: "news",
+                title: 'Поиск новостей',
+                template: function (data) {
+                    return '<a href="https://www.google.ru/search?q=' + data.tickerName + '&newwindow=1&tbm=nws">' + data.tickerName + '</a>';
+                }
+            }]
+        });
+    }
+     var markets = new kendo.data.DataSource({
+            serverFiltering: true,
+            transport: {
+                read: "/api/common/markets"
+            }
+        });
+        var viewModel = kendo.observable({
+            market: 0,
+            marketList: markets,
+            onMarketChange: function () {
+              ReportBarometer("#barometergrid", this.market);
+            }
+        });
+        kendo.bind($("#zzz"), viewModel);
+
+    ReportBarometer("#barometergrid", viewModel.market);
+</script>

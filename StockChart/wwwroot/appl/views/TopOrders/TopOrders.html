@@ -1,0 +1,32 @@
+﻿<div data-role="view" id="TopOrders" data-title="Крупнейшие сделки"
+     data-use-native-scrolling="false"
+     data-model="APP.TopOrders.model"
+     data-init="APP.TopOrders.events.init">
+    <header data-role="header">
+        <div data-role="navbar">
+            <span data-role="view-title"></span>
+            <a data-role="button" data-rel="drawer" href="#drawer" data-icon="drawer-icon" data-align="left"></a>
+        </div>        
+    </header>
+    <div data-role="content" style="width: 100%; ">
+        <ul id="fieldlist2">            
+            <li><label for="ticker">Тикер:</label>
+                 <input style="width: 90px" id="ticker" data-bind="value: ticker, events: { change: apply }" class="k-textbox" />
+            </li>
+            <li>
+                <label for="rperiod">Сканировать:</label>
+                <select                        
+                        id="smallPeriod"
+                        style="width: 90px"
+                        data-role="dropdownlist"
+                        data-value-field="Value"
+                        data-text-field="Text"
+                        data-value-primitive="true"
+                        data-bind="value: period, source: periods, events: { change: apply}"></select>
+            </li>
+            <li><label for="but"> <br /> </label> <button id="but" data-bind="click: apply" class="k-button k-primary">Показать</button></li>
+        </ul>
+        <div id="topordergrid"></div>
+    </div>
+</div>
+

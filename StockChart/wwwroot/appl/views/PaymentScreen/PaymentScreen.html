@@ -1,0 +1,30 @@
+﻿<div data-role="view" id="PaymentScreen"
+     data-title="Оплата"
+     data-use-native-scrolling="false"
+     data-stretch="false"
+     data-init="APP.PaymentScreen.events.init"
+     data-after-show = "APP.PaymentScreen.events.afterShow"
+     data-model="APP.PaymentScreen.model">
+
+    <header data-role="header">
+        <div data-role="navbar">
+         
+            <a data-role="backbutton"  class="nav-button"  data-icon="back-button" data-align="left"></a>            
+             
+            <span data-role="view-title"></span>            
+        </div>
+    </header>
+
+    <div data-role="content">
+        <p>
+            Нажмите "Оплатить" для перехода на страницу сервиса Яндекс Деньги и проведения процедуры оплаты. После завершения оплаты премиум режим автоматически активируется в течении 1-2 минут.
+        </p>
+        <p>
+            Поддерживаются Яндекс-деньги, а так же <b>Visa и MasterCard</b>.
+        </p>
+        <div id="payframe"></div>    
+    </div>
+    <div data-role="footer">
+        
+    </div>
+</div>

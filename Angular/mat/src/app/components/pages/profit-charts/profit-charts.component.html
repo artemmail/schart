@@ -1,0 +1,69 @@
+<mat-card>
+    <mat-card-header>
+        <mat-card-title>Динамика доходов</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+        <mat-tab-group>
+            <mat-tab label="Доходы по месяцам">
+                <div class="chart-container">
+                    <canvas #monthlyProfitChart></canvas>
+                </div>
+            </mat-tab>
+            <mat-tab label="Общий доход по месяцам">
+                <div class="chart-container">
+                    <canvas #monthlyTotalProfitChart></canvas>
+                </div>
+            </mat-tab>
+            <mat-tab label="Доходы по годам">
+                <div class="chart-container">
+                    <canvas #yearlyProfitChart></canvas>
+                </div>
+            </mat-tab>
+            <mat-tab label="Общий доход по годам">
+                <div class="chart-container">
+                    <canvas #yearlyTotalProfitChart></canvas>
+                </div>
+            </mat-tab>
+            <mat-tab label="Таблица доходов по месяцам">
+                <div class="table-container">
+                    <table mat-table [dataSource]="monthlyProfitData" class="mat-elevation-z8">
+                        <ng-container matColumnDef="date">
+                            <th mat-header-cell *matHeaderCellDef> Дата </th>
+                            <td mat-cell *matCellDef="let element">
+                                {{ element.date | date: 'yyyy-MM' }}
+                            </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="profit">
+                            <th mat-header-cell *matHeaderCellDef> Прибыль </th>
+                            <td mat-cell *matCellDef="let element"> {{ element.profit }} </td>
+                        </ng-container>
+
+                        <tr mat-header-row *matHeaderRowDef="['date', 'profit']"></tr>
+                        <tr mat-row *matRowDef="let row; columns: ['date', 'profit']"></tr>
+                    </table>
+                </div>
+            </mat-tab>
+            <mat-tab label="Таблица платежей">
+                <div class="table-container">
+                    <table mat-table [dataSource]="paymentTableData" >
+                        <ng-container matColumnDef="comment">
+                            <th mat-header-cell *matHeaderCellDef> Поле </th>
+                            <td mat-cell *matCellDef="let element"> {{ element.comment }} </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="info">
+                            <th mat-header-cell *matHeaderCellDef> Значение </th>
+                            <td mat-cell *matCellDef="let element">
+                                {{ element.info | number: '1.2-2' }}
+                            </td>
+                        </ng-container>
+
+                        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+                    </table>
+                </div>
+            </mat-tab>
+        </mat-tab-group>
+    </mat-card-content>
+</mat-card>

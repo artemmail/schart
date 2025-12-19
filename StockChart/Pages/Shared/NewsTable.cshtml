@@ -1,0 +1,58 @@
+﻿@model NewsTableModel
+<style>
+    .border {
+        width: 6px;
+        height: 6px;
+        border: none;
+    }
+</style>
+<table class="grayblock">
+    <tbody>
+        <tr>
+            <td class="corn_lt"><div class="border" /></td>
+            <td class="corn_ct"><div class="border" /></td>
+            <td class="corn_rt"><div class="border" /></td>
+        </tr>
+
+        <tr>
+            <td class="corn_lm"><div class="border" /></td>
+            <td class="corn_content" style="width:100%;" valign="top">
+                <div style="padding-top:-10px; padding-bottom:0px;">
+                    <h3 class="blockheader" style="padding-right:30px; padding-left:10px; float:left;"><a href="/ServiceNews/Blogs">ЛЕНТА БЛОГОВ</a></h3>
+                    <div class="clear"></div>
+                    <div class="line" style="padding-bottom:1px;"></div>
+                    <div>
+                        <div class="tabs_box visible">
+                            <table style="width:100%; margin-top:10px; margin-bottom: 10px;" cellspacing="0" cellpadding="4" border="0">
+                                <tbody>
+                                    @foreach (var item in Model.Blogs())
+                                    {
+                                        <tr valign="top">
+                                            <td style="font-size:12px; color:#4c4c4c; padding-right:6px; width: 50px"><b>@item.Date</b> </td>
+                                            <td><a href="/ServiceNews/Content/@item.Slug" class="newslink">@item.Header<i>@(item.CommentCount > 0 ? $"({item.CommentCount} отв.)" : "")</i> </a></td>
+                                            <td style=" text-align: right;">@item.Author</td>
+
+                                        </tr>
+                                    }
+                                    <tr>
+                                        <td colspan="2" style="padding-top: 10px;">
+                                            <a asp-page="/ServiceNews/Index" title="Все блоги">Все блоги<img src="/images/corner.gif" width="7" height="7" alt="Все новости" style="margin-left: 4px; border: 0px;"></a>
+                                            @if (User.Identity.IsAuthenticated)
+                                            {
+                                                <span>|</span>
+                                                <a asp-page="/ServiceNews/Create">Написать</a>
+                                            }
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </td>
+            <td class="corn_rm"></td>
+        </tr>
+        <tr><td class="corn_lb"></td><td class="corn_cb"></td><td class="corn_rb"></td></tr>
+    </tbody>
+</table>
+

@@ -1,0 +1,11 @@
+diff a/StockChart/appsettings.json b/StockChart/appsettings.json	(rejected hunks)
+@@ -56,6 +56,9 @@
+      "RetryCount": 10,
+ +<<<<<<< Updated upstream
+ +    "QueueName": "w.ds_development2512",
+++=======
++     "QueueName": "w.ds_development22152",
+++>>>>>>> Stashed changes
+      "CommandQueueName": "w.ds_development_cmd",
+      "ExchangeType": "direct",
+      "BusAccess": {

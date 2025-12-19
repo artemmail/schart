@@ -1,0 +1,44 @@
+<h1 mat-dialog-title>{{payment.Id ? 'Edit Payment' : 'Add Payment'}}</h1>
+<div mat-dialog-content>
+  <form>
+    <mat-form-field style="width: 100%;">
+      <mat-label>User Name</mat-label>
+      <input matInput [(ngModel)]="payment.UserName" name="UserName">
+    </mat-form-field>
+
+    <mat-form-field style="width: 100%;">
+      <mat-label>Email</mat-label>
+      <input matInput [(ngModel)]="payment.Email" name="Email">
+    </mat-form-field>
+
+    <mat-form-field style="width: 100%;">
+      <mat-label>Pay Amount</mat-label>
+      <input matInput type="number" [(ngModel)]="payment.PayAmount" name="PayAmount">
+    </mat-form-field>
+
+    <mat-form-field style="width: 100%;">
+      <mat-label>Pay Date</mat-label>
+      <input matInput [ngxMatDatetimePicker]="payDatePicker" placeholder="Choose a date" [(ngModel)]="payment.PayDate" name="PayDate">
+      <mat-datepicker-toggle matSuffix [for]="payDatePicker"></mat-datepicker-toggle>
+      <ngx-mat-datetime-picker #payDatePicker></ngx-mat-datetime-picker>
+    </mat-form-field>
+    
+<!-- Expire Date Field -->
+<mat-form-field style="width: 100%;">
+  <mat-label>Expire Date</mat-label>
+  <input matInput [ngxMatDatetimePicker]="expireDatePicker" placeholder="Choose a date" [(ngModel)]="payment.ExpireDate" name="ExpireDate">
+  <mat-datepicker-toggle matSuffix [for]="expireDatePicker"></mat-datepicker-toggle>
+  <!-- Set touchUi to true -->
+  <ngx-mat-datetime-picker #expireDatePicker></ngx-mat-datetime-picker>
+</mat-form-field>
+
+    <mat-form-field style="width: 100%;">
+      <mat-label>Service</mat-label>
+      <input matInput type="number" [(ngModel)]="payment.Service" name="Service">
+    </mat-form-field>
+  </form>
+</div>
+<div mat-dialog-actions>
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-button color="primary" (click)="onSave()">Save</button>
+</div>

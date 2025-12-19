@@ -1,0 +1,38 @@
+<mat-form-field style="width: 100%;">
+  <mat-label>Введите диапазон дат</mat-label>
+  <mat-date-range-input [formGroup]="range" [rangePicker]="dateRangePicker" separator="-">
+    <input matStartDate #startInput placeholder="дд.мм.гггг" (dateChange)="dateChanged($event, true)">
+    <input matEndDate #endInput placeholder="дд.мм.гггг" (dateChange)="dateChanged($event, false)">
+  </mat-date-range-input>
+
+  <!-- Объединяем иконки в одном matSuffix с Flexbox -->
+  <ng-container matSuffix>
+    <div style="margin-left: 16px; width: 43px;">
+      <mat-datepicker-toggle [for]="dateRangePicker"></mat-datepicker-toggle>
+      <!-- Иконка часов, отображающаяся справа от календаря -->
+      <button mat-icon-button *ngIf="isSameDay()" [class.active]="setTime" (click)="toggleTimeSelection()" aria-label="Выбрать время">
+        <mat-icon>{{ setTime ? 'access_time' : 'access_time' }}</mat-icon>
+      </button>
+    </div>
+  </ng-container>
+
+  <mat-date-range-picker #dateRangePicker></mat-date-range-picker>
+</mat-form-field>
+
+
+<!-- Ввод диапазона времени -->
+<div *ngIf="setTime" style="width: 100%;">  
+  <!-- Время начала -->
+  <mat-form-field style="width: 50%;">
+    <mat-label>Время начала</mat-label>
+    <input matInput [ngxTimepicker]="startTimePicker" [format]="24" readonly [(ngModel)]="timeRange.controls.startTime.value">
+    <ngx-material-timepicker #startTimePicker [format]="24" (timeSet)="onStartTimeChange($event)"></ngx-material-timepicker>
+  </mat-form-field>
+
+  <!-- Время окончания -->
+  <mat-form-field style="width: 50%;">
+    <mat-label>Время окончания</mat-label>
+    <input matInput [ngxTimepicker]="endTimePicker" [format]="24" readonly [(ngModel)]="timeRange.controls.endTime.value">
+    <ngx-material-timepicker #endTimePicker [format]="24" (timeSet)="onEndTimeChange($event)"></ngx-material-timepicker>
+  </mat-form-field>
+</div>

@@ -1,0 +1,72 @@
+  .km-root .left-btn {
+        position: absolute;
+        z-index: 9999;
+        top: 7em;
+        left: -1em;
+        padding-right: 0;
+        padding-left: 0;
+        width: 5em;
+        line-height: 4em;
+        border-radius: 10em;
+        -webkit-border-radius: 10em;
+        border: 1px solid rgba(255,255,255,.8);
+        background: rgba(0,0,0,.8);
+        color: #fff;
+        box-shadow: 0 0 .5em #000;
+        -webkit-box-shadow: 0 0 .6em #222;
+    }
+    .mobileExample .km-wp-light .km-button.left-btn {
+        background: rgba(0,0,0,.8);
+        text-align: center;
+    }
+    .km-root .left-btn .km-icon.km-notext {
+        display: block;
+        margin: 1em auto;
+    }
+    .km-ios #left-drawer .km-content, .km-ios7 #left-drawer .km-content, .km-android #left-drawer .km-content, .km-blackberry #left-drawer .km-content,
+    .km-ios #left-drawer .km-list > li, .km-ios7 #left-drawer .km-list > li, .km-android #left-drawer .km-list > li, .km-blackberry #left-drawer .km-list > li,
+    .km-ios #left-drawer .km-listview-link > .km-icon, .km-ios7 #left-drawer .km-listview-link > .km-icon, .km-android #left-drawer .km-listview-link > .km-icon, .km-blackberry #left-drawer .km-listview-link > .km-icon,
+    .km-ios #left-drawer .km-list li > .km-icon, .km-ios7 #left-drawer .km-list li > .km-icon, .km-android #left-drawer .km-list li > .km-icon, .km-blackberry #left-drawer .km-list li > .km-icon,
+    #right-drawer .km-content {
+        background-color: #4e4e4e;
+        color: #fff;
+    }
+    .km-camera:before, .km-camera:after {
+        content: "\E0D0";
+    }
+    .km-printer:before, .km-printer:after {
+        content: "\E07E";
+    }
+    .km-comments:before, .km-comments:after {
+        content: "\E093";
+    }
+      #fieldlist label {
+        display: block;
+        padding-bottom: .1em;
+        padding-top: 0.8em;
+        line-height: 0.1em;
+        font-weight: bold;
+        font-size: 12px;
+    }
+    .full {
+        display: block;
+        margin: .6em .8em;
+        font-size: 1.2em;
+        text-align: center;
+    }
+    textarea {
+        resize: none;
+    }
+    /* Custom Icons */
+    .km-close:after,
+    .km-close:before {
+        content: "\e038";
+    }
+    .km-drawer-button:after,
+    .km-drawer-button:before {
+        content: "\E077";
+    }
+    .km-settings-button:after,
+    .km-settings-button:before {
+        content: "\e30f";
+    }

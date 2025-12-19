@@ -1,0 +1,54 @@
+<div class="container">
+  
+  <div class="create-topic-container" *ngIf="loggedIn; else loginMessage">
+   
+    <form [formGroup]="createTopicForm" (ngSubmit)="onSubmit()">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Создание темы</mat-card-title>          
+        </mat-card-header>
+        <mat-card-content>
+          <p><span>Вставляйте картинки и таблицы из буфера обмена прямо в текст</span></p>
+          
+          <mat-form-field style="width: 100%">
+            <mat-label>Название темы</mat-label>
+            <input matInput formControlName="header" required />
+            <mat-error *ngIf="createTopicForm.get('header').hasError('required')">
+              Заголовок обязателен
+            </mat-error>
+          </mat-form-field>
+          
+          <div class="editor-container">
+            <app-editor 
+              formControlName="text" 
+              [elementId]="'tinymce-editor'" 
+              style="width: 100%;">
+            </app-editor>
+            <mat-error *ngIf="createTopicForm.get('text').hasError('required')">
+              Текст обязателен
+            </mat-error>
+          </div>
+
+          <div class="actions">
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              [disabled]="createTopicForm.invalid"
+            >
+              Создать тему
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </form>
+  </div>
+
+  <ng-template #loginMessage>
+    <mat-card class="blogblock">
+      <div class="login-message">
+        <p><a routerLink="/Identity/Account/Login">Войдите</a>, чтобы создать новую тему.</p>
+      </div>
+    </mat-card>
+  </ng-template>
+</div>

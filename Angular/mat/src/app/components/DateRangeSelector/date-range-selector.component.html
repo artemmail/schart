@@ -1,0 +1,11 @@
+<mat-form-field style="width: 100%;">
+  <mat-label>Промежуток</mat-label>
+  <mat-select [formControl]="marketControl">
+    <mat-option *ngFor="let market of presets" [value]="market.Value">
+      {{ market.Text }}
+    </mat-option>
+    <mat-option *ngIf="presets.length === 0" [value]="'custom'">
+      Нет доступных пресетов
+    </mat-option>
+  </mat-select>
+</mat-form-field>

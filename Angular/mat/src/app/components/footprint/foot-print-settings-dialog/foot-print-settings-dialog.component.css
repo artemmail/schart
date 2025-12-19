@@ -1,0 +1,35 @@
+
+
+.dense-space {
+    margin-bottom: 4px; /* Уменьшает расстояние между элементами */
+  }
+
+  .dense-space h3 {
+    margin-top: 8px;  /* Уменьшает верхний отступ у заголовков */
+    margin-bottom: 4px;  /* Уменьшает нижний отступ у заголовков */
+  }
+
+  .dense-space mat-form-field {
+    margin-top: 4px;  /* Уменьшает верхний отступ у полей формы */
+    margin-bottom: 4px;  /* Уменьшает нижний отступ у полей формы */
+  }
+
+  .dense-space mat-checkbox, .dense-space mat-radio-button {
+    margin-bottom: 4px;  /* Уменьшает нижний отступ у чекбоксов и радио-кнопок */
+  }
+
+  .mat-mdc-radio-button .mdc-radio {
+    padding: 2px;
+}
+
+mat-button-toggle {
+  font-size: 16px; /* Или другой желаемый размер */
+  padding: 2px 4px; /* Минимальные отступы */
+  line-height: 1; /* Уменьшает высоту строки */
+  height: 50px;
+}
+
+.mat-button-toggle-checked {
+  
+  padding: 2px 4px; /* Уменьшает отступы в выбранных кнопках */
+}

@@ -1,0 +1,28 @@
+﻿@page
+@model StockChart.Pages.SearchModel
+@{
+    ViewData["Title"] =  "Результаты поиска";
+}
+<h2>Результаты поиска</h2>
+@if (Model.SearchResult == null)
+{
+    <p>Ничего не найдено</p>
+    return;
+}
+<table style="width:500px">
+    <tr>
+        <th>Тикер</th>
+        <th>Наименование</th>
+    </tr>
+@{ bool flag = true; }
+@foreach (var rec in Model.SearchResult)
+{
+    string ticker = rec.Key;
+    string name = rec.Value;
+    <tr @((flag = !flag) ? "style=background-color:#E8E8E8" : "")>        
+            <td> <a href="/CandlestickChart?ticker=@ticker&rperiod=day&period=1">@ticker</a>
+            <td> <a href="/CandlestickChart?ticker=@ticker&rperiod=day&period=1">@name</a>            
+    </tr>
+}
+</table>
+

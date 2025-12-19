@@ -1,0 +1,83 @@
+<div class="container">
+  <!-- Карточка настроек портфеля -->
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Настройки портфеля</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div fxLayout="column" fxLayoutGap="16px">
+          
+          <!-- Поле "Бумаги в портфеле" и кнопка "Лидеры по периоду" -->
+          <div fxLayout="row" fxLayoutGap="16px">
+            <mat-form-field fxFlex="85%">
+              <mat-label>Бумаги в портфеле</mat-label>
+              <input matInput placeholder="Бумаги в портфеле" formControlName="tickers">
+            </mat-form-field>
+            <button mat-raised-button color="primary" type="button" (click)="tickersFromLeaders()" fxFlex="15%">
+              Лидеры по периоду
+            </button>
+          </div>
+
+          <!-- "Промежуток" и "Диапазон дат" в одной строке -->
+          <div fxLayout="row" fxLayoutGap="16px">
+            <div fxFlex="50%">
+              <app-date-range-selector
+                [(ngModel)]="ticker"
+                [ticker]="ticker"
+                [rperiod]="rperiod"
+                (selectionChange)="onDateRangePresetChange($event)">
+              </app-date-range-selector>
+            </div>
+            <div fxFlex="50%">
+              <app-date-range-picker
+                (selectionChange)="onDateRangeChange($event)">
+              </app-date-range-picker>
+            </div>
+          </div>
+
+          <!-- Поля "Дата вложений", "Депозит", "Мин. Риск (%)" в одной строке -->
+          <div fxLayout="row" fxLayoutGap="16px">
+            <mat-form-field fxFlex="33%">
+              <mat-label>Дата вложений</mat-label>
+              <input matInput [matDatepicker]="portfolioPicker" placeholder="Дата вложений" formControlName="portfolioDate">
+              <mat-datepicker-toggle matSuffix [for]="portfolioPicker"></mat-datepicker-toggle>
+              <mat-datepicker #portfolioPicker></mat-datepicker>
+            </mat-form-field>
+
+            <mat-form-field fxFlex="33%">
+              <mat-label>Депозит</mat-label>
+              <input matInput type="number" placeholder="Депозит" formControlName="deposit">
+            </mat-form-field>
+
+            <mat-form-field fxFlex="34%">
+              <mat-label>Мин. Риск (%)</mat-label>
+              <input matInput type="number" placeholder="Мин. Риск (%)" formControlName="risk">
+            </mat-form-field>
+          </div>
+
+          <!-- Кнопка "Пересчитать" -->
+          <div fxLayout="row" fxLayoutAlign="start center">
+            <button mat-raised-button color="accent" type="submit">Пересчитать</button>
+          </div>
+
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Карточка с результатами -->
+  <div *ngIf="portfolioSolution">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Предложенный портфель на дату вложений</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <app-portfolio-table [portfolioNumber]="0"></app-portfolio-table>
+        <div class="chart-container">
+          <canvas #chartCanvas></canvas>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

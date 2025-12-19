@@ -1,0 +1,11 @@
+
+  .container {
+    width: 100%;
+    max-width: 1250px;
+    min-width: 750px;
+    margin: 0 auto;
+  }
+  
+  mat-card {
+    margin: 12px;
+  }

@@ -1,0 +1,81 @@
+<table mat-table [dataSource]="dataSource" >
+  <!-- Columns definitions -->
+  <ng-container matColumnDef="ticker">
+    <th mat-header-cell *matHeaderCellDef>Бумага</th>
+    <td mat-cell *matCellDef="let element">
+      <a href="#" *ngIf="element.profit" (click)="onTickerClick($event, element)">
+        {{ element.price ? element.ticker + ' (' + element.name + ')' : element.name }}
+      </a>      
+      <span *ngIf="!element.profit">
+        <b> {{ element.name }}</b>
+      </span>
+    </td>
+  </ng-container>
+
+  
+
+  <!-- Define other columns similarly... -->
+  <ng-container matColumnDef="price">
+    <th mat-header-cell *matHeaderCellDef>Цена покупки</th>
+    <td mat-cell *matCellDef="let element">
+      {{ element.price ? (element.price | costToStr) : "" }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="currprice">
+    <th mat-header-cell *matHeaderCellDef>Текущая цена</th>
+    <td mat-cell *matCellDef="let element">{{ element.currprice }}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="quantity">
+    <th mat-header-cell *matHeaderCellDef>Количество</th>
+    <td mat-cell *matCellDef="let element">{{ element.quantity }}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="buycost">
+    <th mat-header-cell *matHeaderCellDef>Вложено</th>
+    <td mat-cell *matCellDef="let element">
+      {{ element.buycost ? (element.buycost | costToStr) : "" }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="nowcost">
+    <th mat-header-cell *matHeaderCellDef>Текущая стоимость</th>
+    <td
+      mat-cell
+      *matCellDef="let element"
+      [ngStyle]="{ color: getProfitColor(element.profit) }"
+    >
+      {{ element.nowcost | costToStr }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="profit">
+    <th mat-header-cell *matHeaderCellDef>Прибыль</th>
+    <td
+      mat-cell
+      *matCellDef="let element"
+      [ngStyle]="{ color: getProfitColor(element.profit) }"
+    >
+      {{ element.profit ? (element.profit | costToStr) : "" }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="yield">
+    <th mat-header-cell *matHeaderCellDef>Доходность</th>
+    <td
+      mat-cell
+      *matCellDef="let element"
+      [ngStyle]="{ color: getProfitColor(element.profit) }"
+    >
+      {{
+        element.profit
+          ? ((element.profit * 100) / element.buycost).toFixed(2) + "%"
+          : ""
+      }}
+    </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+</table>

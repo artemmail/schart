@@ -1,0 +1,24 @@
+.spinner-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.custom-table {
+  width: 100%;
+}
+
+.custom-table mat-header-cell,
+.custom-table mat-cell {
+  padding: 8px 6px; /* Настройка отступов */
+  line-height: 1.2; /* Настройка межстрочного интервала */
+}
+
+.custom-table tr {
+  height: 32px; /* Установка высоты строк */
+}
+
+.right-align {
+  text-align: right;
+}

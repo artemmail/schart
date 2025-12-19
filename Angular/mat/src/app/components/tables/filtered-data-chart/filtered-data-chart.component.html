@@ -1,0 +1,45 @@
+<div class="table-container">
+  <h2>Финансовый показатель {{ displayName }} для компании {{ companyName }}: </h2>
+
+  <mat-tab-group>
+    <mat-tab label="МСФО">
+      <app-company-table [ticker]="ticker" standart="MSFO" period="y" [filter]="nameToFilter"></app-company-table>
+    </mat-tab>
+    <mat-tab label="РСБУ">
+      <app-company-table [ticker]="ticker" standart="RSBU" period="y" [filter]="nameToFilter"></app-company-table>
+    </mat-tab>
+  </mat-tab-group> 
+
+  <h3>Значения {{ displayName }} по годам для компании {{ companyName }}:</h3>
+  <div class="canvas-container" style="position: relative; height:40vh;">
+    <canvas #yearChartCanvas></canvas>
+  </div>
+
+  <h3>Изменения {{ displayName }} по годам (в процентах) для компании {{ companyName }}:</h3>
+  <div class="canvas-container" style="position: relative; height:40vh; margin-top: 20px;">
+    <canvas #yearChangeChartCanvas></canvas>
+  </div>
+
+  <mat-tab-group>
+    <mat-tab label="МСФО">
+      <app-company-table [ticker]="ticker" standart="MSFO" period="q" [filter]="nameToFilter"></app-company-table>
+    </mat-tab>
+    <mat-tab label="РСБУ">
+      <app-company-table [ticker]="ticker" standart="RSBU" period="q" [filter]="nameToFilter"></app-company-table>
+    </mat-tab>
+  </mat-tab-group> 
+
+  <h3>Значения {{ displayName }} по кварталам для компании {{ companyName }}:</h3>
+  <div class="canvas-container" style="position: relative; height:40vh; margin-top: 20px;">
+    <canvas #quarterChartCanvas></canvas>
+  </div>
+
+  <h3>Изменения {{ displayName }} по кварталам (в процентах) для компании {{ companyName }}:</h3>
+  <div class="canvas-container" style="position: relative; height:40vh; margin-top: 20px;">
+    <canvas #quarterChangeChartCanvas></canvas>
+  </div>
+
+  <ng-template #loading>
+    <p>Загрузка данных...</p>
+  </ng-template>
+</div>

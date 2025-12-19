@@ -1,0 +1,54 @@
+
+<div class="table-container">
+    <h2>{{title}}</h2>
+    
+<p>
+    <a  [routerLink]="['/Dividends', ticker]">      
+      <mat-icon>description</mat-icon>{{titlediv}}
+    </a>
+  </p>
+
+
+  <p>
+    <a  [routerLink]="['/ShareHolders', ticker]">      
+      <mat-icon>description</mat-icon>{{titleshare}}
+    </a>
+  </p>
+
+  <p>
+    <a  [routerLink]="['/Financial', ticker]">
+      <mat-icon>description</mat-icon>{{titlefin}}
+    </a>
+  </p>
+
+
+  <p>  
+    <a  [routerLink]="['/FootPrint']" [queryParams]="{ ticker: ticker}">
+      <mat-icon>analytics</mat-icon>Кластерный график {{companyName}} {{ticker}} без задержек онклайн  
+    </a>
+  </p>
+
+
+    
+    <app-recommendation-list [ticker]="ticker"></app-recommendation-list>
+<mat-tab-group [(selectedIndex)]="selectedTabIndex" (selectedIndexChange)="onTabChange($event)">
+    <mat-tab label="МСФО Годовые">
+      <app-company-table [ticker]="ticker" standart="MSFO" period="y"></app-company-table>
+    </mat-tab>
+    <mat-tab label="МСФО Квартальные">
+      <app-company-table [ticker]="ticker" standart="MSFO" period="q"></app-company-table>
+    </mat-tab>
+    <mat-tab label="РСБУ Годовые">
+      <app-company-table [ticker]="ticker" standart="RSBU" period="y"></app-company-table>
+    </mat-tab>
+    <mat-tab label="РСБУ Квартальные">
+      <app-company-table [ticker]="ticker" standart="RSBU" period="q"></app-company-table>
+    </mat-tab>
+  </mat-tab-group>
+  <app-dividends-table [ticker]="ticker"></app-dividends-table>
+
+
+</div>
+
+
+  

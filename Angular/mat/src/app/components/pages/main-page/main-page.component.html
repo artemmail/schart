@@ -1,0 +1,201 @@
+
+<div class="container">
+  <div class="left-block">
+    <!-- Левый блок -->
+
+    <mat-nav-list> 
+      <a mat-list-item [routerLink]="['/FootPrint']">
+        <mat-icon>manage_search</mat-icon> <!-- Больше подходит для графиков и кластерного анализа -->
+        <span class="menu-text">Кластерный график</span>
+      </a>
+      
+      <a mat-list-item [routerLink]="['/FootPrint']">
+        <mat-icon>align_horizontal_left</mat-icon> <!-- Лучше отображает горизонтальные объемы -->
+        <span class="menu-text">Горизонт. объемы</span>
+      </a>
+      
+      <a mat-list-item [routerLink]="['/Portfolio']">
+        <mat-icon>gamepad</mat-icon> <!-- Для торговли на демо лучше подходит иконка геймпада -->
+        <span class="menu-text">Торговля на демо</span>
+      </a>
+      
+      <a mat-list-item [routerLink]="['/Portfolio/Optimization']">
+        <mat-icon>balance</mat-icon> <!-- Более тематично для баланса портфеля -->
+        <span class="menu-text">Баланс портфеля</span>
+      </a>
+      
+      <a mat-list-item [routerLink]="['/ShareImage']">
+        <mat-icon>photo</mat-icon> <!-- Иконка для изображений -->
+        <span class="menu-text">Хостинг картинок</span>
+      </a>
+
+
+      <a mat-list-item href="https://YouScriptor.com" target="_blank">
+        <mat-icon>video_library</mat-icon>
+        <span class="menu-text">YouScriptor - YouTube в текст</span>
+      </a>
+      
+      <a mat-list-item [routerLink]="['/ServiceNews/Create']">
+        <mat-icon>post_add</mat-icon> <!-- Для создания поста -->
+        <span class="menu-text">Написать пост</span>
+      </a>
+
+      <a mat-list-item appOpenSupportDialog>
+        <mat-icon>contact_support</mat-icon>
+        <span class="menu-text">Тех поддержка</span>
+      </a>
+  
+      
+
+
+    </mat-nav-list>
+    
+    <mat-nav-list>
+      <a mat-list-item [routerLink]="['/OpenPositions']">
+        <mat-icon>assignment</mat-icon> <!-- Подходит для отображения задач или позиций -->
+        <span class="menu-text">Открытые позиции</span>
+      </a>
+      
+      <a mat-list-item [routerLink]="['/FuturesList']">
+        <mat-icon>show_chart</mat-icon> <!-- Для фьючерсов и трендов -->
+        <span class="menu-text">Список фьючерсов</span>
+      </a>
+    </mat-nav-list>
+    
+    <mat-nav-list>
+      <a mat-list-item [routerLink]="['/ServiceNews/Content/baza-dannykh-vsekh-sdelok']">
+        <mat-icon>storage</mat-icon> <!-- Более точная иконка для базы данных -->
+        <span class="menu-text">База сделок</span>
+      </a>
+      
+      <a mat-list-item [routerLink]="['/ServiceNews/Content/uslugi-razrabotchikov-po-avtomatizatsii-biznesa']">
+        <mat-icon>developer_mode</mat-icon> <!-- Прямо указывает на разработку ПО -->
+        <span class="menu-text">Разработка ПО</span>
+      </a>
+    </mat-nav-list>
+    
+
+
+
+
+
+
+
+
+
+  </div>
+  <div class="center-block">
+    <!-- Центр -->
+
+
+    
+    
+
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>
+          <a [routerLink]="['/MarketMap']">Карта рынка</a>
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div style="height: 600px">
+          <app-kendo-treemap></app-kendo-treemap>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+
+
+    <app-topic-list></app-topic-list>
+
+
+
+
+
+  </div>
+  <div class="right-block">
+    <!-- Правые блоки -->
+    <div style="width: 100%">
+      <app-market-selector [(ngModel)]="selectedMarket" (selectionChange)="onMarketChange($event)">
+      </app-market-selector>
+    </div>
+
+
+
+
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>
+          <a [routerLink]="['/Report/Leaders']">Лидеры рынка</a>
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-tab-group>
+          <mat-tab label="Топ торгов">
+            <app-leaderboard-table [market]="selectedMarket" [type]="0"
+              [instanceId]="'leaderboard1'"></app-leaderboard-table>
+          </mat-tab>
+          <mat-tab label="Топ роста">
+            <app-leaderboard-table [market]="selectedMarket" [type]="1"
+              [instanceId]="'leaderboard1'"></app-leaderboard-table>
+          </mat-tab>
+          <mat-tab label="Топ падения">
+            <app-leaderboard-table [market]="selectedMarket" [type]="2"
+              [instanceId]="'leaderboard1'"></app-leaderboard-table>
+          </mat-tab>
+        </mat-tab-group>
+        <br>
+      </mat-card-content>
+    </mat-card>
+
+
+
+
+
+
+
+    <mat-card>
+      <mat-card-header>
+
+
+        <mat-card-title>
+          <a [routerLink]="['/MultiCandles']">Мультиграфики</a>
+        </mat-card-title>
+
+      </mat-card-header>
+      <mat-card-content>
+        <div>
+
+
+          <app-multi></app-multi>
+        </div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>
+          <a [routerLink]="['/Report/Barometer']">Фрактальный Бар-о-метръ Старченко</a>
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <app-barometer-table [selectedMarket]="selectedMarket"></app-barometer-table>
+      </mat-card-content>
+    </mat-card>
+
+
+    <mat-card>
+      <mat-tab-group>
+        <mat-tab label="Фьючерсы">
+          <app-leaderboard-table [market]="1" [type]="0" [instanceId]="'leaderboard1'"></app-leaderboard-table>
+        </mat-tab>
+        <mat-tab label="Валюта">
+          <app-leaderboard-table [market]="3" [type]="0" [instanceId]="'leaderboard11'"></app-leaderboard-table>
+        </mat-tab>
+        <mat-tab label="Binance">
+          <app-leaderboard-table [market]="20" [type]="0" [instanceId]="'leaderboard1'"></app-leaderboard-table>
+        </mat-tab>
+      </mat-tab-group>
+      <br>
+    </mat-card>
+  </div>
+</div>

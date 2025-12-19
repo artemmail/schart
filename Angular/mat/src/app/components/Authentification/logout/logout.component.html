@@ -1,0 +1,18 @@
+<div class="logout-container">
+  <div *ngIf="!(authService.isSignedIn() | async)">
+    <mat-card>
+      <mat-card-content>
+        <p>You have successfully logged out of the application.</p>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div *ngIf="authService.isSignedIn() | async">
+    <mat-card>
+      <mat-card-content>
+        <button mat-button color="primary" (click)="logout()">Click here to Logout</button>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
+

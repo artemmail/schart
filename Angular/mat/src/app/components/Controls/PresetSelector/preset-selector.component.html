@@ -1,0 +1,8 @@
+<mat-form-field >
+  <mat-label>Выбор пресета</mat-label>
+  <mat-select [formControl]="presetControl">
+    <mat-option *ngFor="let preset of presets$ | async" [value]="preset.Value">
+      {{ preset.Text }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>

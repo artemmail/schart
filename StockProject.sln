@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33213.308
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Binance.Net", "Binance.Net\Binance.Net.csproj", "{5CB915A1-999D-4759-A2CC-D4B1E1C703D3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StockChart", "StockChart\StockChart.csproj", "{81B82C8B-0F64-47F2-B282-9ADB9CAF48D7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DataProvider", "DataProvider\DataProvider.csproj", "{28CF1E3C-1E9A-47F3-9FB0-80CBD4A576C4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StockChart.EventBus", "StockChart.EventBus\StockChart.EventBus.csproj", "{74B249D4-2E76-4A90-88BA-4A6D21512409}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StockChart.EventBus.RabbitMQ", "StockChart.EventBus.RabbitMQ\StockChart.EventBus.RabbitMQ.csproj", "{040127D6-E5AE-4CED-A603-E10136E1DD53}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StockChart.EventBus.RabbitMQ.DependencyInjection", "StockChart.EventBus.RabbitMQ.DependencyInjection\StockChart.EventBus.RabbitMQ.DependencyInjection.csproj", "{DA2A2257-3D4C-41EC-BE9E-D0C2E2EE8D25}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5CB915A1-999D-4759-A2CC-D4B1E1C703D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5CB915A1-999D-4759-A2CC-D4B1E1C703D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5CB915A1-999D-4759-A2CC-D4B1E1C703D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5CB915A1-999D-4759-A2CC-D4B1E1C703D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81B82C8B-0F64-47F2-B282-9ADB9CAF48D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81B82C8B-0F64-47F2-B282-9ADB9CAF48D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81B82C8B-0F64-47F2-B282-9ADB9CAF48D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81B82C8B-0F64-47F2-B282-9ADB9CAF48D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{28CF1E3C-1E9A-47F3-9FB0-80CBD4A576C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{28CF1E3C-1E9A-47F3-9FB0-80CBD4A576C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{28CF1E3C-1E9A-47F3-9FB0-80CBD4A576C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{28CF1E3C-1E9A-47F3-9FB0-80CBD4A576C4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74B249D4-2E76-4A90-88BA-4A6D21512409}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74B249D4-2E76-4A90-88BA-4A6D21512409}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74B249D4-2E76-4A90-88BA-4A6D21512409}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74B249D4-2E76-4A90-88BA-4A6D21512409}.Release|Any CPU.Build.0 = Release|Any CPU
+		{040127D6-E5AE-4CED-A603-E10136E1DD53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{040127D6-E5AE-4CED-A603-E10136E1DD53}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{040127D6-E5AE-4CED-A603-E10136E1DD53}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{040127D6-E5AE-4CED-A603-E10136E1DD53}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA2A2257-3D4C-41EC-BE9E-D0C2E2EE8D25}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA2A2257-3D4C-41EC-BE9E-D0C2E2EE8D25}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA2A2257-3D4C-41EC-BE9E-D0C2E2EE8D25}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA2A2257-3D4C-41EC-BE9E-D0C2E2EE8D25}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {18E2559F-ADE9-4C2D-BC75-A6C3CA89EBAE}
+	EndGlobalSection
+EndGlobal

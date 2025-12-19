@@ -1,0 +1,31 @@
+<table mat-table [dataSource]="data">
+  <ng-container matColumnDef="tickerName">
+    <th mat-header-cell *matHeaderCellDef>Наименование</th>
+    <td mat-cell *matCellDef="let element">{{ element.tickerName }}</td>
+  </ng-container>
+  <ng-container matColumnDef="opn">
+    <th mat-header-cell *matHeaderCellDef>Цена</th>
+    <td mat-cell *matCellDef="let element">{{ element.opn }}</td>
+  </ng-container>
+  <ng-container matColumnDef="rec1">
+    <th mat-header-cell *matHeaderCellDef>часы</th>
+    <td mat-cell *matCellDef="let element">
+      <app-arrow-display [value]="element.rec1"></app-arrow-display>
+    </td>
+  </ng-container>
+  <ng-container matColumnDef="rec2">
+    <th mat-header-cell *matHeaderCellDef>дни</th>
+    <td mat-cell *matCellDef="let element">
+      <app-arrow-display [value]="element.rec2"></app-arrow-display>
+    </td>
+  </ng-container>
+  <ng-container matColumnDef="rec3">
+    <th mat-header-cell *matHeaderCellDef>нед</th>
+    <td mat-cell *matCellDef="let element">
+      <app-arrow-display [value]="element.rec3"></app-arrow-display>
+    </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+</table>

@@ -1,0 +1,136 @@
+﻿using StockProject.Cache;
+using StockProject.MemCache;
+using StockProject.Models;
+using StockProject.PortfolioOptimization;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web.Mvc;
+using System.Web.Security;
+namespace StockProject.Controllers
+{
+    public class PortfolioOptimizationController: BaseController
+    {
+        //
+        // GET: /PortfolioOptimization/
+        public ActionResult Index(string tickers, decimal? deposit, decimal? risk)
+        {
+            string startDate = "", endDate = "";
+            string rperiod = "year";
+            bool timeEnable = false;
+            string startTime = "";
+            string endTime = "";
+            init_start_end_date(null, ref rperiod, ref startDate, ref endDate);
+            DateTime startDateTime = startDate.parseDateTime();
+            DateTime endDateTime = endDate.parseDateTime();
+            var Dates = getStartEndDateTime(null, rperiod, startDate, endDate, null, timeEnable, startTime, endTime);
+            ViewBag.startDate=startDate;
+            ViewBag.endDate=endDate;
+            ViewBag.portfolioDate=startDate;
+            ViewBag.tickers=tickers;
+            ViewBag.deposit=deposit??1000000;
+            ViewBag.Portfolios=Service.PortfolioItems.GetSelectedList(0);
+            ViewBag.risk=risk??0;
+            return View();
+        }
+        public JsonResult jsonCopyPortfolio(string ticker, int from, int to)
+        {
+            try
+            {
+                MembershipUser user = Membership.GetUser();
+                var userId = (Guid)user.ProviderUserKey;
+                var s = string.Format("exec dbo.CopyPortflio '{0}',{1},{2}", userId, from, to);
+                //var t = SQLHelper.DataTableFromQuery(s);
+                return Json(SQLHelper.listFromQuery<Portfolio>(s), JsonRequestBehavior.AllowGet);
+            }
+            catch
+            {
+                return Json("ok", JsonRequestBehavior.AllowGet);
+            }
+        }
+        public JsonResult jsonMarkovitz(string tickers, string startDate, string endDate, string portfolioDate, decimal deposit, decimal risk)
+        {
+            var r = PortfolioOptimizationSolv(tickers, startDate.parseDateTime(), endDate.parseDateTime(), portfolioDate.parseDateTime(), deposit, risk);
+            return Json(r, JsonRequestBehavior.AllowGet);
+        }
+        private object PortfolioOptimizationSolv(string s, DateTime startDate, DateTime endDate, DateTime portfolioDate, decimal deposit, decimal risk)
+        {
+            int period = 1440;
+            if (s!=null)
+            {
+                List<List<CandlesReport>> res = new List<List<CandlesReport>>();
+                List<string> tickers = new List<string>();
+                foreach (string v in s.Split(','))
+                {
+                    string t = v;
+                    SQLHelper.UpdateAlias(ref t);
+                    if (DicCont.Instance.Tickers.ContainsKey(t.ToUpper()))
+                        tickers.Add(t);
+                }
+                foreach (var ticker in tickers)
+                {
+                    string s1 = string.Format("exec dbo.CandlesReportRangeNew '{0}',{1},'{2}','{3}',{4}",
+                       ticker, period, startDate.ToStringInvariant(), endDate.ToStringInvariant(), 20000);
+                    List<CandlesReport> candles = SQLHelper.listFromQuery<CandlesReport>((s1));
+                    res.Add(candles);
+                }
+                double[][] hdata = new double[res.Count][];
+                var min = res.Min(a => a.Count);
+                for (int i = 0; i<res.Count; i++)
+                {
+                    hdata[i]=new double[min-1];
+                    for (int j = 0; j<min-1; j++)
+                        hdata[i][j]=(double)(res[i][j+1].ClsPrice/res[i][j].ClsPrice-1);
+                }
+                MarkowitzPortfolio qp = new MarkowitzPortfolio();
+                qp.StockNames=tickers.ToArray();
+                var k = qp.BuildCovariance(hdata, (double)(risk/1000));
+                if (k==null)
+                    return
+                      new { success = false };
+                else
+                {
+                    CreateTempPortfolio(portfolioDate, deposit, tickers.ToArray(), k.mas);
+                    return
+                        new
+                        {
+                            success = true,
+                            actual = (decimal)(k.Actual*1000),
+                            stddev = (decimal)(k.StdDev*1000),
+                            chart = PortfolioChart(tickers.ToArray(), k.mas)
+                        };
+                }
+            }
+            return null;
+        }
+        void CreateTempPortfolio(DateTime portfolioDate, decimal deposit, string[] tickers, double[] values)
+        {
+            var uid = (Guid)Membership.GetUser().ProviderUserKey;
+            SQLHelper.DataTableFromQuery(string.Format("exec dbo.CleanUpPortflio '{0}',0", uid));
+            decimal total = 0;
+            for (int i = 0; i<tickers.Length; i++)
+            {
+                decimal LastPrice = SQLHelper.getLastPrice(tickers[i], portfolioDate-TimeSpan.FromDays(10), portfolioDate+TimeSpan.FromDays(1));
+                int shares = (int)((double)deposit*values[i]/(double)LastPrice);
+                if (LastPrice>0&&shares>0)
+                {
+                    total+=shares*LastPrice;
+                    SQLHelper.DataTableFromQuery(string.Format("exec dbo.InsertShare '{0}','{1}',{2},{3},0",
+                        uid, tickers[i], shares, LastPrice.ToString(SQLHelper.CultureInfo)));
+                }
+            }
+            SQLHelper.DataTableFromQuery(string.Format("Insert into UserBallance select '{0}',{1},0", uid, (deposit-total).ToString(SQLHelper.CultureInfo)));
+        }
+        List<object> PortfolioChart(string[] tickers, double[] values)
+        {
+            var list = new List<object>();
+            for (int i = 0; i<tickers.Length; i++)
+            {
+                var v = (decimal)(int)(values[i]*10000)/100;
+                if (v>0.2m)
+                    list.Add(new { ticker = tickers[i], percent = v });
+            }
+            return list;
+        }
+    }
+}

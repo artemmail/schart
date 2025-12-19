@@ -1,0 +1,172 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "StockСhart. Профессиональные биржевые инструменты онлайн";
+}
+
+<!--h6><a href="http://forum.ru-ticker.com/default.aspx?g=posts&m=20136#post20136">Возможны перебои в работе завтра(25/05) с 10:00 до 14:00</a></h5-->
+@if (ViewBag.UserInfo != null && ViewBag.UserInfo.PayAmount > 0 && ViewBag.UserInfo.ExpireDate != null && (ViewBag.UserInfo.ExpireDate - DateTime.Now) < TimeSpan.FromDays(5))
+{
+    <div class="block" style="font-size:12px; color:red">
+        <b>
+            @if (ViewBag.UserInfo.ExpireDate > DateTime.Now)
+            {
+                <span>  До конца подписки осталось меньше 5 дней.</span>
+            }
+            else
+            {
+                <span>  Подписка истекла.</span>
+            }
+            Оплачено до @ViewBag.UserInfo.ExpireDate.ToString("d MMMM yyyy г. hh:mm", System.Globalization.CultureInfo.GetCultureInfo("RU-ru"))
+            <br /> Вы можете продлить подписку <a href="/Payment">по ссылке</a>
+        </b>
+    </div>
+}
+
+
+
+<link href="/Content/main.css" rel="stylesheet" type="text/css" />
+<link href="/Content/component-new-menu.css" rel="stylesheet" type="text/css" />
+<link href="/Content/common.css?zx" rel="stylesheet" type="text/css" />
+<link href="/Content/index.css" rel="stylesheet" type="text/css" />
+<script src="https://www.gstatic.com/firebasejs/3.6.2/firebase.js"></script>
+<script src="/Scripts/webpush.js" type="text/javascript"></script>
+
+<!--script src="/Scripts/snow.js" type="text/javascript"></script>
+<div class="block">
+    <div class="editor-field"><h5><a href="/Payment">Майские скидки на годовую подписку 33%</a></h5></div>
+</div-->
+<div style="width:100%">
+    <div class="leftsidebar">
+        <partial name="LeftMenu" />
+    </div>
+    <div class="centerbar">
+        <partial name="NewsTable" model="Model._newsTableModel" />
+
+
+        <div id="zzz" class="block">
+            <h6><a href="/MarketMap">Карта/Доска рынка</a> </h6>
+
+            <select id="marketList"
+                    style="width: 200px"
+                    data-role="dropdownlist"
+                    data-value-field="Value"
+                    data-text-field="Text"
+                    data-value-primitive="true"
+                    data-bind="value: market, source: marketList, events: { change: onMarketChange }"></select>
+            <div style="height: 480px; width: calc(100% - 2px);" id="treemap">    </div>
+        </div>
+        <div class="block">
+            <div> <h6><a href="/MultiCandles">Основные графики</a></h6>  </div>
+            <div id="graphics"></div>
+        </div>
+    </div>
+    <div class="rightsidebar">
+       
+        <div class="block">
+            <h6><a href="/Report/Leaders">Лидеры рынка акций</a></h6>
+            <div id="tabstrip">
+                <ul>
+                    <li>Топ объема</li>
+                    <li>Топ роста</li>
+                    <li>Топ падения</li>
+                </ul>
+                <div><div id="DayVolumeLeaders"></div></div>
+                <div><div id="DayGrowLeaders"></div></div>
+                <div><div id="DayFallLeaders"></div></div>
+            </div>
+        </div>        
+        <div class="block">
+            <h6>Фьючерсы и валюта</h6>
+            <div id="tabstrip2">
+                <ul>
+                    <li>Фьючерсы РТС</li>
+                    <li>Валюта</li>                    
+                </ul>
+                <div><div id="DayVolumeLeadersRTS"></div></div>
+                <div><div id="DayVolumeLeadersETC"></div></div>               
+            </div>
+        </div>
+        <div class="block">
+            <h6><a href="/MultiCandles?period=15&tickers=%40ES%23%2CQGC%23%2C%40NQ%23%2C%40EU%23%2C%40QM%23%2CQBZ%23">Запад, фьючерсы</a></h6>
+            <div id="tabstrip3">
+                <ul>
+                    <li>Binance</li>
+                    <li>СПБ биржа</li>                    
+                </ul>                
+                <div><div id="DayVolumeLeadersBinance"></div></div>
+                <div><div id="DayVolumeLeadersSPB"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+
+
+    function toAlias(str) {
+  // Проверяем длину строки
+  if (str.length === 4) {
+    // Проверяем, заканчивается ли строка на цифру
+    if (/\d$/.test(str)) {
+      // Возвращаем первые 2 символа строки
+      return str.substring(0, 2);
+    }
+  }
+  
+  // Если условие не прошло, возвращаем null
+        return str;
+}
+   
+
+    var connection;
+    $(function () {
+        connection = new signalR.HubConnectionBuilder().withUrl("/CandlesHub").build();
+        connection.on("recieveCandle", function (message) {
+            var answ = JSON.parse(message);
+
+            var z1= JSON.stringify(answ.key);
+
+            if (!(z1 in candlesObjects))
+            {
+                answ.key.ticker = toAlias(answ.key.ticker);
+                z1 = JSON.stringify(answ.key);
+            }
+
+            if (z1 in candlesObjects)
+                candlesObjects[JSON.stringify(answ.key)].updateMerge(answ.data);
+            
+            
+            console.log(JSON.stringify(answ.key));
+        });
+        async function start() {
+            try {
+                await connection.start();
+                IndexScript();
+            } catch (err) {
+                console.log(err);
+                setTimeout(start, 5000);
+            }
+        };
+        connection.onclose(async () => {
+            await start();
+        });
+        // Start the connection.
+        start();
+        var markets = new kendo.data.DataSource({
+            serverFiltering: true,
+            transport: {
+                read: "/api/common/markets"
+            }
+        });
+        var viewModel = kendo.observable({
+            market: 0,
+            marketList: markets,
+            onMarketChange: function () {
+                ShowMarketMap('treemap', {
+                    market: this.market
+                });
+            }
+        });
+        kendo.bind($("#zzz"), viewModel);
+    });
+</script>

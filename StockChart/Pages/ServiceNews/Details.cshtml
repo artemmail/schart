@@ -1,0 +1,77 @@
+﻿@page "{Id}"
+@model DetailsModel
+@{
+    ViewData["Title"] = Model.Header;
+}
+<div class="widerightsidebar">
+    <div class="blogblock">
+        <p>
+            <h6>@Html.Raw(Model.Header)</h6>
+            <br />
+            <b>@Html.Raw(Model.TopicUser?.UserName)</b> <i>@Html.Raw(Model.Date)</i>
+        </p>
+        @Html.Raw(Model.Text)
+        <br />
+        <p>
+            <a href="#" onclick="history.back();">Назад</a>
+            @if (Model.Signed)
+            {
+                Guid guid = Model.LoggedUser.Id;
+                if (Model.LoggedUser.Id == Model.TopicUser.Id)
+                {
+                    <span>|</span>
+                    <a asp-page="/ServiceNews/Edit" asp-route-Id="@Model.Id">Редактировать</a>
+                    <span>|</span> 
+                    <a asp-page="/ServiceNews/Delete" asp-route-Id="@Model.Id">Удалить</a>
+                }
+            }
+        </p>
+    </div>
+    @if (Model.UserComments != null && Model.UserComments.Count > 0)
+    {
+        <div class="blogblock">
+            @foreach (var comment in Model.UserComments)
+            {
+                <div class="blogblock" style="background:rgba(240,240,240,1)">
+                    @Html.Raw(comment.Text)
+                </div>
+                <b>@Html.Raw(comment.User.UserName)</b>
+                <i>@Html.Raw(comment.Date)</i>
+                if (Model.SignInManager.IsSignedIn(User))
+                {
+                    if (comment.User.Id == Model.LoggedUser.Id)
+                    {                         
+                        <a asp-page="/ServiceNews/EditComment" asp-route-Id="@comment.Id">Редактировать</a>
+                        <span>|</span>
+                        <a asp-page="/ServiceNews/DeleteComment" asp-route-Id="@comment.Id">Удалить</a>                        
+                    }
+                }
+            }
+        </div>
+    }
+    @if (Model.Signed)
+    {
+        <script src="/scripts/tinymce/tinymce.min.js"></script>
+        <script src="/scripts/tinymcecfg.js"></script>
+        <div class="blogblock">
+            @using (Html.BeginForm())
+            {
+                @Html.AntiForgeryToken()
+                <div class="form-group">
+                    @Html.TextAreaFor(model => model.Comment, new { htmlAttributes = new { @class = "form-control" } })
+                </div>
+                <div style="padding-top:10px">
+                    <input type="submit" value="Комментировать" class="k-button" />
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="blogblock">
+
+            <p> <a href="/Account/LogOn">Залогинтесь</a>, что бы оставить свой комментарий</p>
+
+        </div>
+    }
+</div>

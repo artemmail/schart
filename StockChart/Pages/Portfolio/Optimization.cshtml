@@ -1,0 +1,259 @@
+﻿@page
+@model PortfolioOptimizationModel
+@using Microsoft.AspNetCore.Identity
+@using StockChart.Model;
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@{
+    ViewData["Title"] = "Оптимизация портфеля по Марковицу";
+    var tickers = Model.tickers ?? "";
+    List<SelectListItem> rperiods = Model.RPeriods;
+    List<SelectListItem> portfolios = Model.Portfolios;
+}
+<div class="widerightsidebar">
+    <div class="blogblock">
+        <link href="/Content/index.css" rel="stylesheet" type="text/css" />
+
+        @if (!SignInManager.IsSignedIn(User))
+        {
+            <h6>Функция доступна по платной подписке</h6>
+            <p>Для оплаты залогинтесь и оплатите по ссылке в меню <a href="Payment">Услуги->Премиум доступ</a></p>
+            <img src="/images/Optimization.png" alt="logo">
+        }
+        else
+        {
+            <h6>Оптимизация портфеля по Марковицу</h6>
+            <div style="width: 100%;display:block;float:right; ">
+                <fieldset class="k-block">
+                    <legend>Подборка бумаг</legend>
+                    <div class="spanner">&nbsp;</div>
+                    <div style="display: block; float: left">
+                        <div class="editor-label">Бумаги в портфеле</div>
+                        <input id="tickers" class="k-textbox" type="textbox" value="@tickers" style="width:1040px">
+                    </div>
+                    <div class="spanner">&nbsp;</div>
+                    <div style="display: block; float: left">
+                        <input class="k-button" type="button" style="width: 150px; height: 40px" value="Лидеры по периоду" onclick="TickersFromLeaders(20, 'VolumeLeader')">                        
+                    </div>
+                </fieldset>
+            </div>
+            <fieldset class="k-block" style="width:380px; display: block; float: left">
+                <legend>История для вычисления корелляций</legend>
+                <div class="spanner">&nbsp;</div>
+                <div style="display: block; float: left">
+                    <div class="editor-label">Промежуток</div>
+                    <div class="editor-field">@Html.DropDownListFor( m=>m.rperiod, rperiods)</div>
+                </div>
+                <div id="startEndDateCont">
+                    <div class="spanner">&nbsp;</div>
+                    <div style="display: block; float: left">
+                        <div class="editor-label">Начальная дата</div>
+                        <div class="editor-field">@Html.TextBoxFor(m=>m.startDate, null, new { @class = "date", @size = "10" })</div>
+                    </div>
+                    <div class="spanner">&nbsp;</div>
+                    <div style="display: block; float: left">
+                        <div class="editor-label">Конечная дата</div>
+                        <div class="editor-field">@Html.TextBoxFor(m=>m.endDate, null, new { @class = "date", @size = "10" })</div>
+                    </div>
+                </div>
+            </fieldset>
+            <div class="spanner">&nbsp;</div>
+            <fieldset class="k-block" style="width:440px; display: block; float: left ">
+                <legend>Параметры портфеля</legend>
+                <div class="spanner">&nbsp;</div>
+                <div style="display:block;float:left">
+                    <div class="editor-label">Депозит</div>
+                    <!--div class="editor-field">Html.DropDownList("ticker", tickers)</div-->
+                    <input style="width:100px;" value="@Model.deposit" min="1000" type="number" id="deposit" class="numericOnly" />
+                </div>
+                <div class="spanner">&nbsp;</div>
+                <div style="display:block;float:left">
+                    <div class="editor-label">Мин. Риск(%)</div>
+                    <!--div class="editor-field">Html.DropDownList("ticker", tickers)</div-->
+                    <input style="width:100px;" value="@Model.risk" min="0" max="100" type="number" id="risk" class="numericOnly" />
+                </div>
+                <div class="spanner">&nbsp;</div>
+                <div style="display: block; float: left">
+                    <div class="editor-label">Дата вложений</div>
+                    <div class="editor-field">@Html.TextBoxFor(m=>m.portfolioDate, null, new { @class = "date", @size = "10" })</div>
+                </div>
+                <div class="spanner">&nbsp;</div>
+                <div>
+                    <input class="k-button" type="button" style="width:90px; height: 40px" value="Пересчитать" onclick="drawChart()">
+                </div>
+            </fieldset>
+            <div class="spanner">&nbsp;</div>
+            <fieldset class="k-block">
+                <legend>Сохранить предложенный портфель</legend>
+                <div class="spanner">&nbsp;</div>
+                <div style="display:block;float:left">
+                    <div class="editor-label">Переместить в портфель</div>
+                    <div class="editor-field">@Html.DropDownList("PortfolioNumber", portfolios)</div>
+                </div>
+                <div style="display:block;float:left;width:10px;height:10px">&nbsp;</div>
+                <div style="display:block;float:left">
+                    <input class="k-button" type="button" style="width: 140px; height: 40px" value="Переместить" onclick="CopyPortfolio()">
+                </div>
+            </fieldset>
+            <div style="width: 100%;display:block;float:right; ">
+                <div id="ChartChart" style="width: 465px; height: 390px;display:block;float:left;"></div>
+                <div style="width: 770px;display:block;float:left; ">
+                    <h5>Предложенный портфель на дату вложений</h5>
+                    <div id="grid"></div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+<script type="text/javascript">
+    ch = null;
+    $("#deposit").width(120).kendoNumericTextBox(
+        {
+            format: "### ### ### ###",
+            min: 0,
+            step: 10000
+        }
+    );
+    $("#risk").width(80).kendoNumericTextBox({
+        format: "#.0",
+        min: 0,
+        max: 10.0,
+        step: 0.1
+    });
+    $("#PortfolioNumber").width(130).kendoDropDownList();
+    // $("#portfolioDate").closest("span.k-datepicker").width(95);
+    $(document).ready(initChart);
+    function Correlation() {
+        var startDate = document.getElementById('portfolioDate').value;
+        var tickersx = document.getElementById('tickers').value;
+        var formula = GetPortfolioLine('#grid');
+        window.open("/CandlestickChart/PairTrading?period=1440&rperiod=custom&ticker2=MXXX&endDate=" + dateTools.toStr(new Date()) + "&startDate=" + startDate + "&ticker1=" + encodeURIComponent(formula));	 //&period=1440
+    }
+    function initChart() {
+        MenuAddMarkovitz(menu);
+        if (document.getElementById('tickers').value == '')
+            TickersFromLeaders(20, drawChart);
+        else
+            drawChart();
+    }
+
+
+
+
+
+    function TickersFromLeaders(count, callback) {
+        //alert(3);
+
+        //        alert(toIsoString("#startDate"));
+
+        $.get('/api/Reports/Leaders',
+            {
+                startDate: toIsoString("#startDate"),
+                endDate: toIsoString("#endDate")
+            },
+            function (data) {
+                count = Math.min(count, data.length);
+                res = '';
+                //    alert(JSON.Stringify(data));
+                for (var i = 0; i < count; i++) {
+                    if (res != '')
+                        res += ',';
+                    res += data[i].ticker;
+                }
+                document.getElementById('tickers').value = res;
+                if (typeof (callback) == 'function') {
+                    callback();
+                }
+            });
+    }
+    function GetCandlesChart() {
+        var startDate = document.getElementById('portfolioDate').value;
+        var tickersx = document.getElementById('tickers').value;
+        var formula = GetPortfolioLine('#grid');
+        window.open("CandlestickChart?endDate=" + dateTools.toStr(new Date()) + "&startDate=" + startDate + "&ticker=" + encodeURIComponent(formula));	 //&period=1440
+    }
+    function CopyPortfolio() {
+        var num = document.getElementById('PortfolioNumber').value;
+        if (confirm("История сделок, балланс и бумаги портфеля #" + num + " будут удалены"))
+            $.get('/api/Portfolio/CopyPortfolio',
+                { fromportfolio: 0, toportfolio: num },
+                function (data) {
+                    alert("Портфель #" + num + " заменен");
+                    //    window.open("Portfolio");
+                });
+    }
+    function drawChart() {
+        startDate = toIsoString("#startDate");
+        endDate = toIsoString("#endDate");
+        portfolioDate = toIsoString("#portfolioDate");
+        deposit = document.getElementById('deposit').value;
+        risk = document.getElementById('risk').value;
+        tickersx = document.getElementById('tickers').value;
+        var urlParams = { tickers: tickersx, startDate: startDate, endDate: endDate, portfolioDate: portfolioDate, deposit: deposit, risk: risk };
+        $.get(
+            '/api/Portfolio/Markovitz',
+            urlParams,
+            function (map) {
+                if (map.success) {
+                    var title = "Доли при риске:" + map.actual.toFixed(1) + "%, доходности:" + map.stddev.toFixed(1) + "%";
+                    $("#ChartChart").kendoChart({
+                        dataSource: {
+                            data: map.chart
+                        },
+                        title: {
+                            text: title,
+                        },
+                        legend: {
+                            visible: false,
+                            //position: "top"
+                        },
+                        seriesDefaults: {
+                            labels: {
+                                template: "${category} ${value} %",
+                                ///position: "OutsideEnd",
+                                visible: true,
+                                background: "transparent"
+                            }
+                        },
+                        series: [{
+                            type: "pie",
+                            field: "percent",
+                            categoryField: "ticker",
+                        }],
+                        categoryAxis: {
+                            baseUnit: "weeks",
+                            majorGridLines: {
+                                visible: false
+                            }
+                        },
+                        tooltip: {
+                            visible: true,
+                            template: "${category} ${value} %"
+                        },
+                        valueAxis: {
+                            line: {
+                                visible: false
+                            }
+                        }
+                    });
+                    /*var options = {
+                        chartArea: { width: '90%', height: '72%' }, is3D: true,
+                        legend: { position: 'top', alignment: 'center', maxLines: 5 }, title: title,
+                        titleTextStyle: { fontSize: 17 }
+                    };  // title: 'Оптимальный портфель по марковицу' ,
+                    var chart = new google.visualization.PieChart(document.getElementById('ChartChart'));
+                    chart.draw(google.visualization.arrayToDataTable(map.chart), options);
+                    */
+                    //   console.log(map.formula);
+                    // formula = map.formula;
+                    ShowPotfolio('#grid', 0, { externalLink: true, date: portfolioDate });
+                }
+                else {
+                    alert("Решение не найдено");
+                    document.getElementById('risk').value = 0;
+                }
+            });
+    }
+    
+</script>
+

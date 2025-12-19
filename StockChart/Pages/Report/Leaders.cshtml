@@ -1,0 +1,166 @@
+﻿@page
+@model LeadersModel
+@{
+    List<SelectListItem> rperiods = Model.rperiods;
+    List<SelectListItem> reportlist = Model.ReportList;
+    List<SelectListItem> toplist = Model.TopList;
+    string startEndStyle = "'display: block; float: left'";
+    ViewData["Title"] = "Лидеры россискойго рынка акций";
+}
+<link href="/Content/MarketMap.css" rel="stylesheet" type="text/css" />
+<script src="/Scripts/MarketMap.js" type="text/javascript"></script>
+<div id="zzz" class="widerightsidebar">
+    <div class="blogblock">
+        <div>
+            <h6>@ViewData["Title"]</h6>
+            <fieldset class="k-block" style="width:100%">
+                <legend>Параметры</legend>
+                <div class="spanner">&nbsp;</div>
+                <div style="display: block; float: left">
+                    <div class="editor-label">Биржа: </div>
+                    <select id="marketList"
+                            class="editor-field"
+                            data-role="dropdownlist"
+                            data-value-field="Value"
+                            data-text-field="Text"
+                            data-value-primitive="true"
+                            data-bind="value: market, source: marketList, events: { change: onMarketChange }"></select>
+                </div>                
+                <div class="spanner">&nbsp;</div>
+                <div style="display: block; float: left">
+                    <div class="editor-label">Выборка</div>
+                    <div class="editor-field">@Html.DropDownList("top", toplist)</div>
+                </div>
+                <div class="spanner">&nbsp;</div>
+                <div style="display: block; float: left">
+                    <div class="editor-label">Промежуток</div>
+                    <div class="editor-field">@Html.DropDownList("rperiod", rperiods)</div>
+                </div>
+                <div class="spanner">&nbsp;</div>
+                <div style="display: block; float: left">
+                    <div class="editor-label">Начальная дата</div>
+                    <div class="editor-field">@Html.TextBox("startDate", null, new { @class = "date" })</div>
+                </div>
+                <div class="spanner">&nbsp;</div>
+                <div style="display: block; float: left">
+                    <div class="editor-label">Конечная дата</div>
+                    <div class="editor-field">@Html.TextBox("endDate", null, new { @class = "date" })</div>
+                </div>
+                <div class="spanner">&nbsp;</div>
+                <input class="k-button" id="submit" type="button" style="width: 90px; height: 40px" value="Показать" onclick="ReportLeaders();">
+            </fieldset>
+            <div id="grid"> </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+     $(document).ready(function () {
+
+        function ReportLeaders() {
+
+            var start = toIsoString("#startDate");
+            var end = toIsoString("#endDate");
+
+
+            $("#grid").kendoGrid({
+                sortable: true,
+                groupable: false,
+                scrollable: false,
+                toolbar: ["excel"],
+                excel: {
+                    allPages: true,
+                    fileName: "{0}({3})_{1}-{2}.xlsx".format(
+                        $('#report').val(), $('#startDate').val(), $('#endDate').val(), $('#top').val()),
+                    filterable: true
+                },
+                pageable: {
+                    refresh: true,
+                    pageSizes: true,
+                    buttonCount: 5,
+                    pageSize: 25
+                },
+                //      height: "300px",
+                dataSource: {
+                    transport: {
+                        read: {
+                            url: '/api/reports/leaders',
+                            data:
+                            {
+                                market: $('#marketList').data("kendoDropDownList").value(),
+                                top: $('#top').val(),
+                                startDate: start,
+                                endDate: end
+                            },
+                            dataType: "Json"
+                        }
+                    }
+                },
+                columns: [
+                    {
+                        field: "ticker",
+                        title: 'Бумага',
+                        template: function (data) {
+                            return LinkToCandles({
+                                period: 1440,
+                                startDate: toIsoString("#startDate"),
+                                endDate: toIsoString('#endDate'),
+                                ticker: data.ticker
+                            }, data.name.substring(0, 25));
+                        }
+                    }, {
+                        field: "opn",
+                        title: 'Открытие',
+                        template: function (data) {
+                            return ColorText(data.percent, drob(data.opn, 4), 'right', data.color);
+                        }
+                    }, {
+                        field: "cls",
+                        title: 'Закрытие',
+                        template: function (data) {
+                            return ColorText(data.percent, drob(data.cls, 4), 'right', data.color);
+                        }
+                    }, {
+                        field: "volume",
+                        title: 'Объем',
+                        template: '<span style="float:right">#= MoneyToStr(volume) #</span>'
+                    }, {
+                        field: "percent",
+                        title: 'Изм%',
+                        template: '<span style="float:right">#= percent.toFixed(2) #</span>'
+                    }, {
+                        field: "bid",
+                        title: 'ASK%',
+                        template: '<span style="float:right">#= drob(bid,3) #</span>'
+                    }/*,
+                {
+                    field: "name",
+                    title: 'Поиск новостей',
+                    template: function (data) {
+                        return '<a href="https://www.google.ru/search?q=' + data.name + '&newwindow=1&tbm=nws">{0}</a>'.format(data.name);
+                    }
+                }*/]
+            });
+        }
+     var markets = new kendo.data.DataSource({
+        serverFiltering: true,
+        transport: {
+            read: "/api/common/markets"
+        }
+    });
+    var viewModel = kendo.observable({
+        market: 0,
+        splash: 3,
+        marketList: markets,
+        onMarketChange: function () {
+            ReportLeaders();
+        }
+    });
+    kendo.bind($("#zzz"), viewModel);
+    //refresh();
+    
+    $("#top").width(75).kendoDropDownList();
+        ReportLeaders();
+     });
+</script>
+

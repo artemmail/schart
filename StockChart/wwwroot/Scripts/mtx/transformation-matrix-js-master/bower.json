@@ -1,0 +1,24 @@
+{
+  "name": "transformation-matrix-js",
+  "version": "2.6.5",
+  "homepage": "https://github.com/epistemex/transformation-matrix-js",
+  "authors": [
+    "epistemex <github@epistemex.com>"
+  ],
+  "description": "Powerful transformation matrix that can be used to apply transformations to points, canvas etc.",
+  "main": "matrix.min.js",
+  "keywords": [
+    "matrix",
+    "transformation",
+    "javascript",
+    "canvas"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    ".*",
+    "docsmd",
+    "tests",
+    "tuts"
+  ]
+}

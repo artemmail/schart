@@ -1,0 +1,90 @@
+<div class="register-container">
+  <mat-card>    
+    <mat-card-header>
+      <mat-card-title>Регистрация</mat-card-title>
+      </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+        <mat-form-field appearance="fill">
+          <mat-label>User Name</mat-label>
+          <input
+            matInput
+            type="text"
+            id="UserName"
+            formControlName="UserName"
+            required
+          />
+          <mat-error *ngIf="submitted && f.UserName.errors?.required"
+            >User Name is required</mat-error
+          >
+        </mat-form-field>
+
+        <mat-form-field appearance="fill">
+          <mat-label>Email</mat-label>
+          <input
+            matInput
+            type="Email"
+            id="Email"
+            formControlName="Email"
+            required
+          />
+          <mat-error *ngIf="submitted && f.Email.errors?.required"
+            >Email is required</mat-error
+          >
+          <mat-error *ngIf="submitted && f.Email.errors?.Email"
+            >Email is not valid</mat-error
+          >
+        </mat-form-field>
+
+        <mat-form-field appearance="fill">
+          <mat-label>Password</mat-label>
+          <input
+            matInput
+            type="password"
+            id="Password"
+            formControlName="Password"
+            required
+            minlength="6"
+          />
+          <mat-error *ngIf="submitted && f.Password.errors?.required"
+            >Password is required</mat-error
+          >
+          <mat-error *ngIf="submitted && f.Password.errors?.minlength"
+            >Password must be at least 6 characters long</mat-error
+          >
+        </mat-form-field>
+
+        <mat-form-field appearance="fill">
+          <mat-label>Confirm Password</mat-label>
+          <input
+            matInput
+            type="password"
+            id="ConfirmPassword"
+            formControlName="ConfirmPassword"
+            required
+          />
+          <mat-error *ngIf="submitted && f.ConfirmPassword.errors?.required"
+            >Confirm Password is required</mat-error
+          >
+          <mat-error *ngIf="submitted && f.ConfirmPassword.errors?.mustMatch"
+            >Passwords must match</mat-error
+          >
+        </mat-form-field>
+
+        @if(errorMessages.length > 0) {
+        <mat-error *ngFor="let msg of errorMessages">{{ msg }}</mat-error>
+        }
+
+        <div class="register-button">
+          <button mat-raised-button color="primary" type="submit">
+            Register
+          </button>
+        </div>
+      </form>
+
+      <div *ngIf="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
