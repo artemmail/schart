@@ -55,7 +55,7 @@ public class ApplicationDbContext2
     public ApplicationDbContext2()
     {
     }
-    public ApplicationDbContext2(DbContextOptions<ApplicationDbContext2> options)
+    public ApplicationDbContext2(DbContextOptions options)
         : base(options)
     {
     }
@@ -102,7 +102,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
     public ApplicationDbContext()
     {
     }
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext2> options)
+    public ApplicationDbContext(DbContextOptions options)
        : base(options)
     {
     }

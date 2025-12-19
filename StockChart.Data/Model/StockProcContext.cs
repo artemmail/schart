@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using StockChart.Model;
 using System.Data;
 public partial class StockProcContext : ApplicationDbContext
@@ -20,8 +21,9 @@ public partial class StockProcContext : ApplicationDbContext
     public StockProcContext()
     {
     }
-    public StockProcContext(DbContextOptions<ApplicationDbContext2> options)
-    // : base(options)
+    [ActivatorUtilitiesConstructor]
+    public StockProcContext(DbContextOptions<StockProcContext> options)
+        : base(options)
     {
     }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
