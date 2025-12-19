@@ -3,13 +3,16 @@ using DataProvider.Models;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
+using System.Data;
+using Microsoft.Data.SqlClient;
 
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using StockChart.Data;
 namespace StockProject.Models
 {
     public class CL
@@ -51,7 +54,7 @@ namespace StockProject.Models
                 var r = queue.Where(x => !SQLHelper.TickerDic.ContainsKey(x.ticker)).GroupBy(x => x.ticker).Select(y => y.First()).ToArray();
                 if (r.Any())
                     SQLHelper.DIC();
-                string json = JsonConvert.SerializeObject(queue.Select(record => new
+                var filteredRecords = queue.Select(record => new
                 {
                     n = record.number,
                     i = SQLHelper.TickerDic[record.ticker].id,
@@ -61,22 +64,47 @@ namespace StockProject.Models
                     v = record.volume,
                     o = record.OI,
                     b = record.direction
-                }
-            ));
-                if (market == 20)
-                    sql = $@"DECLARE @json NVARCHAR(MAX) SET @json = N'{json}'
-                            insert into tradesbinance  select    i, n,  d, p, q,  b from OPENJSON(@json, '$') 
-                            WITH(n bigint N'$.n',i int '$.i',d datetime2 '$.d',p decimal(18, 6) '$.p',q decimal(18, 6)  '$.q',v decimal(18, 6) '$.v',o int '$.o',b int  '$.b')";
-                else
-                    sql = $@"DECLARE @json NVARCHAR(MAX) SET @json = N'{json}'
-                            insert into trades  select    i, n,  d, p, q, v, o, b from OPENJSON(@json, '$') 
-                            WITH(n bigint N'$.n',i int '$.i',d datetime2 '$.d',p decimal(18, 6) '$.p',q decimal(18, 6)  '$.q',v decimal(18, 6) '$.v',o int '$.o',b int  '$.b')";
-                using (SqlConnection sqlCon = new SqlConnection(SQLHelper.ConnectionString))
+                }).ToList();
+
+                if (!filteredRecords.Any())
+                    return;
+
+                string json = JsonConvert.SerializeObject(filteredRecords);
+                var jsonParameter = new SqlParameter("@json", SqlDbType.NVarChar)
                 {
-                    sqlCon.Open();
-                    using (SqlCommand cmd2 = new SqlCommand(sql, sqlCon))
-                        cmd2.ExecuteNonQuery();
-                }
+                    Value = json
+                };
+
+                sql = market == 20
+                    ? @"DECLARE @json NVARCHAR(MAX) = @json
+                            INSERT INTO tradesbinance (ID, number, TradeDate, Price, Quantity, Direction)
+                            SELECT i, n, d, p, q, b FROM OPENJSON(@json, '$')
+                            WITH(
+                                n bigint '$.n',
+                                i int '$.i',
+                                d datetime2 '$.d',
+                                p decimal(18, 6) '$.p',
+                                q decimal(18, 6) '$.q',
+                                v decimal(18, 6) '$.v',
+                                o int '$.o',
+                                b int '$.b'
+                            );"
+                    : @"DECLARE @json NVARCHAR(MAX) = @json
+                            INSERT INTO trades (ID, number, TradeDate, Price, Quantity, Volume, OI, Direction)
+                            SELECT i, n, d, p, q, v, o, b FROM OPENJSON(@json, '$')
+                            WITH(
+                                n bigint '$.n',
+                                i int '$.i',
+                                d datetime2 '$.d',
+                                p decimal(18, 6) '$.p',
+                                q decimal(18, 6) '$.q',
+                                v decimal(18, 6) '$.v',
+                                o int '$.o',
+                                b int '$.b'
+                            );";
+
+                using var context = DatabaseContextFactory.CreateStockProcContext(SQLHelper.ConnectionString);
+                context.Database.ExecuteSqlRaw(sql, jsonParameter);
                 /*
                   using (StreamWriter sw = System.IO.File.AppendText("c:/log/sql" + market + ".txt"))
                   {
