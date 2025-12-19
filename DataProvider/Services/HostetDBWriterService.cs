@@ -1,4 +1,5 @@
 ﻿using DataProvider.Models;
+using DataProvider.Services;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using System;
@@ -12,7 +13,6 @@ using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using StockChart.Model;
-using System.Linq;
 
 namespace DataProvider
 {
@@ -70,12 +70,13 @@ namespace DataProvider
                 try
                 {
                     using var context = await _contextFactory.CreateDbContextAsync();
+                    var tickerDictionary = MarketInfoServiceHolder.GetTickers();
 
                     // Обработка данных для рынка 0
                     if (market == 0)
                     {
                         var newDictionaryRecords = queue
-                            .Where(x => !SQLHelper.TickerDic.ContainsKey(x.ticker))
+                            .Where(x => !tickerDictionary.ContainsKey(x.ticker))
                             .GroupBy(x => x.ticker)
                             .Select(g => g.First())
                             .Select(record => new Dictionary
@@ -103,22 +104,29 @@ namespace DataProvider
                         {
                             context.Dictionaries.AddRange(newDictionaryRecords);
                             await context.SaveChangesAsync();
-                            SQLHelper.DIC();
+                            MarketInfoServiceHolder.RefreshTickers();
+                            tickerDictionary = MarketInfoServiceHolder.GetTickers();
                         }
                     }
 
                     var filteredRecords = queue
                         .Where(x => x.price > 0.0001m || market == 0)
-                        .Select(record => new
+                        .Select(record =>
                         {
+                            if (!tickerDictionary.TryGetValue(record.ticker, out var tickerInfo))
+                                throw new InvalidOperationException($"Ticker info not found for {record.ticker}");
+
+                            return new
+                            {
                             n = record.number,
-                            i = SQLHelper.TickerDic[record.ticker].id,
+                            i = tickerInfo.id,
                             d = record.datetime,
                             p = record.price,
                             q = record.quantity,
                             v = record.volume,
                             o = record.OI,
                             b = record.direction
+                            };
                         })
                         .ToList();
 

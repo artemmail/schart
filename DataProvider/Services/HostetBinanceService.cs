@@ -1,5 +1,6 @@
 ﻿using Binance.Net.Clients;
 using DataProvider.Models;
+using DataProvider.Services;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Linq;
@@ -29,7 +30,11 @@ namespace DataProvider
             {
                 using (var socketClient = new BinanceSocketClient())
                 {
-                    string[] s = SQLHelper.TickerDic.Where(x => x.Value.market == 20).Select(x => x.Key).Take(210).ToArray();
+                    string[] s = MarketInfoServiceHolder.GetTickers()
+                        .Where(x => x.Value.market == 20)
+                        .Select(x => x.Key)
+                        .Take(210)
+                        .ToArray();
                     var subscription = await socketClient.SpotApi.ExchangeData.SubscribeToTradeUpdatesAsync(s, data =>
                     {
                         var d = data.Data;
