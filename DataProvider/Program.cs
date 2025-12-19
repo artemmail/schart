@@ -17,6 +17,7 @@ namespace DataProvider
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            SQLHelper.ConnectionString = builder.Configuration.GetConnectionString("Stock") ?? throw new InvalidOperationException("Connection string 'Stock' not found.");
             // Add services to the container.
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
