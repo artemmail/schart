@@ -122,7 +122,7 @@ import { PaymentDialogComponent } from './components/Dialogs/payments-dialog/pay
 import { ProfitChartsComponent } from './components/pages/profit-charts/profit-charts.component';
 
 
-import { NgxMatDatetimePickerModule, NgxMatTimepickerModule, NgxMatNativeDateModule } from '@angular-material-components/datetime-picker';
+import { NgxMatDatetimePickerModule, NgxMatTimepickerModule, NgxMatNativeDateModule } from '@ngxmc/datetime-picker';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatInputModule } from '@angular/material/input';
