@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using StockChart.Data;
 using StockChart.Model;
+using Trade = StockChart.Model.Trade;
 
 namespace DataProvider
 {
