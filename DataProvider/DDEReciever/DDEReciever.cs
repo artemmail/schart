@@ -16,11 +16,6 @@ using StockChart.Data;
 using StockChart.Model;
 namespace StockProject.Models
 {
-    public class CL
-    {
-        public byte MarketId { get; set; }
-        public string Name { get; set; }
-    }
     public static class DDEReciever1
     {
         static public void Run()
@@ -161,7 +156,6 @@ namespace StockProject.Models
                 }
             return JsonConvert.SerializeObject(l) + ' ' /*+ JsonConvert.SerializeObject(iqfeed.size())*/;
         }
-        public static Dictionary<string, CL> Markets = new Dictionary<string, CL>();
         public static DBRecord[] RecordsFromFileSPB(string fileName)
         {
             GC.Collect();
@@ -279,8 +273,6 @@ namespace StockProject.Models
         }
         static DDEReciever1()
         {
-            var markets = SQLHelper.ConvertDataTable<CL>(SQLHelper.DataTableFromQuery("select MarketId, Name from class"));
-            Markets = markets.ToDictionary(x => x.Name, x => x);
             for (int i = 0; i < sqlQueues.Length; i++)
                 sqlQueues[i] = new Queue<DBRecord>();
             //            for (int i = 0; i < 4; i++)
