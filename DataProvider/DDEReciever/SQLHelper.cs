@@ -86,69 +86,6 @@ public static class SQLHelper
 
 
 
-    public static List<MissingIntervalWithTrades> SplitIntervalsByDay(List<MissingIntervalWithTrades> intervals)
-    {
-        var result = new List<MissingIntervalWithTrades>();
-
-        foreach (var interval in intervals)
-        {
-            // Если интервал умещается в один день
-            if (interval.MissingStart.Date == interval.MissingEnd.Date)
-            {
-                // Добавляем без изменений
-                result.Add(interval);
-                continue;
-            }
-
-            // Интервал пересекает границы нескольких дней
-            DateTime currentStart = interval.MissingStart;
-            DateTime finalEnd = interval.MissingEnd;
-
-            // Первый интервал - от MissingStart до конца текущих суток
-            DateTime firstIntervalEnd = currentStart.Date.AddDays(1);
-            var firstPart = new MissingIntervalWithTrades
-            {
-                MissingStart = currentStart,
-                MissingEnd = firstIntervalEnd,
-                BeforeGapTradeNumber = interval.BeforeGapTradeNumber,
-                BeforeGapTradeDate = interval.BeforeGapTradeDate,
-                AfterGapTradeDate = firstIntervalEnd
-            };
-            result.Add(firstPart);
-
-            // Обрабатываем промежуточные дни (если есть)
-            DateTime nextStart = firstIntervalEnd;
-            while (nextStart.AddDays(1) < finalEnd.Date)
-            {
-                // Целые сутки без номеров сделок
-                var middlePart = new MissingIntervalWithTrades
-                {
-                    MissingStart = nextStart,
-                    MissingEnd = nextStart.Date.AddDays(1)
-                };
-                result.Add(middlePart);
-                nextStart = nextStart.Date.AddDays(1);
-            }
-
-            // Последний интервал - от начала последних суток до MissingEnd
-            var lastPart = new MissingIntervalWithTrades
-            {
-                MissingStart = nextStart,
-                MissingEnd = finalEnd,
-
-                AfterGapTradeNumber = interval.AfterGapTradeNumber,
-                BeforeGapTradeDate = nextStart,
-                AfterGapTradeDate = interval.AfterGapTradeDate
-            };
-            result.Add(lastPart);
-        }
-
-        return result;
-    }
-
-
-
-
 
 
 
