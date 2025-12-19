@@ -252,6 +252,7 @@
     <ProjectReference Include="..\StockChart.EventBus.RabbitMQ.DependencyInjection\StockChart.EventBus.RabbitMQ.DependencyInjection.csproj" />
     <ProjectReference Include="..\StockChart.EventBus.RabbitMQ\StockChart.EventBus.RabbitMQ.csproj" />
     <ProjectReference Include="..\StockChart.EventBus\StockChart.EventBus.csproj" />
+    <ProjectReference Include="..\StockChart.Data\StockChart.Data.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Messages\" />
