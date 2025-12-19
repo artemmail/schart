@@ -2,6 +2,7 @@
 using DataProvider.Models;
 using Newtonsoft.Json;
 using StockChart.Model;
+using TradeEntity = StockChart.Model.Trade;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -63,7 +64,7 @@ namespace StockProject.Models
             }
             else
             {
-                var trades = records.Select(record => new Trade
+                var trades = records.Select(record => new TradeEntity
                 {
                     Id = SQLHelper.TickerDic[record.ticker].id,
                     Number = record.number,
@@ -80,3 +81,6 @@ namespace StockProject.Models
 
             context.SaveChanges();
         }
+
+    }
+}

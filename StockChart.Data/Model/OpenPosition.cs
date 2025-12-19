@@ -1,55 +1,55 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 
 namespace StockChart.Model
 {
     public class OpenPosition
     {
-        [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public int Id { get; set; }  // Идентификатор записи
 
-        [JsonProperty("date")]
+        [JsonPropertyName("date")]
         public DateTime Date { get; set; }  // Дата контракта
 
         // Значения за день
-        [JsonProperty("juridicalLong")]
+        [JsonPropertyName("juridicalLong")]
         public long JuridicalLong { get; set; }  // Юридические лица - длинные позиции
 
-        [JsonProperty("juridicalShort")]
+        [JsonPropertyName("juridicalShort")]
         public long JuridicalShort { get; set; }  // Юридические лица - короткие позиции
 
-        [JsonProperty("physicalLong")]
+        [JsonPropertyName("physicalLong")]
         public long PhysicalLong { get; set; }  // Физические лица - длинные позиции
 
-        [JsonProperty("physicalShort")]
+        [JsonPropertyName("physicalShort")]
         public long PhysicalShort { get; set; }  // Физические лица - короткие позиции
 
         // Дельта изменений по сравнению с предыдущим днём
-        [JsonProperty("juridicalLongDelta")]
+        [JsonPropertyName("juridicalLongDelta")]
         public long JuridicalLongDelta { get; set; }  // Дельта длинных позиций юрлиц
 
-        [JsonProperty("juridicalShortDelta")]
+        [JsonPropertyName("juridicalShortDelta")]
         public long JuridicalShortDelta { get; set; }  // Дельта коротких позиций юрлиц
 
-        [JsonProperty("physicalLongDelta")]
+        [JsonPropertyName("physicalLongDelta")]
         public long PhysicalLongDelta { get; set; }  // Дельта длинных позиций физлиц
 
-        [JsonProperty("physicalShortDelta")]
+        [JsonPropertyName("physicalShortDelta")]
         public long PhysicalShortDelta { get; set; }  // Дельта коротких позиций физлиц
 
         // Количество юридических и физических лиц для длинных и коротких позиций
-        [JsonProperty("juridicalLongCount")]
+        [JsonPropertyName("juridicalLongCount")]
         public int JuridicalLongCount { get; set; }  // Количество юридических лиц для длинных позиций
 
-        [JsonProperty("juridicalShortCount")]
+        [JsonPropertyName("juridicalShortCount")]
         public int JuridicalShortCount { get; set; }  // Количество юридических лиц для коротких позиций
 
-        [JsonProperty("physicalLongCount")]
+        [JsonPropertyName("physicalLongCount")]
         public int PhysicalLongCount { get; set; }  // Количество физических лиц для длинных позиций
 
-        [JsonProperty("physicalShortCount")]
+        [JsonPropertyName("physicalShortCount")]
         public int PhysicalShortCount { get; set; }  // Количество физических лиц для коротких позиций
 
-        [JsonProperty("contractName")]
+        [JsonPropertyName("contractName")]
         public string ContractName { get; set; }  // Название контракта
     }
 }
