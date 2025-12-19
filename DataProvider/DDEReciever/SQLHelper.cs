@@ -120,13 +120,14 @@ public static class SQLHelper
     {
         get
         {
-            var configured = Configuration.Value.GetConnectionString(\"DefaultConnection\");
-            if (!string.IsNullOrWhiteSpace(configured))
+            var configured = Configuration.Value.GetConnectionString("DefaultConnection");
+
+            if (string.IsNullOrWhiteSpace(configured))
             {
-                return configured;
+                throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
             }
 
-            return \"data source=localhost;initial catalog=stock;;TrustServerCertificate=True;integrated security=True;persist security info=True;connect timeout=20000;MultipleActiveResultSets=True;App=EntityFramework\";
+            return configured;
         }
     }
 
