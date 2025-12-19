@@ -32,16 +32,12 @@ public class MaxNumberForts
 
 public static class SQLHelper
 {
+    private static string connectionString;
+
     public static string ConnectionString
     {
-        get
-        {
-            return
-            //    "Server = SLIM; Database = stock; Trusted_Connection = True; Connection Timeout = 200";
-            // "Data Source=77.51.186.0;Initial Catalog=stock;User ID=ruticker;Password=121212;Connection Timeout=20000";
-            //"Data Source=192.168.1.8;Initial Catalog=stock;User id=ruticker;Password=121212;Connection Timeout=40000;TrustServerCertificate=True;MultipleActiveResultSets=true;\r\n";
-            "data source=localhost;initial catalog=stock;;TrustServerCertificate=True;integrated security=True;persist security info=True;connect timeout=20000;MultipleActiveResultSets=True;App=EntityFramework";
-        }
+        get => connectionString ?? throw new InvalidOperationException("Connection string is not configured.");
+        set => connectionString = value ?? throw new ArgumentNullException(nameof(value));
     }
     public static DataTable DataTableFromQuery(string s)
     {
