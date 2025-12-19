@@ -22,7 +22,7 @@ import { NavService } from './service/nav.service';
 import { SignalRService } from './service/FootPrint/signalr.service';
 import { MAT_DATE_FORMATS, provideNativeDateAdapter } from '@angular/material/core';
 import { MY_DATE_FORMATS } from './service/date-formats';
-import { MetrikaModule } from 'ng-yandex-metrika';
+//import { MetrikaModule } from 'ng-yandex-metrika';
 import { FirstComponent1 } from './mobile/first/first.component';
 import { LeadersBinanceComponent } from './mobile/BinanceLeaders/leaders.component';
 import { LeadersFortsComponent } from './mobile/Forts/leaders.component';
@@ -70,14 +70,7 @@ export class MyHammerConfig extends HammerGestureConfig {
     provideNativeDateAdapter(),
   ],
   imports: [
-    MetrikaModule.forRoot(
-      { id: 16829734, webvisor: true }, // CounterConfig | CounterConfig[]
-      {
-              
-        // Для загрузки метрики с другого источника
-        alternativeUrl: 'https://cdn.jsdelivr.net/npm/yandex-metrica-watch/tag.js',
-      },
-    ),
+   
     HammerModule,
     MaterialModule,
     SharedModule,

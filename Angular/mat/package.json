@@ -20,12 +20,9 @@
     "@angular/platform-browser": "20.3.13",
     "@angular/platform-browser-dynamic": "20.3.13",
     "@angular/router": "20.3.13",
-
-    "@ngxmc/datetime-picker": "20.1.0",
-
     "@microsoft/signalr": "^8.0.0",
+    "@ngxmc/datetime-picker": "20.1.0",
     "@progress/kendo-ui": "^2024.2.514",
-
     "ang-jsoneditor": "^3.1.1",
     "angular-imask": "^7.6.1",
     "chart.js": "^4.4.2",
@@ -37,15 +34,13 @@
     "imask": "^7.6.1",
     "jquery": "^3.7.1",
     "luxon": "^3.5.0",
-
     "ng2-charts": "^6.0.1",
-
     "ngx-device-detector": "10.1.0",
+    "ngx-echarts": "^20.0.2",
+    "ngx-infinite-scroll": "^20.0.0",
     "ngx-material-timepicker": "^13.1.1",
-
     "rxjs": "~7.8.1",
     "tslib": "^2.8.1",
-
     "xlsx": "^0.18.5",
     "zone.js": "~0.15.1"
   },
@@ -53,20 +48,16 @@
     "@angular-devkit/build-angular": "20.3.13",
     "@angular/cli": "20.3.13",
     "@angular/compiler-cli": "20.3.13",
-
     "@types/jasmine": "~4.3.0",
     "@types/jest": "^29.5.13",
     "@types/jquery": "^3.5.30",
-
     "jasmine-core": "~4.6.0",
     "jest": "^29.7.0",
-
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "5.8.3"

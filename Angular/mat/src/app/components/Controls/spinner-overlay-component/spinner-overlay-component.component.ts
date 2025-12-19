@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 
 @Component({
   selector: 'spinner-overlay',
+  standalone:false,
   template: `
     <div class="spinner-overlay">
       <mat-spinner></mat-spinner>

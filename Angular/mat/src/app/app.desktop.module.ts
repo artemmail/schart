@@ -8,7 +8,7 @@ import { SignalRService } from './service/FootPrint/signalr.service';
 import { CustomDateAdapter, MY_DATE_FORMATS } from './service/date-formats';
 
 
-import { MetrikaModule } from 'ng-yandex-metrika';
+//import { MetrikaModule } from 'ng-yandex-metrika';
 
 import { MatNativeDateModule, MAT_DATE_LOCALE, NativeDateAdapter } from '@angular/material/core';
 import { DateAdapter, MAT_DATE_FORMATS, MatDateFormats } from '@angular/material/core';
@@ -17,12 +17,12 @@ import { LevelMarksService } from './service/FootPrint/LevelMarks/level-marks.se
 
 @NgModule({
   imports: [
-    MetrikaModule.forRoot(
+  /*  MetrikaModule.forRoot(
       { id: 16829734, webvisor: true }, // CounterConfig | CounterConfig[]
       {
         alternativeUrl: 'https://cdn.jsdelivr.net/npm/yandex-metrica-watch/tag.js',
       },
-    ),
+    ),*/
     SharedModule,
     AppRoutingModule,
   ],

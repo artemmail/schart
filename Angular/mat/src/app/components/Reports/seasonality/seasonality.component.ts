@@ -13,7 +13,8 @@ import { ReportsService } from 'src/app/service/reports.service';
 @Component({
   selector: 'app-seasonality',
   templateUrl: './seasonality.component.html',
-  styleUrls: ['./seasonality.component.css']
+  styleUrls: ['./seasonality.component.css'],
+    standalone: false
 })
 export class SeasonalityComponent implements OnInit , AfterViewInit{
   

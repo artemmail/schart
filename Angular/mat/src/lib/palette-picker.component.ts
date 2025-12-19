@@ -1,13 +1,16 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, Input, Output, EventEmitter, OnInit, forwardRef } from '@angular/core';
 import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 
 @Component({
   selector: 'palette-picker',
+  standalone: false,
+  
   templateUrl: './palette-picker.component.html',
   styleUrls: ['./palette-picker.component.css'],
   providers: [{
     provide: NG_VALUE_ACCESSOR,
-    useExisting: PalettePickerComponent,
+    useExisting: forwardRef(() => PalettePickerComponent),
     multi: true
   }]
 })

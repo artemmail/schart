@@ -17,7 +17,7 @@ import {
 } from '@angular/router';
 import { isPlatformServer, Location } from '@angular/common';
 import { filter } from 'rxjs/operators';
-import { Metrika } from 'ng-yandex-metrika';
+//import { Metrika } from 'ng-yandex-metrika';
 import { HttpClient } from '@angular/common/http';
 import { Inject, PLATFORM_ID } from '@angular/core';
 
@@ -33,7 +33,7 @@ export class AppComponent implements OnInit {
   }
  
   constructor(
-    private metrika: Metrika,
+  //  private metrika: Metrika,
     private http: HttpClient,
     private router: Router,
     location: Location,
@@ -47,12 +47,14 @@ export class AppComponent implements OnInit {
     }
 
     let prevPath = location.path();
-    this.router.events
+    /*this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe(() => {
         try {
           const newPath = location.path();
-          this.metrika.hit(newPath, {
+        
+        
+        /*  this.metrika.hit(newPath, {
             referer: prevPath,
             callback: () => {
           //    console.log('hit end');
@@ -62,6 +64,6 @@ export class AppComponent implements OnInit {
         } catch (e) {
           
         }
-      });
+      });*/
   }
 }

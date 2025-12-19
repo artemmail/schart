@@ -3,7 +3,7 @@ import { CommonModule, registerLocaleData } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
-import { FlexLayoutModule } from '@angular/flex-layout';
+//import { FlexLayoutModule } from '@angular/flex-layout';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
@@ -96,7 +96,7 @@ const materialModules = [
         ReactiveFormsModule,
         RouterModule,
         
-        FlexLayoutModule,
+      //  FlexLayoutModule,
         BrowserModule,
         BrowserAnimationsModule,
         
@@ -108,7 +108,7 @@ const materialModules = [
         FormsModule,
         ReactiveFormsModule,
         RouterModule,
-        FlexLayoutModule,
+      //  FlexLayoutModule,
         BrowserModule,
         BrowserAnimationsModule,
         
