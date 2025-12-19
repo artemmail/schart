@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using StockChart.EventBus.RabbitMQ.DependencyInjection;
 using StockChart.Notification.WebApi.RabbitMQ.Subscriptions;
 using System;
+using StockChart.Data;
 
 namespace DataProvider
 {
@@ -19,6 +21,8 @@ namespace DataProvider
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddDbContextFactory<StockProcContext>(options =>
+                options.UseSqlServer(SQLHelper.ConnectionString));
 
 
 

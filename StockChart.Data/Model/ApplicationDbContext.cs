@@ -635,9 +635,8 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         });
         modelBuilder.Entity<Trade>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToTable("trades", tb =>
+            entity.HasKey(e => new { e.Id, e.Number });
+            entity.ToTable("trades", tb =>
                 {
                     tb.HasTrigger("ClusterrTrigger1");
                     tb.HasTrigger("autocandle1e1ex21");
@@ -670,9 +669,8 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         });
         modelBuilder.Entity<Tradesbinance>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToTable("tradesbinance", tb => tb.HasTrigger("autocandlebin"));
+            entity.HasKey(e => new { e.Id, e.Number });
+            entity.ToTable("tradesbinance", tb => tb.HasTrigger("autocandlebin"));
             entity.HasIndex(e => new { e.Id, e.TradeDate }, "ClusteredIndex-20230223-120044").IsClustered();
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.Number).HasColumnName("number");

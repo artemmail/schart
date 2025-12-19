@@ -5,17 +5,20 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using StockChart.Model;
 
 namespace DataProvider
 {
     public class HostetDBWriterService : IHostedService, IDisposable
     {
         private readonly IBroadCast _broadCast;
+        private readonly IDbContextFactory<StockProcContext> _contextFactory;
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private Task _executingTask;
 
@@ -26,9 +29,10 @@ namespace DataProvider
             new ConcurrentQueue<DBRecord>()
         };
 
-        public HostetDBWriterService(IBroadCast broadCast)
+        public HostetDBWriterService(IBroadCast broadCast, IDbContextFactory<StockProcContext> contextFactory)
         {
             _broadCast = broadCast;
+            _contextFactory = contextFactory;
         }
 
         // Метод для добавления одной записи в очередь
@@ -61,159 +65,104 @@ namespace DataProvider
             {
                 try
                 {
-                    string sql = "2"; // Изначальное значение SQL-запроса
+                    using var context = await _contextFactory.CreateDbContextAsync();
 
                     // Обработка данных для рынка 0
                     if (market == 0)
                     {
-                        var recordsToInsert = queue
+                        var newDictionaryRecords = queue
                             .Where(x => !SQLHelper.TickerDic.ContainsKey(x.ticker))
                             .GroupBy(x => x.ticker)
                             .Select(g => g.First())
-                            .ToArray();
-
-                        if (recordsToInsert.Any())
-                        {
-                            using (var sqlCon = new SqlConnection(SQLHelper.ConnectionString))
+                            .Select(record => new Dictionary
                             {
-                                await sqlCon.OpenAsync();
+                                Securityid = record.ticker,
+                                Shortname = record.name,
+                                Fullname = record.name,
+                                FromDate = record.datetime,
+                                ToDate = null,
+                                Market = (byte)record.market,
+                                Oldid = null,
+                                ClassName = record.marketcode,
+                                Minstep = 1m,
+                                Volperqnt = 1m,
+                                ClassId = null,
+                                CategoryTypeId = 1,
+                                Lotsize = null,
+                                Currency = null,
+                                Scale = null,
+                                Isin = null
+                            })
+                            .ToList();
 
-                                foreach (var record in recordsToInsert)
-                                {
-                                    using (var cmd = new SqlCommand(@"
-INSERT INTO [dbo].[Dictionary]
-    ([SECURITYID], [SHORTNAME], [from_date], [to_date], [Market], [oldid],
-     [ClassName], [minstep], [volperqnt], [ClassId], [CategoryTypeId],
-     [lotsize], [currency], [scale], [isin], [Fullname])
-VALUES
-    (@securityId, @shortName, @fromDate, NULL, @market, NULL,
-     @className, @minStep, @volPerQnt, @classId, @categoryTypeId,
-     @lotSize, @currency, @scale, @isin, @fullName);
-", sqlCon))
-                                    {
-                                        // 1. SECURITYID
-                                        cmd.Parameters.Add("@securityId", SqlDbType.NVarChar, 32)
-                                           .Value = record.ticker;
-
-                                        // 2. SHORTNAME и Fullname (одно и то же поле дважды)
-                                        var escapedName = record.name; // экранирование внутри AddWithValue не нужно
-                                        cmd.Parameters.Add("@shortName", SqlDbType.NVarChar, -1)
-                                           .Value = escapedName;
-                                        cmd.Parameters.Add("@fullName", SqlDbType.NVarChar, -1)
-                                           .Value = escapedName;
-
-                                        // 3. from_date
-                                        cmd.Parameters.Add("@fromDate", SqlDbType.DateTime)
-                                           .Value = record.datetime;
-
-                                        // 4. to_date — оставляем NULL
-                                        // 5. Market
-                                        cmd.Parameters.Add("@market", SqlDbType.TinyInt)
-                                           .Value = record.market;
-
-                                        // 6. oldid — оставляем NULL
-
-                                        // 7. ClassName
-                                        cmd.Parameters.Add("@className", SqlDbType.NVarChar)
-                                           .Value = record.marketcode;
-
-                                        // 8. minstep и volperqnt — в исходнике стояли константы 1
-                                        cmd.Parameters.Add("@minStep", SqlDbType.Decimal)
-                                           .Value = 1m;
-                                        cmd.Parameters.Add("@volPerQnt", SqlDbType.Decimal)
-                                           .Value = 1m;
-
-                                        // 9–11. ClassId, CategoryTypeId, lotsize
-                                        cmd.Parameters.Add("@classId", SqlDbType.Int)
-                                           .Value = DBNull.Value;
-                                        cmd.Parameters.Add("@categoryTypeId", SqlDbType.Int)
-                                           .Value = 1;
-                                        cmd.Parameters.Add("@lotSize", SqlDbType.Int)
-                                           .Value = DBNull.Value;
-
-                                        // 12–14. currency, scale, isin
-                                        cmd.Parameters.Add("@currency", SqlDbType.NVarChar, 32)
-                                           .Value = DBNull.Value;
-                                        cmd.Parameters.Add("@scale", SqlDbType.Int)
-                                           .Value = DBNull.Value;
-                                        cmd.Parameters.Add("@isin", SqlDbType.NVarChar, 32)
-                                           .Value = DBNull.Value;
-
-                                        await cmd.ExecuteNonQueryAsync();
-                                    }
-                                }
-                            }
-
-                            // Обновляем кэш после вставки
+                        if (newDictionaryRecords.Any())
+                        {
+                            context.Dictionaries.AddRange(newDictionaryRecords);
+                            await context.SaveChangesAsync();
                             SQLHelper.DIC();
                         }
                     }
 
-                    // Сериализация данных в JSON
-                    string json = JsonConvert.SerializeObject(queue.Where(x => x.price > 0.0001m || market == 0).Select(record => new
-                    {
-                        n = record.number,
-                        i = SQLHelper.TickerDic[record.ticker].id,
-                        d = record.datetime,
-                        p = record.price,
-                        q = record.quantity,
-                        v = record.volume,
-                        o = record.OI,
-                        b = record.direction
-                    }));
-
-                    // Формирование SQL-запроса в зависимости от рынка
-                    if (market == 1)
-                    {
-                        sql = $@"DECLARE @json NVARCHAR(MAX) 
-                                 SET @json = N'{json}'
-                                 INSERT INTO tradesbinance
-                                 SELECT i, n, d, p, q, b 
-                                 FROM OPENJSON(@json, '$') 
-                                 WITH(
-                                     n bigint '$.n',
-                                     i int '$.i',
-                                     d datetime2 '$.d',
-                                     p decimal(18, 6) '$.p',
-                                     q decimal(18, 6) '$.q',
-                                     v decimal(18, 6) '$.v',
-                                     o int '$.o',
-                                     b int '$.b'
-                                 )";
-                    }
-                    else
-                    {
-                        sql = $@"DECLARE @json NVARCHAR(MAX) 
-                                 SET @json = N'{json}'
-                                 INSERT INTO trades
-                                 SELECT i, n, d, p, q, v, o, b 
-                                 FROM OPENJSON(@json, '$') 
-                                 WITH(
-                                     n bigint '$.n',
-                                     i int '$.i',
-                                     d datetime2 '$.d',
-                                     p decimal(18, 6) '$.p',
-                                     q decimal(18, 6) '$.q',
-                                     v decimal(18, 6) '$.v',
-                                     o int '$.o',
-                                     b int '$.b'
-                                 )";
-                    }
-
-                    // Выполнение SQL-запроса
-                    using (SqlConnection sqlCon = new SqlConnection(SQLHelper.ConnectionString))
-                    {
-                        await sqlCon.OpenAsync();
-                        using (SqlCommand cmd2 = new SqlCommand(sql, sqlCon))
+                    var filteredRecords = queue
+                        .Where(x => x.price > 0.0001m || market == 0)
+                        .Select(record => new
                         {
-                            await cmd2.ExecuteNonQueryAsync();
-                        }
-                    }
+                            n = record.number,
+                            i = SQLHelper.TickerDic[record.ticker].id,
+                            d = record.datetime,
+                            p = record.price,
+                            q = record.quantity,
+                            v = record.volume,
+                            o = record.OI,
+                            b = record.direction
+                        })
+                        .ToList();
+
+                    if (!filteredRecords.Any())
+                        break;
+
+                    var json = JsonConvert.SerializeObject(filteredRecords);
+                    var jsonParameter = new SqlParameter("@json", SqlDbType.NVarChar)
+                    {
+                        Value = json
+                    };
+
+                    var sql = market == 1
+                        ? @"DECLARE @json NVARCHAR(MAX) = @json;
+                            INSERT INTO tradesbinance (ID, number, TradeDate, Price, Quantity, Direction)
+                            SELECT i, n, d, p, q, b
+                            FROM OPENJSON(@json, '$')
+                            WITH(
+                                n bigint '$.n',
+                                i int '$.i',
+                                d datetime2 '$.d',
+                                p decimal(18, 6) '$.p',
+                                q decimal(18, 6) '$.q',
+                                v decimal(18, 6) '$.v',
+                                o int '$.o',
+                                b int '$.b'
+                            );"
+                        : @"DECLARE @json NVARCHAR(MAX) = @json;
+                            INSERT INTO trades (ID, number, TradeDate, Price, Quantity, Volume, OI, Direction)
+                            SELECT i, n, d, p, q, v, o, b
+                            FROM OPENJSON(@json, '$')
+                            WITH(
+                                n bigint '$.n',
+                                i int '$.i',
+                                d datetime2 '$.d',
+                                p decimal(18, 6) '$.p',
+                                q decimal(18, 6) '$.q',
+                                v decimal(18, 6) '$.v',
+                                o int '$.o',
+                                b int '$.b'
+                            );";
+
+                    await context.Database.ExecuteSqlRawAsync(sql, jsonParameter);
 
                     // Если все прошло успешно, выходим из цикла
                     break;
                 }
-                catch (SqlException ex) when (IsTransient(ex))
+                catch (Exception ex) when (GetSqlException(ex) is SqlException sqlException && IsTransient(sqlException))
                 {
                     retryCount++;
                     if (retryCount > maxRetries)
@@ -307,6 +256,11 @@ VALUES
         {
             // Добавьте другие номера ошибок по мере необходимости
             return true;//  ..ex.Number == 19;
+        }
+
+        private SqlException GetSqlException(Exception ex)
+        {
+            return ex as SqlException ?? ex.GetBaseException() as SqlException;
         }
 
         // Метод логирования попыток повтора
