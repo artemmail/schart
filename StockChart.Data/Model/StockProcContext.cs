@@ -16,6 +16,7 @@ public partial class StockProcContext : ApplicationDbContext
     private DbSet<tickersdatesResult> tickersdates { get; set; }
     private DbSet<TopOrdersResult> TopOrders { get; set; }    
     private DbSet<VolumeSearchResult> VolumeSearch { get; set; }
+    public DbSet<MissingIntervalWithTrades> MissingIntervalsWithTrades { get; set; }
     public StockProcContext()
     {
     }
@@ -38,6 +39,7 @@ public partial class StockProcContext : ApplicationDbContext
         modelBuilder.Entity<tickersdatesResult>().HasNoKey();
         modelBuilder.Entity<TopOrdersResult>().HasNoKey();
         modelBuilder.Entity<VolumeSearchResult>().HasNoKey();
+        modelBuilder.Entity<MissingIntervalWithTrades>().HasNoKey();
         //Thanks Valecass!!!
         base.OnModelCreating(modelBuilder);
     }
@@ -618,11 +620,11 @@ public partial class StockProcContext : ApplicationDbContext
     public sealed record VolumeDashboardRow(
     string name,
     string ticker,
-    decimal volume1Day,     // объём за текущую сессию
-    decimal avg3Days,       // среднее за 7 предыдущих торговых дней
-    decimal avg7Days,       // среднее за 7 предыдущих торговых дней
-    decimal avg30Days,      // среднее за 30 предыдущих торговых дней
-    decimal avg90Days,      // и т. д.
+    decimal volume1Day,     // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+    decimal avg3Days,       // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ 7 пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
+    decimal avg7Days,       // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ 7 пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
+    decimal avg30Days,      // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ 30 пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
+    decimal avg90Days,      // пїЅ пїЅ. пїЅ.
     decimal avg180Days,
     decimal avg365Days);
 

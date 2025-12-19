@@ -1,8 +1,9 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using StockChart.Model;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Data;
-using System.Data.SqlClient;
 using System.Linq;
 
 
@@ -16,19 +17,6 @@ public class TickerDIC
 
 
 
-
-public class DicView
-{
-    public string SECURITYID { get; set; }
-    public byte market { get; set; }
-    public int id { get; set; }
-
-
-    public int lotsize { get; set; }
-
-
-
-}
 
 public class MaxNumberForts
 {
@@ -52,11 +40,14 @@ public static class LastIdsContainer
         {
             if (!LastIds.ContainsKey(id))
             {
-                var res = SQLHelper.ScalarFromQuery($"select top 1  maxnumber from [MaxTrades] where id = {id}");
-                if (res == null)
-                    LastIds[id] = 0;
-                else
-                    LastIds[id] = (long)res;
+                using var context = SQLHelper.CreateContext();
+                var res = context.MaxTrades
+                    .AsNoTracking()
+                    .Where(x => x.Id == id)
+                    .OrderByDescending(x => x.MaxTime)
+                    .Select(x => (long?)x.MaxNumber)
+                    .FirstOrDefault();
+                LastIds[id] = res ?? 0;
             }
             return LastIds[id];
         }
@@ -71,15 +62,45 @@ public static class LastIdsContainer
 public static class SQLHelper
 {
     public static ConcurrentDictionary<string, TickerDIC> TickerDic = new ConcurrentDictionary<string, TickerDIC>();
-    static SqlConnection sqlConn = new SqlConnection(SQLHelper.ConnectionString);
+    private static readonly Lazy<IConfigurationRoot> Configuration = new(() =>
+        new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddEnvironmentVariables()
+            .Build());
+
+    public static StockProcContext CreateContext()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext2>()
+            .UseSqlServer(ConnectionString)
+            .Options;
+
+        return new StockProcContext(options);
+    }
     public static void DIC()
     {
-        var tab = SQLHelper.DataTableFromQuery("SELECT SECURITYID,market,id, lotsize  FROM [stock].[dbo].[Dictionary]");
-        List<DicView> TickerList = SQLHelper.ConvertDataTable<DicView>(tab).Where(x => !TickerDic.ContainsKey(x.SECURITYID)).ToList();
+        using var dbContext = CreateContext();
+        var tickers = dbContext.Dictionaries
+            .AsNoTracking()
+            .Select(x => new { x.Securityid, x.Market, x.Id, x.Lotsize })
+            .Where(x => x.Securityid != null)
+            .ToList();
 
-        //TickerDic.Clear();
-        foreach (var v in TickerList)
-            TickerDic[v.SECURITYID] = new TickerDIC() { market = v.market, id = v.id, lotsize = v.lotsize };
+        foreach (var ticker in tickers)
+        {
+            var key = ticker.Securityid.ToUpperInvariant();
+            if (TickerDic.ContainsKey(key))
+            {
+                continue;
+            }
+
+            TickerDic[key] = new TickerDIC
+            {
+                market = ticker.Market ?? 0,
+                id = ticker.Id,
+                lotsize = ticker.Lotsize ?? 0
+            };
+        }
 
     }
     static SQLHelper()
@@ -89,73 +110,23 @@ public static class SQLHelper
 
     public static List<MissingIntervalWithTrades> GetMissingIntervalsWithTrades(int specificId, DateTime startPeriod, DateTime endPeriod)
     {
-        var result = new List<MissingIntervalWithTrades>();
-
-        using (SqlConnection sqlConn = new SqlConnection(SQLHelper.ConnectionString))
-        {
-            using (SqlCommand cmd = new SqlCommand("sp_GetMissingTrades2", sqlConn))
-            {
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                // Добавляем параметры
-                cmd.Parameters.Add(new SqlParameter("@SpecificID", SqlDbType.Int) { Value = specificId });
-                cmd.Parameters.Add(new SqlParameter("@StartPeriod", SqlDbType.DateTime) { Value = startPeriod });
-                cmd.Parameters.Add(new SqlParameter("@EndPeriod", SqlDbType.DateTime) { Value = endPeriod });
-
-                sqlConn.Open();
-
-                using (SqlDataReader reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var interval = new MissingIntervalWithTrades
-                        {
-                            MissingStart = reader["MissingStart"] != DBNull.Value ? (DateTime)reader["MissingStart"] : default,
-                            MissingEnd = reader["MissingEnd"] != DBNull.Value ? (DateTime)reader["MissingEnd"] : default,
-                            BeforeGapTradeNumber = reader["BeforeGapTradeNumber"] != DBNull.Value ? (long?)reader["BeforeGapTradeNumber"] : null,
-                            BeforeGapTradeDate = reader["BeforeGapTradeDate"] != DBNull.Value ? (DateTime?)reader["BeforeGapTradeDate"] : null,
-                            AfterGapTradeNumber = reader["AfterGapTradeNumber"] != DBNull.Value ? (long?)reader["AfterGapTradeNumber"] : null,
-                            AfterGapTradeDate = reader["AfterGapTradeDate"] != DBNull.Value ? (DateTime?)reader["AfterGapTradeDate"] : null
-                        };
-
-                        result.Add(interval);
-                    }
-                }
-            }
-        }
-
-        return result;
+        using var dbContext = CreateContext();
+        return dbContext.MissingIntervalsWithTrades
+            .FromSqlInterpolated(
+                $"EXEC sp_GetMissingTrades2 @SpecificID={specificId}, @StartPeriod={startPeriod}, @EndPeriod={endPeriod}")
+            .ToList();
     }
     public static string ConnectionString
     {
         get
         {
-            return
-            //    "Server = SLIM; Database = stock; Trusted_Connection = True; Connection Timeout = 200";
-            // "Data Source=77.51.186.0;Initial Catalog=stock;User ID=ruticker;Password=121212;Connection Timeout=20000";
-            //"Data Source=192.168.1.8;Initial Catalog=stock;User id=ruticker;Password=121212;Connection Timeout=40000;TrustServerCertificate=True;MultipleActiveResultSets=true;\r\n";
-            "data source=localhost;initial catalog=stock;;TrustServerCertificate=True;integrated security=True;persist security info=True;connect timeout=20000;MultipleActiveResultSets=True;App=EntityFramework";
-        }
-    }
-    public static DataTable DataTableFromQuery(string s)
-    {
-        using (SqlConnection sqlConn = new SqlConnection(ConnectionString))
-        {
-            sqlConn.Open();
-            SqlCommand cmd = new SqlCommand(s, sqlConn);
-            SqlDataReader reader = cmd.ExecuteReader();
-            DataTable dt = new DataTable();
-            dt.Load(reader);
-            return dt;
-        }
-    }
-    public static object ScalarFromQuery(string s)
-    {
-        using (SqlConnection sqlConn = new SqlConnection(ConnectionString))
-        {
-            sqlConn.Open();
-            SqlCommand cmd = new SqlCommand(s, sqlConn);
-            return cmd.ExecuteScalar();
+            var configured = Configuration.Value.GetConnectionString(\"DefaultConnection\");
+            if (!string.IsNullOrWhiteSpace(configured))
+            {
+                return configured;
+            }
+
+            return \"data source=localhost;initial catalog=stock;;TrustServerCertificate=True;integrated security=True;persist security info=True;connect timeout=20000;MultipleActiveResultSets=True;App=EntityFramework\";
         }
     }
 

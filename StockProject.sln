@@ -15,6 +15,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StockChart.EventBus.RabbitM
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StockChart.EventBus.RabbitMQ.DependencyInjection", "StockChart.EventBus.RabbitMQ.DependencyInjection\StockChart.EventBus.RabbitMQ.DependencyInjection.csproj", "{DA2A2257-3D4C-41EC-BE9E-D0C2E2EE8D25}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StockChart.Data", "StockChart.Data\StockChart.Data.csproj", "{21EB7C55-81C9-41E9-A6B8-0E37D2E2A2B1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,7 +47,11 @@ Global
 		{DA2A2257-3D4C-41EC-BE9E-D0C2E2EE8D25}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DA2A2257-3D4C-41EC-BE9E-D0C2E2EE8D25}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DA2A2257-3D4C-41EC-BE9E-D0C2E2EE8D25}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
+			{21EB7C55-81C9-41E9-A6B8-0E37D2E2A2B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21EB7C55-81C9-41E9-A6B8-0E37D2E2A2B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21EB7C55-81C9-41E9-A6B8-0E37D2E2A2B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21EB7C55-81C9-41E9-A6B8-0E37D2E2A2B1}.Release|Any CPU.Build.0 = Release|Any CPU
+EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection

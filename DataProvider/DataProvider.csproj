@@ -27,7 +27,6 @@
     <PackageReference Include="RestSharp" Version="112.1.0" />
     <PackageReference Include="SharpZipLib" Version="1.4.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="system.text.encoding.codepages" Version="9.0.1" />
     <PackageReference Include="Telerik.UI.for.AspNet.Core" Version="2023.1.117" />
@@ -37,5 +36,6 @@
     <ProjectReference Include="..\StockChart.EventBus.RabbitMQ.DependencyInjection\StockChart.EventBus.RabbitMQ.DependencyInjection.csproj" />
     <ProjectReference Include="..\StockChart.EventBus.RabbitMQ\StockChart.EventBus.RabbitMQ.csproj" />
     <ProjectReference Include="..\StockChart.EventBus\StockChart.EventBus.csproj" />
+    <ProjectReference Include="..\StockChart.Data\StockChart.Data.csproj" />
   </ItemGroup>
 </Project>

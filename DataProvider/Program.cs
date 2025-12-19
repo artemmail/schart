@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using StockChart.EventBus.RabbitMQ.DependencyInjection;
 using StockChart.Notification.WebApi.RabbitMQ.Subscriptions;
+using StockChart.Model;
 using System;
 
 namespace DataProvider
@@ -20,7 +22,10 @@ namespace DataProvider
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+            builder.Services.AddDbContext<ApplicationDbContext2>(options => options.UseSqlServer(connectionString));
+            builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+            builder.Services.AddDbContext<StockProcContext>(options => options.UseSqlServer(connectionString));
 
             builder.Services.Configure<BroadCastOptions>(builder.Configuration.GetSection("BroadCastOptions"));
 

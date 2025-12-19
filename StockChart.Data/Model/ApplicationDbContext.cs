@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using StockChart.Model.Settings;
 
 namespace StockChart.Model;
@@ -81,14 +82,27 @@ public class ApplicationUser : IdentityUser<Guid>
    
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        if (!optionsBuilder.IsConfigured)
+        if (optionsBuilder.IsConfigured)
         {
-            var configuration = new ConfigurationBuilder()
-                .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-                .AddJsonFile("appsettings.json")
-                .Build();
+            return;
+        }
 
-            optionsBuilder.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
+        if (!string.IsNullOrWhiteSpace(_connectionString))
+        {
+            optionsBuilder.UseSqlServer(_connectionString);
+            return;
+        }
+
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        if (!string.IsNullOrWhiteSpace(connectionString))
+        {
+            optionsBuilder.UseSqlServer(connectionString);
         }
     }
 
@@ -162,14 +176,27 @@ public partial class ApplicationDbContext : ApplicationDbContext2
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        if (!optionsBuilder.IsConfigured)
+        if (optionsBuilder.IsConfigured)
         {
-            var configuration = new ConfigurationBuilder()
-                .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-                .AddJsonFile("appsettings.json")
-                .Build();
+            return;
+        }
 
-            optionsBuilder.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
+        if (!string.IsNullOrWhiteSpace(_connectionString))
+        {
+            optionsBuilder.UseSqlServer(_connectionString);
+            return;
+        }
+
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        if (!string.IsNullOrWhiteSpace(connectionString))
+        {
+            optionsBuilder.UseSqlServer(connectionString);
         }
     }
 

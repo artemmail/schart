@@ -4,24 +4,14 @@
 using DataProvider.Models;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
+using StockChart.Model;
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-
-public class MissingIntervalWithTrades
-{
-    public DateTime MissingStart { get; set; }
-    public DateTime MissingEnd { get; set; }
-    public long? BeforeGapTradeNumber { get; set; }
-    public DateTime? BeforeGapTradeDate { get; set; }
-    public long? AfterGapTradeNumber { get; set; }
-    public DateTime? AfterGapTradeDate { get; set; }
-}
 
 public class MissingIntervalsFetcherService : IHostedService, IDisposable
 {
@@ -329,31 +319,7 @@ public class MissingIntervalsFetcherService : IHostedService, IDisposable
                         b = r.direction
                     }));
 
-                    string sql = $@"
-                    DECLARE @json NVARCHAR(MAX)
-                    SET @json = N'{json}'
-                    INSERT INTO tradesbinance
-                    SELECT i, n, d, p, q, b
-                    FROM OPENJSON(@json, '$')
-                    WITH(
-                        n bigint       '$.n',
-                        i int          '$.i',
-                        d datetime2    '$.d',
-                        p decimal(18,6)'$.p',
-                        q decimal(18,6)'$.q',
-                        v decimal(18,6)'$.v',
-                        o int          '$.o',
-                        b int          '$.b'
-                    )";
-
-                    using (SqlConnection sqlCon = new SqlConnection(SQLHelper.ConnectionString))
-                    {
-                        await sqlCon.OpenAsync();
-                        using (SqlCommand cmd = new SqlCommand(sql, sqlCon))
-                        {
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                    }
+                    DDEReciever1.InsertToDB(batchRecords, market);
                     break; // Успешная вставка, переходим к следующему батчу
                 }
                 catch (SqlException ex) when (IsTransient(ex))
