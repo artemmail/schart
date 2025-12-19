@@ -1,6 +1,9 @@
 ﻿
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
+using System;
 using System.Net;
+using StockChart.Repository;
 using Yoomoney.model;
 using Newtonsoft.Json;
 
@@ -9,10 +12,17 @@ namespace StockChart.Repository.Services
 {
     public class YooMoneyRepository: IYooMoneyRepository
     {
-        const string client_id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-        const string Bearer = "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
-        const string redirect = "https%3A%2F%2Fstockchart.ru/admin/yandexget";
-        public YooMoneyRepository() { }
+        private readonly string _clientId;
+        private readonly string _bearer;
+        private readonly string _redirect;
+
+        public YooMoneyRepository(IOptions<YooMoneyOptions> options)
+        {
+            var settings = options.Value;
+            _clientId = settings.ClientId ?? throw new ArgumentNullException(nameof(settings.ClientId));
+            _bearer = settings.Bearer ?? throw new ArgumentNullException(nameof(settings.Bearer));
+            _redirect = settings.RedirectUri ?? throw new ArgumentNullException(nameof(settings.RedirectUri));
+        }
 
         public OperationDetails? operationDetails(string operationId)
         {
@@ -29,12 +39,12 @@ namespace StockChart.Repository.Services
 
         public string authorize()
         {
-            var data = $"client_id={client_id}&response_type=code&redirect_uri={redirect}t&scope=account-info%20operation-history%20operation-details";
+            var data = $"client_id={_clientId}&response_type=code&redirect_uri={_redirect}t&scope=account-info%20operation-history%20operation-details";
             return request("oauth/authorize", data, false);
         }
         public string token(string code)
         {
-            var data = $"code={code}&client_id={client_id}&grant_type=authorization_code&&redirect_uri={redirect}";
+            var data = $"code={code}&client_id={_clientId}&grant_type=authorization_code&&redirect_uri={_redirect}";
             return request("oauth/authorize", data, false);
         }
         string request(string function, string data, bool token = true)
@@ -45,7 +55,7 @@ namespace StockChart.Repository.Services
             httpRequest.Method = "POST";
             
             if (token)
-                httpRequest.Headers["Authorization"] = $"Bearer {Bearer}";
+                httpRequest.Headers["Authorization"] = $"Bearer {_bearer}";
             httpRequest.ContentType = "application/x-www-form-urlencoded";
             using (var streamWriter = new StreamWriter(httpRequest.GetRequestStream()))
             {
