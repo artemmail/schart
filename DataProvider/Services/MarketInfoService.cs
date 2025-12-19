@@ -33,10 +33,13 @@ namespace DataProvider.Services
     {
         private readonly IReadOnlyDictionary<string, MarketInfo> _markets;
         private ConcurrentDictionary<string, TickerDIC> _tickerDictionary;
+        private readonly IDbContextFactory<StockProcContext> _contextFactory;
 
-        public MarketInfoService()
+        public MarketInfoService(IDbContextFactory<StockProcContext> contextFactory)
         {
-            using var context = DatabaseContextFactory.CreateStockProcContext(SQLHelper.ConnectionString);
+            _contextFactory = contextFactory;
+
+            using var context = _contextFactory.CreateDbContext();
             var markets = context.Classes
                 .AsNoTracking()
                 .Select(x => new MarketInfo
@@ -83,7 +86,7 @@ namespace DataProvider.Services
 
         private ConcurrentDictionary<string, TickerDIC> LoadTickers()
         {
-            using var context = DatabaseContextFactory.CreateStockProcContext(SQLHelper.ConnectionString);
+            using var context = _contextFactory.CreateDbContext();
             var tickerList = context.Dictionaries
                 .AsNoTracking()
                 .Select(x => new
@@ -116,7 +119,7 @@ namespace DataProvider.Services
 
     public static class MarketInfoServiceHolder
     {
-        private static Lazy<IMarketInfoService> _marketInfoService = new(() => new MarketInfoService());
+        private static Lazy<IMarketInfoService> _marketInfoService = new(() => throw new InvalidOperationException("MarketInfoServiceHolder is not configured."));
 
         public static void Configure(IMarketInfoService marketInfoService)
         {

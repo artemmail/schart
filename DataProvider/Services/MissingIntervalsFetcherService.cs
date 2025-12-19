@@ -13,6 +13,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using StockChart.Data;
 using StockChart.Model;
 
@@ -21,6 +22,7 @@ public class MissingIntervalsFetcherService : IHostedService, IDisposable
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private Task _executingTask;
     private static readonly HttpClient httpClient = new HttpClient();
+    private readonly IDbContextFactory<StockProcContext> _contextFactory;
 
     private DateTime startPeriod = DateTime.Now.Date.AddDays(-1);
     private DateTime endPeriod = DateTime.Now.Date.AddDays(+1);
@@ -31,7 +33,10 @@ public class MissingIntervalsFetcherService : IHostedService, IDisposable
     // Задаём количество параллельных потоков
     private const int MAX_THREADS = 3;
 
-
+    public MissingIntervalsFetcherService(IDbContextFactory<StockProcContext> contextFactory)
+    {
+        _contextFactory = contextFactory;
+    }
 
     public static List<MissingIntervalWithTrades> SplitIntervalsByDay(List<MissingIntervalWithTrades> intervals)
     {
@@ -133,7 +138,7 @@ public class MissingIntervalsFetcherService : IHostedService, IDisposable
                             var specificId = x.id;
 
                             // Запрашиваем недостающие интервалы
-                            using var context = DatabaseContextFactory.CreateStockProcContext(SQLHelper.ConnectionString);
+                            using var context = _contextFactory.CreateDbContext();
                             var missingIntervals = context.GetMissingIntervalsWithTrades(specificId, startPeriod, endPeriod);
 
                             // Разбиваем интервалы по дням и фильтруем
@@ -388,7 +393,7 @@ public class MissingIntervalsFetcherService : IHostedService, IDisposable
                         };
                     }).ToList();
 
-                    using var context = DatabaseContextFactory.CreateStockProcContext(SQLHelper.ConnectionString);
+                    using var context = _contextFactory.CreateDbContext();
                     await context.InsertTradesBinanceBatchAsync(batchPayload);
                     break; // Успешная вставка, переходим к следующему батчу
                 }
