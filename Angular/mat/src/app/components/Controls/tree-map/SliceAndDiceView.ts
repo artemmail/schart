@@ -1,7 +1,5 @@
-import { Injectable } from '@angular/core';
-import { TreeNode, HtmlSize, TreeView } from './tree-layout.interface';
-import { Squarified } from './Squarified';
-import { SquarifiedView } from './squarifiedView';
+import { TreeNode, HtmlSize } from './tree-layout.interface';
+import { SquarifiedView } from './SquarifiedView';
 
 
 
@@ -26,6 +24,10 @@ function getOuterWidth(element: HTMLElement): number {
 
 
 export class SliceAndDiceView extends SquarifiedView {
+
+  constructor(treeMap: any, options: any) {
+    super(treeMap, options);
+  }
     
   override htmlSize(root: TreeNode): HtmlSize {
     const rootElement = this._getByUid(root.dataItem.uid);

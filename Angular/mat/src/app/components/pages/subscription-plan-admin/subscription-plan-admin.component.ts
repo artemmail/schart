@@ -1,17 +1,40 @@
+import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTableModule } from '@angular/material/table';
 import {
   DiscountSettingDto,
   SubscriptionPlanAdminService,
   SubscriptionPlanDto,
   SubscriptionPlanRequest,
 } from 'src/app/service/subscription-plan-admin.service';
+import { ReactiveFormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-subscription-plan-admin',
   templateUrl: './subscription-plan-admin.component.html',
   styleUrls: ['./subscription-plan-admin.component.scss'],
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatDatepickerModule,
+    MatButtonModule,
+    MatCheckboxModule,
+    MatTableModule,
+    MatProgressSpinnerModule,
+  ],
 })
 export class SubscriptionPlanAdminComponent implements OnInit {
   plans: SubscriptionPlanDto[] = [];

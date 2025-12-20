@@ -18,8 +18,16 @@
     "importHelpers": true,
     "target": "ES2022",
     "module": "ES2022",
+    "skipLibCheck": true,
     "useDefineForClassFields": false,
     "typeRoots": ["node_modules/@types", "src/types"],
+    "paths": {
+      "tinymce": ["tinymce/tinymce.min"],
+      "tinymce/*": ["tinymce/*"],
+      "tinymce/plugins/*": ["tinymce/plugins/*/plugin.min"],
+      "tinymce/themes/*": ["tinymce/themes/*/theme.min"],
+      "tinymce/icons/*": ["tinymce/icons/*/icons.min"]
+    },
     "lib": [
       "ES2022",
       "dom"

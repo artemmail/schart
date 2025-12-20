@@ -82,7 +82,7 @@ import { LeaderboardTableComponent } from './components/Controls/leaderboard-tab
 import { TickerAutocompleteComponent } from './components/Controls/ticker-autocomplete/ticker-autocomplete.component';
 import { TopOrdersComponent } from './components/Reports/top-orders/top-orders.component';
 import { ImageUploaderComponent } from './components/pages/image-uploader/image-uploader.component';
-import { DateRangePickerComponent } from './components/Controls/DateRange/date-range-picker.Component';
+import { DateRangePickerComponent } from './components/Controls/DateRange/date-range-picker.component';
 import { UserTopicsTableComponent } from './components/pages/user-topics-table/user-topics-table.component';
 import { FootPrintSettingsDialogComponent } from './components/footprint/foot-print-settings-dialog/foot-print-settings-dialog.component';
 import { NavListItemComponent } from './components/Controls/nav-list-item/nav-list-item.component';

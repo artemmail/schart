@@ -39,21 +39,26 @@
   "./src/kendo/kendo.all.min.js"]
           },
           "configurations": {
-            "production": {
-              "budgets": [
-                {
-                  "type": "initial",
-                  "maximumWarning": "5000kb",
-                  "maximumError": "10mb"
-                },
-                {
-                  "type": "anyComponentStyle",
-                  "maximumWarning": "200kb",
-                  "maximumError": "400kb"
-                }
-              ],
-              "outputHashing": "all"
-            },
+    "production": {
+      "budgets": [
+        {
+          "type": "initial",
+          "maximumWarning": "5000kb",
+          "maximumError": "10mb"
+        },
+        {
+          "type": "anyComponentStyle",
+          "maximumWarning": "200kb",
+          "maximumError": "400kb"
+        }
+      ],
+      "optimization": {
+        "fonts": {
+          "inline": false
+        }
+      },
+      "outputHashing": "all"
+    },
             "development": {
               "buildOptimizer": false,
               "optimization": false,

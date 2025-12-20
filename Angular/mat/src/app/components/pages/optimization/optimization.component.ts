@@ -6,7 +6,7 @@ import { PortfolioSolution } from 'src/app/models/portfolio.model';
 import { Title } from '@angular/platform-browser';
 import { ReportsService } from 'src/app/service/reports.service';
 import { FootPrintRequestModel } from 'src/app/models/tickerpreset';
-import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-picker.Component';
+import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-picker.component';
 import { PortfolioTableComponent } from '../portfolio copy/portfolio-table.component';
 
 @Component({

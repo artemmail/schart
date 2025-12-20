@@ -18,7 +18,7 @@ import { FootPrintComponent } from '../../footprint/footprint.component';
 import { PresetSelectorComponent1 }
         from '../../DateRangeSelector/date-range-selector.component';
 import { DateRangePickerComponent }
-        from '../../Controls/DateRange/date-range-picker.Component';
+        from '../../Controls/DateRange/date-range-picker.component';
 
 import { SelectListItemNumber, SmallPeriodPresetShort }
         from 'src/app/models/preserts';
