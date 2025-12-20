@@ -1,11 +1,27 @@
 .table-card {
   max-width: 1600px;
   margin: 20px auto; /* Центрирование карточки с отступом сверху и снизу */
+  background-color: var(--mat-sys-surface-container-low, #f4f3f6);
+  box-shadow: var(
+    --mat-sys-level1,
+    0 2px 1px -1px rgba(0, 0, 0, 0.2),
+    0 1px 1px 0 rgba(0, 0, 0, 0.14),
+    0 1px 3px 0 rgba(0, 0, 0, 0.12)
+  );
 }
 
 .custom-table {
   width: 100%;
   overflow-x: auto; /* Добавляет горизонтальную прокрутку при необходимости */
+}
+
+.custom-table a {
+  color: var(--mat-sys-primary, #1a73e8);
+}
+
+.custom-table a:hover,
+.custom-table a:focus-visible {
+  color: color-mix(in srgb, var(--mat-sys-primary, #1a73e8) 85%, black);
 }
 
 /* Цвета иконок для колонки СБП операции */
@@ -22,3 +38,12 @@
   color: var(--mat-sys-error, #c62828); /* красный для отсутствия СБП */
 }
 
+.mat-column-direction mat-icon[color="primary"],
+.mat-column-direction mat-icon.mat-primary {
+  color: var(--mat-sys-primary, #005cbb);
+}
+
+.mat-column-direction mat-icon[color="warn"],
+.mat-column-direction mat-icon.mat-warn {
+  color: var(--mat-sys-error, #ba1a1a);
+}
