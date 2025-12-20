@@ -22,6 +22,7 @@ declare var $: any;
 
 @Component({
   standalone: false,
+  
   selector: 'app-kendo-treemap',
   templateUrl: './kendo-treemap.component.html',
   styleUrls: ['./kendo-treemap.component.css'],

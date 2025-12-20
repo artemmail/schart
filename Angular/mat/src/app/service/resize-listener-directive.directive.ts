@@ -3,6 +3,7 @@ import { FootPrintComponent } from '../components/footprint/footprint.component'
 
 @Directive({
   selector: '[appResizeListener]',
+  standalone:false
 })
 export class ResizeListenerDirective {
   //  constructor(private host:MyComponent) {}

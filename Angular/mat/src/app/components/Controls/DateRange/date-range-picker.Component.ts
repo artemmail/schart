@@ -6,7 +6,8 @@ import { removeUTC, removeUTCd } from 'src/app/service/FootPrint/Formating/forma
 @Component({
   selector: 'app-date-range-picker',
   templateUrl: './date-range-picker.component.html',
-  styleUrls: ['./date-range-picker.component.css']
+  styleUrls: ['./date-range-picker.component.css'],
+  standalone:false,
 })
 export class DateRangePickerComponent implements AfterViewInit {
   @Output() selectionChange = new EventEmitter<{ start: Date | null, end: Date | null }>();

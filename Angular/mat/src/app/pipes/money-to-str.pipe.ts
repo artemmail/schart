@@ -3,6 +3,7 @@ import { MoneyToStr } from '../service/FootPrint/utils';
 
 @Pipe({
   name: 'moneyToStr',
+  standalone: false
 })
 export class MoneyToStrPipe implements PipeTransform {
   transform(value: any): string {

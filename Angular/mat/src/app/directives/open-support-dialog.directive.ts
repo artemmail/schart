@@ -4,7 +4,8 @@ import { SupportDialogComponent } from '../components/Dialogs/support-dialog/sup
 
 
 @Directive({
-  selector: '[appOpenSupportDialog]'
+  selector: '[appOpenSupportDialog]',
+  standalone: false
 })
 export class OpenSupportDialogDirective {
   constructor(private dialog: MatDialog) {}

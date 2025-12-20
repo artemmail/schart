@@ -2,7 +2,6 @@ import { Component, ViewChild, AfterViewInit, OnInit, Inject, ElementRef } from 
 import { Router, NavigationEnd } from '@angular/router';
 import { isPlatformServer, Location } from '@angular/common';
 import { filter } from 'rxjs/operators';
-import { Metrika } from 'ng-yandex-metrika';
 import { HttpClient } from '@angular/common/http';
 import { PLATFORM_ID } from '@angular/core';
 import { MatSidenav } from '@angular/material/sidenav';
@@ -72,7 +71,7 @@ export class AppMobileComponent implements AfterViewInit, OnInit {
 
 
   constructor(
-    private metrika: Metrika,
+    
     private authService: AuthService,
     private authEventService: AuthEventService,
     private http: HttpClient,
@@ -90,12 +89,12 @@ export class AppMobileComponent implements AfterViewInit, OnInit {
         .subscribe(() => {
           console.log('hit start');
           const newPath = location.path();
-          this.metrika.hit(newPath, {
+        /*  this.metrika.hit(newPath, {
             referer: prevPath,
             callback: () => {
               console.log('hit end');
             }
-          });
+          });*/
           prevPath = newPath;
         });
     } catch (e) {
