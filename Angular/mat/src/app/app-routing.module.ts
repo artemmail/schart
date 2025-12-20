@@ -11,6 +11,7 @@ import { TopOrdersComponent } from './components/Reports/top-orders/top-orders.c
 import { VolumeSplashComponent } from './components/Reports/volume-splash/volume-splash.component';
 import { LoginComponent } from './components/Authentification/login/login.component';
 import { SubscriptionPlansComponent } from './components/pages/Tarif/subscription.component';
+import { SubscriptionPlanAdminComponent } from './components/pages/subscription-plan-admin/subscription-plan-admin.component';
 import { MarketMapComponent } from './components/pages/market-map/market-map.component';
 import { MainPageComponent } from './components/pages/main-page/main-page.component';
 import { ServiceNewsDetailsComponent } from './components/pages/service-news-details/service-news-details.component';
@@ -87,6 +88,7 @@ const routes: Routes = [
   { path: 'Payments', component: PaymentsTableComponent},
   { path: 'UserTable', component: UserTableComponent },
   { path: 'YooMoney', component: YooMoneyOperationsComponent },
+  { path: 'Admin/SubscriptionPlans', component: SubscriptionPlanAdminComponent },
 
   { path: 'OpenPositions', component: ContractChartComponent 
     //,    canActivate: [AuthGuard] 

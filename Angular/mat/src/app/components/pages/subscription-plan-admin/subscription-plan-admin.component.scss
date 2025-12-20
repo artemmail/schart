@@ -1,0 +1,58 @@
+.subscription-plan-admin {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.discount-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.discount-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.plan-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.form-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-items: center;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.full-width-table {
+  width: 100%;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 32px 0;
+}
+
+.hint {
+  color: rgba(0, 0, 0, 0.54);
+}
