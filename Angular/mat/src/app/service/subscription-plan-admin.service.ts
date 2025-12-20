@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../environment';
 
 export interface SubscriptionPlanRequest {
@@ -23,6 +23,23 @@ export interface SubscriptionPlanResponse {
   plans: SubscriptionPlanDto[];
 }
 
+interface SubscriptionPlanApiDto {
+  Id: number;
+  Interval: string;
+  Count: number;
+  OrdinalMoney: number;
+  DiscountMoney: number;
+  Code: number;
+  IsReferal: boolean;
+  ReferalInterval?: string | null;
+  ReferalCount?: number | null;
+}
+
+interface SubscriptionPlanApiResponse {
+  DiscountBefore: string;
+  Plans: SubscriptionPlanApiDto[];
+}
+
 export interface DiscountSettingDto {
   discountBefore: string;
 }
@@ -36,7 +53,22 @@ export class SubscriptionPlanAdminService {
   constructor(private http: HttpClient) {}
 
   getSettings(): Observable<SubscriptionPlanResponse> {
-    return this.http.get<SubscriptionPlanResponse>(this.apiUrl);
+    return this.http.get<SubscriptionPlanApiResponse>(this.apiUrl).pipe(
+      map((response) => ({
+        discountBefore: response.DiscountBefore,
+        plans: response.Plans.map((plan) => ({
+          id: plan.Id,
+          interval: plan.Interval,
+          count: plan.Count,
+          ordinalMoney: plan.OrdinalMoney,
+          discountMoney: plan.DiscountMoney,
+          code: plan.Code,
+          isReferal: plan.IsReferal,
+          referalInterval: plan.ReferalInterval,
+          referalCount: plan.ReferalCount,
+        })),
+      }))
+    );
   }
 
   savePlan(
