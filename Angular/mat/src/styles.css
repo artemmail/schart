@@ -8,6 +8,34 @@ body {
 
 }
 
+/* --- Angular Material overlay adjustments for v19/v20 --- */
+/* Keep menu shadow and surface visible inside the CDK overlay. */
+.mat-mdc-menu-panel {
+  box-shadow: var(--mat-sys-level3, 0 8px 16px rgba(0, 0, 0, 0.24));
+  background: var(--mat-sys-surface-container, #fff);
+}
+
+/* Restore dialog container styling (surface + elevation) after the token migration. */
+.mat-mdc-dialog-surface {
+  box-shadow: var(--mat-sys-level3, 0 8px 16px rgba(0, 0, 0, 0.24));
+  background: var(--mat-sys-surface-container, #fff);
+}
+
+/* Darker backdrop so dialogs remain legible. */
+.cdk-overlay-backdrop.cdk-overlay-dark-backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+/* Ensure SVG mat-icons inherit color (custom icon colors). */
+mat-icon svg {
+  fill: currentColor;
+}
+
+/* Keep icon buttons inheriting surrounding color for custom palettes. */
+button.mat-mdc-icon-button .mat-icon {
+  color: inherit;
+}
+
 .app-header {
   justify-content: space-between;
   position: fixed;
