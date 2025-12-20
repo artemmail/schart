@@ -1,5 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using System.IO;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
+using StockChart.Model;
+using StockChart.Repository.Interfaces;
 
 #region Base Attribute for User Name Authorization
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
@@ -42,17 +48,26 @@ public class AdminAttribute : UserNameAuthorizeAttribute
 /// </summary>
 public class DbDownloadAttribute : UserNameAuthorizeAttribute
 {
-    protected override IEnumerable<string> AllowedUserNames => new[] { "ruticker", "adkomarov", "pazgld", "darkminer46", "888", "katarmind", "mishanya" };
+    protected override IEnumerable<string> AllowedUserNames => Array.Empty<string>();
 
     public override void OnAuthorization(AuthorizationFilterContext context)
     {
-        var userName = context.HttpContext.User?.Identity?.Name;
+        var userName = context.HttpContext.User?.Identity?.Name ?? "null";
 
         // Logging access attempts
-        var logMessage = $"{userName ?? "null"} {DateTime.Now}";
+        var logMessage = $"{userName} {DateTime.Now}";
         File.AppendAllText("c:/log/try_auth.txt", logMessage + Environment.NewLine);
 
-        base.OnAuthorization(context);
+        var serviceProvider = context.HttpContext.RequestServices;
+        var userManager = serviceProvider.GetService<UserManager<ApplicationUser>>();
+        var usersRepository = serviceProvider.GetService<IUsersRepository>();
+        var applicationUser = userManager?.GetUserAsync(context.HttpContext.User).GetAwaiter().GetResult();
+
+        if (applicationUser == null || usersRepository == null || !usersRepository.IsPayed(applicationUser, 8))
+        {
+            context.Result = new ForbidResult();
+            return;
+        }
     }
 }
 #endregion
