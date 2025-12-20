@@ -123,10 +123,8 @@ import { ProfitChartsComponent } from './components/pages/profit-charts/profit-c
 
 
 import {
+  NgxMatDatepickerInput,
   NgxMatDatetimepicker,
-  NgxMatDatetimePickerInputV2,
-  NgxMatDatepickerToggle,  
-  NgxMatDatepickerToggleIcon,
 } from '@ngxmc/datetime-picker';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -157,7 +155,8 @@ registerLocaleData(localeRu, 'ru');
     ReactiveFormsModule,
     MatDatepickerModule,
     MatInputModule,
-    NgxMatDatetimepicker
+    NgxMatDatetimepicker,
+    NgxMatDatepickerInput,
 ],
   declarations: [
     ResizeListenerDirective,
