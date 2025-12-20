@@ -7,4 +7,18 @@
     width: 100%;
     overflow-x: auto; /* Добавляет горизонтальную прокрутку при необходимости */
   }
+
+  /* Цвета иконок для колонки СБП операции */
+  .sbp-icon {
+    vertical-align: middle;
+    font-size: 20px;
+  }
+  
+  .sbp-icon-yes {
+    color: var(--mat-sys-primary, #2e7d32); /* зелёный акцент для успешной СБП */
+  }
+  
+  .sbp-icon-no {
+    color: var(--mat-sys-error, #c62828); /* красный для отсутствия СБП */
+  }
   
