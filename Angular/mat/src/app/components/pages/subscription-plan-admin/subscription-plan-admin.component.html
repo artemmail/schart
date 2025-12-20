@@ -1,0 +1,171 @@
+<div class="subscription-plan-admin" *ngIf="!isLoading; else loadingTemplate">
+  <mat-card class="discount-card">
+    <div class="card-header">
+      <h2>Скидочный период</h2>
+      <span class="hint"
+        >Текущая дата: {{ discountControl.value | date: 'dd.MM.yyyy' }}</span
+      >
+    </div>
+    <div class="discount-controls">
+      <mat-form-field appearance="outline">
+        <mat-label>Действует до</mat-label>
+        <input
+          matInput
+          [matDatepicker]="discountPicker"
+          [formControl]="discountControl"
+        />
+        <mat-datepicker-toggle
+          matSuffix
+          [for]="discountPicker"
+        ></mat-datepicker-toggle>
+        <mat-datepicker #discountPicker></mat-datepicker>
+      </mat-form-field>
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="saveDiscount()"
+        [disabled]="discountControl.invalid"
+      >
+        Сохранить
+      </button>
+    </div>
+  </mat-card>
+
+  <mat-card>
+    <div class="card-header">
+      <h2>{{ editingId ? 'Редактирование тарифа' : 'Новый тариф' }}</h2>
+      <button mat-button type="button" (click)="resetForm()" *ngIf="editingId">
+        Очистить
+      </button>
+    </div>
+
+    <form
+      class="plan-form"
+      [formGroup]="planForm"
+      (ngSubmit)="savePlan()"
+      autocomplete="off"
+    >
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Интервал</mat-label>
+          <input matInput formControlName="interval" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Количество</mat-label>
+          <input type="number" matInput formControlName="count" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Цена (обычная)</mat-label>
+          <input type="number" matInput formControlName="ordinalMoney" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Цена со скидкой</mat-label>
+          <input type="number" matInput formControlName="discountMoney" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Код услуг</mat-label>
+          <input type="number" matInput formControlName="code" />
+        </mat-form-field>
+      </div>
+
+      <div class="form-row">
+        <mat-checkbox formControlName="isReferal">Реферальный тариф</mat-checkbox>
+        <mat-form-field appearance="outline">
+          <mat-label>Интервал реферала</mat-label>
+          <input
+            matInput
+            formControlName="referalInterval"
+            [disabled]="!planForm.get('isReferal')?.value"
+          />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Количество реферала</mat-label>
+          <input
+            type="number"
+            matInput
+            formControlName="referalCount"
+            [disabled]="!planForm.get('isReferal')?.value"
+          />
+        </mat-form-field>
+      </div>
+
+      <div class="actions">
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          [disabled]="planForm.invalid"
+        >
+          {{ editingId ? 'Сохранить' : 'Добавить' }}
+        </button>
+      </div>
+    </form>
+
+    <h3>Доступные тарифы</h3>
+    <table
+      mat-table
+      [dataSource]="plans"
+      class="mat-elevation-z1 full-width-table"
+    >
+      <ng-container matColumnDef="interval">
+        <th mat-header-cell *matHeaderCellDef>Интервал</th>
+        <td mat-cell *matCellDef="let plan">{{ plan.interval }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="count">
+        <th mat-header-cell *matHeaderCellDef>Кол-во</th>
+        <td mat-cell *matCellDef="let plan">{{ plan.count }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="ordinalMoney">
+        <th mat-header-cell *matHeaderCellDef>Цена</th>
+        <td mat-cell *matCellDef="let plan">{{ plan.ordinalMoney | number: '1.0-0' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="discountMoney">
+        <th mat-header-cell *matHeaderCellDef>Цена со скидкой</th>
+        <td mat-cell *matCellDef="let plan">
+          {{ plan.discountMoney | number: '1.0-0' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="code">
+        <th mat-header-cell *matHeaderCellDef>Код</th>
+        <td mat-cell *matCellDef="let plan">{{ plan.code }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="type">
+        <th mat-header-cell *matHeaderCellDef>Тип</th>
+        <td mat-cell *matCellDef="let plan">
+          {{ plan.isReferal ? 'Реферальный' : 'Обычный' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="referalInfo">
+        <th mat-header-cell *matHeaderCellDef>Реферал</th>
+        <td mat-cell *matCellDef="let plan">{{ displayReferal(plan) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Действия</th>
+        <td mat-cell *matCellDef="let plan">
+          <button mat-button color="primary" (click)="editPlan(plan)">
+            Редактировать
+          </button>
+          <button mat-button color="warn" (click)="deletePlan(plan)">
+            Удалить
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </mat-card>
+</div>
+
+<ng-template #loadingTemplate>
+  <div class="loading-container">
+    <mat-spinner></mat-spinner>
+  </div>
+</ng-template>

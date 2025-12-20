@@ -156,6 +156,8 @@ public partial class ApplicationDbContext : ApplicationDbContext2
     public virtual DbSet<Trade> Trades { get; set; }
     public virtual DbSet<TradesEx> Tradesexes { get; set; }
     public virtual DbSet<Tradesbinance> Tradesbinances { get; set; }
+    public virtual DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+    public virtual DbSet<TaxSetting> TaxSettings { get; set; }
 
 
 
@@ -681,6 +683,23 @@ public partial class ApplicationDbContext : ApplicationDbContext2
                 .HasForeignKey(d => d.Id)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__tradesbinanc__ID__7F76C749");
+        });
+
+        modelBuilder.Entity<SubscriptionPlan>(entity =>
+        {
+            entity.Property(e => e.Interval)
+                .HasMaxLength(8)
+                .IsUnicode(false);
+            entity.Property(e => e.ReferalInterval)
+                .HasMaxLength(8)
+                .IsUnicode(false);
+            entity.Property(e => e.OrdinalMoney).HasColumnType("money");
+            entity.Property(e => e.DiscountMoney).HasColumnType("money");
+        });
+
+        modelBuilder.Entity<TaxSetting>(entity =>
+        {
+            entity.Property(e => e.DiscountBefore).HasColumnType("datetime");
         });
 
 

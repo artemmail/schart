@@ -1,7 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 using StockChart.Model;
-using System.Data;
 namespace StockChart.Repository.Services
 {
 
@@ -20,9 +18,9 @@ namespace StockChart.Repository.Services
     }
     public class Taxes
     {
-        public DateTime discountBefore { get; set; }
-        public List<Ordinal> ordinal { get; set; }
-        public List<Referal> referal { get; set; }
+        public DateTime discountBefore { get; set; } = DateTime.Now;
+        public List<Ordinal> ordinal { get; set; } = new();
+        public List<Referal> referal { get; set; } = new();
     }
     public class BillingRepository : IBillingRepository
     {
@@ -30,13 +28,7 @@ namespace StockChart.Repository.Services
         {
             protected char interval;
             protected int count;
-            protected virtual bool IsDiscountTime
-            {
-                get
-                {
-                    return DateTime.Now < PaymentOperations.discountBefore;
-                }
-            }
+            protected virtual bool IsDiscountTime => DateTime.Now < billingRepository.discountBefore;
             public decimal money
             {
                 get
@@ -48,15 +40,15 @@ namespace StockChart.Repository.Services
             public decimal discountMoney;
             public int code { get; set; }
             ApplicationUser user;
-            BillingRepository PaymentOperations;
-            public Subscription(ApplicationUser user, BillingRepository PaymentOperations, char interval, int count, decimal ordinalMoney, decimal discountMoney, int code)
+            protected readonly BillingRepository billingRepository;
+            public Subscription(ApplicationUser user, BillingRepository billingRepository, char interval, int count, decimal ordinalMoney, decimal discountMoney, int code)
             {
                 this.interval = interval;
                 this.count = count;
                 this.ordinalMoney = ordinalMoney;
                 this.discountMoney = discountMoney;
                 this.code = code;
-                this.PaymentOperations = PaymentOperations;
+                this.billingRepository = billingRepository;
                 this.user = user;
             }
 
@@ -161,8 +153,8 @@ namespace StockChart.Repository.Services
                             Interval = "" + interval,
                             Count = count
                         };
-                        PaymentOperations._dbcontext.Add(Bill);
-                        PaymentOperations._dbcontext.SaveChanges();
+                        billingRepository._dbcontext.Add(Bill);
+                        billingRepository._dbcontext.SaveChanges();
                         return Bill.Id;
                     }
                     return Guid.Empty;
@@ -211,18 +203,20 @@ namespace StockChart.Repository.Services
             protected char referalInterval;
             protected int referalCount;
             ApplicationUser referalUser;
-            public ReferalSubscription(ApplicationUser user, BillingRepository PaymentOperations, char interval, int count, int ordinalMoney, int discountMoney, int code, Guid? referalUser, char referalInterval, int referalCount) :
-                base(user, PaymentOperations, interval, count, ordinalMoney, discountMoney, code)
+            public ReferalSubscription(ApplicationUser user, BillingRepository billingRepository, char interval, int count, int ordinalMoney, int discountMoney, int code, Guid? referalUser, char referalInterval, int referalCount) :
+                base(user, billingRepository, interval, count, ordinalMoney, discountMoney, code)
             {
-                this.referalUser = (referalUser != null) ?
-                    PaymentOperations._dbcontext.Users.Where(x => x.Id == referalUser).FirstOrDefault() : null;
+                this.referalUser = (referalUser != null)
+                    ? billingRepository._dbcontext.Users.Where(x => x.Id == referalUser).FirstOrDefault()
+                    : null;
                 this.referalInterval = referalInterval;
                 this.referalCount = referalCount;
             }
             protected override string getMessage(ApplicationUser user)
             {
+                var referalName = referalUser?.UserName ?? "неизвестный пользователь";
                 return string.Format("Реферал от [{2}]. Оплата за доступ {0} к сервису ru-ticker.com для пользователя [{1}]",
-                    period, user?.UserName, referalUser.UserName);
+                    period, user?.UserName, referalName);
             }
 
             protected override bool IsDiscountTime
@@ -234,20 +228,55 @@ namespace StockChart.Repository.Services
             }
         }
         private StockProcContext _dbcontext;
-        Taxes data;
+        private Taxes data = new();
         public BillingRepository(StockProcContext dbContext)
         {
             _dbcontext = dbContext;
-            using (var file = System.IO.File.OpenText("c:/log/tax.json"))
+            data = LoadTaxesFromDatabase();
+        }
+
+        private Taxes LoadTaxesFromDatabase()
+        {
+            var settings = _dbcontext.TaxSettings.AsNoTracking().FirstOrDefault();
+            var plans = _dbcontext.SubscriptionPlans.AsNoTracking().ToList();
+
+            var ordinalPlans = plans
+                .Where(p => !p.IsReferal)
+                .Select(p => new Ordinal
+                {
+                    interval = p.Interval,
+                    count = p.Count,
+                    ordinalMoney = (double)p.OrdinalMoney,
+                    discountMoney = (double)p.DiscountMoney,
+                    code = p.Code
+                })
+                .ToList();
+
+            var referalPlans = plans
+                .Where(p => p.IsReferal)
+                .Select(p => new Referal
+                {
+                    interval = p.Interval,
+                    count = p.Count,
+                    ordinalMoney = (double)p.OrdinalMoney,
+                    discountMoney = (double)p.DiscountMoney,
+                    code = p.Code,
+                    referalInterval = p.ReferalInterval ?? string.Empty,
+                    referalCount = p.ReferalCount ?? 0
+                })
+                .ToList();
+
+            return new Taxes
             {
-                JsonSerializer serializer = new JsonSerializer();
-                data = JsonConvert.DeserializeObject<Taxes>(file.ReadToEnd());
-            }
+                discountBefore = settings?.DiscountBefore ?? DateTime.Now,
+                ordinal = ordinalPlans,
+                referal = referalPlans
+            };
         }
         public readonly Guid ApplicationId = new Guid("2DCBD9CE-C5C6-4EC2-88EB-9F9EDD43E885");
         public DateTime discountBefore
         {
-            get { return data.discountBefore; }
+            get { return data?.discountBefore ?? DateTime.Now; }
         }
 
         public IEnumerable<Subscription> getRefealSubscriptions(ApplicationUser User, Guid? referalUser)

@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using StockChart.Model;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mail;
@@ -13,18 +15,46 @@ namespace StockChart.Repository.Services
             public override string Token { get; set; }
         }
 
-        static dynamic _data = null;
-        static dynamic data
+        static Taxes? _data = null;
+        static Taxes data
         {
             get
             {
                 if (_data == null)
-                    using (var file = System.IO.File.OpenText(
-                        System.Web.Hosting.HostingEnvironment.ApplicationPhysicalPath + "tax.json"))
+                {
+                    using var context = new StockProcContext();
+                    var settings = context.TaxSettings.AsNoTracking().FirstOrDefault();
+                    var plans = context.SubscriptionPlans.AsNoTracking().ToList();
+
+                    _data = new Taxes
                     {
-                        JsonSerializer serializer = new JsonSerializer();
-                        _data = JsonConvert.DeserializeObject(file.ReadToEnd());
-                    }
+                        discountBefore = settings?.DiscountBefore ?? DateTime.Now,
+                        ordinal = plans
+                            .Where(x => !x.IsReferal)
+                            .Select(x => new Ordinal
+                            {
+                                interval = x.Interval,
+                                count = x.Count,
+                                ordinalMoney = (double)x.OrdinalMoney,
+                                discountMoney = (double)x.DiscountMoney,
+                                code = x.Code
+                            })
+                            .ToList(),
+                        referal = plans
+                            .Where(x => x.IsReferal)
+                            .Select(x => new Referal
+                            {
+                                interval = x.Interval,
+                                count = x.Count,
+                                ordinalMoney = (double)x.OrdinalMoney,
+                                discountMoney = (double)x.DiscountMoney,
+                                code = x.Code,
+                                referalInterval = x.ReferalInterval ?? string.Empty,
+                                referalCount = x.ReferalCount ?? 0
+                            })
+                            .ToList()
+                    };
+                }
                 return _data;
             }
         }

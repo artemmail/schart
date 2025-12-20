@@ -120,6 +120,7 @@ import { UserPaymentsStatComponent } from './components/pages/users-pay-stats/us
 import { PaymentsTableComponent } from './components/tables/payments-table/payments-table.component';
 import { PaymentDialogComponent } from './components/Dialogs/payments-dialog/payments-dialog.component';
 import { ProfitChartsComponent } from './components/pages/profit-charts/profit-charts.component';
+import { SubscriptionPlanAdminComponent } from './components/pages/subscription-plan-admin/subscription-plan-admin.component';
 
 
 import {
@@ -244,7 +245,7 @@ registerLocaleData(localeRu, 'ru');
      TopicListComponent,TickerIconComponent,ContractChartComponent,OpenPositionsTableComponent,
      OptionDetailsComponent,FuturesDetailsComponent,ContractGroupsComponent,OpenSupportDialogDirective,
      SettingsDialogComponent, EditorComponent,
-     BillDetailsDialogComponent, UserPaymentsStatComponent,PaymentsTableComponent,PaymentDialogComponent, ProfitChartsComponent,MarketBoardComponent
+     BillDetailsDialogComponent, UserPaymentsStatComponent,PaymentsTableComponent,PaymentDialogComponent, ProfitChartsComponent,MarketBoardComponent, SubscriptionPlanAdminComponent
   ],
   exports: [
     ResizeListenerDirective,
@@ -332,7 +333,7 @@ registerLocaleData(localeRu, 'ru');
     OptionDetailsComponent,FuturesDetailsComponent,ContractGroupsComponent,
     OpenSupportDialogDirective , SettingsDialogComponent, EditorComponent,
      UserPaymentsStatComponent,PaymentsTableComponent, ProfitChartsComponent,
-    PaymentDialogComponent, MarketBoardComponent
+    PaymentDialogComponent, MarketBoardComponent, SubscriptionPlanAdminComponent
 
   ],
 })
