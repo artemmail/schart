@@ -50,6 +50,7 @@ public class DbDownloadAttribute : UserNameAuthorizeAttribute
 {
     protected override IEnumerable<string> AllowedUserNames => Array.Empty<string>();
 
+    //"ruticker", "adkomarov", "pazgld", "darkminer46", "888", "katarmind", "mishanya"
     public override void OnAuthorization(AuthorizationFilterContext context)
     {
         var userName = context.HttpContext.User?.Identity?.Name ?? "null";

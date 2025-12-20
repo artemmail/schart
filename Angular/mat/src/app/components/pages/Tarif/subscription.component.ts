@@ -73,7 +73,7 @@ export class SubscriptionPlansComponent implements OnInit {
   onServiceChange(event: MatCheckboxChange, serviceValue: number): void {
     let res = 0;
     if (this.micex) res += 1;
-    if (this.crypto) res += 4;
+    if (this.crypto) res += 8;
 
     this.selectedServices = res;
     this.loadTarifs();

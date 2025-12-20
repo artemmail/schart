@@ -18,7 +18,7 @@
 
     <mat-form-field style="width: 100%;">
       <mat-label>Pay Date</mat-label>
-      <input matInput [ngxMatDatetimePicker]="payDatePicker" placeholder="Choose a date" [(ngModel)]="payment.PayDate" name="PayDate">
+      <input matInput  placeholder="Choose a date" [(ngModel)]="payment.PayDate" name="PayDate">
       <mat-datepicker-toggle matSuffix [for]="payDatePicker"></mat-datepicker-toggle>
       <ngx-mat-datetime-picker #payDatePicker></ngx-mat-datetime-picker>
     </mat-form-field>
