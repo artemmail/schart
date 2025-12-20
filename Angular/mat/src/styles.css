@@ -5,7 +5,13 @@ body {
   font-family: Roboto, "Helvetica Neue", sans-serif;
   min-height: 100vh;
   background: #EDEEF0;
+}
 
+/* Material 20 убрал legacy‑токен --mdc-protected-button-label-text-color.
+   Подменяем его на новый системный primary, чтобы старые правила не
+   теряли цвет после обновления. */
+:root {
+  --mdc-protected-button-label-text-color: var(--mat-sys-primary, #1a73e8);
 }
 
 /* --- Angular Material overlay adjustments for v19/v20 --- */
@@ -201,15 +207,19 @@ mat-cell mat-table .mat-header-row {
 
 a
 {
-  color: var(--mdc-protected-button-label-text-color)
+  /* Angular Material 20 перестал публиковать legacy‑токен
+     --mdc-protected-button-label-text-color, поэтому ссылки
+     оставались без цвета. Привязываем цвет к актуальному
+     токену палитры. */
+  color: var(--mat-sys-primary, #1a73e8);
 }
 
 a:visited {
-  color: var(--mdc-protected-button-label-text-color)
+  color: var(--mat-sys-primary, #1a73e8);
 }
 
 a:hover {
-  color:  var(--mdc-protected-button-label-text-color)
+  color:  color-mix(in srgb, var(--mat-sys-primary, #1a73e8) 85%, black);
 }
 
 mat-card-title a {
