@@ -36,12 +36,12 @@ namespace StockChart.Repository.Services
             var allContracts = GetAllContracts();
 
             var ttt = DateTime.Now;
-            //  for (var d = new DateTime(2025, 12, 14); ttt - d > TimeSpan.FromDays(1); d += TimeSpan.FromDays(1))
+              for (var d = new DateTime(2025, 12, 18); ttt - d > TimeSpan.FromDays(1); d += TimeSpan.FromDays(1))
             foreach (var contractName in allContracts)
             {
                 try
                 {
-                    await DownloadAndImportContractDataAsync(contractName);
+                    await DownloadAndImportContractDataAsync(contractName,d);
                 }
                 catch (Exception ex)
                 {
@@ -67,7 +67,7 @@ namespace StockChart.Repository.Services
         // Метод для скачивания и обработки данных по контракту
         private async Task DownloadAndImportContractDataAsync(string contractName, DateTime? d = null)
         {
-            DateTime currentDate = d ?? new DateTime(2025, 12, 16);// DateTime.Now;
+            DateTime currentDate = d ??  DateTime.Now;
             bool dataChanged = true;
 
             // Обрабатываем данные по дням, начиная с текущей даты
