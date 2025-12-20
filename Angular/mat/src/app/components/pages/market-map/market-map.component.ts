@@ -9,7 +9,7 @@ import { KendoTreemapComponent } from '../../Controls/kendo-treemap/kendo-treema
 import { MarketBoardComponent } from '../../Controls/market-board/market-board.component';
 import { FootPrintRequestModel } from 'src/app/models/tickerpreset';
 import { Title } from '@angular/platform-browser';
-import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-picker.Component';
+import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-picker.component';
 import { TopPreset } from 'src/app/models/preserts';
 import { PresetSelectorComponent1 } from '../../DateRangeSelector/date-range-selector.component';
 import { ReportsService } from 'src/app/service/reports.service';

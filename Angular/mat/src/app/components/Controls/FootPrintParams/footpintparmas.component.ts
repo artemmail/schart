@@ -8,7 +8,7 @@ import {
   ChangeDetectorRef
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-picker.Component';
+import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-picker.component';
 import { TickerPresetNew } from 'src/app/models/tickerpreset';
 import { SelectListItemNumber, SmallPeriodPreset } from 'src/app/models/preserts';
 import { TickerAutocompleteComponent } from '../ticker-autocomplete/ticker-autocomplete.component';

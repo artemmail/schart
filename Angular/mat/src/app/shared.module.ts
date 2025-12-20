@@ -13,7 +13,7 @@ import { LeaderboardTableComponent } from './components/Controls/leaderboard-tab
 import { TickerAutocompleteComponent } from './components/Controls/ticker-autocomplete/ticker-autocomplete.component';
 import { TopOrdersComponent } from './components/Reports/top-orders/top-orders.component';
 import { ImageUploaderComponent } from './components/pages/image-uploader/image-uploader.component';
-import { DateRangePickerComponent } from './components/Controls/DateRange/date-range-picker.Component';
+import { DateRangePickerComponent } from './components/Controls/DateRange/date-range-picker.component';
 import { UserTopicsTableComponent } from './components/tables/user-topics-table/user-topics-table.component';
 import { FootPrintSettingsDialogComponent } from './components/footprint/foot-print-settings-dialog/foot-print-settings-dialog.component';
 
@@ -158,6 +158,7 @@ registerLocaleData(localeRu, 'ru');
     MatInputModule,
     NgxMatDatetimepicker,
     NgxMatDatepickerInput,
+    SubscriptionPlanAdminComponent,
 ],
   declarations: [
     ResizeListenerDirective,
@@ -245,7 +246,7 @@ registerLocaleData(localeRu, 'ru');
      TopicListComponent,TickerIconComponent,ContractChartComponent,OpenPositionsTableComponent,
      OptionDetailsComponent,FuturesDetailsComponent,ContractGroupsComponent,OpenSupportDialogDirective,
      SettingsDialogComponent, EditorComponent,
-     BillDetailsDialogComponent, UserPaymentsStatComponent,PaymentsTableComponent,PaymentDialogComponent, ProfitChartsComponent,MarketBoardComponent, SubscriptionPlanAdminComponent
+     BillDetailsDialogComponent, UserPaymentsStatComponent,PaymentsTableComponent,PaymentDialogComponent, ProfitChartsComponent,MarketBoardComponent
   ],
   exports: [
     ResizeListenerDirective,

@@ -7,7 +7,7 @@ import { MatSort } from '@angular/material/sort';
 import { ReportsService } from 'src/app/service/reports.service';
 import { ReportLeader } from 'src/app/models/Barometer';
 import { FootPrintRequestModel } from 'src/app/models/tickerpreset';
-import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-picker.Component';
+import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-picker.component';
 import { TopPreset } from 'src/app/models/preserts';
 import { Title } from '@angular/platform-browser';
 

@@ -4,7 +4,7 @@ import { HierarchicalDataSource } from './hierarchical-data-source';
 import { defined, colorsByLength, colorBrightness, round } from './color-utils';
 import { SliceAndDice } from './SliceAndDice';
 import { SliceAndDiceView } from './SliceAndDiceView';
-import { SquarifiedView } from './squarifiedView';
+import { SquarifiedView } from './SquarifiedView';
 import { Squarified } from './Squarified';
 import { Options, TreeNode } from './tree-layout.interface';
 

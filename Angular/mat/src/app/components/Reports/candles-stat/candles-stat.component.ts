@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Chart } from 'chart.js/auto';
-import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-picker.Component';
+import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-picker.component';
 import { PresetSelectorComponent } from '../../Controls/PresetSelector/preset-selector.component';
 import { TickerAutocompleteComponent } from '../../Controls/ticker-autocomplete/ticker-autocomplete.component';
 import {

@@ -5,8 +5,8 @@ import { LeaderboardTableComponent } from 'src/app/components/Controls/leaderboa
   standalone: false,
   selector: 'mobile-leaders',
   
-  templateUrl: './Leaders.component.html',
-  styleUrl: './Leaders.component.css'
+  templateUrl: './leaders.component.html',
+  styleUrls: ['./leaders.component.css']
 })
 export class LeadersComponent {
 
