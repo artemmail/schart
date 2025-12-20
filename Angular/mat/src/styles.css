@@ -27,6 +27,14 @@ body {
   background: var(--mat-sys-surface-container, #fff);
 }
 
+/* Material 20 tints card surfaces via surface-container tokens.
+   Bring back the previous themed surface color instead of a hardcoded white. */
+.mat-mdc-card {
+  --mat-card-elevated-container-color: var(--mat-sys-surface, #faf9fd);
+  --mat-card-filled-container-color: var(--mat-sys-surface, #faf9fd);
+  --mat-card-outlined-container-color: var(--mat-sys-surface, #faf9fd);
+}
+
 /* Darker backdrop so dialogs remain legible. */
 .cdk-overlay-backdrop.cdk-overlay-dark-backdrop {
   background: rgba(0, 0, 0, 0.55);
