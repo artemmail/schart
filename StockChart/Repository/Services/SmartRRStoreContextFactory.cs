@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using StockChart.Model;
 
 public class SmartRRStoreContextFactory : IDbContextFactory<StockProcContext>
@@ -14,7 +15,7 @@ public class SmartRRStoreContextFactory : IDbContextFactory<StockProcContext>
     {
         // need a new options object for each 'factory generated' context
         // because of thread safety isuess with Interceptors
-        var options = (DbContextOptions<ApplicationDbContext2>)_serviceProvider.GetService(typeof(DbContextOptions<ApplicationDbContext2>));
+        var options = _serviceProvider.GetRequiredService<DbContextOptions<StockProcContext>>();
         return new StockProcContext(options);
     }
 }
