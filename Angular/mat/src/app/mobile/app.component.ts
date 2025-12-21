@@ -11,6 +11,15 @@ import { ApplicationUser } from '../models/UserTopic';
 
 import * as Hammer from 'hammerjs';
 
+// ✅ типизация для новой Я.Метрики (ym)
+declare global {
+  interface Window {
+    ym?: (counterId: number, method: string, ...args: any[]) => void;
+  }
+}
+
+const METRIKA_ID = 16829734;
+
 @Component({
   standalone: false,
   selector: 'angular-material-drawer',
@@ -25,13 +34,44 @@ export class AppMobileComponent implements AfterViewInit, OnInit {
   @ViewChild('drawer') sidenav!: MatSidenav;
   @ViewChild('drawer', { read: ElementRef }) sidenavElement!: ElementRef;
 
+  constructor(
+    private authService: AuthService,
+    private authEventService: AuthEventService,
+    private http: HttpClient,
+    private router: Router,
+    private location: Location,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {
+    // SSR: на сервере метрику/роутер-ивенты не трогаем
+    if (isPlatformServer(this.platformId)) {
+      return;
+    }
+
+    // ✅ Метрика: отправка hit на каждую навигацию (NavigationEnd)
+    let prevPath = this.location.path(true);
+
+    this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe(() => {
+        const newPath = this.location.path(true);
+
+        // защита от дублей/пустого пути
+        if (!newPath || newPath === prevPath) return;
+
+        window.ym?.(METRIKA_ID, 'hit', newPath, {
+          referer: prevPath,
+        });
+
+        prevPath = newPath;
+      });
+  }
+
   ngAfterViewInit() {
     this.sidenav.openedChange.subscribe(() => this.triggerResizeEvent());
 
-    // Здесь используется nativeElement для создания HammerManager
+    // Hammer для свайпа
     const hammer = new Hammer(this.sidenavElement.nativeElement);
     hammer.on('panleft', this.onPanStart);
-
   }
 
   triggerResizeEvent() {
@@ -40,22 +80,16 @@ export class AppMobileComponent implements AfterViewInit, OnInit {
     }, 350);
   }
 
-
   onPanStart = (): void => {
     this.sidenav.close();
   }
 
-
-
-
   ngOnInit(): void {
-
     this.isSignedIn = this.authService.isAuthenticated();
 
     if (this.isSignedIn) {
       this.authService.getLoggedUser().subscribe((user) => (this.user = user));
     }
-
 
     // Subscribe to auth state changes
     this.authEventService.authStateChange$.subscribe((isSignedIn) => {
@@ -67,38 +101,5 @@ export class AppMobileComponent implements AfterViewInit, OnInit {
         this.user = null;
       }
     });
-  }
-
-
-  constructor(
-    
-    private authService: AuthService,
-    private authEventService: AuthEventService,
-    private http: HttpClient,
-    private router: Router,
-    location: Location,
-    @Inject(PLATFORM_ID) platformId: Object
-  ) {
-    if (isPlatformServer(platformId)) {
-      return;
-    }
-
-    try {
-      let prevPath = location.path();
-      this.router.events.pipe(filter(event => (event instanceof NavigationEnd)))
-        .subscribe(() => {
-          console.log('hit start');
-          const newPath = location.path();
-        /*  this.metrika.hit(newPath, {
-            referer: prevPath,
-            callback: () => {
-              console.log('hit end');
-            }
-          });*/
-          prevPath = newPath;
-        });
-    } catch (e) {
-      console.error(e);
-    }
   }
 }

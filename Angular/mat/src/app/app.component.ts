@@ -1,25 +1,32 @@
 import {
   Component,
-  ViewChild,
-  ElementRef,
   ViewEncapsulation,
-  AfterViewInit,
-  Input,
-  Output,
   OnInit,
+  Inject,
 } from '@angular/core';
 
 import {
   NavigationEnd,
   Router,
-  RouterLink,
-  RouterOutlet,
 } from '@angular/router';
-import { isPlatformServer, Location } from '@angular/common';
+
+import {
+  isPlatformServer,
+  Location,
+} from '@angular/common';
+
 import { filter } from 'rxjs/operators';
-//import { Metrika } from 'ng-yandex-metrika';
 import { HttpClient } from '@angular/common/http';
-import { Inject, PLATFORM_ID } from '@angular/core';
+import { PLATFORM_ID } from '@angular/core';
+
+// --- добавляем один раз — вне класса ---
+declare global {
+  interface Window {
+    ym?: (counterId: number, method: string, ...args: any[]) => void;
+  }
+}
+
+const METRIKA_ID = 16829734;
 
 @Component({
   standalone: false,
@@ -29,42 +36,36 @@ import { Inject, PLATFORM_ID } from '@angular/core';
   encapsulation: ViewEncapsulation.None,
 })
 export class AppComponent implements OnInit {
-  ngOnInit() {
-    //this.jsonData = content;
-  }
- 
+
   constructor(
-  //  private metrika: Metrika,
     private http: HttpClient,
     private router: Router,
-    location: Location,
-    @Inject(PLATFORM_ID) platformId: Object
+    private location: Location,
+    @Inject(PLATFORM_ID) private platformId: Object
   ) {
 
+    // SSR – пропускаем
+    if (isPlatformServer(platformId)) return;
 
-    
-    if (isPlatformServer(platformId)) {
-      return;
-    }
+    // начальный путь
+    let prevPath = this.location.path(true);
 
-    let prevPath = location.path();
-    /*this.router.events
-      .pipe(filter((event) => event instanceof NavigationEnd))
+    this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe(() => {
-        try {
-          const newPath = location.path();
-        
-        
-        /*  this.metrika.hit(newPath, {
-            referer: prevPath,
-            callback: () => {
-          //    console.log('hit end');
-            },
-          });
-          prevPath = newPath;
-        } catch (e) {
-          
-        }
-      });*/
+        const newPath = this.location.path(true);
+
+        // защита от дублей
+        if (!newPath || newPath === prevPath) return;
+
+        // прямой вызов Метрики
+        window.ym?.(METRIKA_ID, 'hit', newPath, {
+          referer: prevPath,
+        });
+
+        prevPath = newPath;
+      });
   }
+
+  ngOnInit(): void {}
 }
