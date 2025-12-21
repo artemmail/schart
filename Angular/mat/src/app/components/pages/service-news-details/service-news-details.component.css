@@ -10,7 +10,7 @@
     margin-top: 12px;
     display: block;
     border-width: 1px;    
-    background:var(--mat-full-pseudo-checkbox-disabled-selected-checkmark-color);
+    background: #ffffff;
     padding: 10px;    
     box-sizing: border-box;
   }
