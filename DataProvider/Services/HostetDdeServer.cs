@@ -43,15 +43,22 @@ namespace DataProvider
 
         private async Task ProcessRecordsAsync(DBRecord[] records)
         {
-            foreach (var record in records)
+            var recordsByTicker = records
+                .GroupBy(record => record.ticker)
+                .Select(group => group.OrderBy(record => record.number));
+
+            foreach (var tickerRecords in recordsByTicker)
             {
-                var ticker = MarketInfoServiceHolder.TryGetTicker(record.ticker, out var foundTicker) ? foundTicker : null;
-
-                _tradesCacher.PushTrade(record.ticker, new Trade(record));
-
-                if (ticker == null || await ShouldEnqueueAsync(ticker.id, record.number))
+                foreach (var record in tickerRecords)
                 {
-                    HostetDBWriterService.Enqueue(0, record);
+                    var ticker = MarketInfoServiceHolder.TryGetTicker(record.ticker, out var foundTicker) ? foundTicker : null;
+
+                    _tradesCacher.PushTrade(record.ticker, new Trade(record));
+
+                    if (ticker == null || await ShouldEnqueueAsync(ticker.id, record.number))
+                    {
+                        HostetDBWriterService.Enqueue(0, record);
+                    }
                 }
             }
         }
