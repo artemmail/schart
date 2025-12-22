@@ -12,7 +12,8 @@ namespace StockChart.EventBus.RabbitMQ.Components
 
         public long Date { get; set; }
 
-        public object Obj => Body.ToObject(System.Type.GetType(Type));
+        public object Obj => Body.ToObject(System.Type.GetType(Type.Replace("Quarta","StockChart")));
+
 
         public static RabbitMqMessage From(object message)
         {
@@ -39,7 +40,7 @@ namespace StockChart.EventBus.RabbitMQ.Components
                     Date = objMessage.Date
                 };
             }
-            catch
+            catch(Exception e)
             {
                 return null;
             }

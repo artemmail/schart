@@ -166,19 +166,7 @@ namespace DataProvider
                             .ToList();
 
                         await context.InsertTradesBatchAsync(trades);
-                    }
-
-                    var maxInfo = filteredRecords
-                        .GroupBy(x => x.TickerId)
-                        .Select(g =>
-                        {
-                            var maxNumber = g.Max(r => r.number);
-                            var maxTime = g.Where(r => r.number == maxNumber).Select(r => r.datetime).FirstOrDefault();
-                            return new TradeMaxInfo(g.Key, maxNumber, maxTime);
-                        })
-                        .ToList();
-
-                    await UpdateMaxTradesAsync(context, maxInfo);
+                    }                                  
 
                     // Если все прошло успешно, выходим из цикла
                     break;
@@ -277,40 +265,7 @@ namespace DataProvider
         {
             // Добавьте другие номера ошибок по мере необходимости
             return true;//  ..ex.Number == 19;
-        }
-
-        private async Task UpdateMaxTradesAsync(StockProcContext context, IEnumerable<TradeMaxInfo> tradeInfos)
-        {
-            var infoList = tradeInfos.ToList();
-            if (!infoList.Any())
-                return;
-
-            var ids = infoList.Select(x => x.TickerId).ToList();
-            var existing = await context.MaxTrades.Where(x => ids.Contains(x.Id)).ToListAsync();
-
-            foreach (var info in infoList)
-            {
-                var existingTrade = existing.FirstOrDefault(x => x.Id == info.TickerId);
-                if (existingTrade == null)
-                {
-                    context.MaxTrades.Add(new MaxTrade
-                    {
-                        Id = info.TickerId,
-                        MaxNumber = info.MaxNumber,
-                        MaxTime = info.MaxTime
-                    });
-                }
-                else if (info.MaxNumber > existingTrade.MaxNumber)
-                {
-                    existingTrade.MaxNumber = info.MaxNumber;
-                    existingTrade.MaxTime = info.MaxTime;
-                }
-
-                await _lastTradeCache.UpdateLastTradeNumberAsync(info.TickerId, info.MaxNumber);
-            }
-
-            await context.SaveChangesAsync();
-        }
+        }     
 
         private SqlException GetSqlException(Exception ex)
         {
