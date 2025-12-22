@@ -84,7 +84,7 @@ namespace DataProvider
             var lastNumber = await _lastTradeCache.GetLastTradeNumberAsync(tickerId);
             if (number > lastNumber)
             {
-                await _lastTradeCache.UpdateLastTradeNumberAsync(tickerId, number);
+                _lastTradeCache.UpdateLastTradeNumber(tickerId, number);
                 return true;
             }
 

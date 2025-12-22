@@ -7,6 +7,6 @@ namespace DataProvider
     {
         Task<long> GetLastTradeNumberAsync(int tickerId, CancellationToken cancellationToken = default);
 
-        Task UpdateLastTradeNumberAsync(int tickerId, long number, CancellationToken cancellationToken = default);
+        void UpdateLastTradeNumber(int tickerId, long number);
     }
 }

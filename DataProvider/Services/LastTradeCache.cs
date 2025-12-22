@@ -34,10 +34,9 @@ namespace DataProvider
             return lastNumber;
         }
 
-        public Task UpdateLastTradeNumberAsync(int tickerId, long number, CancellationToken cancellationToken = default)
+        public void UpdateLastTradeNumber(int tickerId, long number)
         {
             _cache.AddOrUpdate(tickerId, number, (_, current) => number > current ? number : current);
-            return Task.CompletedTask;
         }
     }
 }
