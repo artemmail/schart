@@ -22,7 +22,7 @@ export interface FootprintTickData {
 
 export type FootprintLadderData = Record<string, number>;
 
-@Injectable({ providedIn: 'root' })
+@Injectable()
 export class SignalRService implements OnDestroy {
   private hubConnection: signalR.HubConnection | undefined;
   private isConnecting: boolean = false;
