@@ -22,7 +22,6 @@ import { ClusterData } from './clusterData';
 import { canvasPart } from './parts/canvasPart';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { ColumnEx } from 'src/app/models/Column';
-import { SignalRService } from 'src/app/service/FootPrint/signalr.service';
 import { MarkUpManager } from './Markup/Manager';
 import { ProfileModel } from 'src/app/models/profileModel';
 import { MouseAndTouchManager } from './MouseAnTouchManager';
