@@ -34,6 +34,24 @@ import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-ma
 import { DialogService } from 'src/app/service/DialogService.service';
 import { Router } from '@angular/router';
 
+interface TickData {
+  number: number;
+  tradeDate: string | Date;
+  price: number;
+  quantity: number;
+  direction: number;
+  volume: number;
+  oi: number;
+}
+
+type LadderData = Record<string, number>;
+
+interface ClusterInitData {
+  clusterData: ColumnEx[];
+  priceScale: number;
+  VolumePerQuantity?: number;
+}
+
 @Component({
   standalone: false,
   selector: 'app-footprint',
@@ -50,18 +68,18 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() caption: string | null = null;
 
   public canvas: HTMLCanvasElement | null = this.canvasRef?.nativeElement;
-  public ctx: any;
+  public ctx: CanvasRenderingContext2D | null = null;
 
   DeltaVolumes: Array<number> = [0, 0, 0, 0, 0, 0, 0, 0];
   hiddenHint: boolean;
-  selectedPrice: number| null ;
-  selectedPrice1: number| null;
-  hint: any;
+  selectedPrice: number | null;
+  selectedPrice1: number | null;
+  hint: HTMLDivElement | null = null;
 
   markupEnabled: boolean;
   markupManager: MarkUpManager;
   clusterWidthScale: number = 0.97;
-  data: ClusterData | any = null;
+  data: ClusterData | null = null;
 
   views: Array<canvasPart> = new Array();
   private subscriptions: Subscription[] = [];
@@ -126,7 +144,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
     //this.calcPrices();
   }
 
-  GetCSV() {
+  getCsv() {
     if (this.data) {
       this.footprintUtilities.exportCsv(this.params, this.data);
     }
@@ -146,38 +164,41 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
 
 
 
-  public ReLoad() {
+  public reload() {
     this.params.candlesOnly = this.FPsettings.CandlesOnly;
     this.footprintDataService.reload(this.params);
   }
 
-  public async ServerRequest(params: FootPrintParameters): Promise<void> {
+  public async serverRequest(params: FootPrintParameters): Promise<void> {
     this.params = params;
     await this.footprintDataService.reload(params);
   }
 
-  public handleCluster(answ: any) {
-    var IsVis = this.IsPriceVisible();
-    var needMerge = this.data.handleCluster(answ);
-    if (IsVis && needMerge) this.mergeMatrix();
+  public handleCluster(answ: ColumnEx[]) {
+    if (!this.data) return;
+    const isVisible = this.isPriceVisible();
+    const needMerge = this.data.handleCluster(answ);
+    if (isVisible && needMerge) this.mergeMatrix();
     this.viewsManager.drawClusterView();
   }
 
-  public handleTicks(answ: any) {
-    var IsVis = this.IsPriceVisible();
-    var needMerge = this.data.handleTicks(answ);
-    if (IsVis && needMerge) this.mergeMatrix();
+  public handleTicks(answ: TickData[]) {
+    if (!this.data) return;
+    const isVisible = this.isPriceVisible();
+    const needMerge = this.data.handleTicks(answ);
+    if (isVisible && needMerge) this.mergeMatrix();
     this.viewsManager.drawClusterView();
   }
 
-  public handleLadder(ladder: any) {
+  public handleLadder(ladder: LadderData) {
+    if (!this.data) return;
     this.data.handleLadder(ladder);
     this.viewsManager.drawClusterView();
   }
 
-  selectedCoumn: ColumnEx | any;
+  selectedColumn: ColumnEx | null = null;
 
-  public loadData(initdata: any) {
+  public loadData(initdata: ClusterInitData) {
     this.data = new ClusterData(initdata);
   }
 
@@ -185,25 +206,28 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.hiddenHint = true;
     this.selectedPrice = null;
     this.selectedPrice1 = null;
-    this.hint.style.overflow = 'hidden';
-    this.hint.style.display = 'none';
+    if (this.hint) {
+      this.hint.style.overflow = 'hidden';
+      this.hint.style.display = 'none';
+    }
   }
 
   dragMode: number | null = null;
 
   addhint() {
     if (document.getElementById('hint') == null) {
-      var element = document.createElement('div');
+      const element = document.createElement('div');
       element.id = 'hint';
       document.body.appendChild(element);
       //         this.canvas.parentNode.appendChild(element);
     }
-    this.hint = document.getElementById('hint');
+    this.hint = document.getElementById('hint') as HTMLDivElement;
   }
 
   public FPsettings: ChartSettings = ChartSettingsService.DefaultSettings();
 
-  IsPriceVisible() {
+  isPriceVisible() {
+    if (!this.data) return false;
     return (
       Math.floor(
         this.viewsManager.mtxMain
@@ -216,7 +240,8 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.data.clusterData.length - 1
     );
   }
-  IsStartVisible() {
+  isStartVisible() {
+    if (!this.data) return false;
     return (
       Math.floor(
         this.viewsManager.mtxMain
@@ -420,7 +445,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
     }
 
     try {
-      if (alignprice && this.IsPriceVisible()) {
+      if (alignprice && this.isPriceVisible()) {
         var xx = matrix.applyToPoint(this.data.clusterData.length, 0).x;
         matrix = matrix.getTranslate(v.x + v.w - xx, 0);
       }

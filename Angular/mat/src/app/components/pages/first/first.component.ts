@@ -105,7 +105,7 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
 
   public load() {
     const a: any = this.footPrintParamsComponent.GetModel();
-    this.footPrint.ServerRequest(a);
+    this.footPrint.serverRequest(a);
 
     // Сбрасываем флаги диалогов, чтобы они обновились при следующем открытии
     this.resetDialogFlags();
@@ -189,7 +189,7 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
     await this.dialogService.saveImage(this.footPrint.canvas);
   }
 
-  GetCSV() {
-    this.footPrint.GetCSV();
+  getCsv() {
+    this.footPrint.getCsv();
   }
 }

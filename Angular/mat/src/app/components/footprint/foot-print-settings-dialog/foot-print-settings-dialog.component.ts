@@ -109,7 +109,7 @@ export class FootPrintSettingsDialogComponent {
 
   onChangeReload(event: any) {
     this.save();
-    this.fp.ReLoad();
+    this.fp.reload();
   }
 
   onProfileSelect(event: any) {

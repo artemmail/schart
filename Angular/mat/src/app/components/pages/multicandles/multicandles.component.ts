@@ -287,7 +287,7 @@ export class MultiPageComponent implements OnInit, AfterViewInit, OnDestroy {
         period    : this.period,
         priceStep : this.priceStep
       };
-      c.instance.ServerRequest(c.instance.params);
+      c.instance.serverRequest(c.instance.params);
     });
   }
 }
