@@ -58,7 +58,6 @@ interface ClusterInitData {
   selector: 'app-footprint',
   templateUrl: './footprint.component.html',
   styleUrls: ['./footprint.component.css'],
-  providers: [SignalRService, FootprintDataService, FootprintUtilitiesService],
 })
 export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('drawingCanvas', { static: false }) canvasRef?: ElementRef;

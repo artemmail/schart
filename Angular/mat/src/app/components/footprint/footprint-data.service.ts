@@ -18,11 +18,10 @@ interface FootprintInitOptions {
   deltamode: boolean;
 }
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class FootprintDataService implements OnDestroy {
   private visibilityObserver?: IntersectionObserver;
   private isVisible = false;
-  private isSubscribed = false;
   private component?: FootPrintComponent;
   private canvasElement?: ElementRef;
   private presetIndex?: number;
@@ -93,6 +92,12 @@ export class FootprintDataService implements OnDestroy {
   destroy() {
     this.teardownVisibility();
     void this.teardownRealtime();
+    this.component = undefined;
+    this.paramsSubject.next(null);
+    this.settingsSubject.next(null);
+    this.presetsSubject.next([]);
+    this.options = { minimode: false, deltamode: false };
+    this.presetIndex = undefined;
   }
 
   private async applySettingsAndLoadData(params: FootPrintParameters) {
@@ -195,7 +200,7 @@ export class FootprintDataService implements OnDestroy {
   }
 
   private async subscribeToRealtime(params: FootPrintParameters) {
-    if (!this.component || this.isSubscribed || !this.shouldSubscribe(params)) {
+    if (!this.component || this.signalRService.hasActiveSubscription() || !this.shouldSubscribe(params)) {
       if (!this.shouldSubscribe(params)) {
         console.log('Подписка пропущена: условия не выполнены.');
       }
@@ -204,16 +209,16 @@ export class FootprintDataService implements OnDestroy {
 
     try {
       await this.signalRService.startConnection();
-      await this.signalRService.Subscribe({
+      const subscribed = await this.signalRService.Subscribe({
         ticker: params.ticker,
         period: params.period,
         step: params.priceStep,
       });
-      this.registerRealtimeHandlers();
-      this.isSubscribed = true;
+      if (subscribed) {
+        this.registerRealtimeHandlers();
+      }
     } catch (err) {
       console.error('Ошибка при подписке к SignalRService', err);
-      this.isSubscribed = false;
     }
   }
 
@@ -235,7 +240,6 @@ export class FootprintDataService implements OnDestroy {
     } catch (err) {
       console.error('Ошибка при отписке или остановке SignalRService', err);
     }
-    this.isSubscribed = false;
   }
 
   private registerRealtimeHandlers() {
