@@ -28,6 +28,9 @@ import { SelectListItemNumber } from 'src/app/models/preserts';
 import { FootprintDataService } from './footprint-data.service';
 import { FootprintUtilitiesService } from './footprint-utilities.service';
 import { Subscription } from 'rxjs';
+import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
+import { DialogService } from 'src/app/service/DialogService.service';
+import { Router } from '@angular/router';
 
 @Component({
   standalone: false,
@@ -103,7 +106,10 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     public colorsService: ColorsService,
     public formatService: FormattingService,
     private footprintDataService: FootprintDataService,
-    private footprintUtilities: FootprintUtilitiesService
+    private footprintUtilities: FootprintUtilitiesService,
+    public levelMarksService: LevelMarksService,
+    public dialogService: DialogService,
+    public router: Router
   ) {
     // this.FPsettings = FPsettings;
     this.translateMatrix = null;
@@ -141,6 +147,11 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   public ReLoad() {
     this.params.candlesOnly = this.FPsettings.CandlesOnly;
     this.footprintDataService.reload(this.params);
+  }
+
+  public async ServerRequest(params: FootPrintParameters): Promise<void> {
+    this.params = params;
+    await this.footprintDataService.reload(params);
   }
 
   public handleCluster(answ: any) {
