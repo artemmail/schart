@@ -86,10 +86,21 @@ export class SignalRService implements OnDestroy {
       .withAutomaticReconnect()
       .build();
 
-    this.hubConnection.onclose(async () => {
+    this.hubConnection.onclose(async (error) => {
       this.hubConnection = undefined;
       this.startPromise = null;
       console.log('SignalR connection closed');
+
+      const hasSubscriptions = !!this.activeSubscriptions.size;
+      if (this.isStopping || !hasSubscriptions) return;
+
+      console.warn('SignalR connection closed unexpectedly', error);
+      try {
+        await this.startConnection();
+        await this.resubscribeAll();
+      } catch (err) {
+        console.warn('Failed to restart SignalR connection after close', err);
+      }
     });
 
     this.hubConnection.onreconnecting(() => {
