@@ -28,29 +28,47 @@ export class SignalRService implements OnDestroy {
   private isConnecting: boolean = false;
   private isStopping: boolean = false;
   private startPromise: Promise<void> | null = null;
-  private subscriptionActive = false;
-  private subscriptionParams: FootprintSubscribeParams | null = null;
+  private stopPromise: Promise<void> | null = null;
 
-  private recieveClusterSubject = new Subject<ColumnEx[]>();
-  recieveCluster$ = this.recieveClusterSubject.asObservable();
+  private activeSubscriptions = new Map<string, FootprintSubscribeParams>();
 
-  private recieveTicksSubject = new Subject<FootprintTickData[]>();
-  recieveTicks$ = this.recieveTicksSubject.asObservable();
+  private receiveClusterSubject = new Subject<ColumnEx[]>();
+  receiveCluster$ = this.receiveClusterSubject.asObservable();
 
-  private recieveLadderSubject = new Subject<FootprintLadderData>();
-  recieveLadder$ = this.recieveLadderSubject.asObservable();
+  private receiveTicksSubject = new Subject<FootprintTickData[]>();
+  receiveTicks$ = this.receiveTicksSubject.asObservable();
+
+  private receiveLadderSubject = new Subject<FootprintLadderData>();
+  receiveLadder$ = this.receiveLadderSubject.asObservable();
+
+  private clusterHandler = (answ: ColumnEx[]) => {
+    this.receiveClusterSubject.next(answ);
+  };
+
+  private ticksHandler = (answ: FootprintTickData[]) => {
+    this.receiveTicksSubject.next(answ);
+  };
+
+  private ladderHandler = (ladder: FootprintLadderData) => {
+    if (!ladder) {
+      console.warn('Skip receiveLadder: payload is null or undefined');
+      return;
+    }
+    this.receiveLadderSubject.next(ladder);
+  };
 
   constructor() {}
 
   public async startConnection(): Promise<void> {
-    this.isStopping = false;
+    if (this.stopPromise) {
+      await this.stopPromise;
+    }
 
     if (
       this.hubConnection &&
       (this.hubConnection.state === signalR.HubConnectionState.Connected ||
         this.hubConnection.state === signalR.HubConnectionState.Connecting)
     ) {
-      // Уже подключены или идет процесс подключения
       return this.startPromise ?? Promise.resolve();
     }
 
@@ -71,7 +89,6 @@ export class SignalRService implements OnDestroy {
     this.hubConnection.onclose(async () => {
       this.hubConnection = undefined;
       this.startPromise = null;
-      this.isStopping = false;
       console.log('SignalR connection closed');
     });
 
@@ -81,9 +98,7 @@ export class SignalRService implements OnDestroy {
 
     this.hubConnection.onreconnected(async () => {
       console.log('SignalR connection reconnected');
-      if (this.subscriptionActive && this.subscriptionParams) {
-        await this.Subscribe(this.subscriptionParams);
-      }
+      await this.resubscribeAll();
     });
 
     this.registerOnServerEvents();
@@ -91,7 +106,11 @@ export class SignalRService implements OnDestroy {
     this.startPromise = this.hubConnection
       .start()
       .then(() => {
+        if (this.isStopping) {
+          return Promise.reject('Connection start cancelled due to stop request');
+        }
         console.log('SignalR connection started');
+        return Promise.resolve();
       })
       .catch((err) => {
         console.warn('Error while starting SignalR connection: ' + err.toString());
@@ -107,57 +126,84 @@ export class SignalRService implements OnDestroy {
   private registerOnServerEvents(): void {
     if (!this.hubConnection) return;
 
-    this.hubConnection.on('recieveCluster', (answ: ColumnEx[]) => {
-      this.recieveClusterSubject.next(answ);
-    });
+    this.hubConnection.on('recieveCluster', this.clusterHandler);
+    this.hubConnection.on('receiveCluster', this.clusterHandler);
 
-    this.hubConnection.on('recieveTicks', (answ: FootprintTickData[]) => {
-      this.recieveTicksSubject.next(answ);
-    });
+    this.hubConnection.on('recieveTicks', this.ticksHandler);
+    this.hubConnection.on('receiveTicks', this.ticksHandler);
 
-    this.hubConnection.on('recieveLadder', (ladder: FootprintLadderData) => {
-      if (!ladder) {
-        console.warn('Skip recieveLadder: payload is null or undefined');
-        return;
-      }
-      this.recieveLadderSubject.next(ladder);
-    });
+    this.hubConnection.on('recieveLadder', this.ladderHandler);
+    this.hubConnection.on('receiveLadder', this.ladderHandler);
   }
 
-  public async Subscribe(params: FootprintSubscribeParams): Promise<boolean> {
-    this.subscriptionParams = { ...params };
+  private clearServerEvents(): void {
+    if (!this.hubConnection) return;
 
+    this.hubConnection.off('recieveCluster', this.clusterHandler);
+    this.hubConnection.off('receiveCluster', this.clusterHandler);
+    this.hubConnection.off('recieveTicks', this.ticksHandler);
+    this.hubConnection.off('receiveTicks', this.ticksHandler);
+    this.hubConnection.off('recieveLadder', this.ladderHandler);
+    this.hubConnection.off('receiveLadder', this.ladderHandler);
+  }
+
+  private buildSubscriptionKey(params: FootprintSubscribeParams): string {
+    return `${params.ticker}:${params.period}:${params.step}`;
+  }
+
+  private async resubscribeAll() {
+    if (!this.activeSubscriptions.size) return;
+
+    console.log('Resubscribing active SignalR subscriptions');
+    for (const subscription of this.activeSubscriptions.values()) {
+      await this.Subscribe(subscription, false);
+    }
+  }
+
+  public async Subscribe(
+    params: FootprintSubscribeParams,
+    logParams: boolean = true
+  ): Promise<string | null> {
     const connected = await this.ensureConnected();
     if (!connected || !this.hubConnection) {
       console.warn('Cannot subscribe, hubConnection is not connected');
-      this.subscriptionActive = false;
-      return false;
+      return null;
+    }
+
+    const key = this.buildSubscriptionKey(params);
+    if (this.activeSubscriptions.has(key)) {
+      return key;
     }
 
     try {
-      await this.hubConnection.invoke('SubscribeCluster', JSON.stringify(this.subscriptionParams));
-      await this.hubConnection.invoke('SubscribeLadder', this.subscriptionParams.ticker);
-      this.subscriptionActive = true;
-      console.log('Subscribed to ' + params.ticker);
-      return true;
+      await this.hubConnection.invoke('SubscribeCluster', params);
+      await this.hubConnection.invoke('SubscribeLadder', params.ticker);
+      this.activeSubscriptions.set(key, { ...params });
+      if (logParams) {
+        console.log(`Subscribed to ${params.ticker} (${params.period}/${params.step})`);
+      }
+      return key;
     } catch (err) {
       console.warn('Error while invoking Subscribe methods: ' + err);
-      this.subscriptionActive = false;
-      return false;
+      return null;
     }
   }
 
-  public async unsubscr(): Promise<boolean> {
-    if (!this.subscriptionParams) {
-      console.warn('Cannot unsubscribe, subscription parameters are missing');
-      this.subscriptionActive = false;
+  public async unsubscr(key?: string | null): Promise<boolean> {
+    if (!this.hubConnection) {
+      console.warn('Cannot unsubscribe, hubConnection is missing');
       return false;
     }
 
-    if (!this.hubConnection) {
-      console.warn('Cannot unsubscribe, hubConnection is missing');
-      this.subscriptionActive = false;
-      this.subscriptionParams = null;
+    const subscriptionKey = key ?? this.activeSubscriptions.keys().next().value;
+    if (!subscriptionKey) {
+      console.warn('Cannot unsubscribe, subscription key is missing');
+      return false;
+    }
+
+    const params = this.activeSubscriptions.get(subscriptionKey);
+    if (!params) {
+      console.warn('Cannot unsubscribe, subscription parameters are missing');
       return false;
     }
 
@@ -165,18 +211,19 @@ export class SignalRService implements OnDestroy {
       this.hubConnection.state === signalR.HubConnectionState.Connected;
     if (!isConnected) {
       console.warn('Cannot unsubscribe, hubConnection is not connected');
-      this.subscriptionActive = false;
-      this.subscriptionParams = null;
+      this.activeSubscriptions.delete(subscriptionKey);
       return false;
     }
 
     try {
-      const previousParams = { ...this.subscriptionParams };
-      await this.hubConnection.invoke('UnSubscribeCluster', JSON.stringify(previousParams));
-      await this.hubConnection.invoke('UnSubscribeLadder', previousParams.ticker);
-      console.log('Unsubscribed from ' + previousParams.ticker);
-      this.subscriptionActive = false;
-      this.subscriptionParams = null;
+      await this.hubConnection.invoke('UnSubscribeCluster', params);
+      await this.hubConnection.invoke('UnSubscribeLadder', params.ticker);
+      console.log('Unsubscribed from ' + params.ticker);
+      this.activeSubscriptions.delete(subscriptionKey);
+
+      if (!this.activeSubscriptions.size) {
+        await this.stopConnection();
+      }
       return true;
     } catch (err) {
       console.warn('Error while invoking UnSubscribe methods: ' + err);
@@ -185,8 +232,12 @@ export class SignalRService implements OnDestroy {
   }
 
   private async ensureConnected(): Promise<boolean> {
-    if (this.isStopping) {
-      return false;
+    if (this.isStopping && this.stopPromise) {
+      await this.stopPromise;
+    }
+
+    if (!this.startPromise && (!this.hubConnection || this.hubConnection.state === signalR.HubConnectionState.Disconnected)) {
+      await this.startConnection();
     }
 
     if (this.startPromise) {
@@ -205,38 +256,52 @@ export class SignalRService implements OnDestroy {
   }
 
   public async stopConnection() {
+    if (this.isStopping && this.stopPromise) {
+      return this.stopPromise;
+    }
+
     this.isStopping = true;
 
-    if (this.isConnecting && this.startPromise) {
-      try {
-        await this.startPromise;
-      } catch (_) {
-        // Ignore start errors when attempting to stop
+    this.stopPromise = (async () => {
+      if (this.isConnecting && this.startPromise) {
+        try {
+          await this.startPromise;
+        } catch (_) {
+          // Ignore start errors when attempting to stop
+        }
       }
-    }
 
-    if (this.hubConnection && this.hubConnection.state === signalR.HubConnectionState.Connected) {
-      try {
-        await this.hubConnection.stop();
-        console.log('SignalR connection stopped');
-      } catch (err) {
-        console.warn('Error while stopping SignalR connection: ' + err);
+      if (this.hubConnection) {
+        this.clearServerEvents();
       }
-    }
 
-    this.startPromise = null;
-    this.hubConnection = undefined;
-    this.subscriptionActive = false;
-    this.subscriptionParams = null;
-    this.isStopping = false;
-  }
+      if (this.hubConnection && this.hubConnection.state !== signalR.HubConnectionState.Disconnected) {
+        try {
+          await this.hubConnection.stop();
+          console.log('SignalR connection stopped');
+        } catch (err) {
+          console.warn('Error while stopping SignalR connection: ' + err);
+        }
+      }
 
-  public hasActiveSubscription(): boolean {
-    return this.subscriptionActive;
+      this.startPromise = null;
+      this.hubConnection = undefined;
+      this.activeSubscriptions.clear();
+    })()
+      .catch((err) => console.warn('Error while stopping SignalR connection: ' + err))
+      .finally(() => {
+        this.isStopping = false;
+        this.stopPromise = null;
+      });
+
+    return this.stopPromise;
   }
 
   ngOnDestroy() {
     // При уничтожении сервиса останавливаем подключение
-    this.stopConnection();
+    void this.stopConnection();
+    this.receiveClusterSubject.complete();
+    this.receiveTicksSubject.complete();
+    this.receiveLadderSubject.complete();
   }
 }

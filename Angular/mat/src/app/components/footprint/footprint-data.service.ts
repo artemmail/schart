@@ -40,6 +40,8 @@ export class FootprintDataService implements OnDestroy {
   presets$ = this.presetsSubject.asObservable();
 
   private realtimeSubscriptions = new Subscription();
+  private activeSubscriptionKey: string | null = null;
+  private activeSubscriptionParams: FootPrintParameters | null = null;
 
   constructor(
     private settingsService: ChartSettingsService,
@@ -200,21 +202,27 @@ export class FootprintDataService implements OnDestroy {
   }
 
   private async subscribeToRealtime(params: FootPrintParameters) {
-    if (!this.component || this.signalRService.hasActiveSubscription() || !this.shouldSubscribe(params)) {
-      if (!this.shouldSubscribe(params)) {
+    const canSubscribe = this.shouldSubscribe(params);
+    if (!this.component || !canSubscribe) {
+      if (!canSubscribe) {
         console.log('Подписка пропущена: условия не выполнены.');
       }
       return;
     }
 
+    if (this.activeSubscriptionParams && this.isSameSubscription(params, this.activeSubscriptionParams)) {
+      return;
+    }
+
     try {
-      await this.signalRService.startConnection();
-      const subscribed = await this.signalRService.Subscribe({
+      const subscriptionKey = await this.signalRService.Subscribe({
         ticker: params.ticker,
         period: params.period,
         step: params.priceStep,
       });
-      if (subscribed) {
+      if (subscriptionKey) {
+        this.activeSubscriptionKey = subscriptionKey;
+        this.activeSubscriptionParams = { ...params };
         this.registerRealtimeHandlers();
       }
     } catch (err) {
@@ -235,30 +243,44 @@ export class FootprintDataService implements OnDestroy {
     this.realtimeSubscriptions.unsubscribe();
     this.realtimeSubscriptions = new Subscription();
     try {
-      await this.signalRService.unsubscr();
-      await this.signalRService.stopConnection();
+      if (this.activeSubscriptionKey) {
+        await this.signalRService.unsubscr(this.activeSubscriptionKey);
+      }
     } catch (err) {
       console.error('Ошибка при отписке или остановке SignalRService', err);
     }
+    this.activeSubscriptionKey = null;
+    this.activeSubscriptionParams = null;
   }
 
   private registerRealtimeHandlers() {
     this.realtimeSubscriptions.add(
-      this.signalRService.recieveCluster$.subscribe((answ) => {
+      this.signalRService.receiveCluster$.subscribe((answ) => {
         this.component?.handleCluster(answ);
       })
     );
 
     this.realtimeSubscriptions.add(
-      this.signalRService.recieveTicks$.subscribe((answ) => {
+      this.signalRService.receiveTicks$.subscribe((answ) => {
         this.component?.handleTicks(answ);
       })
     );
 
     this.realtimeSubscriptions.add(
-      this.signalRService.recieveLadder$.subscribe((ladder) => {
+      this.signalRService.receiveLadder$.subscribe((ladder) => {
         this.component?.handleLadder(ladder);
       })
+    );
+  }
+
+  private isSameSubscription(
+    current: FootPrintParameters,
+    previous: FootPrintParameters
+  ): boolean {
+    return (
+      current.ticker === previous.ticker &&
+      current.period === previous.period &&
+      current.priceStep === previous.priceStep
     );
   }
 }
