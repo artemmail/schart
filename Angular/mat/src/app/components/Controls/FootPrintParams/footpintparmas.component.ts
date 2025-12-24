@@ -101,9 +101,12 @@ export class FootPrintParamsComponent
 
   public ngAfterViewInit() {
     this.presetSelector.loadPeriodPresets();
-    if (this.DateRange) {
-      this.DateRange.setDatesRange(this.params.startDate, this.params.endDate);
-    }
+    setTimeout(() => {
+      if (this.DateRange) {
+        this.DateRange.setDatesRange(this.params.startDate, this.params.endDate);
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   private subscribeToEventEmitter() {}
