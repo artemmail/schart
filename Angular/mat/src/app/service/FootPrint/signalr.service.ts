@@ -7,13 +7,15 @@ import { environment } from 'src/app/environment';
 export class SignalRService implements OnDestroy {
   private hubConnection: signalR.HubConnection | undefined;
   private isConnecting: boolean = false;
+  private isStopping: boolean = false;
   private startPromise: Promise<void> | null = null;
-  NP: FootPrintComponent;
+  NP: FootPrintComponent | null = null;
 
   constructor() {}
 
   public async startConnection(NP: FootPrintComponent): Promise<void> {
     this.NP = NP;
+    this.isStopping = false;
 
     if (
       this.hubConnection &&
@@ -42,6 +44,7 @@ export class SignalRService implements OnDestroy {
       // При закрытии соединения очищаем hubConnection
       this.hubConnection = undefined;
       this.startPromise = null;
+      this.isStopping = false;
       console.log('SignalR connection closed');
     });
 
@@ -67,10 +70,10 @@ export class SignalRService implements OnDestroy {
     if (!this.hubConnection) return;
 
     this.hubConnection.on('recieveCluster', (answ) => {
-      this.NP.handleCluster(answ);
+      this.NP?.handleCluster(answ);
     });
-    this.hubConnection.on('recieveTicks', (answ) => this.NP.handleTicks(answ));
-    this.hubConnection.on('recieveLadder', (ladder) => this.NP.handleLadder(ladder));
+    this.hubConnection.on('recieveTicks', (answ) => this.NP?.handleTicks(answ));
+    this.hubConnection.on('recieveLadder', (ladder) => this.NP?.handleLadder(ladder));
   }
 
   old: any = null;
@@ -78,37 +81,77 @@ export class SignalRService implements OnDestroy {
   public async Subscribe(params: any) {
     this.old = { ...params };
 
-    if (this.hubConnection && this.hubConnection.state === signalR.HubConnectionState.Connected) {
-      try {
-        await this.hubConnection.invoke('SubscribeCluster', JSON.stringify(this.old));
-        await this.hubConnection.invoke('SubscribeLadder', this.old.ticker);
-        console.error('subscr  ' + params.ticker);
-      } catch (err) {
-        console.error('Error while invoking Subscribe methods: ' + err.toString());
-      }
-    } else {
+    const connected = await this.ensureConnected();
+    if (!connected) {
       console.warn('Cannot subscribe, hubConnection is not connected');
+      return;
+    }
+
+    if (!this.hubConnection) {
+      console.warn('Cannot subscribe, hubConnection is missing');
+      return;
+    }
+
+    try {
+      await this.hubConnection.invoke('SubscribeCluster', JSON.stringify(this.old));
+      await this.hubConnection.invoke('SubscribeLadder', this.old.ticker);
+      console.error('subscr  ' + params.ticker);
+    } catch (err) {
+      console.error('Error while invoking Subscribe methods: ' + err.toString());
     }
   }
 
   public async unsubscr() {
-    
-    if (this.hubConnection && this.hubConnection.state === signalR.HubConnectionState.Connected && this.old != null) {
-      try {
 
-        let old = {...this.old};
-        await this.hubConnection.invoke('UnSubscribeCluster', JSON.stringify(old));
-        await this.hubConnection.invoke('UnSubscribeLadder', old.ticker);
-          console.error('un subscr  ' + old.ticker);
-      } catch (err) {
-        console.error('Error while invoking UnSubscribe methods: ' + err.toString());
-      }
-    } else {
-      console.warn('Cannot unsubscribe, hubConnection is not connected or old parameters are missing');
+    if (this.old == null) {
+      console.warn('Cannot unsubscribe, old parameters are missing');
+      return;
+    }
+
+    const connected = await this.ensureConnected();
+    if (!connected) {
+      console.warn('Cannot unsubscribe, hubConnection is not connected');
+      return;
+    }
+
+    if (!this.hubConnection) {
+      console.warn('Cannot unsubscribe, hubConnection is missing');
+      return;
+    }
+
+    try {
+      let old = { ...this.old };
+      await this.hubConnection.invoke('UnSubscribeCluster', JSON.stringify(old));
+      await this.hubConnection.invoke('UnSubscribeLadder', old.ticker);
+      console.error('un subscr  ' + old.ticker);
+    } catch (err) {
+      console.error('Error while invoking UnSubscribe methods: ' + err.toString());
     }
   }
 
+  private async ensureConnected(): Promise<boolean> {
+    if (this.isStopping) {
+      return false;
+    }
+
+    if (this.startPromise) {
+      try {
+        await this.startPromise;
+      } catch (err) {
+        console.error('Error while waiting for SignalR start: ' + err.toString());
+        return false;
+      }
+    }
+
+    return (
+      this.hubConnection !== undefined &&
+      this.hubConnection.state === signalR.HubConnectionState.Connected
+    );
+  }
+
   public async stopConnection() {
+    this.isStopping = true;
+
     if (this.isConnecting && this.startPromise) {
       try {
         await this.startPromise;
@@ -128,6 +171,9 @@ export class SignalRService implements OnDestroy {
 
     this.startPromise = null;
     this.hubConnection = undefined;
+    this.NP = null;
+    this.old = null;
+    this.isStopping = false;
   }
 
   ngOnDestroy() {
