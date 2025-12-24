@@ -105,7 +105,7 @@ export class viewVolumes extends canvasPart {
       this.ctx.font = '' + fontSize + 'px Verdana';
       this.ctx.textBaseline = 'alphabetic';
       this.ctx.fillStyle = ColorsService.WhiteText;
-      this.ctx.fillText(drob(text), p.x, p.y - 1);
+      this.ctx.fillText(drob(text).toString(), p.x, p.y - 1);
     }
   }
 

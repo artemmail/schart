@@ -51,12 +51,12 @@ export class viewOI extends viewVolumesSeparated {
   }
 
   getLegendLine() {
-    return { Text: 'OI', Value: drob( this.parent.selectedCoumn.oi,3) };
+    return { Text: 'OI', Value: drob(this.parent.selectedColumn.oi, 3) };
   }
 
   drawVolumeColumnOI(column: ColumnEx, number: number, mtx: Matrix) {
     var ctx = this.ctx;
-    ctx.fillStyle = column == this.parent.selectedCoumn ? '#0A2D6D' : '#2050A8';
+    ctx.fillStyle = column == this.parent.selectedColumn ? '#0A2D6D' : '#2050A8';
     ctx.mFillRectangle(number + 0.1, 0, 0.8, column.oi);
   }
 }

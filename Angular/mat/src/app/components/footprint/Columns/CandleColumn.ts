@@ -15,10 +15,10 @@ export class CandleColumn extends ClusterCoumnBase {
     // var Min = Math.min.apply(0, column.p);
     ctx.fillStyle =
       column.o > column.c
-        ? column == this.parent.selectedCoumn
+        ? column == this.parent.selectedColumn
           ? ColorsService.redcandlesat
           : ColorsService.redcandle
-        : column == this.parent.selectedCoumn
+        : column == this.parent.selectedColumn
         ? ColorsService.greencandlesat
         : ColorsService.greencandle;
     ctx.beginPath();

@@ -87,9 +87,9 @@ export class VolumeDeltaColumn extends ClusterCoumnBase {
         var w = (column.cl[i].q * r.w) / this.data.maxClusterQnt;
         r.x += shift;
         var delta = 2 * column.cl[i].bq - column.cl[i].q;
-        ctx.fillText(drob(column.cl[i].q,3), r.x + 1.5, r.y + bar.h / 2);
+        ctx.fillText(drob(column.cl[i].q, 3).toString(), r.x + 1.5, r.y + bar.h / 2);
         r.x += ww;
-        ctx.fillText(drob(delta,3), r.x + 1.5, r.y + bar.h / 2);
+        ctx.fillText(drob(delta, 3).toString(), r.x + 1.5, r.y + bar.h / 2);
       }
     }
   }

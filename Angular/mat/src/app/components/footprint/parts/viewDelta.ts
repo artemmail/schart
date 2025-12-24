@@ -56,7 +56,7 @@ export class viewDelta extends viewVolumesSeparated {
   }
 
   getLegendLine() {
-    return { Text: 'Delta', Value: drob( this.parent.selectedCoumn.cumDelta,3) };
+    return { Text: 'Delta', Value: drob(this.parent.selectedColumn.cumDelta, 3) };
   }
 
   override draw(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix): void {
