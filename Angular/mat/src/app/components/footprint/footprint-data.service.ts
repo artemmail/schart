@@ -1,5 +1,5 @@
 import { ElementRef, Injectable, OnDestroy } from '@angular/core';
-import { firstValueFrom, BehaviorSubject, Subject } from 'rxjs';
+import { BehaviorSubject, Subject, firstValueFrom } from 'rxjs';
 import { FootPrintComponent } from './footprint.component';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { ChartSettings } from 'src/app/models/ChartSettings';
@@ -23,7 +23,6 @@ export class FootprintDataService implements OnDestroy {
   private visibilityObserver?: IntersectionObserver;
   private isVisible = false;
   private isSubscribed = false;
-  private initializationStarted = false;
   private component?: FootPrintComponent;
   private canvasElement?: ElementRef;
   private presetIndex?: number;
@@ -51,6 +50,7 @@ export class FootprintDataService implements OnDestroy {
   ) {}
 
   bindComponent(component: FootPrintComponent, canvasRef: ElementRef | null) {
+    this.teardownVisibility();
     this.component = component;
     if (canvasRef) {
       this.canvasElement = canvasRef;
@@ -63,14 +63,11 @@ export class FootprintDataService implements OnDestroy {
     presetIndex: number,
     options: FootprintInitOptions
   ): Promise<void> {
-    if (this.initializationStarted) {
-      return;
-    }
-    this.initializationStarted = true;
     this.options = options;
     this.presetIndex = presetIndex;
     this.paramsSubject.next(params);
 
+    await this.teardownRealtime();
     await this.loadPresets();
     await this.applySettingsAndLoadData(params);
 
@@ -80,8 +77,7 @@ export class FootprintDataService implements OnDestroy {
   }
 
   async reload(params: FootPrintParameters): Promise<void> {
-    await this.signalRService.unsubscr();
-    this.isSubscribed = false;
+    await this.teardownRealtime();
     await this.applySettingsAndLoadData(params);
     if (this.isVisible) {
       await this.subscribeToRealtime(params);
@@ -89,10 +85,12 @@ export class FootprintDataService implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.visibilityObserver && this.canvasElement?.nativeElement) {
-      this.visibilityObserver.unobserve(this.canvasElement.nativeElement);
-    }
-    this.signalRService.stopConnection();
+    this.destroy();
+  }
+
+  destroy() {
+    this.teardownVisibility();
+    void this.teardownRealtime();
   }
 
   private async applySettingsAndLoadData(params: FootPrintParameters) {
@@ -130,7 +128,6 @@ export class FootprintDataService implements OnDestroy {
         this.clusterStreamService.GetRange(params)
       );
       this.dataSubject.next(new ClusterData(rangeData));
-      this.component?.onDataInitialized();
     } catch (err) {
       console.error('Ошибка при выполнении запроса к серверу', err);
       if (err instanceof HttpErrorResponse) {
@@ -176,13 +173,7 @@ export class FootprintDataService implements OnDestroy {
   }
 
   private async handleComponentHidden() {
-    try {
-      await this.signalRService.unsubscr();
-      await this.signalRService.stopConnection();
-    } catch (err) {
-      console.error('Ошибка при отписке или остановке SignalRService', err);
-    }
-    this.isSubscribed = false;
+    await this.teardownRealtime();
   }
 
   private shouldSubscribe(params: FootPrintParameters): boolean {
@@ -221,5 +212,24 @@ export class FootprintDataService implements OnDestroy {
       console.error('Ошибка при подписке к SignalRService', err);
       this.isSubscribed = false;
     }
+  }
+
+  private teardownVisibility() {
+    if (this.visibilityObserver && this.canvasElement?.nativeElement) {
+      this.visibilityObserver.unobserve(this.canvasElement.nativeElement);
+      this.visibilityObserver.disconnect();
+    }
+    this.visibilityObserver = undefined;
+    this.canvasElement = undefined;
+  }
+
+  private async teardownRealtime() {
+    try {
+      await this.signalRService.unsubscr();
+      await this.signalRService.stopConnection();
+    } catch (err) {
+      console.error('Ошибка при отписке или остановке SignalRService', err);
+    }
+    this.isSubscribed = false;
   }
 }

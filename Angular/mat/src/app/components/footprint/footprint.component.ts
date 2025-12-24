@@ -3,11 +3,13 @@ import {
   ElementRef,
   ViewChild,
   AfterViewInit,
+  OnChanges,
   OnDestroy,
   HostListener,
   input,
   Input,
   NgZone,
+  SimpleChanges,
 } from '@angular/core';
 import { Matrix, Rectangle } from './matrix';
 
@@ -39,7 +41,7 @@ import { Router } from '@angular/router';
   styleUrls: ['./footprint.component.css'],
   providers: [SignalRService, FootprintDataService, FootprintUtilitiesService],
 })
-export class FootPrintComponent implements AfterViewInit, OnDestroy {
+export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('drawingCanvas', { static: false }) canvasRef?: ElementRef;
   @Input() presetIndex: number;
   @Input() params: FootPrintParameters;
@@ -74,7 +76,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
 
   finishPrice: number = 0;
   startPrice: number = 0;
-  inited = false;
+  private viewInitialized = false;
 
   viewModel: ProfileModel = {
     profilePeriod: -1,
@@ -177,10 +179,6 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
 
   public loadData(initdata: any) {
     this.data = new ClusterData(initdata);
-  }
-
-  onDataInitialized() {
-    this.inited = true;
   }
 
   hideHint() {
@@ -469,7 +467,6 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.subscriptions.push(
       this.footprintDataService.data$.subscribe((clusterData) => {
         this.data = clusterData;
-        this.inited = true;
         this.addhint();
         this.initSize();
         this.resize();
@@ -489,15 +486,34 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
       })
     );
 
-    this.footprintDataService.initialize(this.params, this.presetIndex, {
-      minimode: this.minimode,
-      deltamode: this.deltamode,
-    });
+    this.viewInitialized = true;
+    this.initializeDataFlow();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!this.viewInitialized) {
+      return;
+    }
+
+    if (changes['params'] || changes['presetIndex'] || changes['minimode'] || changes['deltamode']) {
+      this.initializeDataFlow();
+    }
   }
 
   ngOnDestroy() {
     this.subscriptions.forEach((subscription) => subscription.unsubscribe());
-    this.footprintDataService.ngOnDestroy();
+    this.footprintDataService.destroy();
+  }
+
+  private initializeDataFlow() {
+    if (!this.params && !this.presetIndex) {
+      return;
+    }
+
+    this.footprintDataService.initialize(this.params, this.presetIndex, {
+      minimode: this.minimode,
+      deltamode: this.deltamode,
+    });
   }
 
 }
