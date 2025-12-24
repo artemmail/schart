@@ -7,6 +7,7 @@ import { environment } from 'src/app/environment';
 export class SignalRService implements OnDestroy {
   private hubConnection: signalR.HubConnection | undefined;
   private isConnecting: boolean = false;
+  private startPromise: Promise<void> | null = null;
   NP: FootPrintComponent;
 
   constructor() {}
@@ -20,7 +21,11 @@ export class SignalRService implements OnDestroy {
         this.hubConnection.state === signalR.HubConnectionState.Connecting)
     ) {
       // Уже подключены или идет процесс подключения
-      return;
+      return this.startPromise ?? Promise.resolve();
+    }
+
+    if (this.isConnecting && this.startPromise) {
+      return this.startPromise;
     }
 
     this.isConnecting = true;
@@ -36,19 +41,26 @@ export class SignalRService implements OnDestroy {
     this.hubConnection.onclose(async () => {
       // При закрытии соединения очищаем hubConnection
       this.hubConnection = undefined;
+      this.startPromise = null;
       console.log('SignalR connection closed');
     });
 
     this.registerOnServerEvents();
 
-    try {
-      await this.hubConnection.start();
-      console.log('SignalR connection started');
-    } catch (err) {
-      console.error('Error while starting SignalR connection: ' + err.toString());
-    } finally {
-      this.isConnecting = false;
-    }
+    this.startPromise = this.hubConnection
+      .start()
+      .then(() => {
+        console.log('SignalR connection started');
+      })
+      .catch((err) => {
+        console.error('Error while starting SignalR connection: ' + err.toString());
+        throw err;
+      })
+      .finally(() => {
+        this.isConnecting = false;
+      });
+
+    return this.startPromise;
   }
 
   private registerOnServerEvents(): void {
@@ -97,15 +109,25 @@ export class SignalRService implements OnDestroy {
   }
 
   public async stopConnection() {
-    if (this.hubConnection) {
+    if (this.isConnecting && this.startPromise) {
+      try {
+        await this.startPromise;
+      } catch (_) {
+        // Ignore start errors when attempting to stop
+      }
+    }
+
+    if (this.hubConnection && this.hubConnection.state === signalR.HubConnectionState.Connected) {
       try {
         await this.hubConnection.stop();
-        this.hubConnection = undefined;
         console.log('SignalR connection stopped');
       } catch (err) {
         console.error('Error while stopping SignalR connection: ' + err.toString());
       }
     }
+
+    this.startPromise = null;
+    this.hubConnection = undefined;
   }
 
   ngOnDestroy() {
