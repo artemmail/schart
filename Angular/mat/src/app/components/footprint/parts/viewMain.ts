@@ -233,8 +233,15 @@ interruptSwipe() {
       this.parent.data.priceScale;
     let pp = drob(p, 4);
 
-    var n = Math.floor(point.x);
-    var col = this.parent.data.clusterData[n];
+    const n = Math.floor(point.x);
+    const clusterData = this.parent.data.clusterData;
+
+    if (!clusterData || n < 0 || n >= clusterData.length) {
+      this.parent.hideHint();
+      return;
+    }
+
+    const col = clusterData[n];
 
     this.parent.selectedPrice = pp;
     this.parent.selectedCoumn = col;
@@ -264,9 +271,16 @@ interruptSwipe() {
       return `<li style='font-size: 12px;'><b>${i}: </b>${val}</li>`;
     }
 
-    var point = this.mtx.inverse().applyToPoint1(offset);
-    var n = Math.floor(point.x);
-    let col: ColumnEx = this.parent.data.clusterData[n] as ColumnEx;
+    const point = this.mtx.inverse().applyToPoint1(offset);
+    const n = Math.floor(point.x);
+    const clusterData = this.parent.data.clusterData;
+
+    if (!clusterData || n < 0 || n >= clusterData.length) {
+      this.parent.hideHint();
+      return;
+    }
+
+    const col: ColumnEx = clusterData[n] as ColumnEx;
     let v = this.formatService.MoscowTimeShift(col.x);
     var data = '';
 
