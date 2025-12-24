@@ -29,6 +29,7 @@ import { ViewsManager } from './ViewsManager';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { SelectListItemNumber } from 'src/app/models/preserts';
 import { FootprintDataService } from './footprint-data.service';
+import { SignalRService } from 'src/app/service/FootPrint/signalr.service';
 import { FootprintUtilitiesService } from './footprint-utilities.service';
 import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
 import { DialogService } from 'src/app/service/DialogService.service';
