@@ -192,11 +192,6 @@ export class SignalRService implements OnDestroy {
   }
 
   public async unsubscr(key?: string | null): Promise<boolean> {
-    if (!this.hubConnection) {
-      console.warn('Cannot unsubscribe, hubConnection is missing');
-      return false;
-    }
-
     const subscriptionKey = key ?? this.activeSubscriptions.keys().next().value;
     if (!subscriptionKey) {
       console.warn('Cannot unsubscribe, subscription key is missing');
@@ -209,12 +204,25 @@ export class SignalRService implements OnDestroy {
       return false;
     }
 
+    const ensureCleanupAfterRemoval = async () => {
+      this.activeSubscriptions.delete(subscriptionKey);
+      if (!this.activeSubscriptions.size) {
+        await this.stopConnection();
+      }
+    };
+
+    if (!this.hubConnection) {
+      console.warn('Cannot unsubscribe, hubConnection is missing');
+      await ensureCleanupAfterRemoval();
+      return true;
+    }
+
     const isConnected =
       this.hubConnection.state === signalR.HubConnectionState.Connected;
     if (!isConnected) {
       console.warn('Cannot unsubscribe, hubConnection is not connected');
-      this.activeSubscriptions.delete(subscriptionKey);
-      return false;
+      await ensureCleanupAfterRemoval();
+      return true;
     }
 
     try {
@@ -223,11 +231,7 @@ export class SignalRService implements OnDestroy {
       await this.hubConnection.invoke('UnSubscribeCluster', subscriptionPayload);
       await this.hubConnection.invoke('UnSubscribeLadder', params.ticker);
       console.log('Unsubscribed from ' + params.ticker);
-      this.activeSubscriptions.delete(subscriptionKey);
-
-      if (!this.activeSubscriptions.size) {
-        await this.stopConnection();
-      }
+      await ensureCleanupAfterRemoval();
       return true;
     } catch (err) {
       console.warn('Error while invoking UnSubscribe methods: ' + err);
