@@ -7,7 +7,7 @@ import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { SelectListItemNumber } from 'src/app/models/preserts';
 import { firstValueFrom } from 'rxjs';
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class FootprintUtilitiesService {
   constructor(
     private formatService: FormattingService,
