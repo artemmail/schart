@@ -130,14 +130,17 @@ export class SignalRService implements OnDestroy {
       return;
     }
 
-    const connected = await this.ensureConnected();
-    if (!connected) {
-      console.warn('Cannot unsubscribe, hubConnection is not connected');
+    if (!this.hubConnection) {
+      console.warn('Cannot unsubscribe, hubConnection is missing');
+      this.old = null;
       return;
     }
 
-    if (!this.hubConnection) {
-      console.warn('Cannot unsubscribe, hubConnection is missing');
+    const isConnected =
+      this.hubConnection.state === signalR.HubConnectionState.Connected;
+    if (!isConnected) {
+      console.warn('Cannot unsubscribe, hubConnection is not connected');
+      this.old = null;
       return;
     }
 
