@@ -3,6 +3,7 @@ import {
   ElementRef,
   ViewChild,
   AfterViewInit,
+  OnDestroy,
   HostListener,
   input,
   Input,
@@ -13,32 +14,29 @@ import { Matrix, Rectangle } from './matrix';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { FormattingService } from 'src/app/service/FootPrint/Formating/formatting.service';
-import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
-import { ClusterStreamService } from 'src/app/service/FootPrint/ClusterStream/cluster-stream.service'; //  /ClusterStream/cluster-stream.service';
 import { ClusterData } from './clusterData';
 import { canvasPart } from './parts/canvasPart';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { ColumnEx } from 'src/app/models/Column';
 import { SignalRService } from 'src/app/service/FootPrint/signalr.service';
-import { Params, Router } from '@angular/router';
 import { MarkUpManager } from './Markup/Manager';
 import { ProfileModel } from 'src/app/models/profileModel';
 import { MouseAndTouchManager } from './MouseAnTouchManager';
 import { ViewsManager } from './ViewsManager';
-import { saveAs } from 'file-saver';
-import { DialogService } from 'src/app/service/DialogService.service';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { SelectListItemNumber } from 'src/app/models/preserts';
-import { HttpErrorResponse } from '@angular/common/http';
+import { FootprintDataService } from './footprint-data.service';
+import { FootprintUtilitiesService } from './footprint-utilities.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   standalone: false,
   selector: 'app-footprint',
   templateUrl: './footprint.component.html',
   styleUrls: ['./footprint.component.css'],
-  providers: [SignalRService],
+  providers: [SignalRService, FootprintDataService, FootprintUtilitiesService],
 })
-export class FootPrintComponent implements AfterViewInit {
+export class FootPrintComponent implements AfterViewInit, OnDestroy {
   @ViewChild('drawingCanvas', { static: false }) canvasRef?: ElementRef;
   @Input() presetIndex: number;
   @Input() params: FootPrintParameters;
@@ -61,10 +59,7 @@ export class FootPrintComponent implements AfterViewInit {
   data: ClusterData | any = null;
 
   views: Array<canvasPart> = new Array();
-  private visibilityObserver: IntersectionObserver;
-  private isVisible: boolean = false;
-  private isSubscribed: boolean = false;
-  private initializationStarted = false;
+  private subscriptions: Subscription[] = [];
 
   
   movedView: canvasPart | null = null;
@@ -105,15 +100,10 @@ export class FootPrintComponent implements AfterViewInit {
   manager: MarkUpManager;
 
   constructor(
-    // private route: ActivatedRoute,
-    public settingsService: ChartSettingsService,
     public colorsService: ColorsService,
     public formatService: FormattingService,
-    public levelMarksService: LevelMarksService,
-    public clusterStreamService: ClusterStreamService,
-    public signalRService: SignalRService,
-    public dialogService: DialogService,
-    public router: Router
+    private footprintDataService: FootprintDataService,
+    private footprintUtilities: FootprintUtilitiesService
   ) {
     // this.FPsettings = FPsettings;
     this.translateMatrix = null;
@@ -129,122 +119,28 @@ export class FootPrintComponent implements AfterViewInit {
   }
 
   GetCSV() {
-    // Проверка периода для тикового графика
-    if (this.params.period === 0) {
-      alert('Невозможно скачать тиковый график. Есть возможность купить базу данных всех сделок');
-      return;
+    if (this.data) {
+      this.footprintUtilities.exportCsv(this.params, this.data);
     }
-  
-    // Подтверждение сохранения файла в формате CSV
-    const userConfirmed = confirm('Сохранить свечи в формате CSV (Можно использовать в Excel)?');
-    if (!userConfirmed) {
-      return;
-    }
-  
-    // Создание заголовка для CSV файла
-    let csvContent = 'Date;Opn;High;Low;Close;Volume;BidVolume;Quantity;';
-    if (this.data.clusterData.length > 0 && this.data.clusterData[0].oi > 0) {
-      csvContent += 'OpenPositions;';
-    }
-    csvContent += '\n';
-  
-    // Формирование данных для CSV файла
-    this.data.clusterData.forEach(candle => {
-      const row = [
-        this.formatService.jDateToStr(candle.x),
-        candle.o,
-        candle.h,
-        candle.l,
-        candle.c,
-        candle.v,
-        candle.bv,
-        candle.q
-      ];
-      if (candle.oi != 0) {
-        row.push(candle.oi);
-      }
-      csvContent += row.join(';') + '\n';
-    });
-  
-    // Сохранение CSV файла
-    const blob = new Blob([csvContent], { type: 'text/plain;charset=' + document.characterSet });
-    const filename = `${this.params.ticker}_${this.formatService.jDateToStrD(this.params.startDate)}-${this.formatService.jDateToStrD(this.params.endDate)}_${this.params.period}.csv`;
-    saveAs(blob, filename);
   }
-  
+
   presetItems: SelectListItemNumber[] = [];
 
   reloadPresets() {
-    this.settingsService.getPresets().subscribe((x) => (this.presetItems = x));
+    this.footprintUtilities
+      .loadPresets()
+      .then((x) => (this.presetItems = x));
   }
 
   async reloadPresetsAsync() {
-    this.presetItems = await this.settingsService.getPresets().toPromise();      
+    this.presetItems = await this.footprintUtilities.loadPresets();
   }
 
 
 
   public ReLoad() {
     this.params.candlesOnly = this.FPsettings.CandlesOnly;
-    this.ServerRequest(this.params);
-  }
-
-  public ServerRequest(x: FootPrintParameters): void {
-    this.params = x;
-    // this.params.candlesOnly = this.FPsettings.CandlesOnly;
-
-    this.levelMarksService.load(this.params);
-    this.clusterStreamService.GetRange(this.params).subscribe({
-      next: (rangeData) => {
-        this.inited = true;
-        this.signalRService.unsubscr();
-        this.loadData(rangeData);
-        this.addhint();
-        this.initSize();
-        this.resize();
-        
-
-
-    // Проверка условия: если endDate заполнено и оно меньше текущей даты, 
-        // либо startDate или endDate не имеет время "00:00"
-         // Функция для сравнения только дат (без времени)
-         const compareDatesIgnoringTime = (date1: Date, date2: Date): boolean => {
-          const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
-          const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate());
-          return d1 < d2;
-        };
-
-        // Проверка: endDate заполнено и меньше текущей даты (без учета времени)
-        const now = new Date();
-        const isEndDateInPast = this.params.endDate && compareDatesIgnoringTime(new Date(this.params.endDate), now);
-
-        // Проверка на то, что время в startDate или endDate не 00:00
-        const isInvalidTime = (date: any) => date && (new Date(date).getHours() !== 0 || new Date(date).getMinutes() !== 0);
-
-        // Инвертируем условие, если endDate не в прошлом и время в датах равно 00:00
-        if (!isEndDateInPast && !isInvalidTime(this.params.startDate) && !isInvalidTime(this.params.endDate)) {
-          // Если все условия выполнены, выполняем подписку
-          this.signalRService.Subscribe({
-            ticker: this.params.ticker,
-            period: this.params.period,
-            step: this.params.priceStep,
-          });
-        } else {
-          console.log('Подписка пропущена: условия не выполнены.');
-        }
-        
-      },
-      error: async (err: HttpErrorResponse) =>  {
-        
-        if (err instanceof HttpErrorResponse) {
-          await this.dialogService.info_async(err.error);
-        }
-        else
-          await this.dialogService.info_async(err);
-        // Обработка ошибки
-        console.error('Ошибка при выполнении запроса к серверу', err);
-      },
-    });
+    this.footprintDataService.reload(this.params);
   }
 
   public handleCluster(answ: any) {
@@ -270,6 +166,10 @@ export class FootPrintComponent implements AfterViewInit {
 
   public loadData(initdata: any) {
     this.data = new ClusterData(initdata);
+  }
+
+  onDataInitialized() {
+    this.inited = true;
   }
 
   hideHint() {
@@ -553,143 +453,40 @@ export class FootPrintComponent implements AfterViewInit {
       console.log('markup error');
       this.markupEnabled = false;
     }
+    this.footprintDataService.bindComponent(this, this.canvasRef ?? null);
 
-    // Инициализируем наблюдатель за видимостью
-    this.initVisibilityObserver();
-
-    // Начинаем инициализацию независимо от видимости
-    if (!this.initializationStarted) {
-      this.initializationStarted = true;
-      this.asyncInit();
-    }
-  }
-
-  private initVisibilityObserver() {
-    this.visibilityObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            if (!this.isVisible) {
-              this.isVisible = true;
-              this.handleComponentVisible();
-            }
-          } else {
-            if (this.isVisible) {
-              this.isVisible = false;
-              this.handleComponentHidden();
-            }
-          }
-        });
-      },
-      {
-        root: null,
-        threshold: 0,
-      }
+    this.subscriptions.push(
+      this.footprintDataService.data$.subscribe((clusterData) => {
+        this.data = clusterData;
+        this.inited = true;
+        this.addhint();
+        this.initSize();
+        this.resize();
+      }),
+      this.footprintDataService.settings$.subscribe((settings) => {
+        if (settings) {
+          this.FPsettings = settings;
+        }
+      }),
+      this.footprintDataService.params$.subscribe((params) => {
+        if (params) {
+          this.params = params;
+        }
+      }),
+      this.footprintDataService.presets$.subscribe((items) => {
+        this.presetItems = items;
+      })
     );
 
-    if (this.canvasRef?.nativeElement) {
-      this.visibilityObserver.observe(this.canvasRef.nativeElement);
-    }
+    this.footprintDataService.initialize(this.params, this.presetIndex, {
+      minimode: this.minimode,
+      deltamode: this.deltamode,
+    });
   }
 
-  private async handleComponentVisible() {
-    console.log('Компонент стал видимым');
-    if (!this.isSubscribed) {
-      try {
-        await this.signalRService.startConnection(this);
-        await this.signalRService.Subscribe({
-          ticker: this.params.ticker,
-          period: this.params.period,
-          step: this.params.priceStep,
-        });
-        this.isSubscribed = true;
-      } catch (err) {
-        console.error('Ошибка при повторном подключении к SignalRService', err);
-      }
-    }
-  }
-
-  private async handleComponentHidden() {
-    console.log('Компонент стал невидимым');
-    // Отписываемся от сервиса и останавливаем подключение
-    try {
-      await this.signalRService.unsubscr();
-      await this.signalRService.stopConnection();
-    } catch (err) {
-      console.error('Ошибка при отписке или остановке SignalRService', err);
-    }
-    this.isSubscribed = false;
-  }
-
-  async asyncInit() {
-    // Загрузка пресетов и настроек
-    this.presetItems = await this.settingsService.getPresets().toPromise();
-    if (!this.presetIndex) {
-      this.presetIndex = this.presetItems[0].Value;
-    }
-
-    let settings = ChartSettingsService.miniSettings();
-
-    if (!this.minimode) {
-      settings = await this.settingsService
-        .getChartSettings(this.presetIndex)
-        .toPromise();
-    }
-    else
-    {
-      settings.DeltaGraph = this.deltamode;
-    }
-
-    this.FPsettings = settings;
-    this.params.candlesOnly = this.FPsettings.CandlesOnly;
-    this.levelMarksService.load(this.params);
-
-    let rangeData: any;
-
-    try {
-      rangeData = await this.clusterStreamService
-        .GetRange(this.params)
-        .toPromise();
-    } catch (err) {
-      console.error('Ошибка при выполнении запроса к серверу', err);
-      if (err instanceof HttpErrorResponse) {
-        await this.dialogService.info_async(err.error);
-      } else {
-        await this.dialogService.info_async(err);
-      }
-      return;
-    }
-
-    this.inited = true;
-
-    this.loadData(rangeData);
-    this.addhint();
-    this.initSize();
-    this.resize();
-
-    // Не подписываемся, если компонент не виден
-    if (this.isVisible && !this.isSubscribed) {
-      try {
-        await this.signalRService.startConnection(this);
-        await this.signalRService.Subscribe({
-          ticker: this.params.ticker,
-          period: this.params.period,
-          step: this.params.priceStep,
-        });
-        this.isSubscribed = true;
-      } catch (err) {
-        console.error('Ошибка при подписке к SignalRService', err);
-      }
-    }
-  }
-
-  /*
   ngOnDestroy() {
-    this.signalRService.unsubscr();
-    this.signalRService.stopConnection(); // Останавливаем подключение
-    if (this.visibilityObserver && this.canvasRef?.nativeElement) {
-      this.visibilityObserver.unobserve(this.canvasRef.nativeElement);
-    }
-  }*/
+    this.subscriptions.forEach((subscription) => subscription.unsubscribe());
+    this.footprintDataService.ngOnDestroy();
+  }
 
 }
