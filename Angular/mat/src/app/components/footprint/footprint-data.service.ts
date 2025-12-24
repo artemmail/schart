@@ -18,7 +18,7 @@ interface FootprintInitOptions {
   deltamode: boolean;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable()
 export class FootprintDataService implements OnDestroy {
   private visibilityObserver?: IntersectionObserver;
   private isVisible = false;
