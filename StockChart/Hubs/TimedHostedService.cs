@@ -106,7 +106,7 @@ namespace StockChart.Hubs
             if (CandlesHub.Ladders.ContainsKey(k) && CandlesHub.Ladders[k].Any())
             {
                 var r = LadderManager.getRawLadder(k);
-                if (r != null)
+                if (r != null && r.Count > 0)
                 {
                     if (r.Keys.Count < 2)
                     {
