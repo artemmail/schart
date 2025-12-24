@@ -135,7 +135,7 @@ export class viewVolumesSeparated extends canvasPart {
     for (
       var i = parent.minIndex;
       i <= parent.maxIndex;
-      i++ //  if (data[i] == parent.selectedCoumn)
+      i++ //  if (data[i] == parent.selectedColumn)
     ) {
       //if (parent.drawVolumeColumn)
       drawVolumeColumn(data[i], i, mtx);
@@ -158,12 +158,12 @@ export class viewVolumesSeparated extends canvasPart {
     this.setQ(column);
     var ctx = this.ctx;
     ctx.fillStyle =
-      column == this.parent.selectedCoumn
+      column == this.parent.selectedColumn
         ? ColorsService.greencandlesat
         : ColorsService.greencandle;
     ctx.mFillRectangle(number + 0.1, 0, 0.8, this.bq);
     ctx.fillStyle =
-      column == this.parent.selectedCoumn
+      column == this.parent.selectedColumn
         ? ColorsService.redcandlesat
         : ColorsService.redcandle;
     ctx.mFillRectangle(number + 0.1, this.bq, 0.8, this.q - this.bq);
@@ -173,7 +173,7 @@ export class viewVolumesSeparated extends canvasPart {
     this.setQ(column);
     var r = this.parent.clusterRect(0, number, mtx);
     this.ctx.fillStyle =
-      column == this.parent.selectedCoumn
+      column == this.parent.selectedColumn
         ? ColorsService.greencandlesat
         : ColorsService.greencandle;
     this.ctx.mFillRectangle(number + 0.1, 0, 0.8, this.bq);
@@ -183,7 +183,7 @@ export class viewVolumesSeparated extends canvasPart {
     this.setQ(column);
     var r = this.parent.clusterRect(0, number, mtx);
     this.ctx.fillStyle =
-      column == this.parent.selectedCoumn
+      column == this.parent.selectedColumn
         ? ColorsService.redcandlesat
         : ColorsService.redcandle;
     this.ctx.mFillRectangle(number + 0.1, 0, 0.8, this.q - this.bq);
@@ -193,12 +193,12 @@ export class viewVolumesSeparated extends canvasPart {
     this.setQ(column);
     var r = this.parent.clusterRect(0, number, mtx);
     this.ctx.fillStyle =
-      column == this.parent.selectedCoumn
+      column == this.parent.selectedColumn
         ? ColorsService.greencandlesat
         : ColorsService.greencandle;
     this.ctx.mFillRectangle(number, 0, 0.5, this.bq);
     this.ctx.fillStyle =
-      column == this.parent.selectedCoumn
+      column == this.parent.selectedColumn
         ? ColorsService.redcandlesat
         : ColorsService.redcandle;
     this.ctx.mFillRectangle(number + 0.5, 0, 0.5, this.q - this.bq);

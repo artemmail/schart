@@ -76,7 +76,7 @@ export class viewPrices extends canvasPart {
         // ручное преобразование delta→Y
         const y = view.y + view.h - ((val - min) / (max - min)) * view.h;
         ctx.myLine(view.x, y, view.x + 5, y);
-        ctx.fillText(drob(val, 0), view.x + 8, y);
+        ctx.fillText(drob(val, 0).toString(), view.x + 8, y);
       });
       ctx.stroke();
       ctx.myStrokeRect(view);      // рамка шкалы
@@ -104,7 +104,7 @@ export class viewPrices extends canvasPart {
           ctx.stroke();
 
           // метка-рамка как в основном режимe
-          const txt = drob(lastDelta, 0);
+          const txt = drob(lastDelta, 0).toString();
           const lpRect = {
             x: view.x + 5 * sscale,
             y: y - 9 * sscale,
@@ -135,7 +135,7 @@ export class viewPrices extends canvasPart {
       const pos = mtx.price2Height(price, 0);
       ctx.myLine(pos.x, pos.y, pos.x + 5, pos.y);
       const idx = Math.round((price - startPrice) / step);
-      if (idx % skip === 0) ctx.fillText(drob(price, 4), pos.x + 8, pos.y);
+      if (idx % skip === 0) ctx.fillText(drob(price, 4).toString(), pos.x + 8, pos.y);
     });
     ctx.stroke();
 
@@ -149,7 +149,7 @@ export class viewPrices extends canvasPart {
     if (FP.ToolTip && !parent.hiddenHint) {
       const sel  = parent.selectedPrice1;
       const pos  = mtx.price2Height(sel, 0);
-      const pp   = drob(sel, 4);
+      const pp   = drob(sel, 4).toString();
       const lpRect = {
         x: pos.x + 5 * sscale,
         y: pos.y - 9 * sscale,

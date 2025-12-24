@@ -59,7 +59,7 @@ export class viewDeltaBars extends viewVolumesSeparated {
   getLegendLine() {
     return {
       Text: 'Buy-Sell',
-      Value: drob( 2 * this.parent.selectedCoumn.bq - this.parent.selectedCoumn.q,3),
+      Value: drob(2 * this.parent.selectedColumn.bq - this.parent.selectedColumn.q, 3),
     };
   }
 
@@ -68,12 +68,12 @@ export class viewDeltaBars extends viewVolumesSeparated {
 
     if (2 * column.bq - column.q > 0)
       ctx.fillStyle =
-        column == this.parent.selectedCoumn
+        column == this.parent.selectedColumn
           ? ColorsService.greencandlesat
           : ColorsService.greencandle;
     else
       ctx.fillStyle =
-        column == this.parent.selectedCoumn
+        column == this.parent.selectedColumn
           ? ColorsService.redcandlesat
           : ColorsService.redcandle;
 

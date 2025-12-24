@@ -170,7 +170,7 @@ export class Profile extends Rect {
       if (this.total && totalvolume > 0) {
         ctx.font = '12px Verdana';
         ctx.textBaseline = 'top';
-        ctx.fillText(/*"Total=" +*/ drob(totalvolume, 4), pt1.x + 3, pt1.y + 2);
+        ctx.fillText(/*"Total=" +*/ drob(totalvolume, 4).toString(), pt1.x + 3, pt1.y + 2);
       }
       ctx.save();
       ctx.beginPath();

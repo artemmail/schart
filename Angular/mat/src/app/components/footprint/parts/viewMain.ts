@@ -244,7 +244,7 @@ interruptSwipe() {
     const col = clusterData[n];
 
     this.parent.selectedPrice = pp;
-    this.parent.selectedCoumn = col;
+    this.parent.selectedColumn = col;
 
     this.drawHint(e);
 
