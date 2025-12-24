@@ -6,11 +6,13 @@ import {
   OnChanges,
   OnDestroy,
   HostListener,
+  DestroyRef,
   input,
   Input,
   NgZone,
   SimpleChanges,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Matrix, Rectangle } from './matrix';
 
 import { ChartSettings } from 'src/app/models/ChartSettings';
@@ -29,7 +31,6 @@ import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { SelectListItemNumber } from 'src/app/models/preserts';
 import { FootprintDataService } from './footprint-data.service';
 import { FootprintUtilitiesService } from './footprint-utilities.service';
-import { Subscription } from 'rxjs';
 import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { Router } from '@angular/router';
@@ -82,9 +83,8 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   data: ClusterData | null = null;
 
   views: Array<canvasPart> = new Array();
-  private subscriptions: Subscription[] = [];
 
-  
+
   movedView: canvasPart | null = null;
 
   translateMatrix: Matrix | null = null;
@@ -129,7 +129,8 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
     private footprintUtilities: FootprintUtilitiesService,
     public levelMarksService: LevelMarksService,
     public dialogService: DialogService,
-    public router: Router
+    public router: Router,
+    private destroyRef: DestroyRef
   ) {
     // this.FPsettings = FPsettings;
     this.translateMatrix = null;
@@ -489,27 +490,33 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
     }
     this.footprintDataService.bindComponent(this, this.canvasRef ?? null);
 
-    this.subscriptions.push(
-      this.footprintDataService.data$.subscribe((clusterData) => {
+    this.footprintDataService.data$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((clusterData) => {
         this.data = clusterData;
         this.addhint();
         this.initSize();
         this.resize();
-      }),
-      this.footprintDataService.settings$.subscribe((settings) => {
+      });
+    this.footprintDataService.settings$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((settings) => {
         if (settings) {
           this.FPsettings = settings;
         }
-      }),
-      this.footprintDataService.params$.subscribe((params) => {
+      });
+    this.footprintDataService.params$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
         if (params) {
           this.params = params;
         }
-      }),
-      this.footprintDataService.presets$.subscribe((items) => {
+      });
+    this.footprintDataService.presets$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((items) => {
         this.presetItems = items;
-      })
-    );
+      });
 
     this.viewInitialized = true;
     this.initializeDataFlow();
@@ -526,7 +533,6 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.subscriptions.forEach((subscription) => subscription.unsubscribe());
     this.footprintDataService.destroy();
   }
 
