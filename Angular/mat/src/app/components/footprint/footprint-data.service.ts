@@ -1,5 +1,5 @@
 import { ElementRef, Injectable, OnDestroy } from '@angular/core';
-import { BehaviorSubject, Subject, firstValueFrom } from 'rxjs';
+import { BehaviorSubject, Subject, Subscription, firstValueFrom } from 'rxjs';
 import { FootPrintComponent } from './footprint.component';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { ChartSettings } from 'src/app/models/ChartSettings';
@@ -39,6 +39,8 @@ export class FootprintDataService implements OnDestroy {
 
   private presetsSubject = new BehaviorSubject<SelectListItemNumber[]>([]);
   presets$ = this.presetsSubject.asObservable();
+
+  private realtimeSubscriptions = new Subscription();
 
   constructor(
     private settingsService: ChartSettingsService,
@@ -201,12 +203,13 @@ export class FootprintDataService implements OnDestroy {
     }
 
     try {
-      await this.signalRService.startConnection(this.component);
+      await this.signalRService.startConnection();
       await this.signalRService.Subscribe({
         ticker: params.ticker,
         period: params.period,
         step: params.priceStep,
       });
+      this.registerRealtimeHandlers();
       this.isSubscribed = true;
     } catch (err) {
       console.error('Ошибка при подписке к SignalRService', err);
@@ -224,6 +227,8 @@ export class FootprintDataService implements OnDestroy {
   }
 
   private async teardownRealtime() {
+    this.realtimeSubscriptions.unsubscribe();
+    this.realtimeSubscriptions = new Subscription();
     try {
       await this.signalRService.unsubscr();
       await this.signalRService.stopConnection();
@@ -231,5 +236,25 @@ export class FootprintDataService implements OnDestroy {
       console.error('Ошибка при отписке или остановке SignalRService', err);
     }
     this.isSubscribed = false;
+  }
+
+  private registerRealtimeHandlers() {
+    this.realtimeSubscriptions.add(
+      this.signalRService.recieveCluster$.subscribe((answ) => {
+        this.component?.handleCluster(answ);
+      })
+    );
+
+    this.realtimeSubscriptions.add(
+      this.signalRService.recieveTicks$.subscribe((answ) => {
+        this.component?.handleTicks(answ);
+      })
+    );
+
+    this.realtimeSubscriptions.add(
+      this.signalRService.recieveLadder$.subscribe((ladder) => {
+        this.component?.handleLadder(ladder);
+      })
+    );
   }
 }

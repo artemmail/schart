@@ -1,20 +1,27 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
-import { FootPrintComponent } from 'src/app/components/footprint/footprint.component';
+import { Subject } from 'rxjs';
 import { environment } from 'src/app/environment';
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class SignalRService implements OnDestroy {
   private hubConnection: signalR.HubConnection | undefined;
   private isConnecting: boolean = false;
   private isStopping: boolean = false;
   private startPromise: Promise<void> | null = null;
-  NP: FootPrintComponent | null = null;
+
+  private recieveClusterSubject = new Subject<any>();
+  recieveCluster$ = this.recieveClusterSubject.asObservable();
+
+  private recieveTicksSubject = new Subject<any>();
+  recieveTicks$ = this.recieveTicksSubject.asObservable();
+
+  private recieveLadderSubject = new Subject<any>();
+  recieveLadder$ = this.recieveLadderSubject.asObservable();
 
   constructor() {}
 
-  public async startConnection(NP: FootPrintComponent): Promise<void> {
-    this.NP = NP;
+  public async startConnection(): Promise<void> {
     this.isStopping = false;
 
     if (
@@ -70,19 +77,11 @@ export class SignalRService implements OnDestroy {
     if (!this.hubConnection) return;
 
     this.hubConnection.on('recieveCluster', (answ) => {
-      if (!this.NP) {
-        console.warn('Skip recieveCluster: component instance is missing');
-        return;
-      }
-      this.NP.handleCluster(answ);
+      this.recieveClusterSubject.next(answ);
     });
 
     this.hubConnection.on('recieveTicks', (answ) => {
-      if (!this.NP) {
-        console.warn('Skip recieveTicks: component instance is missing');
-        return;
-      }
-      this.NP.handleTicks(answ);
+      this.recieveTicksSubject.next(answ);
     });
 
     this.hubConnection.on('recieveLadder', (ladder) => {
@@ -90,11 +89,7 @@ export class SignalRService implements OnDestroy {
         console.warn('Skip recieveLadder: payload is null or undefined');
         return;
       }
-      if (!this.NP) {
-        console.warn('Skip recieveLadder: component instance is missing');
-        return;
-      }
-      this.NP.handleLadder(ladder);
+      this.recieveLadderSubject.next(ladder);
     });
   }
 
@@ -196,7 +191,6 @@ export class SignalRService implements OnDestroy {
 
     this.startPromise = null;
     this.hubConnection = undefined;
-    this.NP = null;
     this.old = null;
     this.isStopping = false;
   }
