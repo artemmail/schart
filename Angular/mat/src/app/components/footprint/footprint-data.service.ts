@@ -186,19 +186,23 @@ export class FootprintDataService implements OnDestroy {
   }
 
   private shouldSubscribe(params: FootPrintParameters): boolean {
-    const compareDatesIgnoringTime = (date1: Date, date2: Date): boolean => {
-      const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
-      const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate());
-      return d1 < d2;
+    const normalize = (date: Date) => {
+      const copy = new Date(date);
+      copy.setHours(0, 0, 0, 0);
+      return copy.getTime();
     };
 
     const now = new Date();
-    const isEndDateInPast =
-      !!params.endDate && compareDatesIgnoringTime(new Date(params.endDate), now);
-    const isInvalidTime = (date: any) =>
-      date && (new Date(date).getHours() !== 0 || new Date(date).getMinutes() !== 0);
+    const endDate = params.endDate ? new Date(params.endDate) : null;
 
-    return !isEndDateInPast && !isInvalidTime(params.startDate) && !isInvalidTime(params.endDate);
+    // Отказываемся от подписки только когда конечная дата явно в прошлом.
+    // Ранее проверялось наличие ненулевого времени, что блокировало обновление
+    // при текущей дате со временем (например, сейчас), из-за чего realtime
+    // не запускался на странице MultiCandles.
+    const isEndDateInPast =
+      !!endDate && normalize(endDate) < normalize(now);
+
+    return !isEndDateInPast;
   }
 
   private async subscribeToRealtime(params: FootPrintParameters) {
