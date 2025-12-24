@@ -1,4 +1,5 @@
 
+import { Injectable } from '@angular/core';
 import { MatDateFormats, NativeDateAdapter } from '@angular/material/core';
 
 export const MY_DATE_FORMATS: MatDateFormats = {
@@ -12,8 +13,7 @@ export const MY_DATE_FORMATS: MatDateFormats = {
     monthYearA11yLabel: 'MMMM YYYY',
   },
 };
-
-
+@Injectable()
 export class CustomDateAdapter extends NativeDateAdapter {
   // Задаем формат отображения
   override parse(value: any): Date | null {
