@@ -4,7 +4,6 @@ import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { SharedModule } from './shared.module';  // Import the SharedModule
 import { NavService } from './service/nav.service';
-import { SignalRService } from './service/FootPrint/signalr.service';
 import { CustomDateAdapter, MY_DATE_FORMATS } from './service/date-formats';
 
 
@@ -34,7 +33,6 @@ import { LevelMarksService } from './service/FootPrint/LevelMarks/level-marks.se
     { provide: LOCALE_ID, useValue: 'ru' },
     
     NavService,
-    SignalRService,
     LevelMarksService,
     { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS },
     { provide: DateAdapter, useClass: CustomDateAdapter },
