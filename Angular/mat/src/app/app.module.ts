@@ -111,7 +111,6 @@ import { MainPageComponent } from './components/pages/main-page/main-page.compon
 import { EditorModule } from '@tinymce/tinymce-angular';
 import { ServiceNewsDetailsComponent } from './components/pages/service-news-details/service-news-details.component';
 import { MultiComponent } from './components/pages/multi/multi.component';
-import { SignalRService } from './service/FootPrint/signalr.service';
 import * as signalR from '@microsoft/signalr';
 import { LogoutComponent } from './components/Authentification/logout/logout.component';
 import { ConfirmEmailComponent } from './components/Authentification/confirm-email/confirm-email.component';
@@ -313,7 +312,6 @@ export class MaterialModule {}
 
   bootstrap: [AppComponent],
   providers: [
-    SignalRService,
     MatDialog,
     NavService,
     HttpClient,

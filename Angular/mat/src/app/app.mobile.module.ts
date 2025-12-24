@@ -19,7 +19,6 @@ import { AppRoutingModule } from './mobile/app.routes'; // Импортируе�
 import { SharedModule } from './shared.module';  // Import the SharedModule
 import { MaterialModule } from './material.module';
 import { NavService } from './service/nav.service';
-import { SignalRService } from './service/FootPrint/signalr.service';
 import { MAT_DATE_FORMATS, provideNativeDateAdapter } from '@angular/material/core';
 import { MY_DATE_FORMATS } from './service/date-formats';
 //import { MetrikaModule } from 'ng-yandex-metrika';
@@ -64,7 +63,6 @@ export class MyHammerConfig extends HammerGestureConfig {
     //{ provide: HTTP_INTERCEPTORS, useClass: DateConversionInterceptor, multi: true },
   
     NavService,
-    SignalRService,
     LevelMarksService,
     { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS },
     provideNativeDateAdapter(),
