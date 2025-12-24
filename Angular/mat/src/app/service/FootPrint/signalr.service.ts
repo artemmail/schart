@@ -176,7 +176,9 @@ export class SignalRService implements OnDestroy {
     }
 
     try {
-      await this.hubConnection.invoke('SubscribeCluster', params);
+      const subscriptionPayload = JSON.stringify(params);
+
+      await this.hubConnection.invoke('SubscribeCluster', subscriptionPayload);
       await this.hubConnection.invoke('SubscribeLadder', params.ticker);
       this.activeSubscriptions.set(key, { ...params });
       if (logParams) {
@@ -216,7 +218,9 @@ export class SignalRService implements OnDestroy {
     }
 
     try {
-      await this.hubConnection.invoke('UnSubscribeCluster', params);
+      const subscriptionPayload = JSON.stringify(params);
+
+      await this.hubConnection.invoke('UnSubscribeCluster', subscriptionPayload);
       await this.hubConnection.invoke('UnSubscribeLadder', params.ticker);
       console.log('Unsubscribed from ' + params.ticker);
       this.activeSubscriptions.delete(subscriptionKey);
