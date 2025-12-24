@@ -70,10 +70,32 @@ export class SignalRService implements OnDestroy {
     if (!this.hubConnection) return;
 
     this.hubConnection.on('recieveCluster', (answ) => {
-      this.NP?.handleCluster(answ);
+      if (!this.NP) {
+        console.warn('Skip recieveCluster: component instance is missing');
+        return;
+      }
+      this.NP.handleCluster(answ);
     });
-    this.hubConnection.on('recieveTicks', (answ) => this.NP?.handleTicks(answ));
-    this.hubConnection.on('recieveLadder', (ladder) => this.NP?.handleLadder(ladder));
+
+    this.hubConnection.on('recieveTicks', (answ) => {
+      if (!this.NP) {
+        console.warn('Skip recieveTicks: component instance is missing');
+        return;
+      }
+      this.NP.handleTicks(answ);
+    });
+
+    this.hubConnection.on('recieveLadder', (ladder) => {
+      if (!ladder) {
+        console.warn('Skip recieveLadder: payload is null or undefined');
+        return;
+      }
+      if (!this.NP) {
+        console.warn('Skip recieveLadder: component instance is missing');
+        return;
+      }
+      this.NP.handleLadder(ladder);
+    });
   }
 
   old: any = null;
