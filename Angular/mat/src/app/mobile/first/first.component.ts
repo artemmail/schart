@@ -152,12 +152,12 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes.params && !changes.params.firstChange) {
-      this.footPrint.ServerRequest(this.params);
+      this.footPrint.serverRequest(this.params);
     }
   }
   
   load() {
-    this.footPrint.ServerRequest(this.params);
+    this.footPrint.serverRequest(this.params);
   }
   
   ngAfterViewInit(): void {}
@@ -177,7 +177,7 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
       if (true) {
         this.footPrint.resize();
       } else {
-        this.footPrint.ReLoad();
+        this.footPrint.reload();
       }
     });
   }
@@ -213,9 +213,9 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
     await this.dialogService.saveImage(this.footPrint.canvas);    
   }
 
-  GetCSV()
+  getCsv()
   {
-    this.footPrint.GetCSV();
+    this.footPrint.getCsv();
   }
   
 

@@ -82,7 +82,7 @@ export class viewPrices extends canvasPart {
       ctx.myStrokeRect(view);      // рамка шкалы
 
       // 4. текущая кумулятивная дельта (как в основном графике)
-      if (parent.IsPriceVisible()) {
+      if (parent.isPriceVisible()) {
         let lastDelta: number | undefined;
         if (
           parent.maxIndex !== undefined &&
@@ -140,7 +140,7 @@ export class viewPrices extends canvasPart {
     ctx.stroke();
 
     // стакан и подсветки
-    if (parent.IsPriceVisible()) {
+    if (parent.isPriceVisible()) {
       this.drawLadder(parent, view, mtx);
       this.drawSelectedPriceLine(ctx, mtx, parent.data.lastPrice);
     }

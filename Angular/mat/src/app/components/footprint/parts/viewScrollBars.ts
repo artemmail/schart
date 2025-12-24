@@ -17,7 +17,7 @@ export class viewScrollBars extends canvasPart {
     mtx: Matrix
   ): void {
     var FPsettings: ChartSettings = this.parent.FPsettings; let ctx = this.parent.ctx;
-    if (!this.parent.IsStartVisible()) {
+    if (!this.parent.isStartVisible()) {
       var grd = ctx.createLinearGradient(
         view.x - ColorsService.GradientWidth,
         0,
@@ -34,7 +34,7 @@ export class viewScrollBars extends canvasPart {
         view.h
       );
     }
-    if (!this.parent.IsPriceVisible()) {
+    if (!this.parent.isPriceVisible()) {
       var grd2 = ctx.createLinearGradient(
         view.x + view.w - ColorsService.GradientWidth,
         0,

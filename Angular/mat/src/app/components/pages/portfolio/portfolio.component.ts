@@ -161,7 +161,7 @@ export class PortfolioComponent implements OnInit {
 
   applyPresetX(e: any)
   {
-    this.footPrint.ReLoad();
+    this.footPrint.reload();
    // alert(JSON.stringify(e));
   }
 
@@ -171,7 +171,7 @@ export class PortfolioComponent implements OnInit {
     //this.params.
     this.caption =  element.name;
     this.params.ticker = element.ticker;
-    this.footPrint.ReLoad();
+    this.footPrint.reload();
 
    // alert(JSON.stringify(element));
     return ;

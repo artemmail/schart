@@ -15,7 +15,7 @@ type FirstComponentMethods =
   | 'openNonModalMarkUp'
   | 'openNonModalTopOrders'
   | 'uploadImage'
-  | 'GetCSV';
+  | 'getCsv';
 
 @Component({
   standalone: false,
@@ -165,7 +165,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
     this.executeFirstComponentMethod('uploadImage');
   }
 
-  GetCSV(): void {
-    this.executeFirstComponentMethod('GetCSV');
+  getCsv(): void {
+    this.executeFirstComponentMethod('getCsv');
   }
 }
