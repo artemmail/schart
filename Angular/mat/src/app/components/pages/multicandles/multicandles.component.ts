@@ -64,6 +64,7 @@ export class MultiPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private isMultiPage = false;
   private tickerDescriptions: Record<string,string> = {};
   private initialLoading = true;
+  private skipNextQueryUpdate = false;
 
   private readonly dividers = [
     [1,1],[1,2],[1,3],[2,2],[3,2],[3,2],[3,3],[3,3],[3,3],
@@ -85,6 +86,11 @@ export class MultiPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.isMultiPage = this.router.url.includes('MultiCandles');
 
     this.ar.queryParams.subscribe(p => {
+      if (this.skipNextQueryUpdate) {
+        this.skipNextQueryUpdate = false;
+        return;
+      }
+
       // период из параметров
       if (p['period']) this.period = +p['period'];
 
@@ -264,11 +270,14 @@ export class MultiPageComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.startDate) qp.start = this.startDate.toISOString();
     if (this.endDate)   qp.end   = this.endDate.toISOString();
 
+    this.skipNextQueryUpdate = true;
     this.router.navigate([], {
-      relativeTo           : this.ar,
-      replaceUrl           : true,
-      queryParams          : qp,
-      queryParamsHandling  : 'merge'
+      relativeTo          : this.ar,
+      replaceUrl          : true,
+      queryParams         : qp,
+      queryParamsHandling : 'merge'
+    }).catch(() => {
+      this.skipNextQueryUpdate = false;
     });
   }
 
