@@ -148,7 +148,13 @@
         </div>
         
   <div style="width: 100%; height: 600px; ">
-    <app-footprint [(minimode)]="minimode" [(params)]="params" [(caption)]="caption" [(presetIndex)]="presetIndex"></app-footprint>
+    <app-footprint
+      [(minimode)]="minimode"
+      [(params)]="params"
+      [(caption)]="caption"
+      [(presetIndex)]="presetIndex"
+      [postInit]="footprintPostInit"
+    ></app-footprint>
   </div>
       </mat-card-content>
     </mat-card>

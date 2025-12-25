@@ -27,7 +27,7 @@ export class PortfolioComponent implements OnInit {
 
 
    presetIndex: number =  2236;
-   params: FootPrintParameters = {
+  params: FootPrintParameters = {
     ticker: "GAZP",
     period: 60,
     priceStep: 0.001,
@@ -35,8 +35,11 @@ export class PortfolioComponent implements OnInit {
   };
 
 
-   minimode: boolean = true;
-   caption: string | null = null;
+  minimode: boolean = true;
+  caption: string | null = null;
+  footprintPostInit = (component: FootPrintComponent) => {
+    component.applyDefaultPostInit();
+  };
 
 
   ticker = 'SBER';

@@ -44,6 +44,9 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
   isExpanded = true;
   isInited = false;
   navData: any;
+  footprintPostInit = (component: FootPrintComponent) => {
+    component.applyDefaultPostInit();
+  };
 
   constructor(
     private settingsService: SettingsService,
