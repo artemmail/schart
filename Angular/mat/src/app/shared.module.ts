@@ -5,6 +5,7 @@ import { MaterialModule } from './material.module'; // Assuming this is where An
 
 import { ResizeListenerDirective } from './service/resize-listener-directive.directive';
 import { FootPrintComponent } from './components/footprint/footprint.component';
+import { FootprintWidgetComponent } from './components/footprint/footprint-widget.component';
 import { SeasonalityComponent } from './components/Reports/seasonality/seasonality.component';
 import { SpinnerOverlayComponent } from './components/Controls/spinner-overlay-component/spinner-overlay-component.component';
 import { VolumeSplashComponent } from './components/Reports/volume-splash/volume-splash.component';
@@ -162,6 +163,7 @@ registerLocaleData(localeRu, 'ru');
 ],
   declarations: [
     ResizeListenerDirective,
+    FootprintWidgetComponent,
     FootPrintComponent,
     SeasonalityComponent,
     SpinnerOverlayComponent,
@@ -250,6 +252,7 @@ registerLocaleData(localeRu, 'ru');
   ],
   exports: [
     ResizeListenerDirective,
+    FootprintWidgetComponent,
     FootPrintComponent,
     SeasonalityComponent,
     SpinnerOverlayComponent,

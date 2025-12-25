@@ -1,5 +1,5 @@
 import { Component, ViewChild, ViewContainerRef, OnInit, Renderer2, HostListener, ElementRef, Input } from '@angular/core';
-import { FootPrintComponent } from '../../footprint/footprint.component';
+import { FootprintWidgetComponent } from '../../footprint/footprint-widget.component';
 import { Injector } from '@angular/core';
 
 @Component({
@@ -70,7 +70,7 @@ export class MultiComponent implements OnInit {
     this.renderer.appendChild(containerElement, div);
     
     // Создание компонента внутри div
-    const componentRef = this.container.createComponent(FootPrintComponent, { injector: this.injector });
+    const componentRef = this.container.createComponent(FootprintWidgetComponent, { injector: this.injector });
     this.renderer.appendChild(div, componentRef.location.nativeElement);
 
     // Установка свойств компонента

@@ -21,6 +21,7 @@ import { DialogService } from 'src/app/service/DialogService.service';
 
 import { Title } from '@angular/platform-browser';
 import { FootPrintComponent } from 'src/app/components/footprint/footprint.component';
+import { FootprintWidgetComponent } from 'src/app/components/footprint/footprint-widget.component';
 import { SelectListItemText } from 'src/app/models/preserts';
 import { SettingsService } from 'src/app/service/settings.service';
 import { SettingsDialogComponent } from '../settings-dialog/settings-dialog.component';
@@ -35,7 +36,7 @@ import { Subject, takeUntil } from 'rxjs';
   encapsulation: ViewEncapsulation.None,
 })
 export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
-  @ViewChild(FootPrintComponent) footPrint: FootPrintComponent;
+  @ViewChild(FootprintWidgetComponent) footPrint: FootprintWidgetComponent;
 
   
 
@@ -138,7 +139,7 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
       width: 'auto',
       height: 'auto',
       panelClass: 'custom-dialog-container',
-      data: { params: { ...this.params }, fp: this.footPrint }
+      data: { params: { ...this.params }, fp: this.footPrint.renderer }
     });
    
 

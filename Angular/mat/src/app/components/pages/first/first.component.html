@@ -62,11 +62,11 @@
     <mat-sidenav-content>
       <div class="content overflow-hidden">
         <div id="container">
-          <app-footprint
+          <app-footprint-widget
             [params]="params"
             [postInit]="footprintPostInit"
             #footPrint
-          ></app-footprint>
+          ></app-footprint-widget>
         </div>
       </div>
     </mat-sidenav-content>
@@ -79,26 +79,26 @@
         title="Пометки"
         (onCloseCallback)="onCloseMarkUp()"
       >
-        <app-markup-editor [NP]="footPrint"></app-markup-editor>
+        <app-markup-editor [NP]="footPrint.renderer"></app-markup-editor>
       </app-non-modal-dialog>
     </ng-container>
   
     <ng-container *ngIf="showSettingsDialog">
       <app-non-modal-dialog #settingsDialog title="Настройки">
-        <app-footprint-settings-dialog [fp]="footPrint">
+        <app-footprint-settings-dialog [fp]="footPrint.renderer">
         </app-footprint-settings-dialog>
       </app-non-modal-dialog>
     </ng-container>
   
     <ng-container *ngIf="showTopOrdersDialog">
       <app-non-modal-dialog #topOrdersDialog title="Крупнейшие сделки">
-        <footprint-top-orders [NP]="footPrint"></footprint-top-orders>
+        <footprint-top-orders [NP]="footPrint.renderer"></footprint-top-orders>
       </app-non-modal-dialog>
     </ng-container>
   
     <ng-container *ngIf="showVolumeSearchDialog">
       <app-non-modal-dialog #volumeSearchDialog title="Volume search">
-        <app-volume-search-table [NP]="footPrint">
+        <app-volume-search-table [NP]="footPrint.renderer">
         </app-volume-search-table>
       </app-non-modal-dialog>
     </ng-container>

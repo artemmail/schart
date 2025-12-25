@@ -12,6 +12,7 @@ import { SelectListItemNumber, SmallPeriodPresetShort } from 'src/app/models/pre
 import { FootPrintParameters } from 'src/app/models/Params';
 import { JsonEditorComponent } from 'ang-jsoneditor';
 import { FootPrintComponent } from '../../footprint/footprint.component';
+import { FootprintWidgetComponent } from '../../footprint/footprint-widget.component';
 
 @Component({
   standalone: false,
@@ -21,7 +22,7 @@ import { FootPrintComponent } from '../../footprint/footprint.component';
 })
 export class PortfolioComponent implements OnInit {
 
-  @ViewChild(FootPrintComponent) footPrint: FootPrintComponent;
+  @ViewChild(FootprintWidgetComponent) footPrint: FootprintWidgetComponent;
   
   title = 'Торговля на демо портфеле';
 
