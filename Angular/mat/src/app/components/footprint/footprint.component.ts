@@ -34,6 +34,7 @@ import { FootprintUtilitiesService } from './footprint-utilities.service';
 import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { Router } from '@angular/router';
+import { FootprintLayoutService } from './footprint-layout.service';
 
 interface TickData {
   number: number;
@@ -130,6 +131,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
     public levelMarksService: LevelMarksService,
     public dialogService: DialogService,
     public router: Router,
+    private footprintLayoutService: FootprintLayoutService,
     private destroyRef: DestroyRef
   ) {
     // this.FPsettings = FPsettings;
@@ -348,34 +350,16 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   getInitMatrix(view: Rectangle, data: ClusterData) {
-    var len = Math.floor(view.w / 10);
-    var len2 = Math.floor(view.w / 100);
-    var firstCol = Math.max(
-      data.clusterData.length -
-        (this.FPsettings.CompressToCandles == 'Always' ||
-        this.params.candlesOnly
-          ? len
-          : len2),
-      0
+    if (!this.params) {
+      return new Matrix();
+    }
+
+    return this.footprintLayoutService.getInitialMatrix(
+      view,
+      data,
+      this.FPsettings,
+      this.params
     );
-    var h = view.h / 30;
-    var to = [
-      view.x,
-      view.y,
-      view.x,
-      view.y + view.h,
-      view.x + view.w,
-      view.y + view.h / 2,
-    ];
-    var from = [
-      firstCol,
-      data.lastPrice + data.priceScale * h,
-      firstCol,
-      data.lastPrice - data.priceScale * h,
-      data.clusterData.length,
-      data.lastPrice,
-    ];
-    return this.alignMatrix(Matrix.fromTriangles(from, to));
   }
 
   hiddenTotal() {
@@ -384,7 +368,8 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   initSize() {
     this.viewsManager.alignCanvas();
-    this.viewsManager.genViews();
+    this.viewsManager.updateLayout();
+    if (!this.data || !this.viewsManager.layout) return;
     this.viewsManager.mtx = this.getInitMatrix(
       this.viewsManager.clusterView,
       this.data
@@ -402,64 +387,16 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   alignMatrix(matrix: Matrix, alignprice = false) {
-    var v = { ...this.viewsManager.clusterView };
-
-    //var vis = Math.floor(matrix.inverse().applyToPoint(this.clusterView.x + this.clusterView.w, 0).x) >= this.data.clusterData.length - 1;
-    if ('MaxTrades' in this.FPsettings && this.FPsettings.MaxTrades) {
-      let del = (matrix.applyToPoint(1, 0).x - matrix.applyToPoint(0, 0).x) / 5;
-      v.x += del;
-      v.w -= del;
-    }
-    var x1 = matrix.applyToPoint(0, 0).x;
-    var x2 = matrix.applyToPoint(this.data.clusterData.length, 0).x;
-    var dp = (this.data.maxPrice - this.data.minPrice) / 10;
-    var y1 = matrix.applyToPoint(0, this.data.maxPrice + dp).y;
-    var y2 = matrix.applyToPoint(0, this.data.minPrice - dp).y;
-    var deltaX = 0;
-    var deltaY = 0;
-    if (x2 - x1 < v.w)
-      matrix = matrix.reassignX(
-        { x1: 0, x2: this.data.clusterData.length },
-        { x1: v.x, x2: v.x + v.w }
-      );
-    else {
-      if (x1 > v.x) deltaX = v.x - x1;
-      if (x2 < v.x + v.w) deltaX = v.x + v.w - x2;
-    }
-    if (y2 - y1 < v.h)
-      matrix = matrix.reassignY(
-        { y1: this.data.maxPrice + dp, y2: this.data.minPrice - dp },
-        { y1: v.y, y2: v.y + v.h }
-      );
-    else {
-      if (y1 > v.y) deltaY = v.y - y1;
-      if (y2 < v.y + v.h) deltaY = v.y + v.h - y2;
-    }
-    if (deltaX != 0 || deltaY != 0)
-      matrix = matrix.getTranslate(deltaX, deltaY);
-
-    this.getMinMaxIndex(matrix);
-
-    if (this.FPsettings.ShrinkY && !!this.data.local.maxPrice) {
-      var dp = (this.data.local.maxPrice - this.data.local.minPrice) / 10;
-      matrix = matrix.reassignY(
-        {
-          y1: this.data.local.maxPrice + dp,
-          y2: this.data.local.minPrice - dp,
-        },
-        { y1: v.y, y2: v.y + v.h }
-      );
-    }
-
-    try {
-      if (alignprice && this.isPriceVisible()) {
-        var xx = matrix.applyToPoint(this.data.clusterData.length, 0).x;
-        matrix = matrix.getTranslate(v.x + v.w - xx, 0);
-      }
-    } catch (e) {}
-    // return;
-
-    return matrix;
+    if (!this.data) return matrix;
+    const alignedMatrix = this.footprintLayoutService.alignMatrix(
+      matrix,
+      this.viewsManager.clusterView,
+      this.data,
+      this.FPsettings,
+      alignprice
+    );
+    this.getMinMaxIndex(alignedMatrix);
+    return alignedMatrix;
   }
   topLinesCount() {
     var x = (this.topVolumes() ? 1 : 0) + (this.oiEnable() ? 1 : 0) + 2;
@@ -485,7 +422,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.mouseAndTouchManager = new MouseAndTouchManager(this);
-    this.viewsManager = new ViewsManager(this);
+    this.viewsManager = new ViewsManager(this, this.footprintLayoutService);
 
     try {
       this.markupManager = new MarkUpManager(this.viewModel, this);
