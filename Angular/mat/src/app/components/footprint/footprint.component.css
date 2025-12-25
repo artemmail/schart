@@ -1,7 +1,26 @@
 canvas {
- 
+
   background-color: green;
   width: 1px;
   height: 1px
+}
+
+.footprint-hint {
+  pointer-events: none;
+  overflow: hidden;
+  top: -10000px;
+  left: -10000px;
+  position: absolute;
+  z-index: 10002;
+  box-sizing: content-box;
+  border-style: solid;
+  border-color: #909090;
+  padding: 4px;
+  display: inline-block;
+  font-family: Arial;
+  font-size: 12px;
+  border-width: 1px;
+  border-radius: 5px;
+  background: rgba(240, 240, 240, 0.75);
 }
 

@@ -7,6 +7,7 @@ import {
   OnDestroy,
   HostListener,
   DestroyRef,
+  Renderer2,
   input,
   Input,
   NgZone,
@@ -62,8 +63,8 @@ interface ClusterInitData {
 })
 export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('drawingCanvas', { static: false }) canvasRef?: ElementRef;
-  @Input() presetIndex: number;
-  @Input() params: FootPrintParameters;
+  @Input() presetIndex: number | null = null;
+  @Input() params: FootPrintParameters | null = null;
   @Input() minimode: boolean = false;
   @Input() deltamode: boolean = false;
   @Input() caption: string | null = null;
@@ -96,6 +97,9 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   startPrice: number = 0;
   private viewInitialized = false;
   private dataFlowInitialized = false;
+  private readonly hintId = `footprint-hint-${Math.random()
+    .toString(36)
+    .slice(2)}`;
 
   viewModel: ProfileModel = {
     profilePeriod: -1,
@@ -131,7 +135,8 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
     public levelMarksService: LevelMarksService,
     public dialogService: DialogService,
     public router: Router,
-    private destroyRef: DestroyRef
+    private destroyRef: DestroyRef,
+    private renderer: Renderer2
   ) {
     this.translateMatrix = null;
     this.hiddenHint = true;
@@ -139,7 +144,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   getCsv() {
-    if (this.data) {
+    if (this.data && this.hasParams()) {
       this.footprintUtilities.exportCsv(this.params, this.data);
     }
   }
@@ -159,6 +164,11 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
 
 
   public reload() {
+    if (!this.hasParams()) {
+      console.warn('Footprint parameters are required to reload data.');
+      return;
+    }
+
     this.params.candlesOnly = this.FPsettings.CandlesOnly;
     this.footprintDataService.reload(this.params);
   }
@@ -209,17 +219,13 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   dragMode: number | null = null;
 
   addhint() {
-    if (this.hint) return;
+    if (this.hint || !this.hasDocument()) return;
 
-    const existing = document.getElementById('hint');
-    if (existing) {
-      this.hint = existing as HTMLDivElement;
-      return;
-    }
-
-    const element = document.createElement('div');
-    element.id = 'hint';
-    document.body.appendChild(element);
+    const host = this.canvasRef?.nativeElement?.parentElement ?? document.body;
+    const element = this.renderer.createElement('div');
+    this.renderer.setAttribute(element, 'id', this.hintId);
+    this.renderer.addClass(element, 'footprint-hint');
+    this.renderer.appendChild(host, element);
     this.hint = element;
   }
 
@@ -532,18 +538,21 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   ngOnDestroy() {
     if (this.hint?.parentElement) {
-      this.hint.parentElement.removeChild(this.hint);
+      this.renderer.removeChild(this.hint.parentElement, this.hint);
     }
     this.mouseAndTouchManager?.destroy();
     this.footprintDataService.destroy();
   }
 
   private initializeDataFlow() {
-    if (this.dataFlowInitialized && !this.params && !this.presetIndex) {
+    const hasParams = this.hasParams();
+    const hasPresetIndex = this.hasPresetIndex();
+
+    if (this.dataFlowInitialized && !hasParams && !hasPresetIndex) {
       return;
     }
 
-    if (!this.params && !this.presetIndex) {
+    if (!hasParams) {
       return;
     }
 
@@ -552,6 +561,18 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
       deltamode: this.deltamode,
     });
     this.dataFlowInitialized = true;
+  }
+
+  private hasParams(): this is { params: FootPrintParameters } {
+    return this.params !== null && this.params !== undefined;
+  }
+
+  private hasPresetIndex(): boolean {
+    return this.presetIndex !== null && this.presetIndex !== undefined;
+  }
+
+  private hasDocument(): boolean {
+    return typeof document !== 'undefined';
   }
 
 }

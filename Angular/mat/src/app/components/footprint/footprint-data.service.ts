@@ -24,7 +24,7 @@ export class FootprintDataService implements OnDestroy {
   private isVisible = false;
   private component?: FootPrintComponent;
   private canvasElement?: ElementRef;
-  private presetIndex?: number;
+  private presetIndex: number | null | undefined;
   private options: FootprintInitOptions = { minimode: false, deltamode: false };
 
   private dataSubject = new Subject<ClusterData>();
@@ -63,7 +63,7 @@ export class FootprintDataService implements OnDestroy {
 
   async initialize(
     params: FootPrintParameters,
-    presetIndex: number,
+    presetIndex: number | null | undefined,
     options: FootprintInitOptions
   ): Promise<void> {
     this.options = options;
@@ -113,7 +113,11 @@ export class FootprintDataService implements OnDestroy {
 
   private async resolveSettings(): Promise<ChartSettings> {
     let settings = ChartSettingsService.miniSettings();
-    if (!this.options.minimode && this.presetIndex !== undefined) {
+    if (
+      !this.options.minimode &&
+      this.presetIndex !== undefined &&
+      this.presetIndex !== null
+    ) {
       settings = await firstValueFrom(
         this.settingsService.getChartSettings(this.presetIndex)
       );
