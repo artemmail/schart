@@ -68,7 +68,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() deltamode: boolean = false;
   @Input() caption: string | null = null;
 
-  public canvas: HTMLCanvasElement | null = this.canvasRef?.nativeElement;
+  public canvas: HTMLCanvasElement | null = null;
   public ctx: CanvasRenderingContext2D | null = null;
 
   DeltaVolumes: Array<number> = [0, 0, 0, 0, 0, 0, 0, 0];
@@ -95,6 +95,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   finishPrice: number = 0;
   startPrice: number = 0;
   private viewInitialized = false;
+  private dataFlowInitialized = false;
 
   viewModel: ProfileModel = {
     profilePeriod: -1,
@@ -132,17 +133,9 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
     public router: Router,
     private destroyRef: DestroyRef
   ) {
-    // this.FPsettings = FPsettings;
     this.translateMatrix = null;
     this.hiddenHint = true;
     this.markupEnabled = false;
-
-    // this.ColorsService =
-
-    const canvas: HTMLCanvasElement | null = this.canvasRef?.nativeElement;
-    if (!canvas) return;
-
-    //this.calcPrices();
   }
 
   getCsv() {
@@ -216,13 +209,18 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   dragMode: number | null = null;
 
   addhint() {
-    if (document.getElementById('hint') == null) {
-      const element = document.createElement('div');
-      element.id = 'hint';
-      document.body.appendChild(element);
-      //         this.canvas.parentNode.appendChild(element);
+    if (this.hint) return;
+
+    const existing = document.getElementById('hint');
+    if (existing) {
+      this.hint = existing as HTMLDivElement;
+      return;
     }
-    this.hint = document.getElementById('hint') as HTMLDivElement;
+
+    const element = document.createElement('div');
+    element.id = 'hint';
+    document.body.appendChild(element);
+    this.hint = element;
   }
 
   public FPsettings: ChartSettings = ChartSettingsService.DefaultSettings();
@@ -533,10 +531,18 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy() {
+    if (this.hint?.parentElement) {
+      this.hint.parentElement.removeChild(this.hint);
+    }
+    this.mouseAndTouchManager?.destroy();
     this.footprintDataService.destroy();
   }
 
   private initializeDataFlow() {
+    if (this.dataFlowInitialized && !this.params && !this.presetIndex) {
+      return;
+    }
+
     if (!this.params && !this.presetIndex) {
       return;
     }
@@ -545,6 +551,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
       minimode: this.minimode,
       deltamode: this.deltamode,
     });
+    this.dataFlowInitialized = true;
   }
 
 }

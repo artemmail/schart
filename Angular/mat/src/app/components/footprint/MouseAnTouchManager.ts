@@ -12,10 +12,12 @@ export class MouseAndTouchManager {
   selectedPoint: any;
   pressd: Point = { x: 0, y: 0 };
   private hammer: HammerManager;
+  private canvas: HTMLCanvasElement;
 
   constructor(footprint_: FootPrintComponent) {
     this.footprint = footprint_;
     const canvas = this.footprint.canvas;
+    this.canvas = canvas;
 
     this.hammer = new Hammer(canvas);
     //this.hammer.get('pan').set({ direction: Hammer.DIRECTION_ALL });
@@ -303,4 +305,17 @@ export class MouseAndTouchManager {
 
 
 
+  destroy() {
+    this.hammer?.destroy();
+
+    this.canvas.removeEventListener('mousedown', this.onMouseDown);
+    this.canvas.removeEventListener('mouseout', this.onMouseOut);
+    this.canvas.removeEventListener('mousemove', this.onMouseMove);
+    this.canvas.removeEventListener('mouseup', this.onMouseUp);
+    this.canvas.removeEventListener('wheel', this.onMouseWheel);
+
+    this.canvas.removeEventListener('contextmenu', this.onRightClick);
+    this.canvas.removeEventListener('dblclick', this.onDoubleClick);
+    this.canvas.removeEventListener('click', this.onTap);
+  }
 }
