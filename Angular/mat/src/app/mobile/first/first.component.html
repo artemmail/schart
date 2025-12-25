@@ -2,7 +2,11 @@
 
   <div class="content overflow-hidden">
     <div id="container">
-      <app-footprint [params]="params" #footPrint></app-footprint>
+      <app-footprint
+        [params]="params"
+        [postInit]="footprintPostInit"
+        #footPrint
+      ></app-footprint>
     </div>
   </div>
 

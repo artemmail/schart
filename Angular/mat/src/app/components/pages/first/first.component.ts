@@ -48,6 +48,9 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   params: TickerPresetNew;
   isInited = false;
   isCandlestick: boolean = false;
+  footprintPostInit = (component: FootPrintComponent) => {
+    component.applyDefaultPostInit();
+  };
 
   // Флаги для отображения диалогов
   showMarkupDialog: boolean = false;

@@ -55,6 +55,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() minimode: boolean = false;
   @Input() deltamode: boolean = false;
   @Input() caption: string | null = null;
+  @Input() postInit?: (component: FootPrintComponent) => void;
 
   public canvas: HTMLCanvasElement | null = this.canvasRef?.nativeElement;
   public ctx: CanvasRenderingContext2D | null = null;
@@ -340,6 +341,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.data
     );
     this.viewsManager.drawClusterView();
+    this.runPostInitialization();
   }
 
   drawClusterView() {
@@ -494,6 +496,21 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
       options
     );
     await this.footprintRealtimeUpdater.configure(this.params, options);
+  }
+
+  public applyDefaultPostInit(): void {
+    if (!this.viewsManager?.mtx) {
+      return;
+    }
+
+    this.viewsManager.mtx = this.alignMatrix(this.viewsManager.mtx);
+    this.viewsManager.drawClusterView();
+  }
+
+  public runPostInitialization(): void {
+    const postInitHandler = this.postInit ?? ((component: FootPrintComponent) => component.applyDefaultPostInit());
+
+    postInitHandler(this);
   }
 
   private async configureRealtimeUpdater() {
