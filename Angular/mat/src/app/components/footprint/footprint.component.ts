@@ -7,12 +7,11 @@ import {
   OnDestroy,
   HostListener,
   DestroyRef,
-  input,
   Input,
-  NgZone,
   SimpleChanges,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
 import { Matrix, Rectangle } from './matrix';
 
 import { ChartSettings } from 'src/app/models/ChartSettings';
@@ -35,24 +34,6 @@ import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-ma
 import { DialogService } from 'src/app/service/DialogService.service';
 import { Router } from '@angular/router';
 import { FootprintLayoutService } from './footprint-layout.service';
-
-interface TickData {
-  number: number;
-  tradeDate: string | Date;
-  price: number;
-  quantity: number;
-  direction: number;
-  volume: number;
-  oi: number;
-}
-
-type LadderData = Record<string, number>;
-
-interface ClusterInitData {
-  clusterData: ColumnEx[];
-  priceScale: number;
-  VolumePerQuantity?: number;
-}
 
 @Component({
   standalone: false,
@@ -183,33 +164,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
     await this.footprintDataService.reload(params);
   }
 
-  public handleCluster(answ: ColumnEx[]) {
-    if (!this.data) return;
-    const isVisible = this.isPriceVisible();
-    const needMerge = this.data.handleCluster(answ);
-    if (isVisible && needMerge) this.mergeMatrix();
-    this.viewsManager.drawClusterView();
-  }
-
-  public handleTicks(answ: TickData[]) {
-    if (!this.data) return;
-    const isVisible = this.isPriceVisible();
-    const needMerge = this.data.handleTicks(answ);
-    if (isVisible && needMerge) this.mergeMatrix();
-    this.viewsManager.drawClusterView();
-  }
-
-  public handleLadder(ladder: LadderData) {
-    if (!this.data) return;
-    this.data.handleLadder(ladder);
-    this.viewsManager.drawClusterView();
-  }
-
   selectedColumn: ColumnEx | null = null;
-
-  public loadData(initdata: ClusterInitData) {
-    this.data = new ClusterData(initdata);
-  }
 
   hideHint() {
     this.hiddenHint = true;
@@ -432,17 +387,36 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
       console.log('markup error');
       this.markupEnabled = false;
     }
-    this.footprintDataService.bindComponent(this, this.canvasRef ?? null);
+    this.footprintDataService.bindCanvas(this.canvasRef ?? null);
 
     this.footprintDataService.data$
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        filter((clusterData): clusterData is ClusterData => clusterData !== null)
+      )
       .subscribe((clusterData) => {
+        const isInitialLoad = !this.data;
         this.data = clusterData;
         this.addhint();
-        if (this.params) {
+        if (isInitialLoad && this.params) {
           this.initSize();
           this.resize();
         }
+      });
+
+    this.footprintDataService.updates$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((update) => {
+        if (!this.data || !this.viewsManager) {
+          return;
+        }
+
+        const isVisible = this.isPriceVisible();
+        if (update.type !== 'ladder' && isVisible && update.merged) {
+          this.mergeMatrix();
+        }
+
+        this.viewsManager.drawClusterView();
       });
     this.footprintDataService.settings$
       .pipe(takeUntilDestroyed(this.destroyRef))
