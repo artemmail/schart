@@ -366,7 +366,7 @@ export class ViewsManager {
   
     if (canvas && container) {
       // Получаем размеры контейнера
-      /*
+      
       const containerRect = container.getBoundingClientRect();
       const w = containerRect.width;
       const h = containerRect.height;
@@ -386,7 +386,7 @@ export class ViewsManager {
       // Сбрасываем трансформацию контекста и масштабируем
       const ctx = this.footprint.ctx;
       ctx.setTransform(1, 0, 0, 1, 0, 0);  // сброс
-      ctx.scale(ratio, ratio);*/
+      ctx.scale(ratio, ratio);
   
       // Ваша логика для обновления и отрисовки контента
       var oldX = this.clusterView.x + this.clusterView.w;
