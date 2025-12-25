@@ -322,54 +322,40 @@ export class ViewsManager {
 
   alignCanvas() {
     var canvas = this.footprint.canvasRef?.nativeElement;
-    const container = canvas.parentNode.parentNode;
-  
-    if (canvas && container) {
-      // Получаем размеры контейнера
-      
-      const containerRect = container.getBoundingClientRect();
-      const w = containerRect.width;
-      const h = containerRect.height;
-  
-      // Получаем devicePixelRatio
-      let ratio = window.devicePixelRatio ;//|| 1;
-      //ratio = 1;
-  
-      // Устанавливаем размеры canvas с учетом devicePixelRatio
-      canvas.width = w * ratio;
-      canvas.height = h * ratio;
-  
-      // Устанавливаем размеры стилей для canvas
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
-  
-      // Сбрасываем трансформацию контекста и масштабируем
-      const ctx = this.footprint.ctx;
-     // ctx.setTransform(1, 0, 0, 1, 0, 0);  // сброс
-      //ctx.scale(1, 1);
+    if (!canvas) return;
+
+    let container: HTMLElement | null = canvas.parentElement;
+
+    while (container) {
+      const rect = container.getBoundingClientRect();
+      if (rect.height > 0 && rect.width > 0) {
+        break;
+      }
+      container = container.parentElement;
     }
-    return
 
-    var canvas = this.footprint.canvasRef?.nativeElement;
+    if (!container) return;
 
-    if (canvas == null || canvas.parentElement == undefined) return;
+    const containerRect = container.getBoundingClientRect();
+    const w = containerRect.width;
+    const h = containerRect.height;
 
+    // Получаем devicePixelRatio
+    let ratio = window.devicePixelRatio; //|| 1;
+    //ratio = 1;
 
-      var parent = canvas.parentElement?.getBoundingClientRect();
-      if (parent !== undefined) {
-        var w = Math.floor(canvas.width);
-        var h = Math.floor(canvas.height);
-        canvas.style.height = h + 'px';
-        canvas.style.width = w + 'px';
-        canvas.height = Math.floor(h * this.colorsService.scale());
-        canvas.width = Math.floor(w * this.colorsService.scale());
+    // Устанавливаем размеры canvas с учетом devicePixelRatio
+    canvas.width = w * ratio;
+    canvas.height = h * ratio;
 
-        const ctx = this.footprint.ctx;
-        ctx.setTransform(1, 0, 0, 1, 0, 0);  // сброс
-        ctx.scale( this.colorsService.scale(),  this.colorsService.scale());
+    // Устанавливаем размеры стилей для canvas
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
 
-      
-    }
+    // Сбрасываем трансформацию контекста и масштабируем
+    const ctx = this.footprint.ctx;
+   // ctx.setTransform(1, 0, 0, 1, 0, 0);  // сброс
+    //ctx.scale(1, 1);
   }
 
   public resize() {
