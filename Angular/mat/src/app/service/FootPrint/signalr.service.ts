@@ -265,6 +265,8 @@ export class SignalRService implements OnDestroy {
       return false;
     }
 
+  }
+
   private async invokeSubscribe(
     params: FootprintSubscribeParams,
     logParams: boolean
