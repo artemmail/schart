@@ -27,20 +27,26 @@ import { MouseAndTouchManager } from './MouseAnTouchManager';
 import { ViewsManager } from './ViewsManager';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { SelectListItemNumber } from 'src/app/models/preserts';
-import { FootprintDataService } from './footprint-data.service';
 import { SignalRService } from 'src/app/service/FootPrint/signalr.service';
 import { FootprintUtilitiesService } from './footprint-utilities.service';
 import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { Router } from '@angular/router';
 import { FootprintLayoutService } from './footprint-layout.service';
+import { FootprintDataLoaderService } from './footprint-data-loader.service';
+import { FootprintRealtimeUpdaterService } from './footprint-realtime-updater.service';
+import { FootprintInitOptions } from './footprint-data.types';
 
 @Component({
   standalone: false,
   selector: 'app-footprint',
   templateUrl: './footprint.component.html',
   styleUrls: ['./footprint.component.css'],
-  providers: [FootprintDataService, SignalRService],
+  providers: [
+    FootprintDataLoaderService,
+    FootprintRealtimeUpdaterService,
+    SignalRService,
+  ],
 })
 export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('drawingCanvas', { static: false }) canvasRef?: ElementRef;
@@ -107,7 +113,8 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   constructor(
     public colorsService: ColorsService,
     public formatService: FormattingService,
-    private footprintDataService: FootprintDataService,
+    private footprintDataLoader: FootprintDataLoaderService,
+    private footprintRealtimeUpdater: FootprintRealtimeUpdaterService,
     private footprintUtilities: FootprintUtilitiesService,
     public levelMarksService: LevelMarksService,
     public dialogService: DialogService,
@@ -156,12 +163,14 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
     }
 
     this.params.candlesOnly = this.FPsettings.CandlesOnly;
-    this.footprintDataService.reload(this.params);
+    void this.footprintDataLoader.reload(this.params);
+    void this.configureRealtimeUpdater();
   }
 
   public async serverRequest(params: FootPrintParameters): Promise<void> {
     this.params = params;
-    await this.footprintDataService.reload(params);
+    await this.footprintDataLoader.reload(params);
+    await this.configureRealtimeUpdater();
   }
 
   selectedColumn: ColumnEx | null = null;
@@ -387,24 +396,25 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
       console.log('markup error');
       this.markupEnabled = false;
     }
-    this.footprintDataService.bindCanvas(this.canvasRef ?? null);
+    this.footprintRealtimeUpdater.bindCanvas(this.canvasRef ?? null);
 
-    this.footprintDataService.data$
+    this.footprintDataLoader.data$
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         filter((clusterData): clusterData is ClusterData => clusterData !== null)
       )
       .subscribe((clusterData) => {
-        const isInitialLoad = !this.data;
+        const isNewDataInstance = this.data !== clusterData;
         this.data = clusterData;
         this.addhint();
-        if (isInitialLoad && this.params) {
+        if (this.params && isNewDataInstance) {
           this.initSize();
           this.resize();
+          this.viewsManager.drawClusterView();
         }
       });
 
-    this.footprintDataService.updates$
+    this.footprintRealtimeUpdater.updates$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((update) => {
         if (!this.data || !this.viewsManager) {
@@ -418,7 +428,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
 
         this.viewsManager.drawClusterView();
       });
-    this.footprintDataService.settings$
+    this.footprintDataLoader.settings$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((settings) => {
         if (settings) {
@@ -429,7 +439,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
           }
         }
       });
-    this.footprintDataService.params$
+    this.footprintDataLoader.params$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
         if (params) {
@@ -439,14 +449,14 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
           }
         }
       });
-    this.footprintDataService.presets$
+    this.footprintDataLoader.presets$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((items) => {
         this.presetItems = items;
       });
 
     this.viewInitialized = true;
-    this.initializeDataFlow();
+    void this.initializeDataFlow();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -455,23 +465,48 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
     }
 
     if (changes['params'] || changes['presetIndex'] || changes['minimode'] || changes['deltamode']) {
-      this.initializeDataFlow();
+      void this.initializeDataFlow();
     }
   }
 
   ngOnDestroy() {
-    this.footprintDataService.destroy();
+    this.footprintRealtimeUpdater.destroy();
+    this.footprintDataLoader.destroy();
   }
 
-  private initializeDataFlow() {
+  private async initializeDataFlow() {
     if (!this.params && this.presetIndex == null) {
       return;
     }
 
-    this.footprintDataService.initialize(this.params, this.presetIndex, {
+    if (!this.params) {
+      return;
+    }
+
+    const options: FootprintInitOptions = {
       minimode: this.minimode,
       deltamode: this.deltamode,
-    });
+    };
+
+    await this.footprintDataLoader.initialize(
+      this.params,
+      this.presetIndex,
+      options
+    );
+    await this.footprintRealtimeUpdater.configure(this.params, options);
+  }
+
+  private async configureRealtimeUpdater() {
+    if (!this.params) {
+      return;
+    }
+
+    const options: FootprintInitOptions = {
+      minimode: this.minimode,
+      deltamode: this.deltamode,
+    };
+
+    await this.footprintRealtimeUpdater.configure(this.params, options);
   }
 
 }
