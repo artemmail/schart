@@ -115,7 +115,7 @@ namespace StockChart.Hubs
                     }
                     if (!CandlesHub.LaddersHash.ContainsKey(k) || r.GetHashCode() != CandlesHub.LaddersHash[k])
                     {
-                        await _uptimeHub.Clients.Group(k.ToString()).SendCoreAsync("recieveLadder", new object[] { r });
+                        await _uptimeHub.Clients.Group(k.ToString()).SendCoreAsync("receiveLadder", new object[] { r });
                     }
                     CandlesHub.LaddersHash[k] = r.GetHashCode();
                 }

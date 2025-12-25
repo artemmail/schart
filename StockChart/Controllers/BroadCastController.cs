@@ -95,7 +95,7 @@ namespace StockChart.Controllers
             {
                 if (rxx[k].Any())
                 {
-                    await _uptimeHub.Clients.Group(k.ToString()).SendCoreAsync("recieveCluster", new object[] { JsonConvert.SerializeObject(rxx[k]) });
+                    await _uptimeHub.Clients.Group(k.ToString()).SendCoreAsync("receiveCluster", new object[] { JsonConvert.SerializeObject(rxx[k]) });
                 }
             }
         }

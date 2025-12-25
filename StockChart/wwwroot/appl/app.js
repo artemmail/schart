@@ -37,7 +37,7 @@ define([
             }
         });
 
-        connection.on("recieveCluster", function (answ) {
+        connection.on("receiveCluster", function (answ) {
             try {
                 $.each(answ, function (index, value) { value.x = new Date(value.x) });
                 NP.mergeData({ clusterData: answ });
@@ -47,7 +47,7 @@ define([
             }
         });
 
-        connection.on("recieveLadder",
+        connection.on("receiveLadder",
             function (ladder) {
 
                 if (Object.keys(ladder).length > 2) {

@@ -110,17 +110,17 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
                     bv = row.BuyVolume
                 }).ToList();
 
-                await _uptimeHub.Clients.Group(groupName).SendCoreAsync("recieveCluster", new object[] { list });
+                await _uptimeHub.Clients.Group(groupName).SendCoreAsync("receiveCluster", new object[] { list });
             }
             else
             {
                 var clusters = await _clusterRepository.GetLastCluster(ticker.Id, (decimal)period, subsCluster.step, 3);
-                await _uptimeHub.Clients.Group(groupName).SendCoreAsync("recieveCluster", new object[] { clusters });
+                await _uptimeHub.Clients.Group(groupName).SendCoreAsync("receiveCluster", new object[] { clusters });
             }
         }
         else
         {
-            await _uptimeHub.Clients.Group(groupName).SendCoreAsync("recieveCluster", new object[] { body });
+            await _uptimeHub.Clients.Group(groupName).SendCoreAsync("receiveCluster", new object[] { body });
         }
     }
 
@@ -129,7 +129,7 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
         var subsCluster = SubsCluster.Parse(key);
         var groupName = subsCluster.ToString();
 
-        await _uptimeHub.Clients.Group(groupName).SendCoreAsync("recieveTicks", new object[] { body });
+        await _uptimeHub.Clients.Group(groupName).SendCoreAsync("receiveTicks", new object[] { body });
     }
 
     private async Task ProcessCandleAsync(string key, List<BaseCandle> body)
