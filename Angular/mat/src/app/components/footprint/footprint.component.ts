@@ -3,15 +3,9 @@ import {
   ElementRef,
   ViewChild,
   AfterViewInit,
-  OnChanges,
-  OnDestroy,
   HostListener,
-  DestroyRef,
   Input,
-  SimpleChanges,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { filter } from 'rxjs';
 import { Matrix, Rectangle } from './matrix';
 
 import { ChartSettings } from 'src/app/models/ChartSettings';
@@ -27,28 +21,29 @@ import { MouseAndTouchManager } from './MouseAnTouchManager';
 import { ViewsManager } from './ViewsManager';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { SelectListItemNumber } from 'src/app/models/preserts';
-import { SignalRService } from 'src/app/service/FootPrint/signalr.service';
 import { FootprintUtilitiesService } from './footprint-utilities.service';
 import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { Router } from '@angular/router';
 import { FootprintLayoutService } from './footprint-layout.service';
-import { FootprintDataLoaderService } from './footprint-data-loader.service';
 import { FootprintRealtimeUpdaterService } from './footprint-realtime-updater.service';
-import { FootprintInitOptions } from './footprint-data.types';
+import { FootprintInitOptions, FootprintUpdateEvent } from './footprint-data.types';
+
+export interface FootprintViewDataSource {
+  reload(params?: FootPrintParameters): Promise<void>;
+  configureRealtime(
+    params: FootPrintParameters,
+    options: FootprintInitOptions
+  ): Promise<void>;
+}
 
 @Component({
   standalone: false,
   selector: 'app-footprint',
   templateUrl: './footprint.component.html',
   styleUrls: ['./footprint.component.css'],
-  providers: [
-    FootprintDataLoaderService,
-    FootprintRealtimeUpdaterService,
-    SignalRService,
-  ],
 })
-export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
+export class FootPrintComponent implements AfterViewInit {
   @ViewChild('drawingCanvas', { static: false }) canvasRef?: ElementRef;
   @Input() presetIndex: number;
   @Input() params: FootPrintParameters;
@@ -70,6 +65,8 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   markupManager: MarkUpManager;
   clusterWidthScale: number = 0.97;
   data: ClusterData | null = null;
+
+  private dataSource?: FootprintViewDataSource;
 
   views: Array<canvasPart> = new Array();
 
@@ -114,14 +111,11 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   constructor(
     public colorsService: ColorsService,
     public formatService: FormattingService,
-    private footprintDataLoader: FootprintDataLoaderService,
-    private footprintRealtimeUpdater: FootprintRealtimeUpdaterService,
     private footprintUtilities: FootprintUtilitiesService,
     public levelMarksService: LevelMarksService,
     public dialogService: DialogService,
     public router: Router,
-    private footprintLayoutService: FootprintLayoutService,
-    private destroyRef: DestroyRef
+    private footprintLayoutService: FootprintLayoutService
   ) {
     // this.FPsettings = FPsettings;
     this.translateMatrix = null;
@@ -158,19 +152,23 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
 
 
 
-  public reload() {
-    if (!this.params) {
+  public async reload() {
+    if (!this.params || !this.dataSource) {
       return;
     }
 
     this.params.candlesOnly = this.FPsettings.CandlesOnly;
-    void this.footprintDataLoader.reload(this.params);
-    void this.configureRealtimeUpdater();
+    await this.dataSource.reload(this.params);
+    await this.configureRealtimeUpdater();
   }
 
   public async serverRequest(params: FootPrintParameters): Promise<void> {
+    if (!this.dataSource) {
+      return;
+    }
+
     this.params = params;
-    await this.footprintDataLoader.reload(params);
+    await this.dataSource.reload(params);
     await this.configureRealtimeUpdater();
   }
 
@@ -398,104 +396,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
       console.log('markup error');
       this.markupEnabled = false;
     }
-    this.footprintRealtimeUpdater.bindCanvas(this.canvasRef ?? null);
-
-    this.footprintDataLoader.data$
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        filter((clusterData): clusterData is ClusterData => clusterData !== null)
-      )
-      .subscribe((clusterData) => {
-        const isNewDataInstance = this.data !== clusterData;
-        this.data = clusterData;
-        this.addhint();
-        if (this.params && isNewDataInstance) {
-          this.initSize();
-          this.resize();
-          this.viewsManager.drawClusterView();
-        }
-      });
-
-    this.footprintRealtimeUpdater.updates$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((update) => {
-        if (!this.data || !this.viewsManager) {
-          return;
-        }
-
-        const isVisible = this.isPriceVisible();
-        if (update.type !== 'ladder' && isVisible && update.merged) {
-          this.mergeMatrix();
-        }
-
-        this.viewsManager.drawClusterView();
-      });
-    this.footprintDataLoader.settings$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((settings) => {
-        if (settings) {
-          this.FPsettings = settings;
-          if (this.data && this.params) {
-            this.initSize();
-            this.resize();
-          }
-        }
-      });
-    this.footprintDataLoader.params$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((params) => {
-        if (params) {
-          this.params = params;
-          if (this.data) {
-            this.initSize();
-          }
-        }
-      });
-    this.footprintDataLoader.presets$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((items) => {
-        this.presetItems = items;
-      });
-
     this.viewInitialized = true;
-    void this.initializeDataFlow();
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (!this.viewInitialized) {
-      return;
-    }
-
-    if (changes['params'] || changes['presetIndex'] || changes['minimode'] || changes['deltamode']) {
-      void this.initializeDataFlow();
-    }
-  }
-
-  ngOnDestroy() {
-    this.footprintRealtimeUpdater.destroy();
-    this.footprintDataLoader.destroy();
-  }
-
-  private async initializeDataFlow() {
-    if (!this.params && this.presetIndex == null) {
-      return;
-    }
-
-    if (!this.params) {
-      return;
-    }
-
-    const options: FootprintInitOptions = {
-      minimode: this.minimode,
-      deltamode: this.deltamode,
-    };
-
-    await this.footprintDataLoader.initialize(
-      this.params,
-      this.presetIndex,
-      options
-    );
-    await this.footprintRealtimeUpdater.configure(this.params, options);
   }
 
   public applyDefaultPostInit(): void {
@@ -514,7 +415,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   private async configureRealtimeUpdater() {
-    if (!this.params) {
+    if (!this.params || !this.dataSource) {
       return;
     }
 
@@ -523,7 +424,54 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
       deltamode: this.deltamode,
     };
 
-    await this.footprintRealtimeUpdater.configure(this.params, options);
+    await this.dataSource.configureRealtime(this.params, options);
+  }
+
+  attachDataSource(dataSource: FootprintViewDataSource) {
+    this.dataSource = dataSource;
+  }
+
+  bindRealtime(updater: FootprintRealtimeUpdaterService) {
+    updater.bindCanvas(this.canvasRef ?? null);
+  }
+
+  applyParams(params: FootPrintParameters) {
+    this.params = params;
+    if (this.data) {
+      this.initSize();
+    }
+  }
+
+  applySettings(settings: ChartSettings) {
+    this.FPsettings = settings;
+    if (this.data && this.params) {
+      this.initSize();
+      this.resize();
+    }
+  }
+
+  applyData(clusterData: ClusterData) {
+    const isNewDataInstance = this.data !== clusterData;
+    this.data = clusterData;
+    this.addhint();
+    if (this.params && isNewDataInstance) {
+      this.initSize();
+      this.resize();
+      this.viewsManager.drawClusterView();
+    }
+  }
+
+  handleRealtimeUpdate(update: FootprintUpdateEvent) {
+    if (!this.data || !this.viewsManager) {
+      return;
+    }
+
+    const isVisible = this.isPriceVisible();
+    if (update.type !== 'ladder' && isVisible && update.merged) {
+      this.mergeMatrix();
+    }
+
+    this.viewsManager.drawClusterView();
   }
 
 }

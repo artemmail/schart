@@ -15,6 +15,7 @@ import { CommonService } from 'src/app/service/common.service';
 import { NavService } from 'src/app/service/nav.service';
 import { MatSidenav } from '@angular/material/sidenav';
 import { FootPrintComponent } from '../../footprint/footprint.component';
+import { FootprintWidgetComponent } from '../../footprint/footprint-widget.component';
 import { FootPrintParamsComponent } from '../../Controls/FootPrintParams/footpintparmas.component';
 import { NonModalDialogComponent } from '../../FootPrintParts/NonModal/non-modal-dialog.component';
 import { DialogService } from 'src/app/service/DialogService.service';
@@ -29,7 +30,7 @@ import { Title } from '@angular/platform-browser';
   encapsulation: ViewEncapsulation.None,
 })
 export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
-  @ViewChild(FootPrintComponent) footPrint: FootPrintComponent;
+  @ViewChild(FootprintWidgetComponent) footPrint: FootprintWidgetComponent;
   @ViewChild(FootPrintParamsComponent)
   footPrintParamsComponent: FootPrintParamsComponent;
 

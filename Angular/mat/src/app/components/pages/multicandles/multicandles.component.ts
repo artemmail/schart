@@ -14,7 +14,7 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 
-import { FootPrintComponent } from '../../footprint/footprint.component';
+import { FootprintWidgetComponent } from '../../footprint/footprint-widget.component';
 import { PresetSelectorComponent1 }
         from '../../DateRangeSelector/date-range-selector.component';
 import { DateRangePickerComponent }
@@ -59,7 +59,7 @@ export class MultiPageComponent implements OnInit, AfterViewInit, OnDestroy {
   priceStep     = 1;
 
   /* ---------------- внутреннее ----------------------- */
-  components: ComponentRef<FootPrintComponent>[] = [];
+  components: ComponentRef<FootprintWidgetComponent>[] = [];
   private oldOverflow = '';
   private isMultiPage = false;
   private tickerDescriptions: Record<string,string> = {};
@@ -235,7 +235,7 @@ export class MultiPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.renderer.addClass(wrap, 'footprint-item');
     this.renderer.appendChild(this.container.element.nativeElement, wrap);
 
-    const ref = this.container.createComponent(FootPrintComponent, { injector: this.injector });
+      const ref = this.container.createComponent(FootprintWidgetComponent, { injector: this.injector });
     this.renderer.appendChild(wrap, ref.location.nativeElement);
 
     ref.instance.caption     = caption;
