@@ -2,6 +2,8 @@ import {
   AfterViewInit,
   Component,
   DestroyRef,
+  ElementRef,
+  HostListener,
   Input,
   OnChanges,
   OnDestroy,
@@ -47,10 +49,12 @@ export class FootprintWidgetComponent
   constructor(
     private footprintDataLoader: FootprintDataLoaderService,
     private footprintRealtimeUpdater: FootprintRealtimeUpdaterService,
-    private destroyRef: DestroyRef
+    private destroyRef: DestroyRef,
+    private host: ElementRef<HTMLElement>
   ) {}
 
   private viewInitialized = false;
+  private resizeObserver?: ResizeObserver;
 
   get FPsettings() {
     return this.renderer?.FPsettings;
@@ -85,8 +89,11 @@ export class FootprintWidgetComponent
     this.renderer.bindRealtime(this.footprintRealtimeUpdater);
     this.connectDataStreams();
 
+    this.setupResizeObserver();
+
     this.viewInitialized = true;
     await this.initializeDataFlow();
+    this.triggerResize();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -102,6 +109,7 @@ export class FootprintWidgetComponent
   ngOnDestroy(): void {
     this.footprintRealtimeUpdater.destroy();
     this.footprintDataLoader.destroy();
+    this.resizeObserver?.disconnect();
   }
 
   async reload(params?: FootPrintParameters): Promise<void> {
@@ -129,6 +137,11 @@ export class FootprintWidgetComponent
 
   resize() {
     this.renderer?.resize();
+  }
+
+  @HostListener('window:resize')
+  onWindowResize() {
+    this.triggerResize();
   }
 
   getCsv() {
@@ -205,5 +218,25 @@ export class FootprintWidgetComponent
       options
     );
     await this.footprintRealtimeUpdater.configure(this.params, options);
+  }
+
+  private setupResizeObserver() {
+    if (this.resizeObserver) {
+      return;
+    }
+
+    this.resizeObserver = new ResizeObserver(() => {
+      this.triggerResize();
+    });
+
+    this.resizeObserver.observe(this.host.nativeElement);
+  }
+
+  private triggerResize() {
+    if (!this.viewInitialized) {
+      return;
+    }
+
+    this.renderer?.resize();
   }
 }
