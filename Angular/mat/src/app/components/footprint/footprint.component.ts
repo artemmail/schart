@@ -146,9 +146,11 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   getCsv() {
-    if (this.data) {
-      this.footprintUtilities.exportCsv(this.params, this.data);
+    if (!this.params || !this.data) {
+      return;
     }
+
+    this.footprintUtilities.exportCsv(this.params, this.data);
   }
 
   presetItems: SelectListItemNumber[] = [];
@@ -166,6 +168,10 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
 
 
   public reload() {
+    if (!this.params) {
+      return;
+    }
+
     this.params.candlesOnly = this.FPsettings.CandlesOnly;
     this.footprintDataService.reload(this.params);
   }
@@ -537,7 +543,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   private initializeDataFlow() {
-    if (!this.params && !this.presetIndex) {
+    if (!this.params && this.presetIndex == null) {
       return;
     }
 
