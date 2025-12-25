@@ -414,14 +414,6 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
           this.resize();
           this.viewsManager.drawClusterView();
         }
-        // Когда данные подгружаются в уже созданный компонент (например, при
-        // открытии вкладки /FootPrint), матрицы могут остаться в исходном
-        // состоянии до первого пользовательского события. Явный пост-инициализирующий
-        // вызов после любого обновления данных гарантирует, что матрицы будут
-        // собраны и выровнены сразу после загрузки, без необходимости двигать мышь.
-        if (this.params && this.data) {
-          this.runPostInitialization();
-        }
       });
 
     this.footprintRealtimeUpdater.updates$
