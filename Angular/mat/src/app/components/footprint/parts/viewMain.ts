@@ -364,7 +364,11 @@ interruptSwipe() {
     data += item('Date', this.formatService.toStr(col.x));
     data += item('Time', this.formatService.TimeFormat2(col.x));
 
-    var hint = document.getElementById('hint');
+    const hint =
+      this.parent.hint ??
+      (typeof document !== 'undefined'
+        ? (document.getElementById(this.parent.hintId) as HTMLDivElement | null)
+        : null);
 
     if (hint != null) {
       hint.innerHTML = `<ul style='font-size: 10px;margin: 0; padding: 0px;list-style-type:none'>${data} </ul>`;

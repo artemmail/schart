@@ -97,9 +97,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   startPrice: number = 0;
   private viewInitialized = false;
   private dataFlowInitialized = false;
-  private readonly hintId = `footprint-hint-${Math.random()
-    .toString(36)
-    .slice(2)}`;
+  readonly hintId = 'footprint-hint';
 
   viewModel: ProfileModel = {
     profilePeriod: -1,
