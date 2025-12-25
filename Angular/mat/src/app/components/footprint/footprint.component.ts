@@ -367,6 +367,7 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   initSize() {
+    if (!this.params) return;
     this.viewsManager.alignCanvas();
     this.viewsManager.updateLayout();
     if (!this.data || !this.viewsManager.layout) return;
@@ -453,6 +454,9 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
       .subscribe((params) => {
         if (params) {
           this.params = params;
+          if (this.data) {
+            this.initSize();
+          }
         }
       });
     this.footprintDataService.presets$
