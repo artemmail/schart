@@ -279,12 +279,12 @@ export class ViewsManager {
   }
 
   drawClusterView() {
-    let FPsettings = this.footprint.FPsettings;
+    const FPsettings = this.footprint.FPsettings;
     const canvas: HTMLCanvasElement | null = this.footprint.canvas;
-    const ctx: any = canvas?.getContext('2d');
+    const ctx: CanvasRenderingContext2D | null = canvas?.getContext('2d');
     this.data = this.footprint.data;
 
-    if (!this.data) return;
+    if (!this.data || !canvas || !ctx) return;
 
     if (!this.layout) {
       this.updateLayout();
@@ -292,38 +292,32 @@ export class ViewsManager {
 
     if (!this.layout) return;
 
-    if (this.colorsService.isMobile2()) {
-      var parent = canvas.parentElement?.getBoundingClientRect();
-      if (parent !== undefined)
-        //if(ctx===null)      return;
-
-        ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      if (this.data.clusterLength() < 1) {
-        ctx.font = 'bold 16px Verdana';
-        ctx.fillStyle = 'Black';
-        ctx.fillText('НЕТ ДАННЫХ', canvas.width * 0.5, 30);
-        return;
-      }
-
-      this.matrices = this.layoutService.buildMatrices(
-        this.mtx,
-        this.layout,
-        FPsettings,
-        this.data,
-        this.footprint.topLinesCount(),
-        this.footprint.translateMatrix
-      );
-
-      this.mtxMain = this.matrices.mtxMain;
-      this.mtxtotal = this.matrices.mtxtotal;
-      this.mtxprice = this.matrices.mtxprice;
-      this.mtxhead = this.matrices.mtxhead;
-      this.mtxanim = this.matrices.mtxanim;
-      this.createParts();
-      this.footprint.getMinMaxIndex(this.mtxMain);
-      for (const view in this.views) this.views[view].drawCanvas();
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (this.data.clusterLength() < 1) {
+      ctx.font = 'bold 16px Verdana';
+      ctx.fillStyle = 'Black';
+      ctx.fillText('НЕТ ДАННЫХ', canvas.width * 0.5, 30);
+      return;
     }
+
+    this.matrices = this.layoutService.buildMatrices(
+      this.mtx,
+      this.layout,
+      FPsettings,
+      this.data,
+      this.footprint.topLinesCount(),
+      this.footprint.translateMatrix
+    );
+
+    this.mtxMain = this.matrices.mtxMain;
+    this.mtxtotal = this.matrices.mtxtotal;
+    this.mtxprice = this.matrices.mtxprice;
+    this.mtxhead = this.matrices.mtxhead;
+    this.mtxanim = this.matrices.mtxanim;
+    this.createParts();
+    this.footprint.getMinMaxIndex(this.mtxMain);
+    for (const view in this.views) this.views[view].drawCanvas();
   }
 
   alignCanvas() {
