@@ -692,7 +692,7 @@ $(document).ready(function() {
 connection = new signalR.HubConnectionBuilder().withUrl("/CandlesHub").build();
 
 
-connection.on("recieveCluster", function(answ) {           
+connection.on("receiveCluster", function(answ) {
    $.each(answ,  function (index, value) {                value.x = new Date(value.x)            });     
    var data =  {clusterData: answ};    
    if(NP.isWrongMerge(data))
@@ -702,7 +702,7 @@ connection.on("recieveCluster", function(answ) {
 });
 
 
-connection.on("recieveTicks", function(answ) {        
+connection.on("receiveTicks", function(answ) {
 
        var data = {clusterData: answ};
 
@@ -734,7 +734,7 @@ connection.on("recieveTicks", function(answ) {
                 NP.mergeData(data);
 });
 
-  connection.on("recieveLadder",
+  connection.on("receiveLadder",
   function (ladder) {
                 
                 if (Object.keys(ladder).length>2)
