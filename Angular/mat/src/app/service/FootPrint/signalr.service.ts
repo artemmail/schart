@@ -131,6 +131,8 @@ export class SignalRService implements OnDestroy {
       })
       .catch((err) => {
         console.warn('Error while starting SignalR connection: ' + err.toString());
+        this.hubConnection = undefined;
+        this.startPromise = null;
         throw err;
       })
       .finally(() => {
