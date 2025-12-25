@@ -20,13 +20,21 @@ import { Rectangle } from 'src/app/models/Rectangle';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { ClusterData } from './clusterData';
 import { Matrix } from './matrix';
+import {
+  FootprintLayoutDto,
+  FootprintLayoutService,
+  FootprintMatricesDto,
+} from './footprint-layout.service';
 
 export class ViewsManager {
   footprint: FootPrintComponent;
   colorsService: ColorsService;
   data: ClusterData | any = null;
 
-  constructor(footprint_: FootPrintComponent) {
+  constructor(
+    footprint_: FootPrintComponent,
+    private layoutService: FootprintLayoutService
+  ) {
     this.footprint = footprint_;
     this.colorsService = footprint_.colorsService;
   }
@@ -63,6 +71,8 @@ export class ViewsManager {
   clusterDeltaBarsView: Rectangle = new Rectangle(0, 0, 0, 0);
   clusterTotalView: Rectangle = new Rectangle(0, 0, 0, 0);
   clusterTotalViewFill: Rectangle = new Rectangle(0, 0, 0, 0);
+  layout: FootprintLayoutDto | null = null;
+  matrices: FootprintMatricesDto | null = null;
 
   mtx: Matrix = new Matrix();
   mtxhead: Matrix = new Matrix();
@@ -71,185 +81,45 @@ export class ViewsManager {
   mtxanim: Matrix = new Matrix();
   mtxMain: Matrix = new Matrix();
 
-  genViews() {
+  updateLayout() {
     const canvas: HTMLCanvasElement | null = this.footprint.canvas;
-    const DeltaVolumes: Array<number> = this.footprint.DeltaVolumes;
-    const minimode: boolean = this.footprint.minimode;
+    const data = this.footprint.data;
 
-    let FPsettings = this.footprint.FPsettings;
-
-    var newTotal =
-      FPsettings.totalMode == 'Under' || !this.footprint.data.ableCluster();
-    var hidden = this.footprint.hiddenTotal();
-    var totalLen = hidden ? 0 : FPsettings.VolumesHeight[4];
-    let GraphTopSpace = FPsettings.Head
-      ? this.footprint.topLinesCount() *
-        20 *
-        this.footprint.colorsService.sscale()
-      : 0;
-    let miniHeadTop = 25;
-
-    if (this.footprint.minimode) GraphTopSpace = miniHeadTop;
-
-    var CanvasWidth = canvas.width;
-    var CanvasHeight = canvas.height;
-    var VolumesH = /*FPsettings.VolumesHeight +*/ [
-      DeltaVolumes[0],
-      DeltaVolumes[1],
-      DeltaVolumes[2],
-      DeltaVolumes[3],
-      DeltaVolumes[5],
-    ];
-
-    if (FPsettings.SeparateVolume) {
-      VolumesH[0] += FPsettings.VolumesHeight[0];
+    if (!canvas || !data) {
+      return;
     }
 
-    if (this.footprint.data.ableOI() && FPsettings.OI) {
-      VolumesH[1] += FPsettings.VolumesHeight[1];
-    }
+    const layout = this.layoutService.calculateLayout({
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height,
+      deltaVolumes: this.footprint.DeltaVolumes,
+      minimode: this.footprint.minimode,
+      settings: this.footprint.FPsettings,
+      data,
+      topLinesCount: this.footprint.topLinesCount(),
+    });
 
-    if (FPsettings.Delta) {
-      VolumesH[2] += FPsettings.VolumesHeight[2];
-    }
-
-    if (FPsettings.DeltaBars) {
-      VolumesH[4] += FPsettings.VolumesHeight[5];
-    }
-
-    if (this.footprint.data.ableOI() && FPsettings.OIDelta) {
-      VolumesH[3] += FPsettings.VolumesHeight[3];
-    }
-
-    var totalVH =
-      VolumesH[0] + VolumesH[1] + VolumesH[2] + VolumesH[3] + VolumesH[4];
-
-    this.clusterView = new Rectangle(
-      totalLen + DeltaVolumes[4],
-      GraphTopSpace,
-      CanvasWidth -
-        this.colorsService.LegendPriceWidth(minimode) -
-        totalLen -
-        DeltaVolumes[4],
-      CanvasHeight -
-        this.colorsService.LegendDateHeight(minimode) -
-        GraphTopSpace -
-        totalVH
-    );
-
-    if (newTotal) {
-      this.clusterView.x = 0;
-      this.clusterView.w =
-        CanvasWidth - this.colorsService.LegendPriceWidth(minimode);
-    }
-    let GraphValuesHeight = Math.abs(this.clusterView.h / 7);
-
-    this.clusterHeadView = {
-      x: totalLen + DeltaVolumes[4],
-      y: 0,
-      w: this.clusterView.w,
-      h: GraphTopSpace,
-    };
-
-    this.clusterMiniHeadView = {
-      x: 0,
-      y: 0,
-      w: this.clusterView.w,
-      h: GraphTopSpace,
-    };
-
-    if (newTotal) {
-      this.clusterHeadView = {
-        x: 0,
-        y: 0,
-        w: this.clusterView.w,
-        h: GraphTopSpace,
-      };
-    }
-    this.clusterVolumesView = { ...this.clusterView };
-    this.clusterVolumesView.y += this.clusterVolumesView.h - GraphValuesHeight;
-    this.clusterVolumesView.h = GraphValuesHeight;
-    this.clusterTotalView = {
-      x: 0,
-      y: GraphTopSpace,
-      w: totalLen + DeltaVolumes[4] - ColorsService.ScrollWidth,
-      h: this.clusterView.h,
-    };
-    this.clusterTotalViewFill = {
-      x: 0,
-      y: GraphTopSpace,
-      w: totalLen + DeltaVolumes[4],
-      h: this.clusterView.h,
-    };
-    this.clusterPricesView = {
-      x: this.clusterView.w + this.clusterView.x,
-      w: CanvasWidth - (this.clusterView.w + this.clusterView.x),
-      y: this.clusterTotalView.y,
-      h: this.clusterTotalView.h,
-    };
-    this.clusterDatesView = {
-      x: this.clusterView.x,
-      w: this.clusterView.w,
-      y: this.clusterView.y + this.clusterView.h,
-      h: CanvasHeight - (this.clusterView.y + this.clusterView.h) - totalVH,
-    };
-
-    if (minimode) this.clusterDatesView.h = 0;
-
-    this.clusterAnimArea = {
-      x: this.clusterHeadView.w + this.clusterHeadView.x,
-      y: this.clusterHeadView.y,
-      h: this.clusterHeadView.h,
-      w: this.clusterPricesView.w,
-    };
-
-    if (FPsettings.SeparateVolume)
-      this.clusterVolumesView = {
-        x: this.clusterView.x,
-        y: this.clusterDatesView.y + this.clusterDatesView.h,
-        w: this.clusterView.w,
-        h: VolumesH[0],
-      };
-
-    if (FPsettings.SeparateVolume)
-      this.clusterOIView = {
-        x: this.clusterView.x,
-        y: this.clusterVolumesView.y + this.clusterVolumesView.h,
-        w: this.clusterView.w,
-        h: VolumesH[1],
-      };
-    else
-      this.clusterOIView = {
-        x: this.clusterView.x,
-        y: this.clusterDatesView.y + this.clusterDatesView.h,
-        w: this.clusterView.w,
-        h: VolumesH[1],
-      };
-
-    this.clusterDeltaView = {
-      x: this.clusterView.x,
-      y: this.clusterOIView.y + this.clusterOIView.h,
-      w: this.clusterView.w,
-      h: VolumesH[2],
-    };
-
-    this.clusterDeltaBarsView = {
-      x: this.clusterView.x,
-      y: this.clusterDeltaView.y + this.clusterDeltaView.h,
-      w: this.clusterView.w,
-      h: VolumesH[4],
-    };
-
-    this.clusterOIDeltaView = {
-      x: this.clusterView.x,
-      y: this.clusterDeltaBarsView.y + this.clusterDeltaBarsView.h,
-      w: this.clusterView.w,
-      h: VolumesH[3],
-    };
+    this.layout = layout;
+    this.clusterPricesView = layout.clusterPricesView;
+    this.clusterView = layout.clusterView;
+    this.clusterDatesView = layout.clusterDatesView;
+    this.clusterHeadView = layout.clusterHeadView;
+    this.clusterMiniHeadView = layout.clusterMiniHeadView;
+    this.clusterAnimArea = layout.clusterAnimArea;
+    this.clusterVolumesView = layout.clusterVolumesView;
+    this.clusterOIView = layout.clusterOIView;
+    this.clusterOIDeltaView = layout.clusterOIDeltaView;
+    this.clusterDeltaView = layout.clusterDeltaView;
+    this.clusterDeltaBarsView = layout.clusterDeltaBarsView;
+    this.clusterTotalView = layout.clusterTotalView;
+    this.clusterTotalViewFill = layout.clusterTotalViewFill;
   }
 
   createParts() {
-    this.genViews();
+    this.updateLayout();
+    if (!this.layout) {
+      return;
+    }
     this.views = this.footprint.views = [];
     let FPsettings = this.footprint.FPsettings;
     const minimode: boolean = this.footprint.minimode;
@@ -416,6 +286,12 @@ export class ViewsManager {
 
     if (!this.data) return;
 
+    if (!this.layout) {
+      this.updateLayout();
+    }
+
+    if (!this.layout) return;
+
     if (this.colorsService.isMobile2()) {
       var parent = canvas.parentElement?.getBoundingClientRect();
       if (parent !== undefined)
@@ -429,46 +305,21 @@ export class ViewsManager {
         ctx.fillText('НЕТ ДАННЫХ', canvas.width * 0.5, 30);
         return;
       }
-      this.mtxMain = this.mtx.clone();
-      if (this.footprint.translateMatrix != null) {
-        var t = this.footprint.translateMatrix.clone();
-        t.multiply(this.mtxMain);
-        this.mtxMain = this.footprint.alignMatrix(t);
-      }
-      var mtx = this.mtxMain;
-      this.mtxtotal = mtx.reassignX(
-        { x1: 0, x2: 1 },
-        {
-          x1: this.clusterTotalView.x,
-          x2: this.clusterTotalView.x + this.clusterTotalView.w,
-        }
+
+      this.matrices = this.layoutService.buildMatrices(
+        this.mtx,
+        this.layout,
+        FPsettings,
+        this.data,
+        this.footprint.topLinesCount(),
+        this.footprint.translateMatrix
       );
-      this.mtxprice = mtx.reassignX(
-        { x1: 0, x2: this.clusterPricesView.w },
-        {
-          x1: this.clusterPricesView.x,
-          x2: this.clusterPricesView.x + this.clusterPricesView.w,
-        }
-      );
-      if (FPsettings.Head) {
-        this.mtxhead = mtx.reassignY(
-          { y1: 0, y2: this.footprint.topLinesCount() },
-          {
-            y1: this.clusterHeadView.y,
-            y2: this.clusterHeadView.y + this.clusterHeadView.h,
-          }
-        );
-        this.mtxanim = this.mtxprice.reassignY(
-          {
-            y1: this.clusterAnimArea.y,
-            y2: this.clusterAnimArea.y + this.clusterAnimArea.h,
-          },
-          {
-            y1: this.clusterAnimArea.y,
-            y2: this.clusterAnimArea.y + this.clusterAnimArea.h,
-          }
-        );
-      }
+
+      this.mtxMain = this.matrices.mtxMain;
+      this.mtxtotal = this.matrices.mtxtotal;
+      this.mtxprice = this.matrices.mtxprice;
+      this.mtxhead = this.matrices.mtxhead;
+      this.mtxanim = this.matrices.mtxanim;
       this.createParts();
       this.footprint.getMinMaxIndex(this.mtxMain);
       for (const view in this.views) this.views[view].drawCanvas();
@@ -561,7 +412,10 @@ export class ViewsManager {
       var oldX = this.clusterView.x + this.clusterView.w;
       var oldY = this.clusterView.y + this.clusterView.h / 2;
       this.alignCanvas();
-      this.genViews();
+      this.updateLayout();
+      if (!this.layout) {
+        return;
+      }
       var newX = this.clusterView.x + this.clusterView.w;
       var newY = this.clusterView.y + this.clusterView.h / 2;
       this.mtx = this.footprint.alignMatrix(
