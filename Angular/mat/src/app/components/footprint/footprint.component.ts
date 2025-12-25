@@ -439,14 +439,20 @@ export class FootPrintComponent implements AfterViewInit, OnChanges, OnDestroy {
       .subscribe((clusterData) => {
         this.data = clusterData;
         this.addhint();
-        this.initSize();
-        this.resize();
+        if (this.params) {
+          this.initSize();
+          this.resize();
+        }
       });
     this.footprintDataService.settings$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((settings) => {
         if (settings) {
           this.FPsettings = settings;
+          if (this.data && this.params) {
+            this.initSize();
+            this.resize();
+          }
         }
       });
     this.footprintDataService.params$
