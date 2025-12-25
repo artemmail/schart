@@ -1,6 +1,5 @@
 import { ElementRef, Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Subject, Subscription, firstValueFrom } from 'rxjs';
-import { FootPrintComponent } from './footprint.component';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { SelectListItemNumber } from 'src/app/models/preserts';
@@ -18,17 +17,27 @@ interface FootprintInitOptions {
   deltamode: boolean;
 }
 
+export type FootprintUpdateType = 'cluster' | 'ticks' | 'ladder';
+
+export interface FootprintUpdateEvent {
+  type: FootprintUpdateType;
+  merged?: boolean;
+}
+
 @Injectable()
 export class FootprintDataService implements OnDestroy {
   private visibilityObserver?: IntersectionObserver;
   private isVisible = false;
-  private component?: FootPrintComponent;
   private canvasElement?: ElementRef;
   private presetIndex?: number;
   private options: FootprintInitOptions = { minimode: false, deltamode: false };
+  private currentData: ClusterData | null = null;
 
-  private dataSubject = new Subject<ClusterData>();
+  private dataSubject = new BehaviorSubject<ClusterData | null>(null);
   data$ = this.dataSubject.asObservable();
+
+  private updatesSubject = new Subject<FootprintUpdateEvent>();
+  updates$ = this.updatesSubject.asObservable();
 
   private settingsSubject = new BehaviorSubject<ChartSettings | null>(null);
   settings$ = this.settingsSubject.asObservable();
@@ -52,9 +61,8 @@ export class FootprintDataService implements OnDestroy {
     private utilities: FootprintUtilitiesService
   ) {}
 
-  bindComponent(component: FootPrintComponent, canvasRef: ElementRef | null) {
+  bindCanvas(canvasRef: ElementRef | null) {
     this.teardownVisibility();
-    this.component = component;
     if (canvasRef) {
       this.canvasElement = canvasRef;
       this.initVisibilityObserver();
@@ -94,10 +102,11 @@ export class FootprintDataService implements OnDestroy {
   destroy() {
     this.teardownVisibility();
     void this.teardownRealtime();
-    this.component = undefined;
     this.paramsSubject.next(null);
     this.settingsSubject.next(null);
     this.presetsSubject.next([]);
+    this.currentData = null;
+    this.dataSubject.next(null);
     this.options = { minimode: false, deltamode: false };
     this.presetIndex = undefined;
   }
@@ -136,7 +145,8 @@ export class FootprintDataService implements OnDestroy {
       const rangeData = await firstValueFrom(
         this.clusterStreamService.GetRange(params)
       );
-      this.dataSubject.next(new ClusterData(rangeData));
+      this.currentData = new ClusterData(rangeData);
+      this.dataSubject.next(this.currentData);
     } catch (err) {
       console.error('Ошибка при выполнении запроса к серверу', err);
       if (err instanceof HttpErrorResponse) {
@@ -207,7 +217,7 @@ export class FootprintDataService implements OnDestroy {
 
   private async subscribeToRealtime(params: FootPrintParameters) {
     const canSubscribe = this.shouldSubscribe(params);
-    if (!this.component || !canSubscribe) {
+    if (!canSubscribe) {
       if (!canSubscribe) {
         console.log('Подписка пропущена: условия не выполнены.');
       }
@@ -260,19 +270,19 @@ export class FootprintDataService implements OnDestroy {
   private registerRealtimeHandlers() {
     this.realtimeSubscriptions.add(
       this.signalRService.receiveCluster$.subscribe((answ) => {
-        this.component?.handleCluster(answ);
+        this.updateClusters(answ);
       })
     );
 
     this.realtimeSubscriptions.add(
       this.signalRService.receiveTicks$.subscribe((answ) => {
-        this.component?.handleTicks(answ);
+        this.updateTicks(answ);
       })
     );
 
     this.realtimeSubscriptions.add(
       this.signalRService.receiveLadder$.subscribe((ladder) => {
-        this.component?.handleLadder(ladder);
+        this.updateLadder(ladder);
       })
     );
   }
@@ -286,5 +296,26 @@ export class FootprintDataService implements OnDestroy {
       current.period === previous.period &&
       current.priceStep === previous.priceStep
     );
+  }
+
+  private updateClusters(answ: any) {
+    if (!this.currentData) return;
+    const merged = this.currentData.handleCluster(answ);
+    this.dataSubject.next(this.currentData);
+    this.updatesSubject.next({ type: 'cluster', merged });
+  }
+
+  private updateTicks(answ: any) {
+    if (!this.currentData) return;
+    const merged = this.currentData.handleTicks(answ);
+    this.dataSubject.next(this.currentData);
+    this.updatesSubject.next({ type: 'ticks', merged });
+  }
+
+  private updateLadder(ladder: Record<string, number>) {
+    if (!this.currentData) return;
+    this.currentData.handleLadder(ladder);
+    this.dataSubject.next(this.currentData);
+    this.updatesSubject.next({ type: 'ladder' });
   }
 }
