@@ -74,15 +74,21 @@ export class FootPrintComponent implements AfterViewInit {
   get hiddenHint(): boolean {
     return this.state.snapshot.hiddenHint;
   }
-
+  set hiddenHint(hidden: boolean) {
+    this.state.setHintHidden(hidden);
+  }
   get selectedPrice(): number | null {
     return this.state.snapshot.selectedPrice;
   }
-
+  set selectedPrice(price: number | null) {
+    this.state.update({ selectedPrice: price });
+  }
   get selectedPrice1(): number | null {
     return this.state.snapshot.selectedPrice1;
   }
-
+  set selectedPrice1(price: number | null) {
+    this.state.update({ selectedPrice1: price });
+  }
 
   movedView: canvasPart | null = null;
 
