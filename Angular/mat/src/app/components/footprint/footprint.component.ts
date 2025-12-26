@@ -19,7 +19,6 @@ import { MarkUpManager } from './Markup/Manager';
 import { ProfileModel } from 'src/app/models/profileModel';
 import { MouseAndTouchManager } from './MouseAnTouchManager';
 import { ViewsManager } from './ViewsManager';
-import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { SelectListItemNumber } from 'src/app/models/preserts';
 import { FootprintUtilitiesService } from './footprint-utilities.service';
 import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
@@ -28,17 +27,26 @@ import { Router } from '@angular/router';
 import { FootprintLayoutService } from './footprint-layout.service';
 import { FootprintRealtimeUpdaterService } from './footprint-realtime-updater.service';
 import { FootprintUpdateEvent } from './footprint-data.types';
+import { FootprintStateService } from './footprint-state.service';
+import { HintContainerService } from './hint-container.service';
 
 @Component({
   standalone: false,
   selector: 'app-footprint',
   templateUrl: './footprint.component.html',
   styleUrls: ['./footprint.component.css'],
+  providers: [FootprintStateService, HintContainerService],
 })
 export class FootPrintComponent implements AfterViewInit {
   @ViewChild('drawingCanvas', { static: false }) canvasRef?: ElementRef;
   @Input() presetIndex: number;
-  @Input() params: FootPrintParameters;
+  @Input() set params(value: FootPrintParameters | null) {
+    this.state.update({ params: value ?? null });
+    this.initializeViewIfReady();
+  }
+  get params(): FootPrintParameters | null {
+    return this.state.snapshot.params;
+  }
   @Input() minimode: boolean = false;
   @Input() deltamode: boolean = false;
   @Input() caption: string | null = null;
@@ -48,17 +56,32 @@ export class FootPrintComponent implements AfterViewInit {
   public ctx: CanvasRenderingContext2D | null = null;
 
   DeltaVolumes: Array<number> = [0, 0, 0, 0, 0, 0, 0, 0];
-  hiddenHint: boolean;
-  selectedPrice: number | null;
-  selectedPrice1: number | null;
-  hint: HTMLDivElement | null = null;
 
   markupEnabled: boolean;
   markupManager: MarkUpManager;
   clusterWidthScale: number = 0.97;
-  data: ClusterData | null = null;
 
   views: Array<canvasPart> = new Array();
+
+  get data(): ClusterData | null {
+    return this.state.snapshot.data;
+  }
+
+  private set data(value: ClusterData | null) {
+    this.state.update({ data: value });
+  }
+
+  get hiddenHint(): boolean {
+    return this.state.snapshot.hiddenHint;
+  }
+
+  get selectedPrice(): number | null {
+    return this.state.snapshot.selectedPrice;
+  }
+
+  get selectedPrice1(): number | null {
+    return this.state.snapshot.selectedPrice1;
+  }
 
 
   movedView: canvasPart | null = null;
@@ -70,7 +93,6 @@ export class FootPrintComponent implements AfterViewInit {
 
   finishPrice: number = 0;
   startPrice: number = 0;
-  private viewInitialized = false;
 
   viewModel: ProfileModel = {
     profilePeriod: -1,
@@ -105,11 +127,12 @@ export class FootPrintComponent implements AfterViewInit {
     public levelMarksService: LevelMarksService,
     public dialogService: DialogService,
     public router: Router,
-    private footprintLayoutService: FootprintLayoutService
+    private footprintLayoutService: FootprintLayoutService,
+    private state: FootprintStateService,
+    private hintContainer: HintContainerService
   ) {
     // this.FPsettings = FPsettings;
     this.translateMatrix = null;
-    this.hiddenHint = true;
     this.markupEnabled = false;
   }
 
@@ -126,28 +149,26 @@ export class FootPrintComponent implements AfterViewInit {
   selectedColumn: ColumnEx | null = null;
 
   hideHint() {
-    this.hiddenHint = true;
-    this.selectedPrice = null;
-    this.selectedPrice1 = null;
-    if (this.hint) {
-      this.hint.style.overflow = 'hidden';
-      this.hint.style.display = 'none';
-    }
+    this.state.setHintHidden(true);
+    this.state.clearSelection();
+    this.hintContainer.hide();
   }
 
-  dragMode: number | null = null;
-
-  addhint() {
-    if (document.getElementById('hint') == null) {
-      const element = document.createElement('div');
-      element.id = 'hint';
-      document.body.appendChild(element);
-      //         this.canvas.parentNode.appendChild(element);
-    }
-    this.hint = document.getElementById('hint') as HTMLDivElement;
+  get dragMode(): number | null {
+    return this.state.snapshot.dragMode;
   }
 
-  public FPsettings: ChartSettings = ChartSettingsService.DefaultSettings();
+  set dragMode(value: number | null) {
+    this.state.update({ dragMode: value });
+  }
+
+  get FPsettings(): ChartSettings {
+    return this.state.snapshot.settings;
+  }
+
+  set FPsettings(settings: ChartSettings) {
+    this.state.update({ settings });
+  }
 
   isPriceVisible() {
     if (!this.data) return false;
@@ -229,6 +250,14 @@ export class FootPrintComponent implements AfterViewInit {
     var w = Math.abs(rect.w);
     var h = Math.abs(rect.h);
     return Math.min(h - 1, w / textLen, this.colorsService.maxFontSize());
+  }
+
+  private get viewInitialized(): boolean {
+    return this.state.snapshot.viewInitialized;
+  }
+
+  private markViewInitialized(): void {
+    this.state.markViewInitialized();
   }
   getMinMaxIndex(mtx: Matrix) {
     var data = this.data.clusterData;
@@ -350,7 +379,7 @@ export class FootPrintComponent implements AfterViewInit {
       console.log('markup error');
       this.markupEnabled = false;
     }
-    this.viewInitialized = true;
+    this.markViewInitialized();
     this.initializeViewIfReady();
   }
 
@@ -374,7 +403,7 @@ export class FootPrintComponent implements AfterViewInit {
   }
 
   applyParams(params: FootPrintParameters) {
-    this.params = params;
+    this.state.update({ params });
     this.initializeViewIfReady();
   }
 
@@ -391,7 +420,7 @@ export class FootPrintComponent implements AfterViewInit {
   applyData(clusterData: ClusterData) {
     const isNewDataInstance = this.data !== clusterData;
     this.data = clusterData;
-    this.addhint();
+    this.hintContainer.ensureHintElement();
     if (!this.viewInitialized || !this.params || !isNewDataInstance) {
       return;
     }
