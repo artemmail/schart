@@ -1,8 +1,3 @@
-:host {
-  display: block;
-  height: calc(100vh - 66px);
-}
-
 html, body, #container {
   width: 100%;
   height: 100%;
@@ -26,13 +21,12 @@ body {
 }
 
 .content {
-  height: 100%;
+  height: calc(100vh - 66px); /* Assuming the toolbar is 64px high */
   overflow: hidden;
 }
 
 #container {
-  display: flex;
-  justify-content: center;
+    justify-content: center;
   align-items: center;
   width: 100%;
   height: 100%;
