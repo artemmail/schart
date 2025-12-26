@@ -264,14 +264,14 @@ export class ClusterCoumnBase {
           ctx.textAlign = 'right';
           if (Math.round(column.cl[i].q - column.cl[i].bq) != 0)
             ctx.fillText(
-              Math.round(mul * (column.cl[i].q - column.cl[i].bq)),
+              Math.round(mul * (column.cl[i].q - column.cl[i].bq)).toString(),
               r.w / 2 + r.x - 1.5,
               r.y + this.getBar(mtx).h / 2
             );
           ctx.textAlign = 'left';
           if (Math.round(column.cl[i].bq) != 0)
             ctx.fillText(
-              Math.round(mul * column.cl[i].bq),
+              Math.round(mul * column.cl[i].bq).toString(),
               r.w / 2 + r.x + 1.5,
               r.y + this.getBar(mtx).h / 2
             );
@@ -308,11 +308,19 @@ export class ClusterCoumnBase {
           let t = Math.round(mul * column.cl[i].q);
           ctx.textAlign = 'right';
           if (t != 0)
-            ctx.fillText(t, r.w / 2 + r.x - 1.5, r.y + this.getBar(mtx).h / 2);
+            ctx.fillText(
+              t.toString(),
+              r.w / 2 + r.x - 1.5,
+              r.y + this.getBar(mtx).h / 2
+            );
           t = Math.round(mul * (2 * column.cl[i].bq - column.cl[i].q));
           ctx.textAlign = 'left';
           if (t != 0)
-            ctx.fillText(t, r.w / 2 + r.x + 1.5, r.y + this.getBar(mtx).h / 2);
+            ctx.fillText(
+              t.toString(),
+              r.w / 2 + r.x + 1.5,
+              r.y + this.getBar(mtx).h / 2
+            );
         }
       }
     }
