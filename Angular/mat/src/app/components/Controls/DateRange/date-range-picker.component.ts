@@ -1,6 +1,7 @@
 import { Component, AfterViewInit, Output, EventEmitter, ViewChild, ElementRef, Input } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { DateAdapter } from '@angular/material/core';
+import { NgxMaterialTimepickerComponent } from 'ngx-material-timepicker';
 import { removeUTC, removeUTCd } from 'src/app/service/FootPrint/Formating/formatting.service';
 
 @Component({
@@ -15,6 +16,8 @@ export class DateRangePickerComponent implements AfterViewInit {
 
   @ViewChild('startInput') startInput!: ElementRef<HTMLInputElement>;
   @ViewChild('endInput') endInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('startTimePicker') startTimePickerRef!: NgxMaterialTimepickerComponent;
+  @ViewChild('endTimePicker') endTimePickerRef!: NgxMaterialTimepickerComponent;
 
   range = new FormGroup({
     start: new FormControl<Date | null>(null),
@@ -153,12 +156,14 @@ export class DateRangePickerComponent implements AfterViewInit {
   onStartTimeChange(time: string) {
     const formattedTime = this.formatTimeTo24(time);
     this.timeRange.controls['startTime'].setValue(formattedTime);
+    this.startTimePickerRef?.close();
     this.updateSelection();
   }
 
   onEndTimeChange(time: string) {
     const formattedTime = this.formatTimeTo24(time);
     this.timeRange.controls['endTime'].setValue(formattedTime);
+    this.endTimePickerRef?.close();
     this.updateSelection();
   }
 
