@@ -15,7 +15,7 @@ import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../footprint.component';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 import { removeUTC } from 'src/app/service/FootPrint/Formating/formatting.service';
-import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
+import { drob } from 'src/app/service/FootPrint/utils';
 import * as Hammer from 'hammerjs';
 
 export class viewMain extends canvasPart {
@@ -254,124 +254,22 @@ interruptSwipe() {
 
   drawHint( event: MyMouseEvent) {
 
-    const offset: Point = event.position;
-    /*
-
-
-        if ( this.parent.dragMode !== null) {
-            this.parent.hideHint();
-            return;
-        }*/
-
-    var FPsettings: ChartSettings = this.parent.FPsettings;
-    let ctx = this.parent.ctx;
-    if (!FPsettings.ToolTip) return;
-
-    function item(i: any, val: string | number | never) {
-      return `<li style='font-size: 12px;'><b>${i}: </b>${val}</li>`;
-    }
-
-    const point = this.mtx.inverse().applyToPoint1(offset);
-    const n = Math.floor(point.x);
-    const clusterData = this.parent.data.clusterData;
-
-    if (!clusterData || n < 0 || n >= clusterData.length) {
+    if (!this.parent.data) {
       this.parent.hideHint();
       return;
     }
 
-    const col: ColumnEx = clusterData[n] as ColumnEx;
-    let v = this.formatService.MoscowTimeShift(col.x);
-    var data = '';
-
-    if ('Number' in col && col.Number != 0) {
-      data += item('Number', col.Number);
-      data += item('Price', col.c);
-      data += item('Contracts', col.q);
-      data += item('Direction', col.bq ? 'Buy' : 'Sell');
-      data += item('Volume', MoneyToStr(col.v));
-    } else {
-      data += item('Opn', (col as ColumnEx).o);
-      data += item('Cls', col.c);
-      data += item('Hi', col.h);
-      data += item('Lo', col.l);
-
-      if (!FPsettings.ExtendedToolTip) {
-        data += item('Contracts', col.q);
-        data += item(
-          'Buy',
-          `${drob(col.bq)} (${drob((col.bq * 100) / col.q,2)}%)`
-        );
-      } else {
-        if (col.bq > 0)
-          data += item(
-            'Buy',
-            `${drob(col.bq)} (${drob((col.bq * 100) / col.q,2)}%)`
-          );
-        if (col.q - col.bq > 0)
-          data += item(
-            'Sell',
-            `${drob(col.q - col.bq)} (${drob(((col.q - col.bq) * 100) / col.q,2)}%)`
-          );
-      }
-
-      data += item('Volume', MoneyToStr(col.v));
-    }
-
-    for (let view in this.parent.views) {
-      let v = this.parent.views[view];
-      if ('getLegendLine' in v) {
-        var c = (v as any).getLegendLine();
-        data += item(c.Text, c.Value);
-      }
-    }
-
-    //var r = this.mtx.inverse().applyToPoint(e.center.x, e.center.y).y;
-    var r = drob(      Math.round(point.y / this.parent.data.priceScale) *      this.parent.data.priceScale    );
-
-    if ('cl' in col) {
-      for (let i = 0; i < col.cl.length; i++)
-        if (col.cl[i].p - (r) == 0) {
-          data += 'Cluster Data';
-          data += item('Price', col.cl[i].p);
-          data += item('Trades', col.cl[i].ct);
-          data += item('Max trade', col.cl[i].mx);
-
-          if (!FPsettings.ExtendedToolTip) {
-            data += item('Contracts', drob( col.cl[i].q));
-            data += item(
-              'Buy',
-              `${drob(col.cl[i].bq,3)} (${ drob((col.cl[i].bq * 100) / col.cl[i].q,2)}%)`
-            );
-          } else {
-            if (col.cl[i].bq > 0)
-              data += item(
-                'Buy',
-                `${drob(col.cl[i].bq,2)} (${drob(
-                  (col.cl[i].bq * 100) /
-                  col.cl[i].q,3
-                )}%)`
-              );
-            if (col.cl[i].q - col.cl[i].bq > 0)
-              data += item(
-                'Sell',
-                `${drob( col.cl[i].q - col.cl[i].bq,3)} (${ drob(                  ((col.cl[i].q - col.cl[i].bq) * 100) /                  col.cl[i].q,2                )}%)`
-              );
-          }
-        }
-    }
-
-    data += item('Date', this.formatService.toStr(col.x));
-    data += item('Time', this.formatService.TimeFormat2(col.x));
-
-    const hintContent = `<ul style='font-size: 10px;margin: 0; padding: 0px;list-style-type:none'>${data} </ul>`;
-
-    const position = {
-      x: event.screen.x / window.devicePixelRatio + 5,
-      y: event.screen.y / window.devicePixelRatio + 5,
-    };
-
-    this.parent.showHint(hintContent, position);
+    this.parent.hintService.renderHint({
+      event,
+      mtx: this.mtx,
+      clusterData: this.parent.data.clusterData,
+      priceScale: this.parent.data.priceScale,
+      views: this.parent.views,
+      settings: this.parent.FPsettings,
+      formatService: this.formatService,
+      onShow: (content, position) => this.parent.showHint(content, position),
+      onHide: () => this.parent.hideHint(),
+    });
   }
 
   ParmasFromCandle1(dt: Date, period: number) {

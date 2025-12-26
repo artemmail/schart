@@ -142,6 +142,10 @@ export class FootPrintComponent implements AfterViewInit {
     this.markupEnabled = false;
   }
 
+  get hintService(): HintContainerService {
+    return this.hintContainer;
+  }
+
   getCsv() {
     if (!this.params || !this.data) {
       return;
