@@ -111,13 +111,6 @@ export class FootPrintComponent implements AfterViewInit {
     this.translateMatrix = null;
     this.hiddenHint = true;
     this.markupEnabled = false;
-
-    // this.ColorsService =
-
-    const canvas: HTMLCanvasElement | null = this.canvasRef?.nativeElement;
-    if (!canvas) return;
-
-    //this.calcPrices();
   }
 
   getCsv() {
@@ -305,7 +298,10 @@ export class FootPrintComponent implements AfterViewInit {
   }
 
   @HostListener('window:resize', ['$event'])
-  public resize() {    
+  public resize() {
+    if (!this.viewInitialized || !this.viewsManager) {
+      return;
+    }
     this.viewsManager.resize();
   }
 
@@ -355,6 +351,7 @@ export class FootPrintComponent implements AfterViewInit {
       this.markupEnabled = false;
     }
     this.viewInitialized = true;
+    this.initializeViewIfReady();
   }
 
   public applyDefaultPostInit(): void {
@@ -378,28 +375,40 @@ export class FootPrintComponent implements AfterViewInit {
 
   applyParams(params: FootPrintParameters) {
     this.params = params;
-    if (this.data) {
-      this.initSize();
-    }
+    this.initializeViewIfReady();
   }
 
   applySettings(settings: ChartSettings) {
     this.FPsettings = settings;
-    if (this.data && this.params) {
-      this.initSize();
-      this.resize();
+    if (!this.viewInitialized || !this.data || !this.params) {
+      return;
     }
+
+    this.initSize();
+    this.resize();
   }
 
   applyData(clusterData: ClusterData) {
     const isNewDataInstance = this.data !== clusterData;
     this.data = clusterData;
     this.addhint();
-    if (this.params && isNewDataInstance) {
-      this.initSize();
-      this.resize();
-      this.viewsManager.drawClusterView();
+    if (!this.viewInitialized || !this.params || !isNewDataInstance) {
+      return;
     }
+
+    this.initSize();
+    this.resize();
+    this.viewsManager.drawClusterView();
+  }
+
+  private initializeViewIfReady(): void {
+    if (!this.viewInitialized || !this.data || !this.params) {
+      return;
+    }
+
+    this.initSize();
+    this.resize();
+    this.viewsManager.drawClusterView();
   }
 
   handleRealtimeUpdate(update: FootprintUpdateEvent) {
