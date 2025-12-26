@@ -32,8 +32,32 @@ export class FootprintStateService {
     return this.state;
   }
 
-  update(partial: Partial<FootprintComponentState>): void {
+  private update(partial: Partial<FootprintComponentState>): void {
     this.state = { ...this.state, ...partial };
+  }
+
+  setParams(params: FootPrintParameters | null): void {
+    this.update({ params });
+  }
+
+  setData(data: ClusterData | null): void {
+    this.update({ data });
+  }
+
+  setSelectedPrice(price: number | null): void {
+    this.update({ selectedPrice: price });
+  }
+
+  setSelectedPrice1(price: number | null): void {
+    this.update({ selectedPrice1: price });
+  }
+
+  setDragMode(mode: number | null): void {
+    this.update({ dragMode: mode });
+  }
+
+  setSettings(settings: ChartSettings): void {
+    this.update({ settings });
   }
 
   clearSelection(): void {
