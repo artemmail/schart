@@ -18,6 +18,7 @@ import { switchMap, startWith } from 'rxjs/operators';
 import { FootPrintComponent } from '../../footprint/footprint.component';
 import { MoneyToStrPipe } from 'src/app/pipes/money-to-str.pipe';
 import { Router } from '@angular/router';
+import { FootprintWidgetComponent } from '../../footprint/footprint-widget.component';
 declare var $: any;
 
 @Component({
@@ -178,7 +179,7 @@ export class KendoTreemapComponent implements OnInit, OnDestroy, AfterViewInit {
 
     if (div.querySelector('.footprint-component')) return;
 
-    const componentFactory = this.componentFactoryResolver.resolveComponentFactory(FootPrintComponent);
+    const componentFactory = this.componentFactoryResolver.resolveComponentFactory(FootprintWidgetComponent);
     const componentRef = componentFactory.create(this.injector);
 
     componentRef.instance.caption = this.item.name1;
