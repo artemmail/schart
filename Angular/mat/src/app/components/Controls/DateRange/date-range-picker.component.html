@@ -21,18 +21,32 @@
 
 
 <!-- Ввод диапазона времени -->
-<div *ngIf="setTime" style="width: 100%;">  
+<div *ngIf="setTime" style="width: 100%;" [formGroup]="timeRange">
   <!-- Время начала -->
   <mat-form-field style="width: 50%;">
     <mat-label>Время начала</mat-label>
-    <input matInput [ngxTimepicker]="startTimePicker" [format]="24" readonly [(ngModel)]="timeRange.controls.startTime.value">
+    <input
+      matInput
+      formControlName="startTime"
+      [ngxTimepicker]="startTimePicker"
+      [format]="24"
+      readonly
+      (click)="startTimePicker.open()"
+    >
     <ngx-material-timepicker #startTimePicker [format]="24" (timeSet)="onStartTimeChange($event)"></ngx-material-timepicker>
   </mat-form-field>
 
   <!-- Время окончания -->
   <mat-form-field style="width: 50%;">
     <mat-label>Время окончания</mat-label>
-    <input matInput [ngxTimepicker]="endTimePicker" [format]="24" readonly [(ngModel)]="timeRange.controls.endTime.value">
+    <input
+      matInput
+      formControlName="endTime"
+      [ngxTimepicker]="endTimePicker"
+      [format]="24"
+      readonly
+      (click)="endTimePicker.open()"
+    >
     <ngx-material-timepicker #endTimePicker [format]="24" (timeSet)="onEndTimeChange($event)"></ngx-material-timepicker>
   </mat-form-field>
 </div>
