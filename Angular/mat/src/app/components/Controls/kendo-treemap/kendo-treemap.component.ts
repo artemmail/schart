@@ -174,7 +174,7 @@ export class KendoTreemapComponent implements OnInit, OnDestroy, AfterViewInit {
   private showToolTip(div: HTMLElement): void {
     div.style.width = '400px';
     div.style.height = '300px';
-    if (!this.item) return;
+    if (!div || !this.item) return;
 
     if (div.querySelector('.footprint-component')) return;
 
@@ -195,6 +195,7 @@ export class KendoTreemapComponent implements OnInit, OnDestroy, AfterViewInit {
 
     this.appRef.attachView(componentRef.hostView);
     this.renderer.appendChild(div, componentRef.location.nativeElement);
+    componentRef.changeDetectorRef.detectChanges();
   }
 
   private navigateTo(route: string, queryParams: any): void {
