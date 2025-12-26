@@ -41,7 +41,7 @@ export class FootPrintComponent implements AfterViewInit {
   @ViewChild('drawingCanvas', { static: false }) canvasRef?: ElementRef;
   @Input() presetIndex: number;
   @Input() set params(value: FootPrintParameters | null) {
-    this.state.update({ params: value ?? null });
+    this.state.setParams(value ?? null);
     this.initializeViewIfReady();
   }
   get params(): FootPrintParameters | null {
@@ -52,8 +52,8 @@ export class FootPrintComponent implements AfterViewInit {
   @Input() caption: string | null = null;
   @Input() postInit?: (component: FootPrintComponent) => void;
 
-  public canvas: HTMLCanvasElement | null = this.canvasRef?.nativeElement;
-  public ctx: CanvasRenderingContext2D | null = null;
+  private _canvas: HTMLCanvasElement | null = this.canvasRef?.nativeElement;
+  private _ctx: CanvasRenderingContext2D | null = null;
 
   DeltaVolumes: Array<number> = [0, 0, 0, 0, 0, 0, 0, 0];
 
@@ -68,7 +68,7 @@ export class FootPrintComponent implements AfterViewInit {
   }
 
   private set data(value: ClusterData | null) {
-    this.state.update({ data: value });
+    this.state.setData(value);
   }
 
   get hiddenHint(): boolean {
@@ -81,13 +81,13 @@ export class FootPrintComponent implements AfterViewInit {
     return this.state.snapshot.selectedPrice;
   }
   set selectedPrice(price: number | null) {
-    this.state.update({ selectedPrice: price });
+    this.state.setSelectedPrice(price);
   }
   get selectedPrice1(): number | null {
     return this.state.snapshot.selectedPrice1;
   }
   set selectedPrice1(price: number | null) {
-    this.state.update({ selectedPrice1: price });
+    this.state.setSelectedPrice1(price);
   }
 
   movedView: canvasPart | null = null;
@@ -142,6 +142,14 @@ export class FootPrintComponent implements AfterViewInit {
     this.markupEnabled = false;
   }
 
+  get canvas(): HTMLCanvasElement | null {
+    return this._canvas;
+  }
+
+  get ctx(): CanvasRenderingContext2D | null {
+    return this._ctx;
+  }
+
   get hintService(): HintContainerService {
     return this.hintContainer;
   }
@@ -174,7 +182,7 @@ export class FootPrintComponent implements AfterViewInit {
   }
 
   set dragMode(value: number | null) {
-    this.state.update({ dragMode: value });
+    this.state.setDragMode(value);
   }
 
   get FPsettings(): ChartSettings {
@@ -182,7 +190,7 @@ export class FootPrintComponent implements AfterViewInit {
   }
 
   set FPsettings(settings: ChartSettings) {
-    this.state.update({ settings });
+    this.state.setSettings(settings);
   }
 
   isPriceVisible() {
@@ -211,14 +219,14 @@ export class FootPrintComponent implements AfterViewInit {
   }
 
   mergeMatrix() {
-    var v = this.viewsManager.clusterView;
+    const v = this.viewsManager.clusterView;
     if (this.data.clusterData.length < 12)
       this.viewsManager.mtx = this.viewsManager.mtx.reassignX(
         { x1: 0, x2: this.data.clusterData.length },
         { x1: v.x, x2: v.x + v.w }
       );
     else {
-      var x = this.viewsManager.mtx.applyToPoint(
+      const x = this.viewsManager.mtx.applyToPoint(
         this.data.clusterData.length,
         0
       ).x;
@@ -230,29 +238,29 @@ export class FootPrintComponent implements AfterViewInit {
 
     /*
 
-        if (('ShrinkY' in FPsettings) && FPsettings.ShrinkY && !!this.data.local.maxPrice) {
+        if (("ShrinkY" in FPsettings) && FPsettings.ShrinkY && !!this.data.local.maxPrice) {
             this.getMinMaxIndex(matrix);
-            var dp = (this.data.local.maxPrice - this.data.local.minPrice) / 10;
+            const dp = (this.data.local.maxPrice - this.data.local.minPrice) / 10;
             matrix = matrix.reassignY({ y1: this.data.local.maxPrice + dp, y2: this.data.local.minPrice - dp }, { y1: v.y, y2: v.y + v.h });
         }*/
   }
 
   getBar(mtx: Matrix): Rectangle {
-    var p1 = mtx.applyToPoint(0, 0);
-    var p2 = mtx.applyToPoint(1, this.data.priceScale);
+    const p1 = mtx.applyToPoint(0, 0);
+    const p2 = mtx.applyToPoint(1, this.data.priceScale);
     return { x: 0, y: 0, w: p2.x - p1.x, h: p2.y - p1.y };
   }
   clusterRect(price: number, columnNumber: number, mtx: Matrix) {
-    var p1 = mtx.applyToPoint(columnNumber, price - this.data.priceScale / 2);
-    var p2 = mtx.applyToPoint(
+    const p1 = mtx.applyToPoint(columnNumber, price - this.data.priceScale / 2);
+    const p2 = mtx.applyToPoint(
       columnNumber + 1,
       price + this.data.priceScale / 2
     );
     return { x: p1.x, y: p1.y, w: p2.x - p1.x, h: p2.y - p1.y };
   }
   clusterRect2(price: number, columnNumber: number, w: number, mtx: Matrix) {
-    var p1 = mtx.applyToPoint(columnNumber, price - this.data.priceScale / 2);
-    var p2 = mtx.applyToPoint(
+    const p1 = mtx.applyToPoint(columnNumber, price - this.data.priceScale / 2);
+    const p2 = mtx.applyToPoint(
       columnNumber + w,
       price + this.data.priceScale / 2
     );
@@ -262,8 +270,8 @@ export class FootPrintComponent implements AfterViewInit {
     return this.clusterRectFontSize(this.clusterRect(0, 0, mtx), textLen);
   }
   clusterRectFontSize(rect: Rectangle, textLen: number) {
-    var w = Math.abs(rect.w);
-    var h = Math.abs(rect.h);
+    const w = Math.abs(rect.w);
+    const h = Math.abs(rect.h);
     return Math.min(h - 1, w / textLen, this.colorsService.maxFontSize());
   }
 
@@ -275,13 +283,13 @@ export class FootPrintComponent implements AfterViewInit {
     this.state.markViewInitialized();
   }
   getMinMaxIndex(mtx: Matrix) {
-    var data = this.data.clusterData;
+    const data = this.data.clusterData;
     this.minIndex = data.length - 1;
     this.maxIndex = 0;
-    var finishPrice = mtx.Height2Price(
+    const finishPrice = mtx.Height2Price(
       this.viewsManager.clusterTotalView.y - 100
     );
-    var startPrice = mtx.Height2Price(
+    const startPrice = mtx.Height2Price(
       this.viewsManager.clusterTotalView.y +
         this.viewsManager.clusterTotalView.h +
         100
@@ -290,8 +298,8 @@ export class FootPrintComponent implements AfterViewInit {
       Math.floor(finishPrice / this.data.priceScale) * this.data.priceScale;
     this.startPrice =
       Math.floor(startPrice / this.data.priceScale) * this.data.priceScale;
-    for (var i = 0; i < data.length; i++) {
-      var r = this.clusterRect(/*data[i].cl[0].p*/ 1, i, mtx);
+    for (let i = 0; i < data.length; i++) {
+      const r = this.clusterRect(/*data[i].cl[0].p*/ 1, i, mtx);
       if (
         !(
           r.x + r.w < this.viewsManager.clusterView.x ||
@@ -362,7 +370,7 @@ export class FootPrintComponent implements AfterViewInit {
     return alignedMatrix;
   }
   topLinesCount() {
-    var x = (this.topVolumes() ? 1 : 0) + (this.oiEnable() ? 1 : 0) + 2;
+    const x = (this.topVolumes() ? 1 : 0) + (this.oiEnable() ? 1 : 0) + 2;
     return x;
   }
   topVolumes() {
@@ -382,8 +390,8 @@ export class FootPrintComponent implements AfterViewInit {
     ColorsService.CanvasExt();
     const canvas: HTMLCanvasElement | null = this.canvasRef?.nativeElement;
     if (!canvas) return;
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
+    this._canvas = canvas;
+    this._ctx = canvas.getContext('2d');
     this.mouseAndTouchManager = new MouseAndTouchManager(this);
     this.viewsManager = new ViewsManager(this, this.footprintLayoutService);
 
@@ -418,7 +426,7 @@ export class FootPrintComponent implements AfterViewInit {
   }
 
   applyParams(params: FootPrintParameters) {
-    this.state.update({ params });
+    this.state.setParams(params);
     this.initializeViewIfReady();
   }
 
