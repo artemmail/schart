@@ -4,6 +4,16 @@ import { Injectable } from '@angular/core';
 export class HintContainerService {
   private hintElement: HTMLDivElement | null = null;
 
+  show(content: string, position: { x: number; y: number }): void {
+    const hint = this.ensureHintElement();
+
+    hint.innerHTML = content;
+    hint.style.overflow = 'visible';
+    hint.style.display = 'block';
+    hint.style.left = `${position.x}px`;
+    hint.style.top = `${position.y}px`;
+  }
+
   ensureHintElement(): HTMLDivElement {
     if (!this.hintElement) {
       this.hintElement = document.createElement('div');
