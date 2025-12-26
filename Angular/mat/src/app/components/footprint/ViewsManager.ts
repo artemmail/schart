@@ -92,7 +92,7 @@ export class ViewsManager {
     const layout = this.layoutService.calculateLayout({
       canvasWidth: canvas.width,
       canvasHeight: canvas.height,
-      deltaVolumes: this.footprint.DeltaVolumes,
+      deltaVolumes: this.footprint.deltaVolumes,
       minimode: this.footprint.minimode,
       settings: this.footprint.FPsettings,
       data,

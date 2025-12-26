@@ -55,8 +55,6 @@ export class FootPrintComponent implements AfterViewInit {
   private _canvas: HTMLCanvasElement | null = this.canvasRef?.nativeElement;
   private _ctx: CanvasRenderingContext2D | null = null;
 
-  DeltaVolumes: Array<number> = [0, 0, 0, 0, 0, 0, 0, 0];
-
   markupEnabled: boolean;
   markupManager: MarkUpManager;
   clusterWidthScale: number = 0.97;
@@ -191,6 +189,25 @@ export class FootPrintComponent implements AfterViewInit {
 
   set FPsettings(settings: ChartSettings) {
     this.state.setSettings(settings);
+  }
+
+  get deltaVolumes(): readonly number[] {
+    return this.state.snapshot.deltaVolumes;
+  }
+
+  updateDeltaVolume(index: number, value: number): void {
+    this.state.setDeltaVolume(index, value);
+  }
+
+  resetDeltaVolume(index: number): void {
+    this.state.resetDeltaVolume(index);
+  }
+
+  consumeDeltaVolume(index: number): number {
+    const delta = this.state.getDeltaVolume(index);
+    this.resetDeltaVolume(index);
+
+    return delta;
   }
 
   isPriceVisible() {

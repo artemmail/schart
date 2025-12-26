@@ -13,6 +13,7 @@ export interface FootprintComponentState {
   selectedPrice1: number | null;
   dragMode: number | null;
   viewInitialized: boolean;
+  deltaVolumes: number[];
 }
 
 @Injectable()
@@ -26,10 +27,11 @@ export class FootprintStateService {
     selectedPrice1: null,
     dragMode: null,
     viewInitialized: false,
+    deltaVolumes: [0, 0, 0, 0, 0, 0, 0, 0],
   };
 
   get snapshot(): FootprintComponentState {
-    return this.state;
+    return { ...this.state, deltaVolumes: [...this.state.deltaVolumes] };
   }
 
   private update(partial: Partial<FootprintComponentState>): void {
@@ -70,5 +72,25 @@ export class FootprintStateService {
 
   markViewInitialized(): void {
     this.update({ viewInitialized: true });
+  }
+
+  getDeltaVolume(index: number): number {
+    return this.state.deltaVolumes[index] ?? 0;
+  }
+
+  setDeltaVolume(index: number, value: number): void {
+    const deltaVolumes = [...this.state.deltaVolumes];
+    deltaVolumes[index] = value;
+    this.update({ deltaVolumes });
+  }
+
+  resetDeltaVolume(index: number): void {
+    if (index < 0 || index >= this.state.deltaVolumes.length) {
+      return;
+    }
+
+    const deltaVolumes = [...this.state.deltaVolumes];
+    deltaVolumes[index] = 0;
+    this.update({ deltaVolumes });
   }
 }

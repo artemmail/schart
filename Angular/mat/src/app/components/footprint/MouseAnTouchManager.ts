@@ -53,11 +53,11 @@ export class MouseAndTouchManager {
   };
 
   onMouseUp = (): void => {
-    let FPsettings = this.footprint.FPsettings;
+    const FPsettings = this.footprint.FPsettings;
     if (this.footprint.dragMode != null) {
-      FPsettings.VolumesHeight[this.footprint.dragMode] +=
-        this.footprint.DeltaVolumes[this.footprint.dragMode];
-      this.footprint.DeltaVolumes[this.footprint.dragMode] = 0;
+      const dragModeIndex = this.footprint.dragMode;
+      FPsettings.VolumesHeight[dragModeIndex] +=
+        this.footprint.consumeDeltaVolume(dragModeIndex);
       this.footprint.dragMode = null;
       return;
     }
@@ -77,19 +77,19 @@ export class MouseAndTouchManager {
    // alert(3333);
     
     point.center = this.eventToPoint(point.center);
-    for (var view in this.footprint.views)
+    for (const view in this.footprint.views)
       if ('onPinchStart' in this.footprint.views[view] && this.footprint.views[view].checkPoint(point.center))
         (this.footprint.views[view] as any).onPinchStart(point.center);
   }
   onPinchMove = (point: HammerInput): void => {
     point.center = this.eventToPoint(point.center);
-    for (var view in this.footprint.views)
+    for (const view in this.footprint.views)
       if ('onPinchMove' in this.footprint.views[view])
         (this.footprint.views[view] as any).onPinchMove(point);
   }
   onPinchEnd = (point: HammerInput): void => {
     point.center = this.eventToPoint(point.center);
-    for (var view in this.footprint.views)
+    for (const view in this.footprint.views)
       if ('onPinchEnd' in this.footprint.views[view])
         (this.footprint.views[view] as any).onPinchEnd(point);
   }
@@ -99,19 +99,19 @@ export class MouseAndTouchManager {
   onPinchStart(point) {
     //  this.hideHint();
     alert(3333)
-    for (var view in this.footprint.views)
+    for (const view in this.footprint.views)
       if ('onPinchStart' in this.footprint.views[view] && this.footprint.views[view].checkPoint(point.center))
         (this.footprint.views[view] as any).onPinchStart(point);
   }
   onPinchMove(point) {
     point.center = this.eventToPoint(point.center);
-    for (var view in this.footprint.views)
+    for (const view in this.footprint.views)
       if ('onPinchMove' in this.footprint.views[view])
         (this.footprint.views[view] as any).onPinchMove(point);
   }
   onPinchEnd(point) {
     point.center = this.eventToPoint(point.center);
-    for (var view in this.footprint.views)
+    for (const view in this.footprint.views)
       if ('onPinchEnd' in this.footprint.views[view])
         (this.footprint.views[view] as any).onPinchEnd(point);
   }
@@ -120,7 +120,7 @@ export class MouseAndTouchManager {
   onPanStart = (event: HammerInput): void => {
 
     if (this.footprint.dragMode != null) return;
-    for (var view in this.footprint.views)
+    for (const view in this.footprint.views)
       if ('onPanStart' in this.footprint.views[view])
         if (this.footprint.views[view].checkPoint(this.eventToPoint(event.center))) {
           this.panStartInfo = { event: event, view: this.footprint.views[view] }
@@ -204,7 +204,7 @@ export class MouseAndTouchManager {
       this.onMouseOut();
     }
 
-    for (var v = 0; v < this.footprint.views.length; v++) {
+    for (let v = 0; v < this.footprint.views.length; v++) {
       if (this.footprint.views[v].checkDraggable(point)) {
         const part = this.footprint.views[v].draggable;
         canvas.style.cursor = (part === DraggableEnum.Left || part === DraggableEnum.Right) ? 'w-resize' : 's-resize';
@@ -231,7 +231,7 @@ export class MouseAndTouchManager {
         : this.pressd.y - point.y;
 
       if (this.footprint.FPsettings.VolumesHeight[this.footprint.dragMode] + Delta > 10)
-        this.footprint.DeltaVolumes[this.footprint.dragMode] = Delta;
+        this.footprint.updateDeltaVolume(this.footprint.dragMode, Delta);
 
       this.footprint.translateMatrix = null;
       this.footprint.viewsManager.drawClusterView();
