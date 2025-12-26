@@ -152,7 +152,7 @@ registerLocaleData(localeRu, 'ru');
     OverlayModule,
     PortalModule,
     InfiniteScrollModule,
-    //NgxMaterialTimepickerModule,
+    NgxMaterialTimepickerModule,
     FormsModule,
     ReactiveFormsModule,
     MatDatepickerModule,
