@@ -1,7 +1,10 @@
+import { Point } from '../matrix';
+
 import { Profile } from './profile';
+import { MarkUpManager } from './Manager';
 
 export class ProfileAuto extends Profile {
-  constructor(manager) {
+  constructor(manager: MarkUpManager) {
     super(manager);
   }
   override getFromModel() {
@@ -12,10 +15,10 @@ export class ProfileAuto extends Profile {
     this.total = this.model.total;
     this.model.dockable = this.dockable;
   }
-  override onMouseUp(point) {}
-  getProfiles(period) {
+  override onMouseUp(point: Point): void {}
+  getProfiles(period: number): Array<Point[]> {
     let data = this.footprint.data.clusterData;
-    let pairs = [];
+    let pairs: Array<[number, number]> = [];
     let s = 0;
     function datesComaprer(d1, d2, p) {
       if (p == 30000) {
@@ -37,7 +40,7 @@ export class ProfileAuto extends Profile {
     }
     if (pairs.length == 0) pairs = [[0, data.length]];
     else pairs.push([pairs[pairs.length - 1][1], data.length]);
-    let res = [];
+    let res: Array<Point[]> = [];
     let ss = this.footprint.data.priceScale;
     for (let i = 0; i < pairs.length; i++) {
       let minp = data[pairs[i][0]].l; // cl[0].p;

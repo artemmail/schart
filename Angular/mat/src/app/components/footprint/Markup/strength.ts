@@ -1,12 +1,14 @@
 import { MoscowTimeShift, inttodate } from 'src/app/service/FootPrint/utils';
 import { Rect } from './rect';
+import { MarkUpManager } from './Manager';
+import { Point } from '../matrix';
 
 
 export class Strength extends Rect {
   total: any;
   dockable: any;
 
-  constructor(manager) {
+  constructor(manager: MarkUpManager) {
     super(manager);
     this.type = 'Strength';
     this.controlMap = {
@@ -41,7 +43,7 @@ export class Strength extends Rect {
     if (this.pointArray[1].y == this.pointArray[0].y)
       this.pointArray[1].y = this.pointArray[0].y + ps;
   }
-  override onMouseUp(point) {
+  override onMouseUp(point: Point) {
     if (this.dockable && this.pointArray.length == 2) {
       this.dock();
 

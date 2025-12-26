@@ -1,11 +1,12 @@
 import { Point } from '../matrix';
 
+import { MarkUpManager } from './Manager';
 import { Shape } from './shape';
 
 export class Brush extends Shape {
   public width: number;
 
-  constructor(manager) {
+  constructor(manager: MarkUpManager) {
     super(manager);
     this.type = 'Brush';
     this.controlMap = {
@@ -18,6 +19,7 @@ export class Brush extends Shape {
       toolbar: false,
       profile: false,
     };
+    this.getFromModel();
   }
   override getFromModel() {
     this.color = this.model.color;
