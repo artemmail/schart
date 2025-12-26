@@ -27,15 +27,7 @@ import { DialogService } from 'src/app/service/DialogService.service';
 import { Router } from '@angular/router';
 import { FootprintLayoutService } from './footprint-layout.service';
 import { FootprintRealtimeUpdaterService } from './footprint-realtime-updater.service';
-import { FootprintInitOptions, FootprintUpdateEvent } from './footprint-data.types';
-
-export interface FootprintViewDataSource {
-  reload(params?: FootPrintParameters): Promise<void>;
-  configureRealtime(
-    params: FootPrintParameters,
-    options: FootprintInitOptions
-  ): Promise<void>;
-}
+import { FootprintUpdateEvent } from './footprint-data.types';
 
 @Component({
   standalone: false,
@@ -65,8 +57,6 @@ export class FootPrintComponent implements AfterViewInit {
   markupManager: MarkUpManager;
   clusterWidthScale: number = 0.97;
   data: ClusterData | null = null;
-
-  private dataSource?: FootprintViewDataSource;
 
   views: Array<canvasPart> = new Array();
 
@@ -139,38 +129,6 @@ export class FootPrintComponent implements AfterViewInit {
   }
 
   presetItems: SelectListItemNumber[] = [];
-
-  reloadPresets() {
-    this.footprintUtilities
-      .loadPresets()
-      .then((x) => (this.presetItems = x));
-  }
-
-  async reloadPresetsAsync() {
-    this.presetItems = await this.footprintUtilities.loadPresets();
-  }
-
-
-
-  public async reload() {
-    if (!this.params || !this.dataSource) {
-      return;
-    }
-
-    this.params.candlesOnly = this.FPsettings.CandlesOnly;
-    await this.dataSource.reload(this.params);
-    await this.configureRealtimeUpdater();
-  }
-
-  public async serverRequest(params: FootPrintParameters): Promise<void> {
-    if (!this.dataSource) {
-      return;
-    }
-
-    this.params = params;
-    await this.dataSource.reload(params);
-    await this.configureRealtimeUpdater();
-  }
 
   selectedColumn: ColumnEx | null = null;
 
@@ -412,23 +370,6 @@ export class FootPrintComponent implements AfterViewInit {
     const postInitHandler = this.postInit ?? ((component: FootPrintComponent) => component.applyDefaultPostInit());
 
     postInitHandler(this);
-  }
-
-  private async configureRealtimeUpdater() {
-    if (!this.params || !this.dataSource) {
-      return;
-    }
-
-    const options: FootprintInitOptions = {
-      minimode: this.minimode,
-      deltamode: this.deltamode,
-    };
-
-    await this.dataSource.configureRealtime(this.params, options);
-  }
-
-  attachDataSource(dataSource: FootprintViewDataSource) {
-    this.dataSource = dataSource;
   }
 
   bindRealtime(updater: FootprintRealtimeUpdaterService) {

@@ -15,7 +15,7 @@ import { filter } from 'rxjs';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { SelectListItemNumber } from 'src/app/models/preserts';
 import { SignalRService } from 'src/app/service/FootPrint/signalr.service';
-import { FootPrintComponent, FootprintViewDataSource } from './footprint.component';
+import { FootPrintComponent } from './footprint.component';
 import { FootprintDataLoaderService } from './footprint-data-loader.service';
 import { FootprintRealtimeUpdaterService } from './footprint-realtime-updater.service';
 import { FootprintInitOptions } from './footprint-data.types';
@@ -32,7 +32,7 @@ import { FootprintInitOptions } from './footprint-data.types';
   ],
 })
 export class FootprintWidgetComponent
-  implements AfterViewInit, OnChanges, OnDestroy, FootprintViewDataSource
+  implements AfterViewInit, OnChanges, OnDestroy
 {
   @ViewChild(FootPrintComponent)
   renderer?: FootPrintComponent;
@@ -85,7 +85,6 @@ export class FootprintWidgetComponent
   async ngAfterViewInit() {
     if (!this.renderer) return;
 
-    this.renderer.attachDataSource(this);
     this.renderer.bindRealtime(this.footprintRealtimeUpdater);
     this.connectDataStreams();
 
@@ -119,8 +118,10 @@ export class FootprintWidgetComponent
     }
 
     this.params = nextParams;
-    await this.footprintDataLoader.reload(nextParams);
-    await this.configureRealtime(nextParams, this.buildInitOptions());
+    const loaded = await this.footprintDataLoader.reload(nextParams);
+    if (loaded) {
+      await this.configureRealtime(nextParams, this.buildInitOptions());
+    }
   }
 
   async configureRealtime(
@@ -149,9 +150,11 @@ export class FootprintWidgetComponent
   }
 
   reloadPresets() {
-    this.footprintDataLoader
-      .initialize(this.params, this.presetIndex, this.buildInitOptions())
-      .then(() => {});
+    return this.footprintDataLoader.initialize(
+      this.params,
+      this.presetIndex,
+      this.buildInitOptions()
+    );
   }
 
   private buildInitOptions(): FootprintInitOptions {
@@ -212,12 +215,14 @@ export class FootprintWidgetComponent
 
     const options = this.buildInitOptions();
 
-    await this.footprintDataLoader.initialize(
+    const loaded = await this.footprintDataLoader.initialize(
       this.params,
       this.presetIndex,
       options
     );
-    await this.footprintRealtimeUpdater.configure(this.params, options);
+    if (loaded) {
+      await this.footprintRealtimeUpdater.configure(this.params, options);
+    }
   }
 
   private setupResizeObserver() {

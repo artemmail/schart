@@ -50,17 +50,17 @@ export class FootprintDataLoaderService implements OnDestroy {
     params: FootPrintParameters,
     presetIndex: number,
     options: FootprintInitOptions
-  ): Promise<void> {
+  ): Promise<boolean> {
     this.options = options;
     this.presetIndex = presetIndex;
     this.paramsSubject.next(params);
 
     await this.loadPresets();
-    await this.applySettingsAndLoadData(params);
+    return this.applySettingsAndLoadData(params);
   }
 
-  async reload(params: FootPrintParameters): Promise<void> {
-    await this.applySettingsAndLoadData(params);
+  async reload(params: FootPrintParameters): Promise<boolean> {
+    return this.applySettingsAndLoadData(params);
   }
 
   destroy() {
@@ -96,13 +96,15 @@ export class FootprintDataLoaderService implements OnDestroy {
     return { type, merged };
   }
 
-  private async applySettingsAndLoadData(params: FootPrintParameters) {
+  private async applySettingsAndLoadData(
+    params: FootPrintParameters
+  ): Promise<boolean> {
     const settings = await this.resolveSettings();
     params.candlesOnly = settings.CandlesOnly;
     this.paramsSubject.next(params);
     this.settingsSubject.next(settings);
     this.levelMarksService.load(params);
-    await this.requestRange(params);
+    return this.requestRange(params);
   }
 
   private async resolveSettings(): Promise<ChartSettings> {
@@ -125,13 +127,14 @@ export class FootprintDataLoaderService implements OnDestroy {
     }
   }
 
-  private async requestRange(params: FootPrintParameters) {
+  private async requestRange(params: FootPrintParameters): Promise<boolean> {
     try {
       const rangeData = await firstValueFrom(
         this.clusterStreamService.GetRange(params)
       );
       this.currentData = new ClusterData(rangeData);
       this.dataSubject.next(this.currentData);
+      return true;
     } catch (err) {
       console.error('Ошибка при выполнении запроса к серверу', err);
       if (err instanceof HttpErrorResponse) {
@@ -139,6 +142,7 @@ export class FootprintDataLoaderService implements OnDestroy {
       } else {
         await this.dialogService.info_async(err);
       }
+      return false;
     }
   }
 }

@@ -48,9 +48,7 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     this.params = params;
     this.options = options;
     await this.teardownRealtime();
-    if (this.isVisible) {
-      await this.subscribeToRealtime(params);
-    }
+    await this.subscribeToRealtime(params);
   }
 
   destroy() {

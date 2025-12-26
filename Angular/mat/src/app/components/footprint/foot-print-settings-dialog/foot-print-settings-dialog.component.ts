@@ -1,11 +1,4 @@
-import {
-  Component,
-  Inject,
-  Input,
-  input,
-  ViewChild,
-  ViewEncapsulation,
-} from '@angular/core';
+import { Component, Inject, Input, ViewChild, ViewEncapsulation } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import {
@@ -42,6 +35,8 @@ export class FootPrintSettingsDialogComponent {
 
   // Добавляем поле fp
   @Input() fp: FootPrintComponent;
+  @Input() reloadData?: () => Promise<void> | void;
+  @Input() reloadPresets?: () => Promise<void> | void;
 
   constructor(private chartSettingsService: ChartSettingsService) {
     /*if (data) {
@@ -109,7 +104,7 @@ export class FootPrintSettingsDialogComponent {
 
   onChangeReload(event: any) {
     this.save();
-    this.fp.reload();
+    void this.reloadData?.();
   }
 
   onProfileSelect(event: any) {
@@ -128,7 +123,7 @@ export class FootPrintSettingsDialogComponent {
         );
 
         if (this.settings.Name !== this.fp.presetItems[index].Text) {
-          this.fp.reloadPresets();
+          void this.reloadPresets?.();
           this.fp.presetIndex = x;
         }
       });
@@ -138,7 +133,7 @@ export class FootPrintSettingsDialogComponent {
     this.chartSettingsService
       .deleteSettings(this.fp.FPsettings)
       .subscribe(async (x) => {
-        await this.fp.reloadPresetsAsync();
+        await this.reloadPresets?.();
         this.fp.presetIndex = this.fp.presetItems[0].Value;
       });
   }
