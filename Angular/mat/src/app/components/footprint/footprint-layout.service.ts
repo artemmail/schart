@@ -244,6 +244,14 @@ export class FootprintLayoutService {
     settings: ChartSettings,
     params: FootPrintParameters
   ) {
+    if (
+      settings.ShrinkY &&
+      data.clusterData.length > 0 &&
+      (!data.local || data.local.maxPrice === undefined)
+    ) {
+      data.maxFromPeriod(0, data.clusterData.length - 1);
+    }
+
     const len = Math.floor(view.w / 10);
     const len2 = Math.floor(view.w / 100);
     const firstCol = Math.max(
@@ -318,15 +326,23 @@ export class FootprintLayoutService {
     if (deltaX !== 0 || deltaY !== 0)
       matrix = matrix.getTranslate(deltaX, deltaY);
 
-    if (settings.ShrinkY && !!data.local.maxPrice) {
-      const localDelta = (data.local.maxPrice - data.local.minPrice) / 10;
-      matrix = matrix.reassignY(
-        {
-          y1: data.local.maxPrice + localDelta,
-          y2: data.local.minPrice - localDelta,
-        },
-        { y1: view.y, y2: view.y + view.h }
-      );
+    if (settings.ShrinkY) {
+      if (
+        (!data.local || data.local.maxPrice === undefined) &&
+        data.clusterData.length > 0
+      ) {
+        data.maxFromPeriod?.(0, data.clusterData.length - 1);
+      }
+
+      const local = data.local ?? { maxPrice: data.maxPrice, minPrice: data.minPrice };
+
+      if (local.maxPrice !== undefined && local.minPrice !== undefined) {
+        const localDelta = (local.maxPrice - local.minPrice) / 10;
+        matrix = matrix.reassignY(
+          { y1: local.maxPrice + localDelta, y2: local.minPrice - localDelta },
+          { y1: view.y, y2: view.y + view.h }
+        );
+      }
     }
 
     if (alignprice && data.clusterData.length > 0) {
