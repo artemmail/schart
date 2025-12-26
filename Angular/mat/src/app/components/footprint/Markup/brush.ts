@@ -32,6 +32,8 @@ export class Brush extends Shape {
   override onMouseDownMove(point: Point) {
     this.pointArray.push(this.screenToBase(point));
   }
+
+  override onMouseUp(point: Point): void {}
   override drawShape() {
     this.footprint.ctx.lineWidth = this.width;
     this.footprint.ctx.strokeStyle = this.color;
