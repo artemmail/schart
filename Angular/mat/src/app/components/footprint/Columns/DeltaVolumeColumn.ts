@@ -1,13 +1,12 @@
-﻿import { ColumnEx } from 'src/app/models/Column';
-import { Matrix, Rectangle, Point } from '../matrix';
+import { ColumnEx } from 'src/app/models/Column';
+import { Matrix, Rectangle } from '../matrix';
 
-import { ClusterCoumnBase } from './ClusterCoumnBase';
-import { FootPrintComponent } from '../footprint.component';
+import { ClusterColumnContext, ClusterCoumnBase } from './ClusterCoumnBase';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 
 export class DeltaVolumeColumn extends ClusterCoumnBase {
-  constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
-    super(parent,  view, mtx);
+  constructor(context: ClusterColumnContext, view: Rectangle, mtx: Matrix) {
+    super(context, view, mtx);
   }
   draw(column: ColumnEx, number: number, mtx: Matrix, total: boolean) {
     var ctx = this.ctx;
@@ -43,9 +42,8 @@ export class DeltaVolumeColumn extends ClusterCoumnBase {
             w: (w + w2) / 2,
             h: r.h,
           });
-        if (!total) this.drawMaxVolumeRect(r, column, i);
+        this.drawMaxVolumeRect(r, column, i);
       }
     }
-    this.drawColumnTextDeltaTree(ctx, column, number, mtx);
   }
 }

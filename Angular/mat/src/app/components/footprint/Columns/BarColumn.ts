@@ -1,11 +1,10 @@
-﻿import { Matrix, Rectangle, Point } from '../matrix';
-import { FootPrintComponent } from '../footprint.component';
-import { ClusterCoumnBase, ColumnEx } from './ClusterCoumnBase';
+import { Matrix, Rectangle } from '../matrix';
+import { ClusterColumnContext, ClusterCoumnBase, ColumnEx } from './ClusterCoumnBase';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 
 export class BarColumn extends ClusterCoumnBase {
-  constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
-    super(parent,  view, mtx);
+  constructor(context: ClusterColumnContext, view: Rectangle, mtx: Matrix) {
+    super(context, view, mtx);
   }
 
   draw(column: ColumnEx, number: number, mtx: Matrix) {

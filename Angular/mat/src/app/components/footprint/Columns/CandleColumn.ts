@@ -1,24 +1,26 @@
-﻿import { Matrix, Rectangle, Point } from '../matrix';
+import { Matrix, Rectangle } from '../matrix';
 
-import { ClusterCoumnBase, ColumnEx } from './ClusterCoumnBase';
-import { FootPrintComponent } from '../footprint.component';
+import { ClusterColumnContext, ClusterCoumnBase, ColumnEx } from './ClusterCoumnBase';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 
 export class CandleColumn extends ClusterCoumnBase {
-  constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
-    super(parent,  view, mtx);
+  constructor(
+    context: ClusterColumnContext,
+    view: Rectangle,
+    mtx: Matrix,
+    private readonly getSelectedColumn: () => ColumnEx | null
+  ) {
+    super(context, view, mtx);
   }
 
   draw(column: ColumnEx, number: number, mtx: Matrix) {
     var ctx = this.ctx;
-    //  var Max = Math.max.apply(0, column.p);
-    // var Min = Math.min.apply(0, column.p);
     ctx.fillStyle =
       column.o > column.c
-        ? column == this.parent.selectedColumn
+        ? column === this.getSelectedColumn()
           ? ColorsService.redcandlesat
           : ColorsService.redcandle
-        : column == this.parent.selectedColumn
+        : column === this.getSelectedColumn()
         ? ColorsService.greencandlesat
         : ColorsService.greencandle;
     ctx.beginPath();

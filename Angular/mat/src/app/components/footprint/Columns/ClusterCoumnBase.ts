@@ -1,5 +1,5 @@
-﻿import { ColumnEx } from 'src/app/models/Column';
-import { Matrix, Rectangle, Point } from '../matrix';
+import { ColumnEx } from 'src/app/models/Column';
+import { Matrix, Rectangle } from '../matrix';
 
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../footprint.component';
@@ -8,95 +8,140 @@ import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { FormattingService } from 'src/app/service/FootPrint/Formating/formatting.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
 
-export class ClusterCoumnBase {
-  public ctx: any;
-  public view: Rectangle;
-  public mtx: Matrix;
-  public parent: FootPrintComponent;
-  public draggable: any;
-  public colorsService: ColorsService;
-  public formatService: FormattingService;
-  public startPrice: any;
-  public finishPrice: any;
-  public clusterWidthScale: any;
-  public data: ClusterData;
-  
+export interface ClusterColumnContext {
+  data: ClusterData;
+  colorsService: ColorsService;
+  formatService: FormattingService;
+  ctx: CanvasRenderingContext2D;
+  startPrice: number;
+  finishPrice: number;
+  clusterWidthScale: number;
+  settings: ChartSettings;
+}
 
-  constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
-    this.parent = parent;
-    this.data = parent.data;
-    this.colorsService = this.parent.colorsService;
-    this.formatService = this.parent.formatService;
-    this.ctx = parent.ctx;
+export function createClusterColumnContext(
+  parent: FootPrintComponent
+): ClusterColumnContext {
+  if (!parent.data || !parent.ctx) {
+    throw new Error('Cluster context is not initialized');
+  }
+
+  return {
+    data: parent.data,
+    colorsService: parent.colorsService,
+    formatService: parent.formatService,
+    ctx: parent.ctx,
+    startPrice: parent.startPrice,
+    finishPrice: parent.finishPrice,
+    clusterWidthScale: parent.clusterWidthScale,
+    settings: parent.FPsettings,
+  };
+}
+
+export class ClusterCoumnBase {
+  protected readonly ctx: CanvasRenderingContext2D;
+  protected readonly view: Rectangle;
+  protected readonly mtx: Matrix;
+  private readonly context: ClusterColumnContext;
+
+  constructor(context: ClusterColumnContext, view: Rectangle, mtx: Matrix) {
+    this.context = context;
+    this.ctx = context.ctx;
     this.view = view;
-    this.parent = parent;
     this.mtx = mtx;
-    this.startPrice = parent.startPrice;
-    this.finishPrice = parent.finishPrice;
-    this.clusterWidthScale = parent.clusterWidthScale;
+  }
+
+  protected get colorsService(): ColorsService {
+    return this.context.colorsService;
+  }
+
+  protected get formatService(): FormattingService {
+    return this.context.formatService;
+  }
+
+  protected get settings(): ChartSettings {
+    return this.context.settings;
+  }
+
+  protected get data(): ClusterData {
+    return this.context.data;
+  }
+
+  protected get startPrice(): number {
+    return this.context.startPrice;
+  }
+
+  protected get finishPrice(): number {
+    return this.context.finishPrice;
+  }
+
+  protected get clusterWidthScale(): number {
+    return this.context.clusterWidthScale;
   }
 
   drawMaxVolumeRect(r: Rectangle, column: ColumnEx, i: number) {
-   var FPsettings: ChartSettings = this.parent.FPsettings; let ctx = this.parent.ctx;
-    if ('MaxTrades' in FPsettings && FPsettings.MaxTrades) {
-      let x = r.x;
-      let y = r.y + r.h / 2;
-      let ctx = this.ctx;
+    const settings = this.settings;
+    if ('MaxTrades' in settings && settings.MaxTrades) {
+      const x = r.x;
+      const y = r.y + r.h / 2;
       if (Math.abs(column.cl[i].mx) > this.data.maxt2) {
-        ctx.fillStyle =
+        this.ctx.fillStyle =
           column.cl[i].mx > 0
             ? ColorsService.greencandlesat
             : ColorsService.redcandlesat;
-        ctx.strokeStyle =
+        this.ctx.strokeStyle =
           column.cl[i].mx > 0
             ? ColorsService.greenCandleBorder
             : ColorsService.redCandleBorder;
-        var rh = Math.max(10, Math.abs(r.h));
-        var hh = Math.abs(
+        const rh = Math.max(10, Math.abs(r.h));
+        const hh = Math.abs(
           Math.sqrt(Math.abs(column.cl[i].mx) / this.data.maxt1) * rh
         );
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x - hh, y - hh * 0.66);
-        ctx.lineTo(x - hh, y + hh * 0.66);
-        ctx.lineTo(x, y);
-        ctx.fill();
-        ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, y);
+        this.ctx.lineTo(x - hh, y - hh * 0.66);
+        this.ctx.lineTo(x - hh, y + hh * 0.66);
+        this.ctx.lineTo(x, y);
+        this.ctx.fill();
+        this.ctx.stroke();
       }
     }
   }
   getZIndexDelta(column: ColumnEx) {
-    return this.getZIndex(column, function (a: any, b: any) {
+    return this.getZIndex(column, function (a: number, b: number) {
       return (
         Math.abs(2 * column.cl[a].bq - column.cl[a].q) -
         Math.abs(2 * column.cl[b].bq - column.cl[b].q)
       );
     });
   }
-  getZIndex(column: ColumnEx, lambda: any) {
-    var arr = new Array(column.cl.length);
+  getZIndex(column: ColumnEx, lambda: (a: number, b: number) => number) {
+    const arr = new Array<number>(column.cl.length);
     for (let i = 0; i < arr.length; i++) arr[i] = i;
     arr.sort(lambda);
     return arr;
   }
   getZIndexVolume(column: ColumnEx) {
-    return this.getZIndex(column, function (a: any, b: any) {
+    return this.getZIndex(column, function (a: number, b: number) {
       return column.cl[a].q - column.cl[b].q;
     });
   }
   getZIndexDensity(column: ColumnEx) {
-    return this.getZIndex(column, function (a: any, b: any) {
+    return this.getZIndex(column, function (a: number, b: number) {
       return Math.abs(column.cl[a].mx) - Math.abs(column.cl[b].mx);
     });
   }
-  drawOpenClose(ctx: any, column: ColumnEx, number: number, mtx: Matrix) {
-   var FPsettings: ChartSettings = this.parent.FPsettings; 
-    if (FPsettings.OpenClose && 'o' in column && column.o > 0) {
+  drawOpenClose(
+    ctx: CanvasRenderingContext2D,
+    column: ColumnEx,
+    number: number,
+    mtx: Matrix
+  ) {
+    const settings: ChartSettings = this.settings;
+    if (settings.OpenClose && 'o' in column && column.o > 0) {
       let wide =
-        FPsettings.style != 'ASKxBID' &&
-        !(
-          FPsettings.style == 'VolumeDelta' && FPsettings.deltaStyle == 'Delta'
-        );
+        settings.style != 'ASKxBID' &&
+        !(settings.style == 'VolumeDelta' && settings.deltaStyle == 'Delta');
       if (wide)
         ctx.fillStyle =
           column.o > column.c
@@ -143,11 +188,16 @@ export class ClusterCoumnBase {
     return Math.min(h - 1, w / textLen, this.colorsService.maxFontSize());
   }
 
-  drawColumnText(ctx: any, column: ColumnEx, number: number, mtx: Matrix) {
-   var FPsettings: ChartSettings = this.parent.FPsettings; 
+  drawColumnText(
+    ctx: CanvasRenderingContext2D,
+    column: ColumnEx,
+    number: number,
+    mtx: Matrix
+  ) {
+    const settings: ChartSettings = this.settings;
     var fontSize = this.clusterFontSize(
       mtx,
-      FPsettings.style == 'ASKxBID' ? 9 : 5
+      settings.style == 'ASKxBID' ? 9 : 5
     );
     if (fontSize > 8) {
       ctx.font = '' + fontSize + 'px Verdana';
@@ -160,24 +210,21 @@ export class ClusterCoumnBase {
         ) {
           var r = this.clusterRect(column.cl[i].p, number, mtx);
 
-          var mul = FPsettings.Contracts
+          var mul = settings.Contracts
             ? 1
             : this.data.volumePerQuantity * column.cl[i].p;
 
-          //  var w = column.cl[i].q * this.getBar(mtx).w / this.data.maxClusterQnt;
-          var text: any = (column.cl[i].q * mul);
-          if (FPsettings.style == 'Ruticker') {
-            if (FPsettings.classic == 'ASK')
-              text = (column.cl[i].bq * mul);
-            if (FPsettings.classic == 'BID')
-              text = (mul * (column.cl[i].q - column.cl[i].bq));
-            if (FPsettings.classic == 'ASK-BID')
-              text = (mul * (2 * column.cl[i].bq - column.cl[i].q));
+          var text: any = column.cl[i].q * mul;
+          if (settings.style == 'Ruticker') {
+            if (settings.classic == 'ASK') text = column.cl[i].bq * mul;
+            if (settings.classic == 'BID')
+              text = mul * (column.cl[i].q - column.cl[i].bq);
+            if (settings.classic == 'ASK-BID')
+              text = mul * (2 * column.cl[i].bq - column.cl[i].q);
           }
 
-          text =  drob(text,3);
-          if (text>100000)
-            text = MoneyToStr(text);
+          text = drob(text, 3);
+          if (text > 100000) text = MoneyToStr(text);
 
           ctx.fillText(
             text,
@@ -188,11 +235,16 @@ export class ClusterCoumnBase {
       }
     }
   }
-  drawColumnTextTree(ctx: any, column: ColumnEx, number: number, mtx: Matrix) {
-   var FPsettings: ChartSettings = this.parent.FPsettings; 
+  drawColumnTextTree(
+    ctx: CanvasRenderingContext2D,
+    column: ColumnEx,
+    number: number,
+    mtx: Matrix
+  ) {
+    const settings: ChartSettings = this.settings;
     var fontSize = this.clusterFontSize(
       mtx,
-      FPsettings.style == 'ASKxBID' ? 9 : 5
+      settings.style == 'ASKxBID' ? 9 : 5
     );
     if (fontSize > 8) {
       ctx.font = '' + fontSize + 'px Verdana';
@@ -205,7 +257,7 @@ export class ClusterCoumnBase {
         ) {
           var r = this.clusterRect(column.cl[i].p, number, mtx);
 
-          var mul = FPsettings.Contracts
+          var mul = settings.Contracts
             ? 1
             : this.data.volumePerQuantity * column.cl[i].p;
 
@@ -228,15 +280,15 @@ export class ClusterCoumnBase {
     }
   }
   drawColumnTextDeltaTree(
-    ctx: any,
+    ctx: CanvasRenderingContext2D,
     column: ColumnEx,
     number: number,
     mtx: Matrix
   ) {
-   var FPsettings: ChartSettings = this.parent.FPsettings; 
+    const settings: ChartSettings = this.settings;
     var fontSize = this.clusterFontSize(
       mtx,
-      FPsettings.style == 'ASKxBID' ? 9 : 5
+      settings.style == 'ASKxBID' ? 9 : 5
     );
     if (fontSize > 8) {
       ctx.font = '' + fontSize + 'px Verdana';
@@ -249,7 +301,7 @@ export class ClusterCoumnBase {
         ) {
           var r = this.clusterRect(column.cl[i].p, number, mtx);
 
-          var mul = FPsettings.Contracts
+          var mul = settings.Contracts
             ? 1
             : this.data.volumePerQuantity * column.cl[i].p;
 
@@ -271,7 +323,7 @@ export class ClusterCoumnBase {
     mtx: Matrix,
     total: boolean
   ) {
-   var FPsettings: ChartSettings = this.parent.FPsettings; 
+    const settings: ChartSettings = this.settings;
     var ctx = this.ctx;
     this.drawOpenClose(ctx, column, number, mtx);
 
@@ -280,7 +332,7 @@ export class ClusterCoumnBase {
     var maxVolAsk = !total ? this.data.maxClusterQntAsk : column.qntAskMax;
     var maxVolBid = !total ? this.data.maxClusterQntBid : column.qntBidMax;
 
-    if (!FPsettings.Contracts) {
+    if (!settings.Contracts) {
       maxVol = !total ? this.data.maxClusterVol : column.volMax;
       maxVolAsk = !total ? this.data.maxClusterVolAsk : column.volAskMax;
       maxVolBid = !total ? this.data.maxClusterVolBid : column.volBidMax;
@@ -297,15 +349,14 @@ export class ClusterCoumnBase {
         column.cl[i].p >= this.startPrice &&
         column.cl[i].p <= this.finishPrice
       ) {
-        var mul = FPsettings.Contracts
+        var mul = settings.Contracts
           ? 1
           : this.data.volumePerQuantity * column.cl[i].p;
 
         var r = this.clusterRect(column.cl[i].p, number, mtx);
-        if (FPsettings.classic == 'ASK+BID') {
+        if (settings.classic == 'ASK+BID') {
           r.w = (mul * column.cl[i].q * bar.w) / maxVol;
           r.w *= this.clusterWidthScale;
-          //  var rr = CloneObject(r);
           ctx.strokeStyle = ColorsService.redCandleBorder;
           ctx.fillStyle = ColorsService.redcandle;
           if (drawBorder) {
@@ -321,12 +372,11 @@ export class ClusterCoumnBase {
             ctx.myStrokeRect(r);
           } else ctx.myFillRectSmoothX(r);
         }
-        if (FPsettings.classic == 'ASK-BID') {
+        if (settings.classic == 'ASK-BID') {
           let qbq = 2 * column.cl[i].bq - column.cl[i].q;
           let absqbq = Math.abs(mul * qbq);
           r.w = (absqbq * bar.w) / Math.abs(maxDelta);
           r.w *= this.clusterWidthScale;
-          //var rr = CloneObject(r);
           ctx.strokeStyle = ColorsService.redCandleBorder;
           ctx.fillStyle =
             qbq < 0 ? ColorsService.redcandle : ColorsService.greencandle;
@@ -335,7 +385,7 @@ export class ClusterCoumnBase {
             ctx.myStrokeRect(r);
           } else ctx.myFillRectSmoothX(r);
         }
-        if (FPsettings.classic == 'ASK/BID') {
+        if (settings.classic == 'ASK/BID') {
           ctx.strokeStyle = ColorsService.redCandleBorder;
           ctx.fillStyle = ColorsService.redcandle;
           var w = ((column.cl[i].q - column.cl[i].bq) * bar.w) / maxVolAskBid;
@@ -349,7 +399,7 @@ export class ClusterCoumnBase {
           if (drawBorder)
             ctx.myStrokeRect({ x: r.x, y: r.y, w: Math.max(w, w2), h: r.h });
         }
-        if (FPsettings.classic == 'Tree') {
+        if (settings.classic == 'Tree') {
           ctx.strokeStyle = ColorsService.redCandleBorder;
           ctx.fillStyle = ColorsService.redcandle;
           var w =
@@ -369,7 +419,7 @@ export class ClusterCoumnBase {
               h: r.h,
             });
         }
-        if (FPsettings.classic == 'ASK') {
+        if (settings.classic == 'ASK') {
           r.w = (mul * column.cl[i].bq * bar.w) / maxVolAsk;
           r.w *= this.clusterWidthScale;
           ctx.strokeStyle = ColorsService.greenCandleBorder;
@@ -379,7 +429,7 @@ export class ClusterCoumnBase {
             ctx.myStrokeRect(r);
           } else ctx.myFillRectSmoothX(r);
         }
-        if (FPsettings.classic == 'BID') {
+        if (settings.classic == 'BID') {
           r.w = (mul * (column.cl[i].q - column.cl[i].bq) * bar.w) / maxVolBid;
           r.w *= this.clusterWidthScale;
           ctx.strokeStyle = ColorsService.redCandleBorder;
@@ -393,8 +443,7 @@ export class ClusterCoumnBase {
         if (!total) this.drawMaxVolumeRect(r, column, i);
       }
     }
-    if (FPsettings.classic == 'Tree')
-      this.drawColumnTextTree(ctx, column, number, mtx);
+    if (settings.classic == 'Tree') this.drawColumnTextTree(ctx, column, number, mtx);
     else this.drawColumnText(ctx, column, number, mtx);
   }
 }

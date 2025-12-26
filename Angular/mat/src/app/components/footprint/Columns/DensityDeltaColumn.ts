@@ -1,14 +1,13 @@
-﻿import { ColumnEx } from 'src/app/models/Column';
-import { Matrix, Rectangle, Point } from '../matrix';
+import { ColumnEx } from 'src/app/models/Column';
+import { Matrix, Rectangle } from '../matrix';
 
-import { ClusterCoumnBase } from './ClusterCoumnBase';
-import { FootPrintComponent } from '../footprint.component';
+import { ClusterColumnContext, ClusterCoumnBase } from './ClusterCoumnBase';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { drob } from 'src/app/service/FootPrint/utils';
 
 export class DensityDeltaColumn extends ClusterCoumnBase {
-  constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
-    super(parent,  view, mtx);
+  constructor(context: ClusterColumnContext, view: Rectangle, mtx: Matrix) {
+    super(context, view, mtx);
   }
 
   draw(column: ColumnEx, number: number, mtx: Matrix) {
@@ -38,7 +37,6 @@ export class DensityDeltaColumn extends ClusterCoumnBase {
             (ds - this.data.minDens) / (this.data.maxDens - this.data.minDens)
           );
         ctx.strokeStyle = '#c0c0c0';
-        ctx.myFillRect(r);
         if (drawBorder) {
           ctx.myFillRect(r);
           ctx.myStrokeRect(r);
@@ -46,20 +44,19 @@ export class DensityDeltaColumn extends ClusterCoumnBase {
         this.drawMaxVolumeRect(r, column, i);
       }
     }
-    var bar = this.getBar(mtx);
-    var fontSize = this.clusterFontSize(mtx, 9);
+    var fontSize = this.clusterFontSize(mtx, 5);
     if (fontSize > 7) {
       ctx.font = '' + fontSize + 'px Verdana';
-      ctx.textBaseline = 'middle';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = ColorsService.WhiteText;
       for (let i = 0; i < column.cl.length; i++) {
         var r = this.clusterRect(column.cl[i].p, number, mtx);
         var w = (column.cl[i].q * r.w) / this.data.maxClusterQnt;
-        var text = drob(column.cl[i].q,3) + ''; //
-        if (Math.abs(column.cl[i].mx) > this.data.maxt2)
-          text += '/' + drob(column.cl[i].mx,3);
-        ctx.fillText(text, r.x + 1.5, r.y + bar.h / 2);
+        ctx.fillText(
+          drob(column.cl[i].q / column.cl[i].ct, 3).toString(),
+          r.x + 1.5,
+          r.y + bar.h / 2
+        );
       }
     }
   }
