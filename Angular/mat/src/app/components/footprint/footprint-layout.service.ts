@@ -33,7 +33,7 @@ export interface FootprintMatricesDto {
 interface LayoutOptions {
   canvasWidth: number;
   canvasHeight: number;
-  deltaVolumes: Array<number>;
+  deltaVolumes: ReadonlyArray<number>;
   minimode: boolean;
   topLinesCount: number;
   settings: ChartSettings;
