@@ -347,8 +347,7 @@ export class FootPrintComponent implements AfterViewInit {
   }
 
   @HostListener('window:resize', ['$event'])
-  public resize() {
-    debugger
+  public resize() {    
     this.viewsManager.resize();
   }
 
