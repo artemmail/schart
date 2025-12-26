@@ -51,9 +51,8 @@ export class FootprintLayoutService {
     const newTotal = settings.totalMode === 'Under' || !data.ableCluster();
     const hiddenTotal = settings.totalMode === 'Hidden' && data.ableCluster();
     const totalLen = hiddenTotal ? 0 : settings.VolumesHeight[4];
-    let graphTopSpace = settings.Head
-      ? topLinesCount * 20 * this.colorsService.sscale()
-      : 0;
+
+    let graphTopSpace = settings.Head ? topLinesCount * 20 * this.colorsService.sscale() : 0;
     const miniHeadTop = 25;
 
     if (minimode) {
@@ -61,12 +60,13 @@ export class FootprintLayoutService {
       topLinesCount = 0;
     }
 
+    // heights of "bottom stack" blocks (outside the main clusterView)
     const volumesHeight = [
-      deltaVolumes[0],
-      deltaVolumes[1],
-      deltaVolumes[2],
-      deltaVolumes[3],
-      deltaVolumes[5],
+      deltaVolumes[0], // SeparateVolume block
+      deltaVolumes[1], // OI
+      deltaVolumes[2], // Delta
+      deltaVolumes[3], // OIDelta
+      deltaVolumes[5], // DeltaBars
     ];
 
     if (settings.SeparateVolume) {
@@ -90,19 +90,12 @@ export class FootprintLayoutService {
     }
 
     const totalVerticalHeight =
-      volumesHeight[0] +
-      volumesHeight[1] +
-      volumesHeight[2] +
-      volumesHeight[3] +
-      volumesHeight[4];
+      volumesHeight[0] + volumesHeight[1] + volumesHeight[2] + volumesHeight[3] + volumesHeight[4];
 
     const clusterView: Rectangle = new Rectangle(
       totalLen + deltaVolumes[4],
       graphTopSpace,
-      canvasWidth -
-        this.colorsService.LegendPriceWidth(minimode) -
-        totalLen -
-        deltaVolumes[4],
+      canvasWidth - this.colorsService.LegendPriceWidth(minimode) - totalLen - deltaVolumes[4],
       canvasHeight -
         this.colorsService.LegendDateHeight(minimode) -
         graphTopSpace -
@@ -114,7 +107,8 @@ export class FootprintLayoutService {
       clusterView.w = canvasWidth - this.colorsService.LegendPriceWidth(minimode);
     }
 
-    const graphValuesHeight = Math.abs(clusterView.h / 7);
+    // safeguard: avoid negative height turning into weird overlays
+    const graphValuesHeight = Math.max(0, clusterView.h / 7);
 
     const clusterHeadView: Rectangle = {
       x: totalLen + deltaVolumes[4],
@@ -134,6 +128,7 @@ export class FootprintLayoutService {
       clusterHeadView.x = 0;
     }
 
+    // volume strip inside the main cluster (always there)
     const clusterVolumesView: Rectangle = {
       ...clusterView,
       y: clusterView.y + clusterView.h - graphValuesHeight,
@@ -161,6 +156,7 @@ export class FootprintLayoutService {
       h: clusterTotalView.h,
     };
 
+    // dates axis (directly under clusterView), then the bottom stack begins under it
     const clusterDatesView: Rectangle = {
       x: clusterView.x,
       w: clusterView.w,
@@ -177,46 +173,50 @@ export class FootprintLayoutService {
       w: clusterPricesView.w,
     };
 
-    const clusterOIView = settings.SeparateVolume
-      ? {
-          x: clusterView.x,
-          y: clusterVolumesView.y + clusterVolumesView.h,
-          w: clusterView.w,
-          h: volumesHeight[1],
-        }
-      : {
-          x: clusterView.x,
-          y: clusterDatesView.y + clusterDatesView.h,
-          w: clusterView.w,
-          h: volumesHeight[1],
-        };
+    /**
+     * FIX: build the bottom stack ALWAYS starting AFTER clusterDatesView
+     * (previously SeparateVolume/Delta could start at clusterView bottom and overlay dates view).
+     */
+    const bottomStartY = clusterDatesView.y + clusterDatesView.h;
 
-    const clusterVolumesSeparatedView = settings.SeparateVolume
+    const clusterVolumesSeparatedView: Rectangle = settings.SeparateVolume
       ? {
           x: clusterView.x,
-          y: clusterDatesView.y + clusterDatesView.h,
+          y: bottomStartY,
           w: clusterView.w,
           h: volumesHeight[0],
         }
       : clusterVolumesView;
 
+    let yCursor = bottomStartY + (settings.SeparateVolume ? volumesHeight[0] : 0);
+
+    const clusterOIView: Rectangle = {
+      x: clusterView.x,
+      y: yCursor,
+      w: clusterView.w,
+      h: volumesHeight[1],
+    };
+    yCursor += volumesHeight[1];
+
     const clusterDeltaView: Rectangle = {
       x: clusterView.x,
-      y: clusterOIView.y + clusterOIView.h,
+      y: yCursor,
       w: clusterView.w,
       h: volumesHeight[2],
     };
+    yCursor += volumesHeight[2];
 
     const clusterDeltaBarsView: Rectangle = {
       x: clusterView.x,
-      y: clusterDeltaView.y + clusterDeltaView.h,
+      y: yCursor,
       w: clusterView.w,
       h: volumesHeight[4],
     };
+    yCursor += volumesHeight[4];
 
     const clusterOIDeltaView: Rectangle = {
       x: clusterView.x,
-      y: clusterDeltaBarsView.y + clusterDeltaBarsView.h,
+      y: yCursor,
       w: clusterView.w,
       h: volumesHeight[3],
     };
@@ -260,14 +260,7 @@ export class FootprintLayoutService {
       0
     );
     const h = view.h / 30;
-    const to = [
-      view.x,
-      view.y,
-      view.x,
-      view.y + view.h,
-      view.x + view.w,
-      view.y + view.h / 2,
-    ];
+    const to = [view.x, view.y, view.x, view.y + view.h, view.x + view.w, view.y + view.h / 2];
     const from = [
       firstCol,
       data.lastPrice + data.priceScale * h,
@@ -289,8 +282,7 @@ export class FootprintLayoutService {
     const view = { ...clusterView };
 
     if ('MaxTrades' in settings && settings.MaxTrades) {
-      const delta =
-        (matrix.applyToPoint(1, 0).x - matrix.applyToPoint(0, 0).x) / 5;
+      const delta = (matrix.applyToPoint(1, 0).x - matrix.applyToPoint(0, 0).x) / 5;
       view.x += delta;
       view.w -= delta;
     }
@@ -323,14 +315,10 @@ export class FootprintLayoutService {
       if (y2 < view.y + view.h) deltaY = view.y + view.h - y2;
     }
 
-    if (deltaX !== 0 || deltaY !== 0)
-      matrix = matrix.getTranslate(deltaX, deltaY);
+    if (deltaX !== 0 || deltaY !== 0) matrix = matrix.getTranslate(deltaX, deltaY);
 
     if (settings.ShrinkY) {
-      if (
-        (!data.local || data.local.maxPrice === undefined) &&
-        data.clusterData.length > 0
-      ) {
+      if ((!data.local || data.local.maxPrice === undefined) && data.clusterData.length > 0) {
         data.maxFromPeriod?.(0, data.clusterData.length - 1);
       }
 
@@ -369,51 +357,30 @@ export class FootprintLayoutService {
     if (translateMatrix) {
       const translated = translateMatrix.clone();
       translated.multiply(mtxMain);
-      mtxMain = this.alignMatrix(
-        translated,
-        layout.clusterView,
-        data,
-        settings,
-        alignPrice
-      );
+      mtxMain = this.alignMatrix(translated, layout.clusterView, data, settings, alignPrice);
     }
 
     const mtxtotal = mtxMain.reassignX(
       { x1: 0, x2: 1 },
-      {
-        x1: layout.clusterTotalView.x,
-        x2: layout.clusterTotalView.x + layout.clusterTotalView.w,
-      }
+      { x1: layout.clusterTotalView.x, x2: layout.clusterTotalView.x + layout.clusterTotalView.w }
     );
 
     const mtxprice = mtxMain.reassignX(
       { x1: 0, x2: layout.clusterPricesView.w },
-      {
-        x1: layout.clusterPricesView.x,
-        x2: layout.clusterPricesView.x + layout.clusterPricesView.w,
-      }
+      { x1: layout.clusterPricesView.x, x2: layout.clusterPricesView.x + layout.clusterPricesView.w }
     );
 
     const mtxhead = settings.Head
       ? mtxMain.reassignY(
           { y1: 0, y2: topLinesCount },
-          {
-            y1: layout.clusterHeadView.y,
-            y2: layout.clusterHeadView.y + layout.clusterHeadView.h,
-          }
+          { y1: layout.clusterHeadView.y, y2: layout.clusterHeadView.y + layout.clusterHeadView.h }
         )
       : new Matrix();
 
     const mtxanim = settings.Head
       ? mtxprice.reassignY(
-          {
-            y1: layout.clusterAnimArea.y,
-            y2: layout.clusterAnimArea.y + layout.clusterAnimArea.h,
-          },
-          {
-            y1: layout.clusterAnimArea.y,
-            y2: layout.clusterAnimArea.y + layout.clusterAnimArea.h,
-          }
+          { y1: layout.clusterAnimArea.y, y2: layout.clusterAnimArea.y + layout.clusterAnimArea.h },
+          { y1: layout.clusterAnimArea.y, y2: layout.clusterAnimArea.y + layout.clusterAnimArea.h }
         )
       : new Matrix();
 
