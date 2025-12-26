@@ -1,12 +1,14 @@
 import { drob, hexToRgb } from 'src/app/service/FootPrint/utils';
 import { Rect } from './rect';
 import { ClusterData } from '../clusterData';
+import { MarkUpManager } from './Manager';
+import { Point } from '../matrix';
 
 
 export class Profile extends Rect {
   total: any;
   dockable: any;
-  constructor(manager) {
+  constructor(manager: MarkUpManager) {
     super(manager);
     this.type = 'Profile';
     this.controlMap = {
@@ -91,7 +93,7 @@ export class Profile extends Rect {
     if (this.pointArray[1].y == this.pointArray[0].y)
       this.pointArray[1].y = this.pointArray[0].y + ps;
   }
-  override onMouseUp(point) {
+  override onMouseUp(point: Point) {
     if (this.dockable && this.pointArray.length == 2) {
       this.dock();
     }

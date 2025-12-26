@@ -1,12 +1,13 @@
 import { Point } from '../matrix';
 
+import { MarkUpManager } from './Manager';
 import { Line } from './line';
 
 export class Rect extends Line {
   vPoints: { x: number; y: number }[];
   selPointX: Point;
   selPointY: Point;
-  constructor(manager) {
+  constructor(manager: MarkUpManager) {
     super(manager);
     this.type = 'Rect';
     this.controlMap = {
@@ -46,7 +47,7 @@ export class Rect extends Line {
     }
     return false;
   }
-  override selectedPoint(point) {
+  override selectedPoint(point: Point) {
     this.sortPoints();
     return this.selectedPoint_(point, this.vPoints);
   }
@@ -76,7 +77,7 @@ export class Rect extends Line {
       this.footprint.ctx.fillRect(p.x - 4, p.y - 4, 8, 8);
     }
   }
-  override onStartMovePoint(point) {
+  override onStartMovePoint(point: Point) {
     super.onStartMovePoint(point);
     if (this.selPoint != null) {
       this.selPointX =
@@ -90,12 +91,12 @@ export class Rect extends Line {
     }
     this.mouseDown = point;
   }
-  override movePoint(mouseDown, mouseMove) {
+  override movePoint(mouseDown: Point, mouseMove: Point) {
     let p = this.screenToBaseDelta(mouseDown, mouseMove);
     this.selPointX.x += p.x;
     this.selPointY.y += p.y;
   }
-  override onMovePoint(point) {
+  override onMovePoint(point: Point) {
     if (this.selPoint != null) this.movePoint(this.mouseDown, point);
     else this.movePoints(this.mouseDown, point);
     this.mouseDown = point;

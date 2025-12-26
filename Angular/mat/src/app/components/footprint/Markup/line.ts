@@ -1,9 +1,12 @@
 
+import { Point } from '../matrix';
+
 import { Brush } from './brush';
+import { MarkUpManager } from './Manager';
 
 export class Line extends Brush {
   arrow: any;
-  constructor(manager) {
+  constructor(manager: MarkUpManager) {
     super(manager);
     this.type = 'Line';
     this.controlMap = {
@@ -25,7 +28,7 @@ export class Line extends Brush {
     super.setToModel();
     this.model.arrow= this.arrow;
   }
-  override onMouseDownMove(point) {
+  override onMouseDownMove(point: Point) {
     let p = this.screenToBase(point);
     if (this.pointArray.length < 2) this.pointArray.push(p);
     else this.pointArray[1] = p;

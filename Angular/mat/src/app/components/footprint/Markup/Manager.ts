@@ -1,40 +1,45 @@
 import { ProfileModel } from 'src/app/models/profileModel';
 import { FootPrintComponent } from '../footprint.component';
+import { Point } from '../matrix';
 
 import { Brush } from './brush';
 import { Line } from './line';
 import { Profile } from './profile';
-import { ProfileAuto } from './profilesuto';
+import { ProfileAuto } from './profile-auto';
 import { Rect } from './rect';
 import { Shape, ShapePoint } from './shape';
-import { Strength } from './strngth';
+import { MarkupMode } from './ShapeType';
+import { Strength } from './strength';
 import { TextShape } from './text';
 
 export class MarkUpManager {
-  selectedShape: ShapePoint;
-  mouseShape: ShapePoint;
+  selectedShape: ShapePoint | null;
+  mouseShape: ShapePoint | null;
   model: ProfileModel;
   footprint: FootPrintComponent;
   shapeArray: Array<Shape>;
-  drawingShape: Shape;
+  drawingShape: Shape | null;
+  private profileAuto: ProfileAuto;
 
-  constructor(model, footprint) {
+  constructor(model: ProfileModel, footprint: FootPrintComponent) {
     this.selectedShape = null;
     this.mouseShape = null;
     this.model = model;
     this.footprint = footprint;
-    this.shapeArray = new Array();
+    this.shapeArray = [];
     this.drawingShape = null;
+    this.profileAuto = new ProfileAuto(this);
   }
-  selectShape(point) {
+
+  selectShape(point: Point): ShapePoint | null {
     for (let shape of this.shapeArray) {
-      let p = shape.selectedPoint(point);
+      const p = shape.selectedPoint(point);
       if (p != null) return p;
     }
     return null;
   }
 
-  shapeFactory(type: string): Shape | null {
+  shapeFactory(type: MarkupMode): Shape | null {
     switch (type) {
       case 'Line':
         return new Line(this);
@@ -48,18 +53,21 @@ export class MarkUpManager {
         return new Profile(this);
       case 'Strength':
         return new Strength(this);
+      case 'Edit':
+        return null;
       default:
         return null;
     }
   }
 
-  updateShapeFromModel() {
+  updateShapeFromModel(): void {
     if (this.selectedShape != null) {
       this.selectedShape.shape.getFromModel();
     }
     this.footprint.resize();
   }
-  resetEdit() {
+
+  resetEdit(): void {
     this.model.visible = {
       color: false,
       width: false,
@@ -71,7 +79,8 @@ export class MarkUpManager {
       toolbar: false,
     };
   }
-  deleteCurrent() {
+
+  deleteCurrent(): void {
     if (this.selectedShape) {
       this.shapeArray.splice(
         this.shapeArray.indexOf(this.selectedShape.shape),
@@ -82,10 +91,10 @@ export class MarkUpManager {
       this.resetEdit();
     }
   }
-  onMouseDown(point) {
+
+  onMouseDown(point: Point): void {
     this.selectedShape = this.mouseShape;
     if (this.selectedShape != null) {
-   
       this.selectedShape.shape.selectControls();
       this.selectedShape.shape.onStartMovePoint(point);
     } else {
@@ -93,11 +102,12 @@ export class MarkUpManager {
         return;
       if (this.model.mode == 'Edit') this.resetEdit();
 
-      this.drawingShape = this.shapeFactory(this.model.mode);
+      this.drawingShape = this.shapeFactory(this.model.mode as MarkupMode);
       if (this.drawingShape != null) this.drawingShape.onStartDraw(point);
     }
   }
-  onMouseDownMove(point) {
+
+  onMouseDownMove(point: Point): void {
     if (this.selectedShape != null) {
       this.selectedShape.shape.onMovePoint(point);
       this.footprint.resize();
@@ -107,24 +117,13 @@ export class MarkUpManager {
       this.footprint.resize();
     }
   }
-  onMouseMove(point) {
+
+  onMouseMove(point: Point): void {
     this.mouseShape = this.selectShape(point);
-
-    let c =
-      this.mouseShape != null
-        ? this.mouseShape.point != null
-          ? 'pointer'
-          : 'move'
-        : 'default';
-
-    this.footprint.canvas.style.cursor =
-      this.mouseShape != null
-        ? this.mouseShape.point != null
-          ? 'pointer'
-          : 'move'
-        : 'default';
+    this.footprint.canvas.style.cursor = this.resolveCursor(this.mouseShape);
   }
-  onMouseUp(point) {
+
+  onMouseUp(point: Point): void {
     if (this.drawingShape != null && this.drawingShape.pointArray.length > 1) {
       if (this.drawingShape.sortPoints()) {
         this.shapeArray.push(this.drawingShape);
@@ -137,24 +136,28 @@ export class MarkUpManager {
       //    this.selectedShape = null;
     }
   }
-  changeMode(m) {
-    if (m == 'Edit' && this.model.mode == 'Edit') return;
-    
-    let s = this.shapeFactory(this.model.mode);
-    if (s == null) {
+
+  changeMode(mode: MarkupMode): void {
+    if (mode === 'Edit' && this.model.mode === 'Edit') return;
+
+    const nextShape = this.shapeFactory(mode);
+    if (nextShape == null) {
       this.resetEdit();
-    } else 
-    this.shapeFactory(this.model.mode).setupControls();
+    } else {
+      nextShape.setupControls();
+    }
     this.selectedShape = null;
-    this.model.mode = m;
+    this.drawingShape = null;
+    this.model.mode = mode;
     this.footprint.resize();
   }
-  allowPan() {
+
+  allowPan(): boolean {
     return this.selectedShape == null && this.drawingShape == null;
   }
-  drawAll() {
-    let pro = new ProfileAuto(this);
-    pro.drawShape();
+
+  drawAll(): void {
+    this.profileAuto.drawShape();
     for (let shape of this.shapeArray) {
       shape.drawShape();
       if (
@@ -164,5 +167,10 @@ export class MarkUpManager {
         shape.drawSelection();
     }
     if (this.drawingShape != null) this.drawingShape.drawShape();
+  }
+
+  private resolveCursor(shapePoint: ShapePoint | null): string {
+    if (shapePoint == null) return 'default';
+    return shapePoint.point != null ? 'pointer' : 'move';
   }
 }
