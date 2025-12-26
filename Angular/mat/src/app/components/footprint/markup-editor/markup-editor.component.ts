@@ -2,6 +2,7 @@ import { Component, Input, HostListener } from '@angular/core';
 import { ProfileModel } from 'src/app/models/profileModel';
 import { MarkUpManager } from '../Markup/Manager';
 import { FootPrintComponent } from '../footprint.component';
+import { MarkupMode } from '../Markup/ShapeType';
 import {
   fontsPreset,
   profilePeriodsPreset,
@@ -29,7 +30,7 @@ export class MarkupEditorComponent {
     }
   }
 
-  onClick(event: string) {
+  onClick(event: MarkupMode) {
     this.NP.markupManager.changeMode(event);
   }
 
