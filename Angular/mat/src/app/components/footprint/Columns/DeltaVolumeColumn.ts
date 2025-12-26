@@ -45,5 +45,6 @@ export class DeltaVolumeColumn extends ClusterCoumnBase {
         this.drawMaxVolumeRect(r, column, i);
       }
     }
+    this.drawColumnTextDeltaTree(ctx, column, number, mtx);
   }
 }
