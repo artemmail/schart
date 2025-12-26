@@ -1,30 +1,30 @@
-﻿import { ColumnEx } from 'src/app/models/Column';
-import { Matrix, Rectangle, Point } from '../matrix';
+import { ColumnEx } from 'src/app/models/Column';
+import { Matrix, Rectangle } from '../matrix';
 
-import { ClusterCoumnBase } from './ClusterCoumnBase';
+import { ClusterColumnContext, ClusterCoumnBase } from './ClusterCoumnBase';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../footprint.component';
 import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
 
 export class VolumeColumn extends ClusterCoumnBase {
-  filters: any;
-  constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
-    super(parent, view, mtx);
-    this.filters = this.parent.levelMarksService.getFilters();              
+  private readonly filters: any;
+
+  constructor(
+    context: ClusterColumnContext,
+    view: Rectangle,
+    mtx: Matrix,
+    levelMarksService: LevelMarksService | null
+  ) {
+    super(context, view, mtx);
+    this.filters = levelMarksService?.getFilters() ?? null;
   }
 
   draw(column: ColumnEx, number: number, mtx: Matrix) {
-    var FPsettings: ChartSettings = this.parent.FPsettings;
+    var settings: ChartSettings = this.settings;
     var ctx = this.ctx;
     this.drawOpenClose(ctx, column, number, mtx);
     var z = this.getZIndexVolume(column);
     var bar = this.getBar(mtx);
     var drawBorder = Math.abs(bar.w) > 20 && Math.abs(bar.h) > 6;
-
-    /*
-    this.filters.volume1 = FPsettings.volume1;
-    this.filters.volume2 = FPsettings.volume2;
-    */
 
     for (let j = 0; j < column.cl.length; j++) {
       var i = z[j];
@@ -32,7 +32,7 @@ export class VolumeColumn extends ClusterCoumnBase {
         column.cl[i].p >= this.startPrice &&
         column.cl[i].p <= this.finishPrice
       ) {
-        var mul = FPsettings.Contracts
+        var mul = settings.Contracts
           ? 1
           : this.data.volumePerQuantity * column.cl[i].p;
 
@@ -63,8 +63,6 @@ export class VolumeColumn extends ClusterCoumnBase {
               ctx.fillStyle = 'Gold';
             }
           }
-
-
         } else {
           var isMaxVol = column.cl[i].q == column.qntMax;
           ctx.strokeStyle = isMaxVol ? '#e45200' : 'DodgerBlue';
@@ -72,7 +70,7 @@ export class VolumeColumn extends ClusterCoumnBase {
         }
         var r = this.clusterRect(column.cl[i].p, number, mtx);
 
-        if (FPsettings.Contracts)
+        if (settings.Contracts)
           r.w = (column.cl[i].q * r.w) / this.data.maxClusterQnt;
         else r.w = (mul * column.cl[i].q * r.w) / this.data.maxClusterVol;
 

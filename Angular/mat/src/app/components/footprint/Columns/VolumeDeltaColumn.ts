@@ -1,24 +1,23 @@
-﻿import { ChartSettings } from 'src/app/models/ChartSettings';
-import { Matrix, Rectangle, Point } from '../matrix';
+import { ChartSettings } from 'src/app/models/ChartSettings';
+import { Matrix, Rectangle } from '../matrix';
 
-import { ClusterCoumnBase, ColumnEx } from './ClusterCoumnBase';
-import { FootPrintComponent } from '../footprint.component';
+import { ClusterColumnContext, ClusterCoumnBase, ColumnEx } from './ClusterCoumnBase';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { drob } from 'src/app/service/FootPrint/utils';
 
 export class VolumeDeltaColumn extends ClusterCoumnBase {
-  constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
-    super(parent,  view, mtx);
+  constructor(context: ClusterColumnContext, view: Rectangle, mtx: Matrix) {
+    super(context, view, mtx);
   }
 
   draw(column: ColumnEx, number: number, mtx: Matrix) {
-   var FPsettings: ChartSettings = this.parent.FPsettings; 
-    let ctx = this.parent.ctx;
-    
+    var settings: ChartSettings = this.settings;
+    let ctx = this.ctx;
+
     this.drawOpenClose(ctx, column, number, mtx);
     let z = this.getZIndexDelta(column);
     let ww = 0;
-    var shift = FPsettings.OpenClose ? 2 : 0;
+    var shift = settings.OpenClose ? 2 : 0;
     for (let j = 0; j < column.cl.length; j++) {
       var i = z[j];
       if (

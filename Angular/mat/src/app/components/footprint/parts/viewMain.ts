@@ -10,7 +10,7 @@ import { DensityDeltaColumn } from '../Columns/DensityDeltaColumn';
 import { BarColumn } from '../Columns/BarColumn';
 import { CandleColumn } from '../Columns/CandleColumn';
 import { DraggableEnum } from 'src/app/models/Draggable';
-import { ColumnEx } from '../Columns/ClusterCoumnBase';
+import { ColumnEx, createClusterColumnContext } from '../Columns/ClusterCoumnBase';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../footprint.component';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
@@ -538,6 +538,7 @@ override draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
 
     let Bars = 'Bars' in FPsettings && FPsettings.Bars;
 
+    const columnContext = createClusterColumnContext(parent);
     var ColumnBuilder;
 
     if (
@@ -547,28 +548,38 @@ override draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
           (FPsettings.CompressToCandles == 'Auto' &&
             parent.getBar(mtx).w < ColorsService.maxColWidth)))
     ) {
-      ColumnBuilder = Bars
-        ? new BarColumn(parent, view, mtx)
-        : new CandleColumn(parent, view, mtx);
+        ColumnBuilder = Bars
+          ? new BarColumn(columnContext, view, mtx)
+          : new CandleColumn(
+              columnContext,
+              view,
+              mtx,
+              () => parent.selectedColumn
+            );
     } else
       switch (FPsettings.style) {
         case 'Ruticker':
-          ColumnBuilder = new ClassicColumn(parent, view, mtx);
+          ColumnBuilder = new ClassicColumn(columnContext, view, mtx);
           break;
         case 'Volume':
-          ColumnBuilder = new VolumeColumn(parent, view, mtx);
+          ColumnBuilder = new VolumeColumn(
+            columnContext,
+            view,
+            mtx,
+            parent.levelMarksService
+          );
           break;
         case 'ASKxBID':
-          ColumnBuilder = new MarketDeltaColumn(parent, view, mtx);
+          ColumnBuilder = new MarketDeltaColumn(columnContext, view, mtx);
           break;
         case 'Density':
-          ColumnBuilder = new DensityDeltaColumn(parent, view, mtx);
+          ColumnBuilder = new DensityDeltaColumn(columnContext, view, mtx);
           break;
         case 'VolumeDelta':
           ColumnBuilder =
             FPsettings.deltaStyle == 'Delta'
-              ? new VolumeDeltaColumn(parent, view, mtx)
-              : new DeltaVolumeColumn(parent, view, mtx);
+              ? new VolumeDeltaColumn(columnContext, view, mtx)
+              : new DeltaVolumeColumn(columnContext, view, mtx);
           break;
       }
 

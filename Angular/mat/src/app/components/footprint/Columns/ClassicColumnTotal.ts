@@ -1,12 +1,11 @@
-﻿import { ColumnEx } from 'src/app/models/Column';
-import { Matrix, Rectangle, Point } from '../matrix';
+import { ColumnEx } from 'src/app/models/Column';
+import { Matrix, Rectangle } from '../matrix';
 
-import { ClusterCoumnBase } from './ClusterCoumnBase';
-import { FootPrintComponent } from '../footprint.component';
+import { ClusterColumnContext, ClusterCoumnBase } from './ClusterCoumnBase';
 
 export class ClassicColumnTotal extends ClusterCoumnBase {
-  constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
-    super(parent,  view, mtx);
+  constructor(context: ClusterColumnContext, view: Rectangle, mtx: Matrix) {
+    super(context, view, mtx);
   }
 
   draw(column: ColumnEx, number: number, mtx: Matrix, total: boolean) {

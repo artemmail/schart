@@ -1,19 +1,18 @@
-﻿import { ColumnEx } from 'src/app/models/Column';
-import { Matrix, Rectangle, Point } from '../matrix';
+import { ColumnEx } from 'src/app/models/Column';
+import { Matrix, Rectangle } from '../matrix';
 
-import { ClusterCoumnBase } from './ClusterCoumnBase';
+import { ClusterColumnContext, ClusterCoumnBase } from './ClusterCoumnBase';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../footprint.component';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { drob } from 'src/app/service/FootPrint/utils';
 
 export class MarketDeltaColumn extends ClusterCoumnBase {
-  constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
-    super(parent,  view, mtx);
+  constructor(context: ClusterColumnContext, view: Rectangle, mtx: Matrix) {
+    super(context, view, mtx);
   }
 
   draw(column: ColumnEx, number: number, mtx: Matrix) {
-   var FPsettings: ChartSettings = this.parent.FPsettings; 
+    var settings: ChartSettings = this.settings;
     var ctx = this.ctx;
     this.drawOpenClose(ctx, column, number, mtx);
     var z = this.getZIndexDelta(column);
@@ -32,7 +31,7 @@ export class MarketDeltaColumn extends ClusterCoumnBase {
           this.data.maxDelta,
           delta
         );
-        shift = FPsettings.OpenClose ? 2 : 0;
+        shift = settings.OpenClose ? 2 : 0;
         var r = this.clusterRect(column.cl[i].p, number, mtx);
         r.x += shift;
         r.w -= shift;
@@ -59,9 +58,9 @@ export class MarketDeltaColumn extends ClusterCoumnBase {
         var r = this.clusterRect(column.cl[i].p, number, mtx);
         var w = (column.cl[i].q * r.w) / this.data.maxClusterQnt;
         var text =
-          drob(column.cl[i].q - column.cl[i].bq,3) +
+          drob(column.cl[i].q - column.cl[i].bq, 3) +
           'x' +
-          drob(column.cl[i].bq,3);
+          drob(column.cl[i].bq, 3);
         r.x += shift;
         ctx.fillText(text, r.x + 1.5, r.y + bar.h / 2);
       }

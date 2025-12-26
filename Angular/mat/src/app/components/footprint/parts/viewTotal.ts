@@ -6,6 +6,7 @@ import { VolumeColumnTotal } from '../Columns/VolumeColumnTotal';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../footprint.component';
+import { createClusterColumnContext } from '../Columns/ClusterCoumnBase';
 
 export class viewTotal extends canvasPart {
   constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
@@ -14,14 +15,15 @@ export class viewTotal extends canvasPart {
 
   draw(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix): void {
     var FPsettings: ChartSettings = this.parent.FPsettings; let ctx = this.parent.ctx;
+    const columnContext = createClusterColumnContext(parent);
     var ColumnBuilder;
     switch (FPsettings.style) {
       case 'Ruticker':
         //    case 'Volume':
-        ColumnBuilder = new ClassicColumnTotal(parent, view, mtx);
+        ColumnBuilder = new ClassicColumnTotal(columnContext, view, mtx);
         break;
       default:
-        ColumnBuilder = new VolumeColumnTotal(parent, view, mtx);
+        ColumnBuilder = new VolumeColumnTotal(columnContext, view, mtx);
         break;
     }
 
