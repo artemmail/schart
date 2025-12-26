@@ -364,40 +364,14 @@ interruptSwipe() {
     data += item('Date', this.formatService.toStr(col.x));
     data += item('Time', this.formatService.TimeFormat2(col.x));
 
-    var hint = document.getElementById('hint');
+    const hintContent = `<ul style='font-size: 10px;margin: 0; padding: 0px;list-style-type:none'>${data} </ul>`;
 
-    if (hint != null) {
-      hint.innerHTML = `<ul style='font-size: 10px;margin: 0; padding: 0px;list-style-type:none'>${data} </ul>`;
-      hint.style.overflow = 'visible';
-      hint.style.display = 'block';
+    const position = {
+      x: event.screen.x / window.devicePixelRatio + 5,
+      y: event.screen.y / window.devicePixelRatio + 5,
+    };
 
-      var canvas = this.parent.canvasRef?.nativeElement;
-
-      var isInsideFootprintItem = canvas.closest('.footprint-item') !== null;
-
-
-
-      let x = event.screen.x /   window.devicePixelRatio +5;
-      let y = event.screen.y /   window.devicePixelRatio + 5;
-      
-   
-    
-     
-      //else
-      {
-        hint.style.left = x  + 'px';
-        hint.style.top =  y  + 'px';
-      }
-/*
-      if ( isInsideFootprintItem) {
-        hint.style.left = `${canvas.offsetLeft  +x}px`;
-        hint.style.top = `${canvas.offsetTop + y}px`;
-
-    //   hint.style.top = (y + canvas.getBoundingClientRect().top + canvas.offsetTop ) + 'px';
-      }*/
-
-      this.parent.hiddenHint = false;
-    }
+    this.parent.showHint(hintContent, position);
   }
 
   ParmasFromCandle1(dt: Date, period: number) {

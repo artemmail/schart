@@ -160,6 +160,11 @@ export class FootPrintComponent implements AfterViewInit {
     this.hintContainer.hide();
   }
 
+  showHint(content: string, position: { x: number; y: number }): void {
+    this.hintContainer.show(content, position);
+    this.hiddenHint = false;
+  }
+
   get dragMode(): number | null {
     return this.state.snapshot.dragMode;
   }
