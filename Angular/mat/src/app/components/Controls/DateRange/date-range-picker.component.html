@@ -29,6 +29,7 @@
       matInput
       formControlName="startTime"
       [ngxTimepicker]="startTimePicker"
+      [disableClick]="true"
       [format]="24"
       readonly
       (click)="startTimePicker.open()"
@@ -43,6 +44,7 @@
       matInput
       formControlName="endTime"
       [ngxTimepicker]="endTimePicker"
+      [disableClick]="true"
       [format]="24"
       readonly
       (click)="endTimePicker.open()"
