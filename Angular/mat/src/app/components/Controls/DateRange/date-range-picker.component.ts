@@ -184,8 +184,10 @@ export class DateRangePickerComponent implements AfterViewInit {
     const endTotalMinutes = endHours * 60 + endMinutes;
 
     if (startTotalMinutes > endTotalMinutes) {
-      this.timeRange.controls['startTime'].setValue(endTime);
-      this.timeRange.controls['endTime'].setValue(startTime);
+      this.timeRange.setValue({
+        startTime: endTime,
+        endTime: startTime,
+      });
     }
   }
 
