@@ -100,7 +100,10 @@ export class FootprintDataLoaderService implements OnDestroy {
     params: FootPrintParameters
   ): Promise<boolean> {
     const settings = await this.resolveSettings();
-    params.candlesOnly = settings.CandlesOnly;
+    params.candlesOnly =
+      params.candlesOnly ?? settings.CandlesOnly ?? false;
+    settings.CandlesOnly = params.candlesOnly;
+
     this.paramsSubject.next(params);
     this.settingsSubject.next(settings);
     this.levelMarksService.load(params);
