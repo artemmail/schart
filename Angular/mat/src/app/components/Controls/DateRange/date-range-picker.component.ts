@@ -156,6 +156,7 @@ export class DateRangePickerComponent implements AfterViewInit {
   onStartTimeChange(time: string) {
     const formattedTime = this.formatTimeTo24(time);
     this.timeRange.controls['startTime'].setValue(formattedTime);
+    this.ensureTimeOrder();
     this.startTimePickerRef?.close();
     this.updateSelection();
   }
@@ -163,8 +164,29 @@ export class DateRangePickerComponent implements AfterViewInit {
   onEndTimeChange(time: string) {
     const formattedTime = this.formatTimeTo24(time);
     this.timeRange.controls['endTime'].setValue(formattedTime);
+    this.ensureTimeOrder();
     this.endTimePickerRef?.close();
     this.updateSelection();
+  }
+
+  ensureTimeOrder() {
+    const startTime = this.timeRange.controls['startTime'].value;
+    const endTime = this.timeRange.controls['endTime'].value;
+
+    if (!startTime || !endTime) {
+      return;
+    }
+
+    const [startHours, startMinutes] = startTime.split(':').map(Number);
+    const [endHours, endMinutes] = endTime.split(':').map(Number);
+
+    const startTotalMinutes = startHours * 60 + startMinutes;
+    const endTotalMinutes = endHours * 60 + endMinutes;
+
+    if (startTotalMinutes > endTotalMinutes) {
+      this.timeRange.controls['startTime'].setValue(endTime);
+      this.timeRange.controls['endTime'].setValue(startTime);
+    }
   }
 
   formatTimeTo24(time: string): string {
