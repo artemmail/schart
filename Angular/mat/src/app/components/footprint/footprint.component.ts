@@ -3,7 +3,6 @@ import {
   ElementRef,
   ViewChild,
   AfterViewInit,
-  HostListener,
   Input,
 } from '@angular/core';
 import { Matrix, Rectangle } from './matrix';
@@ -29,6 +28,8 @@ import { FootprintRealtimeUpdaterService } from './footprint-realtime-updater.se
 import { FootprintUpdateEvent } from './footprint-data.types';
 import { FootprintStateService } from './footprint-state.service';
 import { HintContainerService } from './hint-container.service';
+
+export type FootprintRendererCommand = 'ResizeAndRedraw';
 
 @Component({
   standalone: false,
@@ -349,7 +350,17 @@ export class FootPrintComponent implements AfterViewInit {
     return this.FPsettings.totalMode == 'Hidden' && this.data.ableCluster();
   }
 
-  initSize() {
+  executeCommand(command: FootprintRendererCommand): void {
+    switch (command) {
+      case 'ResizeAndRedraw':
+        this.resizeAndRedraw();
+        break;
+      default:
+        break;
+    }
+  }
+
+  private initSize() {
     if (!this.params) return;
     this.viewsManager.alignCanvas();
     this.viewsManager.updateLayout();
@@ -366,8 +377,7 @@ export class FootPrintComponent implements AfterViewInit {
     this.viewsManager.drawClusterView();
   }
 
-  @HostListener('window:resize', ['$event'])
-  public resize() {
+  private resizeLayout() {
     if (!this.viewInitialized || !this.viewsManager) {
       return;
     }
@@ -453,8 +463,7 @@ export class FootPrintComponent implements AfterViewInit {
       return;
     }
 
-    this.initSize();
-    this.resize();
+    this.executeCommand('ResizeAndRedraw');
   }
 
   applyData(clusterData: ClusterData) {
@@ -465,9 +474,7 @@ export class FootPrintComponent implements AfterViewInit {
       return;
     }
 
-    this.initSize();
-    this.resize();
-    this.viewsManager.drawClusterView();
+    this.executeCommand('ResizeAndRedraw');
   }
 
   private initializeViewIfReady(): void {
@@ -475,9 +482,7 @@ export class FootPrintComponent implements AfterViewInit {
       return;
     }
 
-    this.initSize();
-    this.resize();
-    this.viewsManager.drawClusterView();
+    this.executeCommand('ResizeAndRedraw');
   }
 
   handleRealtimeUpdate(update: FootprintUpdateEvent) {
@@ -490,6 +495,16 @@ export class FootPrintComponent implements AfterViewInit {
       this.mergeMatrix();
     }
 
+    this.viewsManager.drawClusterView();
+  }
+
+  private resizeAndRedraw(): void {
+    if (!this.viewInitialized) {
+      return;
+    }
+
+    this.initSize();
+    this.resizeLayout();
     this.viewsManager.drawClusterView();
   }
 

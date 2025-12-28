@@ -85,7 +85,7 @@ export class FootPrintSettingsDialogComponent {
 
   onChange(event: any) {
     this.save();
-    this.fp.resize();
+    this.fp.executeCommand('ResizeAndRedraw');
   }
 
   onChangeVolume(event: any) {
@@ -99,7 +99,7 @@ export class FootPrintSettingsDialogComponent {
     //filters.volume2 = this.settings.volume2;
 
     this.save();
-    this.fp.resize();
+    this.fp.executeCommand('ResizeAndRedraw');
   }
 
   onChangeReload(event: any) {
@@ -108,15 +108,15 @@ export class FootPrintSettingsDialogComponent {
   }
 
   onProfileSelect(event: any) {
-    this.fp.resize();
+    this.fp.executeCommand('ResizeAndRedraw');
   }
 
   save() {
     //const old = this.preset.getSelectedpreset();
-    this.chartSettingsService
-      .updateSettings(this.fp.FPsettings)
-      .subscribe((x) => {
-        this.settings = this.fp.FPsettings;
+      this.chartSettingsService
+        .updateSettings(this.fp.FPsettings)
+        .subscribe((x) => {
+          this.settings = this.fp.FPsettings;
 
         const index = this.fp.presetItems.findIndex(
           (item) => item.Value === this.fp.presetIndex
@@ -146,7 +146,7 @@ export class FootPrintSettingsDialogComponent {
     this.chartSettingsService.getChartSettings(a).subscribe((x) => {
       this.fp.FPsettings = x;
       this.settings = this.fp.FPsettings;
-      this.fp.resize();
+      this.fp.executeCommand('ResizeAndRedraw');
     });
   }
 
