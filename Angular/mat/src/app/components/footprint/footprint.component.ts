@@ -29,17 +29,21 @@ import { FootprintRealtimeUpdaterService } from './footprint-realtime-updater.se
 import { FootprintUpdateEvent } from './footprint-data.types';
 import { FootprintStateService } from './footprint-state.service';
 import { HintContainerService } from './hint-container.service';
+
+import { FootprintRenderCommands, FootprintSettingsManager } from './footprint-settings-manager.service';
+
 import {
   FootprintRenderCommand,
   FootprintRenderer,
 } from './footprint-render.types';
+
 
 @Component({
   standalone: false,
   selector: 'app-footprint',
   templateUrl: './footprint.component.html',
   styleUrls: ['./footprint.component.css'],
-  providers: [FootprintStateService, HintContainerService],
+  providers: [HintContainerService],
 })
 export class FootPrintComponent
   implements AfterViewInit, FootprintRenderer
@@ -139,7 +143,8 @@ export class FootPrintComponent
     public router: Router,
     private footprintLayoutService: FootprintLayoutService,
     private state: FootprintStateService,
-    private hintContainer: HintContainerService
+    private hintContainer: HintContainerService,
+    private settingsManager: FootprintSettingsManager
   ) {
     // this.FPsettings = FPsettings;
     this.translateMatrix = null;
@@ -358,18 +363,17 @@ export class FootPrintComponent
   initSize() {
     if (!this.params) return;
     this.viewsManager.alignCanvas();
-    this.viewsManager.updateLayout();
-    if (!this.data || !this.viewsManager.layout) return;
-    this.viewsManager.mtx = this.getInitMatrix(
-      this.viewsManager.clusterView,
-      this.data
-    );
-    this.viewsManager.drawClusterView();
-    this.runPostInitialization();
+    this.settingsManager.recalculate();
   }
 
   drawClusterView() {
     this.viewsManager.drawClusterView();
+  }
+
+  applyRenderCommands(commands: FootprintRenderCommands): void {
+    this.viewsManager.applyRenderCommands(commands);
+    this.viewsManager.drawClusterView();
+    this.runPostInitialization();
   }
 
   @HostListener('window:resize', ['$event'])
@@ -378,6 +382,7 @@ export class FootPrintComponent
       return;
     }
     this.viewsManager.resize();
+    this.settingsManager.recalculate();
   }
 
   alignMatrix(matrix: Matrix, alignprice = false) {
@@ -416,7 +421,8 @@ export class FootPrintComponent
     this._canvas = canvas;
     this._ctx = canvas.getContext('2d');
     this.mouseAndTouchManager = new MouseAndTouchManager(this);
-    this.viewsManager = new ViewsManager(this, this.footprintLayoutService);
+    this.viewsManager = new ViewsManager(this);
+    this.settingsManager.attachRenderer(this);
 
     try {
       this.markupManager = new MarkUpManager(this.viewModel, this);
@@ -449,31 +455,21 @@ export class FootPrintComponent
   }
 
   applyParams(params: FootPrintParameters) {
-    this.state.setParams(params);
+    this.settingsManager.setParams(params);
     this.initializeViewIfReady();
   }
 
   applySettings(settings: ChartSettings) {
-    this.FPsettings = settings;
-    if (!this.viewInitialized || !this.data || !this.params) {
-      return;
-    }
-
-    this.initSize();
-    this.resize();
+    this.settingsManager.setSettings(settings);
   }
 
   applyData(clusterData: ClusterData) {
     const isNewDataInstance = this.data !== clusterData;
     this.data = clusterData;
     this.hintContainer.ensureHintElement();
-    if (!this.viewInitialized || !this.params || !isNewDataInstance) {
-      return;
+    if (this.viewInitialized && this.params && isNewDataInstance) {
+      this.initSize();
     }
-
-    this.initSize();
-    this.resize();
-    this.viewsManager.drawClusterView();
   }
 
   private initializeViewIfReady(): void {
@@ -482,8 +478,6 @@ export class FootPrintComponent
     }
 
     this.initSize();
-    this.resize();
-    this.viewsManager.drawClusterView();
   }
 
   applyRenderCommand(command: FootprintRenderCommand): void {

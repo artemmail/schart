@@ -2,12 +2,17 @@ import { Injectable } from '@angular/core';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
+import { FootprintLayoutDto, FootprintMatricesDto } from './footprint-layout.service';
+import { Matrix } from './matrix';
 import { ClusterData } from './clusterData';
 
 export interface FootprintComponentState {
   data: ClusterData | null;
   params: FootPrintParameters | null;
   settings: ChartSettings;
+  layout: FootprintLayoutDto | null;
+  matrices: FootprintMatricesDto | null;
+  baseMatrix: Matrix | null;
   hiddenHint: boolean;
   selectedPrice: number | null;
   selectedPrice1: number | null;
@@ -22,6 +27,9 @@ export class FootprintStateService {
     data: null,
     params: null,
     settings: ChartSettingsService.DefaultSettings(),
+    layout: null,
+    matrices: null,
+    baseMatrix: null,
     hiddenHint: true,
     selectedPrice: null,
     selectedPrice1: null,
@@ -31,7 +39,13 @@ export class FootprintStateService {
   };
 
   get snapshot(): FootprintComponentState {
-    return { ...this.state, deltaVolumes: [...this.state.deltaVolumes] };
+    return {
+      ...this.state,
+      deltaVolumes: [...this.state.deltaVolumes],
+      layout: this.state.layout ? { ...this.state.layout } : null,
+      matrices: this.state.matrices ? { ...this.state.matrices } : null,
+      baseMatrix: this.state.baseMatrix ? this.state.baseMatrix.clone() : null,
+    };
   }
 
   private update(partial: Partial<FootprintComponentState>): void {
@@ -60,6 +74,10 @@ export class FootprintStateService {
 
   setSettings(settings: ChartSettings): void {
     this.update({ settings });
+  }
+
+  setLayoutState(layout: FootprintLayoutDto, matrices: FootprintMatricesDto, baseMatrix: Matrix): void {
+    this.update({ layout, matrices, baseMatrix });
   }
 
   clearSelection(): void {
