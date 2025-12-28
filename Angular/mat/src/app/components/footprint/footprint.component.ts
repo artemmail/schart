@@ -29,6 +29,10 @@ import { FootprintRealtimeUpdaterService } from './footprint-realtime-updater.se
 import { FootprintUpdateEvent } from './footprint-data.types';
 import { FootprintStateService } from './footprint-state.service';
 import { HintContainerService } from './hint-container.service';
+import {
+  FootprintRenderCommand,
+  FootprintRenderer,
+} from './footprint-render.types';
 
 @Component({
   standalone: false,
@@ -37,7 +41,9 @@ import { HintContainerService } from './hint-container.service';
   styleUrls: ['./footprint.component.css'],
   providers: [FootprintStateService, HintContainerService],
 })
-export class FootPrintComponent implements AfterViewInit {
+export class FootPrintComponent
+  implements AfterViewInit, FootprintRenderer
+{
   @ViewChild('drawingCanvas', { static: false }) canvasRef?: ElementRef;
   @Input() presetIndex: number;
   @Input() set params(value: FootPrintParameters | null) {
@@ -478,6 +484,25 @@ export class FootPrintComponent implements AfterViewInit {
     this.initSize();
     this.resize();
     this.viewsManager.drawClusterView();
+  }
+
+  applyRenderCommand(command: FootprintRenderCommand): void {
+    switch (command.type) {
+      case 'snapshot':
+        this.applyParams(command.snapshot.params);
+        this.applySettings(command.snapshot.settings);
+        this.applyData(command.snapshot.data);
+        break;
+      case 'delta':
+        this.handleRealtimeUpdate(command.delta);
+        break;
+      case 'settings':
+        this.applySettings(command.settings);
+        if (command.params) {
+          this.applyParams(command.params);
+        }
+        break;
+    }
   }
 
   handleRealtimeUpdate(update: FootprintUpdateEvent) {
