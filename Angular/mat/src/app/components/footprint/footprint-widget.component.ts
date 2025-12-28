@@ -11,7 +11,6 @@ import {
   ViewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { filter } from 'rxjs';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { SelectListItemNumber } from 'src/app/models/preserts';
 import { SignalRService } from 'src/app/service/FootPrint/signalr.service';
@@ -19,8 +18,12 @@ import { FootPrintComponent } from './footprint.component';
 import { FootprintDataLoaderService } from './footprint-data-loader.service';
 import { FootprintRealtimeUpdaterService } from './footprint-realtime-updater.service';
 import { FootprintInitOptions } from './footprint-data.types';
+
 import { FootprintSettingsManager } from './footprint-settings-manager.service';
 import { FootprintStateService } from './footprint-state.service';
+
+import { FootprintRenderOrchestratorService } from './footprint-render-orchestrator.service';
+
 
 @Component({
   standalone: false,
@@ -31,8 +34,12 @@ import { FootprintStateService } from './footprint-state.service';
     FootprintDataLoaderService,
     FootprintRealtimeUpdaterService,
     SignalRService,
+
     FootprintStateService,
     FootprintSettingsManager,
+
+    FootprintRenderOrchestratorService,
+
   ],
 })
 export class FootprintWidgetComponent
@@ -53,6 +60,7 @@ export class FootprintWidgetComponent
   constructor(
     private footprintDataLoader: FootprintDataLoaderService,
     private footprintRealtimeUpdater: FootprintRealtimeUpdaterService,
+    private orchestrator: FootprintRenderOrchestratorService,
     private destroyRef: DestroyRef,
     private host: ElementRef<HTMLElement>,
     private settingsManager: FootprintSettingsManager
@@ -92,6 +100,7 @@ export class FootprintWidgetComponent
 
     this.settingsManager.attachRenderer(this.renderer);
     this.renderer.bindRealtime(this.footprintRealtimeUpdater);
+    this.orchestrator.connectRenderer(this.renderer);
     this.connectDataStreams();
     this.connectRenderCommands();
 
@@ -115,6 +124,7 @@ export class FootprintWidgetComponent
   ngOnDestroy(): void {
     this.footprintRealtimeUpdater.destroy();
     this.footprintDataLoader.destroy();
+    this.orchestrator.destroy();
     this.resizeObserver?.disconnect();
   }
 
@@ -179,6 +189,7 @@ export class FootprintWidgetComponent
   private connectDataStreams() {
     if (!this.renderer) return;
 
+
     this.footprintDataLoader.data$
       .pipe(
         takeUntilDestroyed(this.destroyRef),
@@ -201,12 +212,23 @@ export class FootprintWidgetComponent
         }
       });
 
+    this.orchestrator.bindDataSources({
+      data$: this.footprintDataLoader.data$,
+      updates$: this.footprintRealtimeUpdater.updates$,
+      params$: this.footprintDataLoader.params$,
+      settings$: this.footprintDataLoader.settings$,
+    });
+
+
     this.footprintDataLoader.params$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
         if (params) {
           this.params = params;
+
           this.settingsManager.setParams(params);
+
+
         }
       });
 
