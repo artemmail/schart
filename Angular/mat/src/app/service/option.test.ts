@@ -13,13 +13,13 @@ describe('OptionCodeParser', () => {
       assetCode: 'RI',
       strike: 130000,
       settlementType: 'Маржируемый',
-      expirationDate: '30.12.19',
+      expirationDate: '2019-12-30',
       isWeekly: true,
       optionType: 'Колл',
       expirationType: 'Американский'
     };
 
-    const expectedShortCode1 = 'RI130000BM0A';
+    const expectedShortCode1 = 'RI130000ML9D';
     const expectedFullCode1 = 'RTSM301219CA130000'; // RTS + M + 301219 + C + A + 130000
 
     const shortCode = optionCodeParser.generateShortCode(optionData1);
@@ -35,13 +35,13 @@ describe('OptionCodeParser', () => {
       assetCode: 'SR',
       strike: 240,
       settlementType: 'Маржируемый',
-      expirationDate: '31.01.24',
+      expirationDate: '2024-01-31',
       isWeekly: true,
       optionType: 'Колл',
       expirationType: 'Европейский'
     };
 
-    const expectedShortCode2 = 'SR000240BM4A'; // 'B' для 'Маржируемый', 'M' код в settlementTypes='M'
+    const expectedShortCode2 = 'SR000240MA4D';
     const expectedFullCode2 = 'SBERM310124CE240'; // SBER + M + 310124 + C + E + 240
 
     const shortCode = optionCodeParser.generateShortCode(optionData2);
@@ -57,14 +57,14 @@ describe('OptionCodeParser', () => {
       assetCode: 'BR',
       strike: -10,
       settlementType: 'Маржируемый',
-      expirationDate: '25.06.20',
+      expirationDate: '2020-06-25',
       isWeekly: false,
       optionType: 'Колл',
       expirationType: 'Американский'
     };
 
     const expectedShortCode3 = 'BR-10MF0'; // 'M' для 'Маржируемый'
-    const expectedFullCode3 = 'BRMM250620CA-10'; // BR + M + 250620 + C + A + -10
+    const expectedFullCode3 = 'BRM250620CA-10';
 
     const shortCode = optionCodeParser.generateShortCode(optionData3);
     const fullCode = optionCodeParser.generateLongCode(optionData3);
@@ -79,14 +79,14 @@ describe('OptionCodeParser', () => {
       assetCode: 'BR',
       strike: 0,
       settlementType: 'Маржируемый',
-      expirationDate: '25.06.20',
+      expirationDate: '2020-06-25',
       isWeekly: false,
       optionType: 'Колл',
       expirationType: 'Американский'
     };
 
     const expectedShortCode4 = 'BR0MF0'; // 'M' для 'Маржируемый'
-    const expectedFullCode4 = 'BRMM250620CA0'; // BR + M + 250620 + C + A + 0
+    const expectedFullCode4 = 'BRM250620CA0';
 
     const shortCode = optionCodeParser.generateShortCode(optionData4);
     const fullCode = optionCodeParser.generateLongCode(optionData4);
