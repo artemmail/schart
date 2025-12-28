@@ -20,21 +20,15 @@ import { Rectangle } from 'src/app/models/Rectangle';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { ClusterData } from './clusterData';
 import { Matrix } from './matrix';
-import {
-  FootprintLayoutDto,
-  FootprintLayoutService,
-  FootprintMatricesDto,
-} from './footprint-layout.service';
+import { FootprintLayoutDto, FootprintMatricesDto } from './footprint-layout.service';
+import { FootprintRenderCommands } from './footprint-settings-manager.service';
 
 export class ViewsManager {
   footprint: FootPrintComponent;
   colorsService: ColorsService;
   data: ClusterData | any = null;
 
-  constructor(
-    footprint_: FootPrintComponent,
-    private layoutService: FootprintLayoutService
-  ) {
+  constructor(footprint_: FootPrintComponent) {
     this.footprint = footprint_;
     this.colorsService = footprint_.colorsService;
   }
@@ -81,43 +75,27 @@ export class ViewsManager {
   mtxanim: Matrix = new Matrix();
   mtxMain: Matrix = new Matrix();
 
-  updateLayout() {
-    const canvas: HTMLCanvasElement | null = this.footprint.canvas;
-    const data = this.footprint.data;
-
-    if (!canvas || !data) {
-      return;
-    }
-
-    const layout = this.layoutService.calculateLayout({
-      canvasWidth: canvas.width,
-      canvasHeight: canvas.height,
-      deltaVolumes: this.footprint.deltaVolumes,
-      minimode: this.footprint.minimode,
-      settings: this.footprint.FPsettings,
-      data,
-      topLinesCount: this.footprint.topLinesCount(),
-    });
-
-    this.layout = layout;
-    this.clusterPricesView = layout.clusterPricesView;
-    this.clusterView = layout.clusterView;
-    this.clusterDatesView = layout.clusterDatesView;
-    this.clusterHeadView = layout.clusterHeadView;
-    this.clusterMiniHeadView = layout.clusterMiniHeadView;
-    this.clusterAnimArea = layout.clusterAnimArea;
-    this.clusterVolumesView = layout.clusterVolumesView;
-    this.clusterOIView = layout.clusterOIView;
-    this.clusterOIDeltaView = layout.clusterOIDeltaView;
-    this.clusterDeltaView = layout.clusterDeltaView;
-    this.clusterDeltaBarsView = layout.clusterDeltaBarsView;
-    this.clusterTotalView = layout.clusterTotalView;
-    this.clusterTotalViewFill = layout.clusterTotalViewFill;
+  applyRenderCommands(commands: FootprintRenderCommands) {
+    this.layout = commands.layout;
+    this.matrices = commands.matrices;
+    this.mtx = commands.baseMatrix.clone();
+    this.clusterPricesView = commands.layout.clusterPricesView;
+    this.clusterView = commands.layout.clusterView;
+    this.clusterDatesView = commands.layout.clusterDatesView;
+    this.clusterHeadView = commands.layout.clusterHeadView;
+    this.clusterMiniHeadView = commands.layout.clusterMiniHeadView;
+    this.clusterAnimArea = commands.layout.clusterAnimArea;
+    this.clusterVolumesView = commands.layout.clusterVolumesView;
+    this.clusterOIView = commands.layout.clusterOIView;
+    this.clusterOIDeltaView = commands.layout.clusterOIDeltaView;
+    this.clusterDeltaView = commands.layout.clusterDeltaView;
+    this.clusterDeltaBarsView = commands.layout.clusterDeltaBarsView;
+    this.clusterTotalView = commands.layout.clusterTotalView;
+    this.clusterTotalViewFill = commands.layout.clusterTotalViewFill;
   }
 
   createParts() {
-    this.updateLayout();
-    if (!this.layout) {
+    if (!this.layout || !this.matrices) {
       return;
     }
     this.views = this.footprint.views = [];
@@ -284,13 +262,7 @@ export class ViewsManager {
     const ctx: CanvasRenderingContext2D | null = canvas?.getContext('2d');
     this.data = this.footprint.data;
 
-    if (!this.data || !canvas || !ctx) return;
-
-    if (!this.layout) {
-      this.updateLayout();
-    }
-
-    if (!this.layout) return;
+    if (!this.data || !canvas || !ctx || !this.layout || !this.matrices) return;
 
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -300,15 +272,6 @@ export class ViewsManager {
       ctx.fillText('НЕТ ДАННЫХ', canvas.width * 0.5, 30);
       return;
     }
-
-    this.matrices = this.layoutService.buildMatrices(
-      this.mtx,
-      this.layout,
-      FPsettings,
-      this.data,
-      this.footprint.topLinesCount(),
-      this.footprint.translateMatrix
-    );
 
     this.mtxMain = this.matrices.mtxMain;
     this.mtxtotal = this.matrices.mtxtotal;
@@ -360,7 +323,7 @@ export class ViewsManager {
 
   public resize() {
     if (!this.footprint.data) return;
-  
+
     var canvas = this.footprint.canvasRef?.nativeElement;
     const container = canvas.parentNode.parentNode;
   
@@ -392,16 +355,6 @@ export class ViewsManager {
       var oldX = this.clusterView.x + this.clusterView.w;
       var oldY = this.clusterView.y + this.clusterView.h / 2;
       this.alignCanvas();
-      this.updateLayout();
-      if (!this.layout) {
-        return;
-      }
-      var newX = this.clusterView.x + this.clusterView.w;
-      var newY = this.clusterView.y + this.clusterView.h / 2;
-      this.mtx = this.footprint.alignMatrix(
-        this.mtx.getTranslate(newX - oldX, newY - oldY)
-      );
-      this.drawClusterView();
     }
   }
   

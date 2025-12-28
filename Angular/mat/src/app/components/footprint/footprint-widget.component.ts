@@ -19,6 +19,8 @@ import { FootPrintComponent } from './footprint.component';
 import { FootprintDataLoaderService } from './footprint-data-loader.service';
 import { FootprintRealtimeUpdaterService } from './footprint-realtime-updater.service';
 import { FootprintInitOptions } from './footprint-data.types';
+import { FootprintSettingsManager } from './footprint-settings-manager.service';
+import { FootprintStateService } from './footprint-state.service';
 
 @Component({
   standalone: false,
@@ -29,6 +31,8 @@ import { FootprintInitOptions } from './footprint-data.types';
     FootprintDataLoaderService,
     FootprintRealtimeUpdaterService,
     SignalRService,
+    FootprintStateService,
+    FootprintSettingsManager,
   ],
 })
 export class FootprintWidgetComponent
@@ -50,7 +54,8 @@ export class FootprintWidgetComponent
     private footprintDataLoader: FootprintDataLoaderService,
     private footprintRealtimeUpdater: FootprintRealtimeUpdaterService,
     private destroyRef: DestroyRef,
-    private host: ElementRef<HTMLElement>
+    private host: ElementRef<HTMLElement>,
+    private settingsManager: FootprintSettingsManager
   ) {}
 
   private viewInitialized = false;
@@ -85,8 +90,10 @@ export class FootprintWidgetComponent
   async ngAfterViewInit() {
     if (!this.renderer) return;
 
+    this.settingsManager.attachRenderer(this.renderer);
     this.renderer.bindRealtime(this.footprintRealtimeUpdater);
     this.connectDataStreams();
+    this.connectRenderCommands();
 
     this.setupResizeObserver();
 
@@ -157,6 +164,14 @@ export class FootprintWidgetComponent
     );
   }
 
+  get layoutState$() {
+    return this.settingsManager.layoutState$;
+  }
+
+  get renderCommands$() {
+    return this.settingsManager.renderCommands$;
+  }
+
   private buildInitOptions(): FootprintInitOptions {
     return { minimode: this.minimode, deltamode: this.deltamode };
   }
@@ -171,6 +186,7 @@ export class FootprintWidgetComponent
       )
       .subscribe((clusterData) => {
         this.renderer?.applyData(clusterData);
+        this.settingsManager.recalculate();
       });
 
     this.footprintRealtimeUpdater.updates$
@@ -181,7 +197,7 @@ export class FootprintWidgetComponent
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((settings) => {
         if (settings) {
-          this.renderer?.applySettings(settings);
+          this.settingsManager.setSettings(settings);
         }
       });
 
@@ -190,7 +206,7 @@ export class FootprintWidgetComponent
       .subscribe((params) => {
         if (params) {
           this.params = params;
-          this.renderer?.applyParams(params);
+          this.settingsManager.setParams(params);
         }
       });
 
@@ -235,6 +251,15 @@ export class FootprintWidgetComponent
     });
 
     this.resizeObserver.observe(this.host.nativeElement);
+  }
+
+  private connectRenderCommands() {
+    this.settingsManager.renderCommands$
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        filter((commands): commands is NonNullable<typeof commands> => commands !== null)
+      )
+      .subscribe((commands) => this.renderer?.applyRenderCommands(commands));
   }
 
   private triggerResize() {
