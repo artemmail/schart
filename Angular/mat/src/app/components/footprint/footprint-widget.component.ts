@@ -11,7 +11,9 @@ import {
   ViewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
 import { auditTime, filter, Subject } from 'rxjs';
+
 import { FootPrintParameters } from 'src/app/models/Params';
 import { SelectListItemNumber } from 'src/app/models/preserts';
 import { SignalRService } from 'src/app/service/FootPrint/signalr.service';
@@ -22,6 +24,7 @@ import {
 import { FootprintDataLoaderService } from './footprint-data-loader.service';
 import { FootprintRealtimeUpdaterService } from './footprint-realtime-updater.service';
 import { FootprintInitOptions } from './footprint-data.types';
+import { FootprintRenderOrchestratorService } from './footprint-render-orchestrator.service';
 
 @Component({
   standalone: false,
@@ -32,6 +35,7 @@ import { FootprintInitOptions } from './footprint-data.types';
     FootprintDataLoaderService,
     FootprintRealtimeUpdaterService,
     SignalRService,
+    FootprintRenderOrchestratorService,
   ],
 })
 export class FootprintWidgetComponent
@@ -52,6 +56,7 @@ export class FootprintWidgetComponent
   constructor(
     private footprintDataLoader: FootprintDataLoaderService,
     private footprintRealtimeUpdater: FootprintRealtimeUpdaterService,
+    private orchestrator: FootprintRenderOrchestratorService,
     private destroyRef: DestroyRef,
     private host: ElementRef<HTMLElement>
   ) {}
@@ -90,6 +95,7 @@ export class FootprintWidgetComponent
     if (!this.renderer) return;
 
     this.renderer.bindRealtime(this.footprintRealtimeUpdater);
+    this.orchestrator.connectRenderer(this.renderer);
     this.connectDataStreams();
 
     this.setupResizeHandling();
@@ -113,6 +119,7 @@ export class FootprintWidgetComponent
   ngOnDestroy(): void {
     this.footprintRealtimeUpdater.destroy();
     this.footprintDataLoader.destroy();
+    this.orchestrator.destroy();
     this.resizeObserver?.disconnect();
   }
 
@@ -169,33 +176,18 @@ export class FootprintWidgetComponent
   private connectDataStreams() {
     if (!this.renderer) return;
 
-    this.footprintDataLoader.data$
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        filter((clusterData): clusterData is any => clusterData !== null)
-      )
-      .subscribe((clusterData) => {
-        this.renderer?.applyData(clusterData);
-      });
-
-    this.footprintRealtimeUpdater.updates$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((update) => this.renderer?.handleRealtimeUpdate(update));
-
-    this.footprintDataLoader.settings$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((settings) => {
-        if (settings) {
-          this.renderer?.applySettings(settings);
-        }
-      });
+    this.orchestrator.bindDataSources({
+      data$: this.footprintDataLoader.data$,
+      updates$: this.footprintRealtimeUpdater.updates$,
+      params$: this.footprintDataLoader.params$,
+      settings$: this.footprintDataLoader.settings$,
+    });
 
     this.footprintDataLoader.params$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
         if (params) {
           this.params = params;
-          this.renderer?.applyParams(params);
         }
       });
 
