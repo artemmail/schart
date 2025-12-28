@@ -64,7 +64,7 @@ export class MarkUpManager {
     if (this.selectedShape != null) {
       this.selectedShape.shape.getFromModel();
     }
-    this.footprint.resize();
+    this.footprint.executeCommand('ResizeAndRedraw');
   }
 
   resetEdit(): void {
@@ -87,7 +87,7 @@ export class MarkUpManager {
         1
       );
       this.selectedShape = null;
-      this.footprint.resize();
+      this.footprint.executeCommand('ResizeAndRedraw');
       this.resetEdit();
     }
   }
@@ -110,11 +110,11 @@ export class MarkUpManager {
   onMouseDownMove(point: Point): void {
     if (this.selectedShape != null) {
       this.selectedShape.shape.onMovePoint(point);
-      this.footprint.resize();
+      this.footprint.executeCommand('ResizeAndRedraw');
     }
     if (this.drawingShape != null) {
       this.drawingShape.onMouseDownMove(point);
-      this.footprint.resize();
+      this.footprint.executeCommand('ResizeAndRedraw');
     }
   }
 
@@ -149,7 +149,7 @@ export class MarkUpManager {
     this.selectedShape = null;
     this.drawingShape = null;
     this.model.mode = mode;
-    this.footprint.resize();
+    this.footprint.executeCommand('ResizeAndRedraw');
   }
 
   allowPan(): boolean {

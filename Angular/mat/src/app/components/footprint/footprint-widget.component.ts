@@ -11,10 +11,16 @@ import {
   ViewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+import { auditTime, filter, Subject } from 'rxjs';
+
 import { FootPrintParameters } from 'src/app/models/Params';
 import { SelectListItemNumber } from 'src/app/models/preserts';
 import { SignalRService } from 'src/app/service/FootPrint/signalr.service';
-import { FootPrintComponent } from './footprint.component';
+import {
+  FootPrintComponent,
+  FootprintRendererCommand,
+} from './footprint.component';
 import { FootprintDataLoaderService } from './footprint-data-loader.service';
 import { FootprintRealtimeUpdaterService } from './footprint-realtime-updater.service';
 import { FootprintInitOptions } from './footprint-data.types';
@@ -57,6 +63,7 @@ export class FootprintWidgetComponent
 
   private viewInitialized = false;
   private resizeObserver?: ResizeObserver;
+  private resizeRequests$ = new Subject<FootprintRendererCommand>();
 
   get FPsettings() {
     return this.renderer?.FPsettings;
@@ -91,6 +98,7 @@ export class FootprintWidgetComponent
     this.orchestrator.connectRenderer(this.renderer);
     this.connectDataStreams();
 
+    this.setupResizeHandling();
     this.setupResizeObserver();
 
     this.viewInitialized = true;
@@ -141,7 +149,7 @@ export class FootprintWidgetComponent
   }
 
   resize() {
-    this.renderer?.resize();
+    this.triggerResize();
   }
 
   @HostListener('window:resize')
@@ -227,10 +235,16 @@ export class FootprintWidgetComponent
   }
 
   private triggerResize() {
-    if (!this.viewInitialized) {
+    if (!this.viewInitialized || !this.renderer) {
       return;
     }
 
-    this.renderer?.resize();
+    this.resizeRequests$.next('ResizeAndRedraw');
+  }
+
+  private setupResizeHandling(): void {
+    this.resizeRequests$
+      .pipe(auditTime(50), takeUntilDestroyed(this.destroyRef))
+      .subscribe((command) => this.renderer?.executeCommand(command));
   }
 }

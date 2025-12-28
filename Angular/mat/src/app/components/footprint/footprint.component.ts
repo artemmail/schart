@@ -3,7 +3,6 @@ import {
   ElementRef,
   ViewChild,
   AfterViewInit,
-  HostListener,
   Input,
 } from '@angular/core';
 import { Matrix, Rectangle } from './matrix';
@@ -33,6 +32,8 @@ import {
   FootprintRenderCommand,
   FootprintRenderer,
 } from './footprint-render.types';
+
+export type FootprintRendererCommand = 'ResizeAndRedraw';
 
 @Component({
   standalone: false,
@@ -355,7 +356,17 @@ export class FootPrintComponent
     return this.FPsettings.totalMode == 'Hidden' && this.data.ableCluster();
   }
 
-  initSize() {
+  executeCommand(command: FootprintRendererCommand): void {
+    switch (command) {
+      case 'ResizeAndRedraw':
+        this.resizeAndRedraw();
+        break;
+      default:
+        break;
+    }
+  }
+
+  private initSize() {
     if (!this.params) return;
     this.viewsManager.alignCanvas();
     this.viewsManager.updateLayout();
@@ -372,8 +383,7 @@ export class FootPrintComponent
     this.viewsManager.drawClusterView();
   }
 
-  @HostListener('window:resize', ['$event'])
-  public resize() {
+  private resizeLayout() {
     if (!this.viewInitialized || !this.viewsManager) {
       return;
     }
@@ -459,8 +469,7 @@ export class FootPrintComponent
       return;
     }
 
-    this.initSize();
-    this.resize();
+    this.executeCommand('ResizeAndRedraw');
   }
 
   applyData(clusterData: ClusterData) {
@@ -471,9 +480,7 @@ export class FootPrintComponent
       return;
     }
 
-    this.initSize();
-    this.resize();
-    this.viewsManager.drawClusterView();
+    this.executeCommand('ResizeAndRedraw');
   }
 
   private initializeViewIfReady(): void {
@@ -481,9 +488,7 @@ export class FootPrintComponent
       return;
     }
 
-    this.initSize();
-    this.resize();
-    this.viewsManager.drawClusterView();
+    this.executeCommand('ResizeAndRedraw');
   }
 
   applyRenderCommand(command: FootprintRenderCommand): void {
@@ -515,6 +520,16 @@ export class FootPrintComponent
       this.mergeMatrix();
     }
 
+    this.viewsManager.drawClusterView();
+  }
+
+  private resizeAndRedraw(): void {
+    if (!this.viewInitialized) {
+      return;
+    }
+
+    this.initSize();
+    this.resizeLayout();
     this.viewsManager.drawClusterView();
   }
 
