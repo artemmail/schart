@@ -213,7 +213,7 @@ interruptSwipe() {
     );
     this.parent.viewsManager.mtx = this.parent.alignMatrix(
       m.multiply(this.parent.viewsManager.mtx),
-      true
+      this.parent.isPriceVisible()
     );
     this.parent.drawClusterView();
   }
