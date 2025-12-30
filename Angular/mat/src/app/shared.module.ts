@@ -189,7 +189,7 @@ registerLocaleData(localeRu, 'ru');
     PresetSelectorComponent,
     FootPrintParamsComponent,
     MarkupEditorComponent,
-    TreeMapComponent,
+
     MarketMapComponent,
 
     CustomTooltipComponent,
@@ -276,7 +276,7 @@ registerLocaleData(localeRu, 'ru');
     PresetSelectorComponent,
     FootPrintParamsComponent,
     MarkupEditorComponent,
-    TreeMapComponent,
+
     MarketMapComponent,
 
     CustomTooltipComponent,

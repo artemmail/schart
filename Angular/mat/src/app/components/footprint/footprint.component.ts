@@ -366,7 +366,7 @@ export class FootPrintComponent implements AfterViewInit {
     this.viewsManager.drawClusterView();
   }
 
-  @HostListener('window:resize', ['$event'])
+  @HostListener('window:resize')
   public resize() {
     if (!this.viewInitialized || !this.viewsManager) {
       return;
