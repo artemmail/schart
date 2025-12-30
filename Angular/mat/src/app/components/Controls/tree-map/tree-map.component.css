@@ -104,3 +104,44 @@
   text-orientation: mixed;
   padding: 8px 6px;
 }
+
+
+/* ===== FIX: title+wrap absolute только внутри контейнеров ===== */
+
+/* Заголовок контейнера позиционируем абсолютно (иначе он ломает математику layout) */
+.k-treemap-title.tm-title-top,
+.k-treemap-title.tm-title-left {
+  position: absolute;
+  z-index: 2;
+}
+
+.tm-title-top {
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.tm-title-left {
+  top: 0;
+  left: 0;
+  bottom: 0;
+}
+
+/* ВАЖНО: вот этот wrap должен быть absolute, чтобы top/left НЕ оставляли "дырку" */
+.k-treemap-node-wrap {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  z-index: 1;
+  display: block; /* на всякий случай, чтобы flex не вмешивался */
+}
+
+/* Классы, которые ты ставишь на wrap */
+.k-treemap-node-wrap.tm-wrap-top { left: 0; }  /* top задаём инлайном */
+.k-treemap-node-wrap.tm-wrap-left { top: 0; }  /* left задаём инлайном */
+
+/* Контейнер-тайл (родитель) — просто clipping-контейнер */
+.k-treemap-tile.k-node {
+  overflow: hidden;
+}

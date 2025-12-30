@@ -52,42 +52,47 @@
     </div>
   </ng-container>
 
-  <!-- Container -->
-  <ng-template #containerTpl>
+<!-- Container -->
+<ng-template #containerTpl>
+  <div
+    class="k-treemap-tile k-node"
+    [style.left.px]="node.coord.left"
+    [style.top.px]="node.coord.top"
+    [style.width.px]="node.coord.width"
+    [style.height.px]="node.coord.height"
+    [attr.data-uid]="node.uid"
+  >
+    <!-- TITLE: убираем из flow -->
     <div
-      class="k-treemap-tile k-node"
-      [class.k-layout-row]="isTitleSide()"
-      [class.k-layout-col]="!isTitleSide()"
-      [style.left.px]="node.coord.left"
-      [style.top.px]="node.coord.top"
-      [style.width.px]="node.coord.width"
-      [style.height.px]="node.coord.height"
-      [attr.data-uid]="node.uid"
+      class="k-treemap-title"
+      [class.k-treemap-title-vertical]="isTitleSide()"
+      [class.tm-title-top]="!isTitleSide()"
+      [class.tm-title-left]="isTitleSide()"
+      [style.height.px]="!isTitleSide() ? titleSizeFor(node) : null"
+      [style.width.px]="isTitleSide() ? titleSizeFor(node) : null"
     >
-      <div
-        class="k-treemap-title"
-        [class.k-treemap-title-vertical]="isTitleSide()"
-        [style.width.px]="isTitleSide() ? titleSizeFor(node) : null"
-        [style.height.px]="!isTitleSide() ? titleSizeFor(node) : null"
-      >
-        <ng-container *ngIf="titleTemplate; else defaultTitle">
-          <ng-container
-            *ngTemplateOutlet="titleTemplate; context: { $implicit: node.dataItem, node: node, isLeaf: false }">
-          </ng-container>
+      <ng-container *ngIf="titleTemplate; else defaultTitle">
+        <ng-container
+          *ngTemplateOutlet="titleTemplate; context: { $implicit: node.dataItem, node: node, isLeaf: false }">
         </ng-container>
+      </ng-container>
 
-        <ng-template #defaultTitle>
-          <div class="k-treemap-title-inner">{{ node.text }}</div>
-        </ng-template>
-      </div>
-
-      <div class="k-treemap-wrap"
-           [class.k-treemap-wrap-row]="isTitleSide()"
-           [class.k-treemap-wrap-col]="!isTitleSide()">
-        <ng-container *ngFor="let child of node.children; trackBy: trackByUid">
-          <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child }"></ng-container>
-        </ng-container>
-      </div>
+      <ng-template #defaultTitle>
+        <div class="k-treemap-title-inner">{{ node.text }}</div>
+      </ng-template>
     </div>
-  </ng-template>
+
+    <!-- WRAP: занимает ровно оставшееся место -->
+    <div
+      class="k-treemap-wrap k-treemap-node-wrap"
+      [class.tm-wrap-top]="!isTitleSide()"
+      [class.tm-wrap-left]="isTitleSide()"
+      [style.top.px]="!isTitleSide() ? titleSizeFor(node) : 0"
+      [style.left.px]="isTitleSide() ? titleSizeFor(node) : 0"
+    >
+      <ng-container *ngFor="let child of node.children; trackBy: trackByUid">
+        <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child }"></ng-container>
+      </ng-container>
+    </div>
+  </div>
 </ng-template>
