@@ -1,21 +1,106 @@
-.treemap-container {
+:host, .k-treemap {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.k-treemap {
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  font-family: Arial, sans-serif;
+}
+
+.k-treemap-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* wrap — контекст позиционирования детей */
+.k-treemap-wrap {
   position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  font-family: Arial, sans-serif;
+  display: flex;
+  flex: 1 1 auto;
 }
 
-.treemap-node {
+.k-treemap-wrap-col { flex-direction: column; }
+.k-treemap-wrap-row { flex-direction: row; }
+
+/* tile */
+.k-treemap-tile {
   position: absolute;
   box-sizing: border-box;
-  border: 1px solid #fff;
   overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.08);
 }
 
-.treemap-node span {
-  display: block;
-  padding: 5px;
+.k-treemap-tile.k-node {
+  background: rgba(0,0,0,0.01);
+  display: flex;
+}
+
+.k-treemap-tile.k-node.k-layout-col { flex-direction: column; }
+.k-treemap-tile.k-node.k-layout-row { flex-direction: row; }
+
+.k-treemap-tile.k-leaf { cursor: pointer; }
+
+/* leaf content */
+.k-treemap-leaf-content {
+  padding: 8px;
   font-size: 12px;
-  color: #000;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.leaf-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaf-meta {
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.9;
+  display: flex;
+  gap: 8px;
+}
+
+.k-treemap-tile.k-leaf.k-hover {
+  outline: 2px solid rgba(0,0,0,0.25);
+  outline-offset: -2px;
+}
+
+/* inverse (как в оригинале по brightness) */
+.k-treemap-tile.k-leaf.k-inverse { color: #000; }
+.k-treemap-tile.k-leaf:not(.k-inverse) { color: #fff; }
+
+/* title */
+.k-treemap-title {
+  box-sizing: border-box;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(0,0,0,0.04);
+  color: rgba(0,0,0,0.85);
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.k-treemap-title-inner {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.k-treemap-title-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  padding: 8px 6px;
 }

@@ -1,1 +1,93 @@
-<div class="treemap-container" #treemapContainer></div>
+<div #host class="k-treemap k-widget">
+  <ng-container *ngIf="root as r">
+    <div class="k-treemap-root">
+      <!-- дети псевдо-корня -->
+      <div class="k-treemap-wrap k-treemap-wrap-col">
+        <ng-container *ngFor="let child of r.children; trackBy: trackByUid">
+          <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child }"></ng-container>
+        </ng-container>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<ng-template #nodeTpl let-node>
+  <!-- Leaf -->
+  <ng-container *ngIf="isLeaf(node); else containerTpl">
+    <div
+      class="k-treemap-tile k-leaf"
+      [class.k-inverse]="isInverse(node)"
+      [class.k-hover]="hoveredUid === node.uid"
+      [style.left.px]="node.coord.left"
+      [style.top.px]="node.coord.top"
+      [style.width.px]="node.coord.width"
+      [style.height.px]="node.coord.height"
+      [style.backgroundColor]="node.color"
+      (mouseenter)="onTileMouseEnter(node)"
+      (mouseleave)="onTileMouseLeave(node)"
+      (click)="onTileClick(node)"
+      [attr.data-uid]="node.uid"
+    >
+      <div class="k-treemap-leaf-content">
+        <ng-container *ngIf="tileTemplate; else defaultLeaf">
+          <ng-container
+            *ngTemplateOutlet="tileTemplate; context: { $implicit: node.dataItem, node: node, isLeaf: true }">
+          </ng-container>
+        </ng-container>
+
+        <ng-template #defaultLeaf>
+          <!-- дефолт под твой формат: name + ticker + percent -->
+          <div class="leaf-title">{{ node.text }}</div>
+
+          <!-- ВАЖНО: вместо (node.dataItem as any) используем $any(...) -->
+          <div class="leaf-meta" *ngIf="$any(node.dataItem)?.ticker as t">
+            <span class="leaf-ticker">{{ t }}</span>
+
+            <span class="leaf-percent" *ngIf="$any(node.dataItem)?.percent !== undefined">
+              {{ $any(node.dataItem).percent }}%
+            </span>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Container -->
+  <ng-template #containerTpl>
+    <div
+      class="k-treemap-tile k-node"
+      [class.k-layout-row]="isTitleSide()"
+      [class.k-layout-col]="!isTitleSide()"
+      [style.left.px]="node.coord.left"
+      [style.top.px]="node.coord.top"
+      [style.width.px]="node.coord.width"
+      [style.height.px]="node.coord.height"
+      [attr.data-uid]="node.uid"
+    >
+      <div
+        class="k-treemap-title"
+        [class.k-treemap-title-vertical]="isTitleSide()"
+        [style.width.px]="isTitleSide() ? titleSizeFor(node) : null"
+        [style.height.px]="!isTitleSide() ? titleSizeFor(node) : null"
+      >
+        <ng-container *ngIf="titleTemplate; else defaultTitle">
+          <ng-container
+            *ngTemplateOutlet="titleTemplate; context: { $implicit: node.dataItem, node: node, isLeaf: false }">
+          </ng-container>
+        </ng-container>
+
+        <ng-template #defaultTitle>
+          <div class="k-treemap-title-inner">{{ node.text }}</div>
+        </ng-template>
+      </div>
+
+      <div class="k-treemap-wrap"
+           [class.k-treemap-wrap-row]="isTitleSide()"
+           [class.k-treemap-wrap-col]="!isTitleSide()">
+        <ng-container *ngFor="let child of node.children; trackBy: trackByUid">
+          <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child }"></ng-container>
+        </ng-container>
+      </div>
+    </div>
+  </ng-template>
+</ng-template>
