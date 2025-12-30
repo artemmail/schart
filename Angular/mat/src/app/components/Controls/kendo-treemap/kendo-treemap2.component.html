@@ -1,0 +1,26 @@
+
+
+<div #wrapper class="tm-wrapper" (mouseleave)="onMouseLeaveWrapper()">
+  <app-treemap
+    #treemap
+    class="tm-treemap"
+    [data]="data"
+    [options]="treemapOptions"
+    (tileClick)="onTileClick($event)"
+    (tileHover)="onTileHover($event)"
+  ></app-treemap>
+
+  <!-- Tooltip -->
+  <div
+  class="tm-tooltip"
+  [class.tm-hidden]="!tooltipVisible"
+  [style.left.px]="tooltipLeft"
+  [style.top.px]="tooltipTop"
+>
+  <div class="tm-tooltip-body">
+    <ng-template #tooltipHost></ng-template>
+    <div *ngIf="tooltipTextHtml" [innerHTML]="tooltipTextHtml"></div>
+  </div>
+</div>
+
+</div>
