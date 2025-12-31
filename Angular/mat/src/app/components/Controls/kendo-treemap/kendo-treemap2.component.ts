@@ -63,6 +63,9 @@ export class KendoTreemapComponent2 implements AfterViewInit, OnDestroy {
   tooltipLeft = 0;
   tooltipTop = 0;
   tooltipTextHtml = '';
+  private readonly tooltipWidth = 400;
+  private readonly tooltipHeight = 300;
+  private readonly tooltipGap = 8;
   private item: any = null;
 
   private showTimer: any = null;
@@ -70,6 +73,7 @@ export class KendoTreemapComponent2 implements AfterViewInit, OnDestroy {
 
 
   @ViewChild('treemap', { static: true }) treemap!: TreeMapComponent<any>;
+  @ViewChild('wrapper', { static: true }) wrapper!: ElementRef<HTMLElement>;
 
   @ViewChild('tooltipHost', { read: ViewContainerRef }) tooltipHost!: ViewContainerRef;
   private tooltipCmp?: ComponentRef<FootprintWidgetComponent>;
@@ -197,28 +201,24 @@ constructor(
   }
 
   private showTooltipAtUid(uid: string): void {
-    
-    /*const host = this.wrapper.nativeElement;
+    const host = this.wrapper?.nativeElement;
+    if (!host) return;
 
-    const tile = host.querySelector(`[data-uid="${uid}"]`) as HTMLElement | null;
+    const tile = host.querySelector<HTMLElement>(`[data-uid="${uid}"]`);
     if (!tile) return;
 
-    // позиционируем справа от тайла, но остаёмся внутри wrapper
+    // Позиционируем справа от тайла, но удерживаем внутри wrapper
     const hostRect = host.getBoundingClientRect();
-    const r = tile.getBoundingClientRect();
+    const tileRect = tile.getBoundingClientRect();
+    const gap = this.tooltipGap;
 
-    const tooltipW = 400;
-    const tooltipH = 300;
-    const gap = 8;
+    let left = tileRect.right - hostRect.left + gap;
+    let top = tileRect.top - hostRect.top;
 
-    let left = (r.right - hostRect.left) + gap;
-    let top = (r.top - hostRect.top);
-
-    // clamp в пределах wrapper
-    left = Math.min(left, hostRect.width - tooltipW - gap);
+    left = Math.min(left, hostRect.width - this.tooltipWidth - gap);
     left = Math.max(left, gap);
 
-    top = Math.min(top, hostRect.height - tooltipH - gap);
+    top = Math.min(top, hostRect.height - this.tooltipHeight - gap);
     top = Math.max(top, gap);
 
     this.tooltipLeft = left;
@@ -227,7 +227,7 @@ constructor(
     this.renderTooltipContent();
 
     this.tooltipVisible = true;
-    this.cdr.markForCheck();*/
+    this.cdr.markForCheck();
   }
 
   private renderTooltipContent(): void {
