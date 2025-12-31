@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatListModule } from '@angular/material/list';
 import { RouterModule } from '@angular/router';
+import { HttpClientModule } from '@angular/common/http';
 
 import { AppMobileComponent } from './mobile/app.component';
 import { HeaderComponent } from './mobile/header/header.component';
@@ -69,6 +70,7 @@ export class MyHammerConfig extends HammerGestureConfig {
     HammerModule,
     MaterialModule,
     SharedModule,
+    HttpClientModule,
     LeadersComponent,
     LeadersBinanceComponent,
     LeadersFortsComponent,

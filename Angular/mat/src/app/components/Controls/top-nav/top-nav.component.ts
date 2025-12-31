@@ -6,7 +6,6 @@ import { ApplicationUser } from 'src/app/models/UserTopic';
 import { AuthEventService } from 'src/app/service/AuthEventService';
 import { AuthService } from 'src/app/service/auth.service';
 import { NavService } from 'src/app/service/nav.service';
-import { FirstComponent } from '../../pages/first/first.component';
 
 // Определяем тип, включающий только имена методов
 type FirstComponentMethods =
@@ -30,7 +29,6 @@ export class TopNavComponent implements OnInit, OnDestroy {
   isSignedIn = false;
   user: ApplicationUser | null = null;
   isFootPrintSelected = false;
-  currentComponent: any;
   isDrawerOpened = true;
   isAdmin: boolean = false; // Добавлено свойство для проверки администратора
 
@@ -70,7 +68,6 @@ export class TopNavComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$)
       )
       .subscribe(() => {
-        this.updateCurrentComponent();
         this.isFootPrintSelected = this.router.url.includes('/FootPrint');
 
         if (this.isFootPrintSelected) {
@@ -123,25 +120,20 @@ export class TopNavComponent implements OnInit, OnDestroy {
     this.navService.toggleNav();
   }
 
-  private updateCurrentComponent(): void {
-    let route = this.activatedRoute;
-    while (route.firstChild) {
-      route = route.firstChild;
-    }
-    if (route.snapshot.routeConfig?.component) {
-      this.currentComponent = route.snapshot.routeConfig.component;
-    }
-  }
-
-  // Методы для взаимодействия с FirstComponent
+  // Try to invoke methods on the footprint component when it is currently active.
   private executeFirstComponentMethod(methodName: FirstComponentMethods): void {
-    if (this.currentComponent === FirstComponent) {
-      const instance = this.outlet.component as FirstComponent;
-      if (instance && typeof instance[methodName] === 'function') {
-        (instance[methodName] as Function)();
-      } else {
-        console.warn(`Метод ${methodName} не существует в FirstComponent`);
-      }
+    if (!this.isFootPrintSelected || !this.outlet) {
+      return;
+    }
+
+    const instance = this.outlet.component as Record<string, unknown>;
+    if (instance && typeof instance[methodName] === 'function') {
+      (instance[methodName] as Function)();
+    } else {
+      console.warn(
+        `Метод ${methodName} отсутствует на активном компоненте`,
+        instance
+      );
     }
   }
 

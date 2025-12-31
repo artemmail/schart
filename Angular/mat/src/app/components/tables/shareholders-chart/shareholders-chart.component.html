@@ -4,7 +4,7 @@
   <p>Последнее обновление: {{ structure.LastUpdateDate | date }}</p>
 
   <mat-card>
-    <mat-table [dataSource]="structure.Shareholders">
+    <mat-table [dataSource]="structure.Shareholders ?? []">
       <!-- Name Column -->
       <ng-container matColumnDef="name">
         <mat-header-cell *matHeaderCellDef> Акционер </mat-header-cell>
@@ -21,6 +21,10 @@
       <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
       <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
     </mat-table>
+
+    <div *ngIf="!(structure.Shareholders?.length)" class="empty-state">
+      Нет доступных данных по акционерам.
+    </div>
   </mat-card>
 </div>
 

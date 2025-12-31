@@ -6,100 +6,110 @@ import {
   ElementRef,
   ChangeDetectorRef,
   ViewChild,
-  AfterViewInit
+  AfterViewInit,
+  DestroyRef,
+  inject
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatTable, MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSort, MatSortModule } from '@angular/material/sort';
-import { Subscription, interval, Observable } from 'rxjs';
-import { startWith, switchMap } from 'rxjs/operators';
+import { BehaviorSubject, interval, Observable, of } from 'rxjs';
+import { startWith, switchMap, distinctUntilChanged, tap } from 'rxjs/operators';
 import { Leader } from 'src/app/models/Leaders';
 import { environment } from 'src/app/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MoneyToStrPipe } from 'src/app/pipes/money-to-str.pipe';
+import { CostToStrPipe } from 'src/app/pipes/cost-to-str.pipe copy';
 
 @Component({
   standalone: true,
   selector: 'app-leaderboard-table',
   templateUrl: './leaderboard-table.component.html',
   styleUrls: ['./leaderboard-table.component.css'],
-  imports: [CommonModule, MatTableModule, MatSortModule, RouterModule],
+  imports: [CommonModule, MatTableModule, MatSortModule, RouterModule, MoneyToStrPipe, CostToStrPipe],
 })
 export class LeaderboardTableComponent implements OnInit, OnDestroy, AfterViewInit {
   @Input() market: number = 0;
   @Input() type: number = 1;
-  @Input() instanceId: string; // Новый Input-параметр для уникального ID
+  @Input() instanceId: string = 'leaderboard'; // Уникальный идентификатор для trackBy
 
   displayedColumns: string[] = ['ticker', 'cls', 'volume', 'percent'];
-  dataSource: MatTableDataSource<Leader>;
+  dataSource: MatTableDataSource<Leader> = new MatTableDataSource<Leader>([]);
   isLoading = true;
 
-  private subscription: Subscription;
   private intersectionObserver: IntersectionObserver;
+  private readonly visibility$ = new BehaviorSubject<boolean>(false);
+  private readonly destroyRef = inject(DestroyRef);
 
+  @ViewChild(MatTable) table: MatTable<Leader>;
   @ViewChild(MatSort) sort: MatSort;
   @ViewChild('leaderboardTable', { static: true }) leaderboardTable: ElementRef;
 
   constructor(private cdr: ChangeDetectorRef, private el: ElementRef) {}
 
   ngOnInit() {
-    // Initialize the dataSource
-    this.dataSource = new MatTableDataSource([]);
-  
+    // nothing yet
   }
 
   ngAfterViewInit() {
+    this.attachSort();
+
     this.intersectionObserver = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            this.startDataSubscription();
-          } else {
-            this.stopDataSubscription();
-          }
-        });
+        const isVisible = entries.some((entry) => entry.isIntersecting);
+        this.visibility$.next(isVisible);
       },
       { threshold: 0.1 }
     );
 
     this.intersectionObserver.observe(this.el.nativeElement);
+    this.bindDataStream();
     this.cdr.detectChanges();
   }
 
   ngOnDestroy() {
-    this.stopDataSubscription();
     if (this.intersectionObserver) {
       this.intersectionObserver.disconnect();
     }
+    this.visibility$.complete();
   }
 
-  startDataSubscription() {
-    if (this.subscription && !this.subscription.closed) {
-      return; // If there's already a running subscription, do nothing
-    }
-
-    this.isLoading = true;
-    this.subscription = interval(2000)
+  private bindDataStream() {
+    this.visibility$
       .pipe(
-        startWith(0),
-        switchMap(() => this.fetchData())
+        tap((visible) => {
+          if (visible) {
+            this.isLoading = true;
+          }
+        }),
+        distinctUntilChanged(),
+        switchMap((visible) =>
+          visible
+            ? interval(2000).pipe(startWith(0), switchMap(() => this.fetchData()))
+            : of([] as Leader[])
+        ),
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(
         (data) => {
-          this.dataSource.data = data;
-          this.dataSource.sort = this.sort;
+          const rows = Array.isArray(data) ? data.filter(Boolean) : [];
+          this.dataSource = new MatTableDataSource<Leader>([...rows]);
+          this.attachSort();
+          this.table?.renderRows();
           this.isLoading = false;
-          this.cdr.detectChanges(); // Ensure changes are detected
+          this.cdr.detectChanges();
         },
         () => {
-          this.isLoading = false; // Ensure spinner is hidden in case of error
-          this.cdr.detectChanges(); // Ensure changes are detected
+          this.isLoading = false;
+          this.cdr.detectChanges();
         }
       );
   }
 
-  stopDataSubscription() {
-    if (this.subscription) {
-      this.subscription.unsubscribe();
+  private attachSort() {
+    if (this.sort) {
+      this.dataSource.sort = this.sort;
     }
   }
 
@@ -121,5 +131,9 @@ export class LeaderboardTableComponent implements OnInit, OnDestroy, AfterViewIn
       `${environment.apiUrl}/api/reports/Leaders?market=${this.market}&dir=${this.type}`
     );
     return await response.json();
+  }
+
+  trackByTicker(index: number, leader: Leader): string {
+    return `${this.instanceId}-${this.market}-${this.type}-${leader?.ticker ?? 'row'}-${index}`;
   }
 }

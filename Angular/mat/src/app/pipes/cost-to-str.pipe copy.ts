@@ -3,7 +3,7 @@ import { drob } from '../service/FootPrint/utils';
 
 @Pipe({
   name: 'costToStr',
-  standalone: false
+  standalone: true
 })
 export class CostToStrPipe implements PipeTransform {
   transform(value: number, sh: number = 2): number {

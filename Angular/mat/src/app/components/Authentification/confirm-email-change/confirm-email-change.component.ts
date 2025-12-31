@@ -1,13 +1,17 @@
+import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { MatCardModule } from '@angular/material/card';
+import { MatToolbarModule } from '@angular/material/toolbar';
 import { AuthService } from 'src/app/service/auth.service';
 import { DialogService } from 'src/app/service/DialogService.service';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-confirm-email-change',
   templateUrl: './confirm-email-change.component.html',
-  styleUrls: ['./confirm-email-change.component.css']
+  styleUrls: ['./confirm-email-change.component.css'],
+  imports: [CommonModule, MatToolbarModule, MatCardModule]
 })
 export class ConfirmEmailChangeComponent implements OnInit {
   statusMessage: string;

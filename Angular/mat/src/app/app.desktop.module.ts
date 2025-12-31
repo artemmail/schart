@@ -14,6 +14,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MatNativeDateModule, MAT_DATE_LOCALE, NativeDateAdapter } from '@angular/material/core';
 import { DateAdapter, MAT_DATE_FORMATS, MatDateFormats } from '@angular/material/core';
 import { LevelMarksService } from './service/FootPrint/LevelMarks/level-marks.service';
+import { HttpClientModule } from '@angular/common/http';
 
 
 @NgModule({
@@ -27,6 +28,7 @@ import { LevelMarksService } from './service/FootPrint/LevelMarks/level-marks.se
     BrowserModule,
     BrowserAnimationsModule,
     SharedModule,
+    HttpClientModule,
     AppRoutingModule,
   ],
   declarations: [

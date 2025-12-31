@@ -6,7 +6,7 @@ import { ImageSaveService } from 'src/app/service/image-save.service';
 
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-save-image-dialog',
   templateUrl: './save-image-dialog.component.html',
 })

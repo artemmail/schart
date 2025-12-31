@@ -36,7 +36,6 @@ import { MultiComponent } from './components/pages/multi/multi.component';
 import { LogoutComponent } from './components/Authentification/logout/logout.component';
 import { ConfirmEmailComponent } from './components/Authentification/confirm-email/confirm-email.component';
 import { ConfirmEmailChangeComponent } from './components/Authentification/confirm-email-change/confirm-email-change.component';
-import { RegisterComponent } from './components/Authentification/register/register.component';
 import { ForgotPasswordComponent } from './components/Authentification/forgot-password/forgot-password.component';
 import { ForgotPasswordConfirmationComponent } from './components/Authentification/forgot-password-confirmation/forgot-password-confirmation.component';
 import { ResendEmailConfirmationComponent } from './components/Authentification/resend-email-confirmation/resend-email-confirmation.component';
@@ -156,12 +155,13 @@ registerLocaleData(localeRu, 'ru');
     MatInputModule,
     NgxMatDatetimepicker,
     NgxMatDatepickerInput,
-    SubscriptionPlanAdminComponent,
+    MoneyToStrPipe,
+    CostToStrPipe,
 ],
   declarations: [
     ResizeListenerDirective,
-    FootprintWidgetComponent,
     FootPrintComponent,
+    FootprintWidgetComponent,
     SeasonalityComponent,
     SpinnerOverlayComponent,
     VolumeSplashComponent,
@@ -180,7 +180,6 @@ registerLocaleData(localeRu, 'ru');
     FirstComponent,
     TopNavComponent,
 
-    LoginComponent,
     SubscriptionPlansComponent,
     MarketSelectorComponent,
     PresetSelectorComponent,
@@ -195,12 +194,11 @@ registerLocaleData(localeRu, 'ru');
     MultiComponent,
     LogoutComponent,
     ConfirmEmailComponent,
-    ConfirmEmailChangeComponent,
-    RegisterComponent,
+    
     ForgotPasswordComponent,
     ForgotPasswordConfirmationComponent,
     ResendEmailConfirmationComponent,
-    ResetPasswordComponent,
+
     CandlesStatComponent,
     TotalVolumeComponent,
     PresetSelectorComponent1,
@@ -211,8 +209,6 @@ registerLocaleData(localeRu, 'ru');
     PortfolioOptimizationComponent,
     ArrowDisplayComponent,
     BarometerMobileComponent,
-    MoneyToStrPipe,
-    CostToStrPipe,
 
     LeadersReportComponent,
     KendoTreemapComponent,
@@ -230,9 +226,9 @@ registerLocaleData(localeRu, 'ru');
 
     InformationDialogComponent,
     ConfirmDialogComponent,
-    SaveImageDialogComponent,
+    
     SupportDialogComponent,
-    LevelSettingsDialogComponent,
+    
     BarometerTableComponent, UserTableComponent,
     CompanyTableComponent,
     StatementsComponent,
@@ -245,11 +241,10 @@ registerLocaleData(localeRu, 'ru');
      TopicListComponent,TickerIconComponent,ContractChartComponent,OpenPositionsTableComponent,
      OptionDetailsComponent,FuturesDetailsComponent,ContractGroupsComponent,OpenSupportDialogDirective,
      SettingsDialogComponent, EditorComponent,
-     BillDetailsDialogComponent, UserPaymentsStatComponent,PaymentsTableComponent,PaymentDialogComponent, ProfitChartsComponent,MarketBoardComponent
+      BillDetailsDialogComponent, UserPaymentsStatComponent,PaymentsTableComponent, ProfitChartsComponent,MarketBoardComponent
   ],
   exports: [
     ResizeListenerDirective,
-    FootprintWidgetComponent,
     FootPrintComponent,
     SeasonalityComponent,
     SpinnerOverlayComponent,
@@ -267,7 +262,6 @@ registerLocaleData(localeRu, 'ru');
     FirstComponent,
     TopNavComponent,
 
-    LoginComponent,
     SubscriptionPlansComponent,
     MarketSelectorComponent,
     PresetSelectorComponent,
@@ -282,12 +276,9 @@ registerLocaleData(localeRu, 'ru');
     MultiComponent,
     LogoutComponent,
     ConfirmEmailComponent,
-    ConfirmEmailChangeComponent,
-    RegisterComponent,
     ForgotPasswordComponent,
     ForgotPasswordConfirmationComponent,
     ResendEmailConfirmationComponent,
-    ResetPasswordComponent,
     CandlesStatComponent,
     TotalVolumeComponent,
     PresetSelectorComponent1,
@@ -316,9 +307,7 @@ registerLocaleData(localeRu, 'ru');
     VolumeSearchTableComponent,
     InformationDialogComponent,
     ConfirmDialogComponent,
-    SaveImageDialogComponent,
     SupportDialogComponent,
-    LevelSettingsDialogComponent,
     BarometerTableComponent, UserTableComponent,
     CompanyTableComponent,
     StatementsComponent,
@@ -334,7 +323,7 @@ registerLocaleData(localeRu, 'ru');
     OptionDetailsComponent,FuturesDetailsComponent,ContractGroupsComponent,
     OpenSupportDialogDirective , SettingsDialogComponent, EditorComponent,
      UserPaymentsStatComponent,PaymentsTableComponent, ProfitChartsComponent,
-    PaymentDialogComponent, MarketBoardComponent, SubscriptionPlanAdminComponent
+    MarketBoardComponent
 
   ],
 })
