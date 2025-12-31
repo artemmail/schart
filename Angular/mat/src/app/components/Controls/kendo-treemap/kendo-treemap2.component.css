@@ -19,8 +19,6 @@
 /* tooltip */
 .tm-tooltip {
   position: absolute;
-  width: 400px;
-  height: 300px;
   z-index: 9999;
   pointer-events: auto;
 }

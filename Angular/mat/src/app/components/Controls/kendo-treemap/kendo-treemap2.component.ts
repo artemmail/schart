@@ -63,8 +63,12 @@ export class KendoTreemapComponent2 implements AfterViewInit, OnDestroy {
   tooltipLeft = 0;
   tooltipTop = 0;
   tooltipTextHtml = '';
-  private readonly tooltipWidth = 400;
-  private readonly tooltipHeight = 300;
+  tooltipWidth = 400;
+  tooltipHeight = 300;
+  readonly tooltipLargeWidth = 400;
+  readonly tooltipLargeHeight = 300;
+  readonly tooltipSmallWidth = 220;
+  readonly tooltipSmallHeight = 80;
   private readonly tooltipGap = 8;
   private item: any = null;
 
@@ -184,6 +188,10 @@ constructor(
   onTileHover(e: TreeMapEvent<any>): void {
     this.item = e.dataItem;
     if (!this.item) return;
+
+    const isTitle = !!e.node.children?.length;
+    this.tooltipWidth = isTitle ? this.tooltipSmallWidth : this.tooltipLargeWidth;
+    this.tooltipHeight = isTitle ? this.tooltipSmallHeight : this.tooltipLargeHeight;
 
     // showAfter 200ms
     if (this.showTimer) clearTimeout(this.showTimer);

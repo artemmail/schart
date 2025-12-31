@@ -70,6 +70,9 @@
       [class.tm-title-left]="isTitleSide()"
       [style.height.px]="!isTitleSide() ? titleSizeFor(node) : null"
       [style.width.px]="isTitleSide() ? titleSizeFor(node) : null"
+      (mouseenter)="onTileMouseEnter(node)"
+      (mouseleave)="onTileMouseLeave(node)"
+      (click)="onTileClick(node)"
     >
       <ng-container *ngIf="titleTemplate; else defaultTitle">
         <ng-container
