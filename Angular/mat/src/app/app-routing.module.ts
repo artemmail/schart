@@ -127,7 +127,7 @@ const routes: Routes = [
     canActivate: [AuthGuard] 
   },
 
-      { path: 'MarketMap', component: AppComponent1,
+      { path: 'MarketMap', component: MarketMapComponent,
         canActivate: [AuthGuard]  },
       { path: 'Leaders', component: LeadersReportComponent },
 

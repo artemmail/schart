@@ -34,3 +34,49 @@
   box-sizing: border-box;
 }
 .tm-hidden { display: none; }
+
+:host .k-treemap-root > .k-treemap-wrap {
+  top: 0 !important;
+  left: 0 !important;
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+
+:host .k-treemap-title.tm-title-left {
+  height: auto !important;      /* чтобы bottom:0 реально работал */
+  line-height: normal !important;
+}
+
+:host .k-treemap-title.tm-title-top {
+  line-height: normal !important; /* чтобы не было странной вертикальной посадки текста */
+}
+
+/* 1) Отрубить kendo box-sizing: content-box (иначе ломает px-математику) */
+:host .k-treemap,
+:host .k-treemap *,
+:host .k-treemap ::before,
+:host .k-treemap ::after {
+  box-sizing: border-box !important;
+}
+
+/* 2) На всякий: убрать kendo-отступ/смещение у корневого wrap (именно над самыми верхними заголовками) */
+:host .k-treemap-root > .k-treemap-wrap {
+  top: 0 !important;
+  left: 0 !important;
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* 3) Прижать kendo line-height у заголовка (у тебя высота в px) */
+:host .k-treemap-title {
+  line-height: normal !important;
+  padding: 6px 8px !important; /* оставить твой дизайн, чтобы kendo 0 .6em не вмешивался */
+}
+
+/* 4) Для левого вертикального тайтла обязательно убрать фиксированную высоту kendo */
+:host .k-treemap-title.tm-title-left {
+  height: auto !important;
+}
+
+

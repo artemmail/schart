@@ -55,6 +55,7 @@ import { CostToStrPipe } from './pipes/cost-to-str.pipe copy';
 
 import { LeadersReportComponent } from './components/Reports/leaders-report/leaders-report.component';
 import { KendoTreemapComponent } from './components/Controls/kendo-treemap/kendo-treemap.component';
+import { KendoTreemapComponent2 } from './components/Controls/kendo-treemap/kendo-treemap2.component';
 import { CategorySelectorComponent } from './components/Controls/CategorySelector/category-selector.component';
 import { ComboBoxComponent } from './components/Controls/ComboBox/combobox.component';
 import { MultiPageComponent } from './components/pages/multicandles/multicandles.component';
@@ -157,6 +158,7 @@ registerLocaleData(localeRu, 'ru');
     NgxMatDatepickerInput,
     MoneyToStrPipe,
     CostToStrPipe,
+    KendoTreemapComponent2,
 ],
   declarations: [
     ResizeListenerDirective,
@@ -294,6 +296,7 @@ registerLocaleData(localeRu, 'ru');
 
     LeadersReportComponent,
     KendoTreemapComponent,
+    KendoTreemapComponent2,
     CategorySelectorComponent,
     ComboBoxComponent,
     MultiPageComponent,

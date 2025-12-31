@@ -63,27 +63,29 @@
     [attr.data-uid]="node.uid"
   >
     <!-- TITLE: убираем из flow -->
-    <div
-      class="k-treemap-title"
-      [class.k-treemap-title-vertical]="isTitleSide()"
-      [class.tm-title-top]="!isTitleSide()"
-      [class.tm-title-left]="isTitleSide()"
-      [style.height.px]="!isTitleSide() ? titleSizeFor(node) : null"
-      [style.width.px]="isTitleSide() ? titleSizeFor(node) : null"
-      (mouseenter)="onTileMouseEnter(node)"
-      (mouseleave)="onTileMouseLeave(node)"
-      (click)="onTileClick(node)"
-    >
-      <ng-container *ngIf="titleTemplate; else defaultTitle">
-        <ng-container
-          *ngTemplateOutlet="titleTemplate; context: { $implicit: node.dataItem, node: node, isLeaf: false }">
+    <ng-container *ngIf="titleSizeFor(node) as ts">
+      <div
+        class="k-treemap-title"
+        [class.k-treemap-title-vertical]="isTitleSide()"
+        [class.tm-title-top]="!isTitleSide()"
+        [class.tm-title-left]="isTitleSide()"
+        [style.height.px]="!isTitleSide() ? ts : null"
+        [style.width.px]="isTitleSide() ? ts : null"
+        (mouseenter)="onTileMouseEnter(node)"
+        (mouseleave)="onTileMouseLeave(node)"
+        (click)="onTileClick(node)"
+      >
+        <ng-container *ngIf="titleTemplate; else defaultTitle">
+          <ng-container
+            *ngTemplateOutlet="titleTemplate; context: { $implicit: node.dataItem, node: node, isLeaf: false }">
+          </ng-container>
         </ng-container>
-      </ng-container>
 
-      <ng-template #defaultTitle>
-        <div class="k-treemap-title-inner">{{ node.text }}</div>
-      </ng-template>
-    </div>
+        <ng-template #defaultTitle>
+          <div class="k-treemap-title-inner">{{ node.text }}</div>
+        </ng-template>
+      </div>
+    </ng-container>
 
     <!-- WRAP: занимает ровно оставшееся место -->
     <div

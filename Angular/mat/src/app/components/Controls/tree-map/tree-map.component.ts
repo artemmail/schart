@@ -197,6 +197,9 @@ export class TreeMapComponent<T = any> implements AfterViewInit, OnChanges, OnDe
     if (!hasChildren) return 0;
     // top-level показываем/скрываем опцией
     if (node.level === 1 && !this.cfg.showTopLevelTitles) return 0;
+    const hasText = (node.text ?? '').trim().length > 0;
+    const hasTpl = !!this.titleTemplate;
+    if (!hasText && !hasTpl) return 0;
     return Math.max(0, this.cfg.titleSize);
   }
 
