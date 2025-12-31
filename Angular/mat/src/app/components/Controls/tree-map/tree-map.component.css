@@ -65,10 +65,11 @@
 
 .leaf-meta {
   margin-top: 4px;
-  font-size: 11px;
+  font-size: 13px;
   opacity: 0.9;
   display: flex;
-  gap: 8px;
+  gap: 8px; justify-content: center;   /* flex-центр по оси X */
+  text-align: center;   
 }
 
 .k-treemap-tile.k-leaf.k-hover {
@@ -84,7 +85,7 @@
 .k-treemap-title {
   box-sizing: border-box;
   padding: 6px 8px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   background: rgba(0,0,0,0.04);
   color: rgba(0,0,0,0.85);
@@ -92,6 +93,8 @@
   display: flex;
   align-items: center;
   cursor: pointer;
+   justify-content: center;   /* flex-центр по оси X */
+  text-align: center;   
 }
 
 .k-treemap-title-inner {
