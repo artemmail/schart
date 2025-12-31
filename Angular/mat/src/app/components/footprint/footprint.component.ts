@@ -5,6 +5,7 @@ import {
   AfterViewInit,
   HostListener,
   Input,
+  OnDestroy,
 } from '@angular/core';
 import { Matrix, Rectangle } from './matrix';
 
@@ -37,7 +38,7 @@ import { HintContainerService } from './hint-container.service';
   styleUrls: ['./footprint.component.css'],
   providers: [FootprintStateService, HintContainerService],
 })
-export class FootPrintComponent implements AfterViewInit {
+export class FootPrintComponent implements AfterViewInit, OnDestroy {
   @ViewChild('drawingCanvas', { static: false }) canvasRef?: ElementRef;
   @Input() presetIndex: number;
   @Input() set params(value: FootPrintParameters | null) {
@@ -493,4 +494,7 @@ export class FootPrintComponent implements AfterViewInit {
     this.viewsManager.drawClusterView();
   }
 
+  ngOnDestroy(): void {
+    this.hintContainer.destroy();
+  }
 }

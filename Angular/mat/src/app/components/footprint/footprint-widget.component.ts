@@ -106,6 +106,7 @@ export class FootprintWidgetComponent
   }
 
   ngOnDestroy(): void {
+    this.renderer?.hintService.destroy();
     this.footprintRealtimeUpdater.destroy();
     this.footprintDataLoader.destroy();
     this.resizeObserver?.disconnect();

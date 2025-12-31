@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 import { ColumnEx } from './Columns/ClusterCoumnBase';
@@ -20,8 +20,12 @@ interface HintRenderOptions {
 }
 
 @Injectable()
-export class HintContainerService {
+export class HintContainerService implements OnDestroy {
   private hintElement: HTMLDivElement | null = null;
+
+  ngOnDestroy(): void {
+    this.removeHintElement();
+  }
 
   show(content: string, position: { x: number; y: number }): void {
     const hint = this.ensureHintElement();
@@ -46,6 +50,10 @@ export class HintContainerService {
     }
 
     options.onShow(result.content, result.position);
+  }
+
+  destroy(): void {
+    this.removeHintElement();
   }
 
   private buildHintContent(options: HintRenderOptions):
@@ -159,8 +167,17 @@ export class HintContainerService {
   }
 
   hide(): void {
-    const hint = this.hintElement ?? this.ensureHintElement();
-    hint.style.overflow = 'hidden';
-    hint.style.display = 'none';
+    if (!this.hintElement) {
+      return;
+    }
+    this.hintElement.style.overflow = 'hidden';
+    this.hintElement.style.display = 'none';
+  }
+
+  private removeHintElement(): void {
+    if (this.hintElement?.parentNode) {
+      this.hintElement.parentNode.removeChild(this.hintElement);
+    }
+    this.hintElement = null;
   }
 }
