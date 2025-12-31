@@ -37,16 +37,9 @@
 
         <ng-template #defaultLeaf>
           <!-- дефолт под твой формат: name + ticker + percent -->
-          <div class="leaf-title">{{ node.text }}</div>
+          <div class="leaf-meta">{{ node.text }}</div>
 
-          <!-- ВАЖНО: вместо (node.dataItem as any) используем $any(...) -->
-          <div class="leaf-meta" *ngIf="$any(node.dataItem)?.ticker as t">
-            <span class="leaf-ticker">{{ t }}</span>
-
-            <span class="leaf-percent" *ngIf="$any(node.dataItem)?.percent !== undefined">
-              {{ $any(node.dataItem).percent }}%
-            </span>
-          </div>
+          
         </ng-template>
       </div>
     </div>
