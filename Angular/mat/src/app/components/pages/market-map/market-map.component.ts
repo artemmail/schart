@@ -5,7 +5,7 @@ import {
   OnInit,
   ViewChild
 } from '@angular/core';
-import { KendoTreemapComponent } from '../../Controls/kendo-treemap/kendo-treemap.component';
+import { KendoTreemapComponent2 } from '../../Controls/kendo-treemap/kendo-treemap2.component';
 import { MarketBoardComponent } from '../../Controls/market-board/market-board.component';
 import { FootPrintRequestModel } from 'src/app/models/tickerpreset';
 import { Title } from '@angular/platform-browser';
@@ -21,7 +21,7 @@ import { ReportsService } from 'src/app/service/reports.service';
   styleUrls: ['./market-map.component.css'],
 })
 export class MarketMapComponent implements OnInit, AfterViewInit {
-  @ViewChild(KendoTreemapComponent) kendoTreemapComponent: KendoTreemapComponent;
+  @ViewChild(KendoTreemapComponent2) kendoTreemapComponent: KendoTreemapComponent2;
   @ViewChild(MarketBoardComponent) marketBoardComponent: MarketBoardComponent;
   @ViewChild(DateRangePickerComponent) dateRangePickerComponent: DateRangePickerComponent;
   @ViewChild(PresetSelectorComponent1) dateRangeSelectorComponent: PresetSelectorComponent1;
