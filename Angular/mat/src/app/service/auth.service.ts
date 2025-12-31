@@ -45,7 +45,7 @@ export class AuthService {
     return this.http.post<LoginResponse>(`${environment.apiUrl}/api/auth/login`, model, { withCredentials: true }).pipe(
       tap((response: LoginResponse) => {
         // Сохранение ролей в localStorage
-        debugger
+        
         localStorage.setItem('userRoles', JSON.stringify(response.roles));
         this.loggedIn = true;
       })

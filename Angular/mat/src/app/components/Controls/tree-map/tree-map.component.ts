@@ -341,13 +341,14 @@ this.cdr.markForCheck();   // <-- важно
         text: (rawText ?? '') + '',
         value: toNumber(rawValue),
         color: typeof rawColor === 'string' ? rawColor : undefined,
-        coord: { width: 0, height: 0, top: 0, left: 0 },
-        dataItem: item,
-        children: childrenArr.length ? this.buildNodes(childrenArr, level + 1) : undefined
-      };
+      coord: { width: 0, height: 0, top: 0, left: 0 },
+      dataItem: item,
+      children: childrenArr.length ? this.buildNodes(childrenArr, level + 1) : undefined
+    };
 
-      // как в оригинале: тайлы с value=0 скрывались
-      if (Number.isFinite(node.value) && node.value === 0) continue;
+      // Пропускаем только "пустые" листья без детей и нулевой value; контейнеры с children оставляем,
+      // чтобы значение пересчиталось от потомков и дерево не опустело (случай value=0 у корня данных).
+      if (Number.isFinite(node.value) && node.value === 0 && !childrenArr.length) continue;
 
       nodes.push(node);
     }

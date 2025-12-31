@@ -11,6 +11,7 @@ import {
   ViewChild,
   ViewContainerRef
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 import { ReportsService, MarketMapParams } from 'src/app/service/reports.service';
 import { Subscription, interval } from 'rxjs';
@@ -27,7 +28,7 @@ import { FootprintWidgetComponent } from '../../footprint/footprint-widget.compo
   templateUrl: './kendo-treemap2.component.html',
   styleUrls: ['./kendo-treemap2.component.css'],
   providers: [MoneyToStrPipe],
-  imports: [TreeMapComponent] 
+  imports: [CommonModule, TreeMapComponent]
 })
 export class KendoTreemapComponent2 implements AfterViewInit, OnDestroy {
   @Input() startDate?: Date;
@@ -85,7 +86,7 @@ constructor(
 
   ngAfterViewInit(): void {
 
-  debugger
+  
 
   const host = this.el.nativeElement; // всегда есть
 
@@ -100,6 +101,8 @@ constructor(
   );
 
   this.intersectionObserver.observe(host);
+  // Запускаем загрузку сразу, чтобы не зависеть от срабатывания IntersectionObserver в сложных лейаутах
+  this.startDataSubscription();
   this.cdr.detectChanges();
 }
 
@@ -141,6 +144,7 @@ constructor(
       )
       .subscribe((data) => {
         this.data = data ?? [];
+        // на главной страница root.value приходит 0, поэтому оставляем узлы с value=0 и даем дереву пересчитать их от children
         this.cdr.markForCheck();
       });
   }

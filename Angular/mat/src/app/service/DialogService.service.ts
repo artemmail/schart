@@ -23,7 +23,7 @@ export class DialogService {
   }
 
   info(message: string): Observable<void> {
-    debugger
+    
     const dialogRef = this.dialog.open(InformationDialogComponent, {
       width: '250px',
       data: { message: message },
