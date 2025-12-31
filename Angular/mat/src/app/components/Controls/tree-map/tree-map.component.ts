@@ -149,7 +149,7 @@ export class TreeMapComponent<T = any> implements AfterViewInit, OnChanges, OnDe
 
 
   ngAfterViewInit(): void {
-    debugger
+    
     this.zone.runOutsideAngular(() => {
       this.ro = new ResizeObserver(() => this.queueRebuild());
       this.ro.observe(this.host.nativeElement);
@@ -200,32 +200,21 @@ export class TreeMapComponent<T = any> implements AfterViewInit, OnChanges, OnDe
     return Math.max(0, this.cfg.titleSize);
   }
 
-  // ===== Events =====
 onTileMouseEnter(node: TreeNode<T>): void {
-  if (!this.isLeaf(node) || !node.dataItem) return;
+  if (!node.dataItem) return;
   this.hoveredUid = node.uid;
-  this.cdr.markForCheck();
   this.tileHover.emit({ node, dataItem: node.dataItem, path: this.buildPath(node) });
 }
 
 onTileMouseLeave(node: TreeNode<T>): void {
-  if (this.hoveredUid === node.uid) {
-    this.hoveredUid = null;
-    this.cdr.markForCheck();
-  }
+  if (this.hoveredUid === node.uid) this.hoveredUid = null;
 }
 
-  onTileClick(node: TreeNode<T>): void {
-    if (!node.dataItem) return;
-    // как в исходнике hover только на leaf — клики обычно тоже на leaf
-    if (!this.isLeaf(node)) return;
+onTileClick(node: TreeNode<T>): void {
+  if (!node.dataItem) return;
+  this.tileClick.emit({ node, dataItem: node.dataItem, path: this.buildPath(node) });
+}
 
-    this.tileClick.emit({
-      node,
-      dataItem: node.dataItem,
-      path: this.buildPath(node)
-    });
-  }
 
   /** Можно дергать из родителя: this.treemap.refreshNow() */
   refreshNow(): void {
@@ -240,6 +229,7 @@ onTileMouseLeave(node: TreeNode<T>): void {
 
   // ===== Data source wiring =====
   private resetDataSource(): void {
+    
     this.sourceSub?.unsubscribe();
     this.sourceSub = null;
 
@@ -333,7 +323,7 @@ this.cdr.markForCheck();   // <-- важно
   }
 
   private buildNodes(items: T[], level: number): TreeNode<T>[] {
-    debugger
+    
     const { textField, valueField, colorField, childrenField } = this.cfg;
 
     const nodes: TreeNode<T>[] = [];

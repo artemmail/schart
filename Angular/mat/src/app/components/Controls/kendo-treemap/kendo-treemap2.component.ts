@@ -22,19 +22,23 @@ import { TreeMapComponent, TreeMapEvent } from '../tree-map/tree-map.component';
 import { FootprintWidgetComponent } from '../../footprint/footprint-widget.component';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-kendo-treemap2',
   templateUrl: './kendo-treemap2.component.html',
   styleUrls: ['./kendo-treemap2.component.css'],
   providers: [MoneyToStrPipe],
+  imports: [TreeMapComponent] 
 })
-export class KendoTreemapComponent implements AfterViewInit, OnDestroy {
+export class KendoTreemapComponent2 implements AfterViewInit, OnDestroy {
   @Input() startDate?: Date;
   @Input() endDate?: Date;
   @Input() categories?: string;
   @Input() rperiod: string = 'day';
   @Input() top: number = 50;
   @Input() market: number = 0;
+
+
+  aaa: TreeMapComponent;
 
   // данные для treemap
   data: any[] = [];

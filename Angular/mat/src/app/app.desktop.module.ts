@@ -5,6 +5,8 @@ import { AppRoutingModule } from './app-routing.module';
 import { SharedModule } from './shared.module';  // Import the SharedModule
 import { NavService } from './service/nav.service';
 import { CustomDateAdapter, MY_DATE_FORMATS } from './service/date-formats';
+import { BrowserModule } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 
 //import { MetrikaModule } from 'ng-yandex-metrika';
@@ -22,6 +24,8 @@ import { LevelMarksService } from './service/FootPrint/LevelMarks/level-marks.se
         alternativeUrl: 'https://cdn.jsdelivr.net/npm/yandex-metrica-watch/tag.js',
       },
     ),*/
+    BrowserModule,
+    BrowserAnimationsModule,
     SharedModule,
     AppRoutingModule,
   ],

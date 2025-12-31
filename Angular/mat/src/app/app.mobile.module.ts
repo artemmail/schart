@@ -43,13 +43,10 @@ export class MyHammerConfig extends HammerGestureConfig {
   declarations: [
     AppMobileComponent,
     HeaderComponent,
-    MarketMapComponent,
+    
     SettingsComponent,
- ///   LeaderboardTableComponent,
-    LeadersComponent,
-    FirstComponent1,
-    LeadersBinanceComponent,
-    LeadersFortsComponent
+///   LeaderboardTableComponent,
+    FirstComponent1
     
   ],
   providers: [
@@ -72,6 +69,9 @@ export class MyHammerConfig extends HammerGestureConfig {
     HammerModule,
     MaterialModule,
     SharedModule,
+    LeadersComponent,
+    LeadersBinanceComponent,
+    LeadersFortsComponent,
     BrowserModule,
     BrowserAnimationsModule,
     MatToolbarModule,

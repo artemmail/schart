@@ -5,15 +5,19 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
-import { KendoTreemapComponent } from 'src/app/components/Controls/kendo-treemap/kendo-treemap.component';
+import { KendoTreemapComponent2 } from 'src/app/components/Controls/kendo-treemap/kendo-treemap2.component';
+
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'mobile-marketmap',
   templateUrl: './marketmap.component.html',
   styleUrl: './marketmap.component.css',
+  imports: [KendoTreemapComponent2]
 })
 export class MarketMapComponent implements OnInit {
+
+  a: KendoTreemapComponent2 ;
   ngOnInit() {
     this.updateContainerHeight();
   }

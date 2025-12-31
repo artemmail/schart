@@ -4,10 +4,6 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 //import { FlexLayoutModule } from '@angular/flex-layout';
-import { BrowserModule } from '@angular/platform-browser';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-
-
 import { NgxEchartsModule } from 'ngx-echarts';
 import { HighchartsChartModule } from 'highcharts-angular';
 
@@ -96,11 +92,7 @@ const materialModules = [
         ReactiveFormsModule,
         RouterModule,
         
-      //  FlexLayoutModule,
-        BrowserModule,
-        BrowserAnimationsModule,
-        
-
+        //  FlexLayoutModule,
         NgxEchartsModule,
         HighchartsChartModule,
         ...materialModules,
@@ -108,11 +100,7 @@ const materialModules = [
         FormsModule,
         ReactiveFormsModule,
         RouterModule,
-      //  FlexLayoutModule,
-        BrowserModule,
-        BrowserAnimationsModule,
-        
-        
+        //  FlexLayoutModule,
         NgxEchartsModule.forRoot({ echarts: () => import('echarts') }),
         HighchartsChartModule,
         ...materialModules], providers: [{ provide: LOCALE_ID, useValue: 'ru' },provideHttpClient(withInterceptorsFromDi())] })

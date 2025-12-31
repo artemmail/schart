@@ -31,7 +31,6 @@ import { MarkupEditorComponent } from './components/footprint/markup-editor/mark
 import { TreeMapComponent } from './components/Controls/tree-map/tree-map.component';
 import { MarketMapComponent } from './components/pages/market-map/market-map.component';
 import { CustomTooltipComponent } from './components/Controls/custom-tooltip/custom-tooltip.component';
-import { MainPageComponent } from './components/pages/main-page/main-page.component';
 import { ServiceNewsDetailsComponent } from './components/pages/service-news-details/service-news-details.component';
 import { MultiComponent } from './components/pages/multi/multi.component';
 import { LogoutComponent } from './components/Authentification/logout/logout.component';
@@ -67,7 +66,6 @@ import { EditCommentComponent } from './components/pages/edit-comment/edit-comme
 import { PalettePickerModule } from 'src/lib/palette-picker.module';
 import { PalettePickerComponent } from 'src/lib/palette-picker.component';
 import { NpmStatChartComponent } from './components/pages/npm-stat-chart/npm-stat-chart.component';
-import { BrowserModule } from '@angular/platform-browser';
 import { OverlayModule } from '@angular/cdk/overlay';
 import { PortalModule } from '@angular/cdk/portal';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -148,7 +146,6 @@ registerLocaleData(localeRu, 'ru');
     CommonModule,
     MaterialModule,
     PalettePickerModule,
-    BrowserModule,
     OverlayModule,
     PortalModule,
     InfiniteScrollModule,
@@ -170,7 +167,7 @@ registerLocaleData(localeRu, 'ru');
     VolumeSplashComponent,
     VolumeDashboardComponent,
     BarometerComponent,
-    LeaderboardTableComponent,
+    
     TickerAutocompleteComponent,
     TopOrdersComponent,
     ImageUploaderComponent,
@@ -193,7 +190,7 @@ registerLocaleData(localeRu, 'ru');
     MarketMapComponent,
 
     CustomTooltipComponent,
-    MainPageComponent,
+    
     ServiceNewsDetailsComponent,
     MultiComponent,
     LogoutComponent,
@@ -259,7 +256,7 @@ registerLocaleData(localeRu, 'ru');
     VolumeDashboardComponent,
     VolumeSplashComponent,
     BarometerComponent,
-    LeaderboardTableComponent,
+    
     TickerAutocompleteComponent,
     TopOrdersComponent,
     ImageUploaderComponent,
@@ -280,7 +277,7 @@ registerLocaleData(localeRu, 'ru');
     MarketMapComponent,
 
     CustomTooltipComponent,
-    MainPageComponent,
+    
     ServiceNewsDetailsComponent,
     MultiComponent,
     LogoutComponent,

@@ -8,18 +8,21 @@ import {
   ViewChild,
   AfterViewInit
 } from '@angular/core';
-import { MatTableDataSource } from '@angular/material/table';
-import { MatSort } from '@angular/material/sort';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatSort, MatSortModule } from '@angular/material/sort';
 import { Subscription, interval, Observable } from 'rxjs';
 import { startWith, switchMap } from 'rxjs/operators';
 import { Leader } from 'src/app/models/Leaders';
 import { environment } from 'src/app/environment';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-leaderboard-table',
   templateUrl: './leaderboard-table.component.html',
   styleUrls: ['./leaderboard-table.component.css'],
+  imports: [CommonModule, MatTableModule, MatSortModule, RouterModule],
 })
 export class LeaderboardTableComponent implements OnInit, OnDestroy, AfterViewInit {
   @Input() market: number = 0;

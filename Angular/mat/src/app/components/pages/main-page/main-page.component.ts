@@ -1,18 +1,24 @@
+import { CommonModule } from '@angular/common';
 import { Component, ViewChild } from '@angular/core';
 import { Title } from '@angular/platform-browser';
-import { KendoTreemapComponent } from '../../Controls/kendo-treemap/kendo-treemap.component';
 import { DialogService } from 'src/app/service/DialogService.service';
+import { MaterialModule } from 'src/app/material.module';
+import { SharedModule } from 'src/app/shared.module';
+import { KendoTreemapComponent2 } from '../../Controls/kendo-treemap/kendo-treemap2.component';
+import { LeaderboardTableComponent } from '../../Controls/leaderboard-table/leaderboard-table.component';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-main-page',  
   templateUrl: './main-page.component.html',
-  styleUrl: './main-page.component.css'
+  styleUrl: './main-page.component.css',
+  imports: [CommonModule, MaterialModule, SharedModule, KendoTreemapComponent2, LeaderboardTableComponent],
+  
 })
 export class MainPageComponent {
 
   public selectedMarket: number  = 0;
-  @ViewChild(KendoTreemapComponent)  kendoTreemapComponent: KendoTreemapComponent;
+  @ViewChild(KendoTreemapComponent2)  kendoTreemapComponent: KendoTreemapComponent2;
 
 
 
