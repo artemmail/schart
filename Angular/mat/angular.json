@@ -32,9 +32,8 @@
             "styles": [
               "@angular/material/prebuilt-themes/azure-blue.css",
               "src/styles.css"
-            ],
-            "scripts": [ "node_modules/jquery/dist/jquery.min.js",
-  "./src/kendo/kendo.all.min.js"]
+            ]
+
           },
           "configurations": {
     "production": {
