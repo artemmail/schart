@@ -1,8 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
-import { TreeMapComponent } from '../tree-map/tree-map.component';
-import { TreeMapEvent, TreeMapOptions } from '../tree-map/tree-map.models';
-import { MockTreemapNode, createMockMarketMap, performanceColorScale } from './mock-data';
+import { TreeMapComponent, TreeMapEvent, TreeMapOptions } from 'stockchart-treemap';
+import { MockTreemapNode, createMockMarketMap, performanceColorScale } from '../../../shared/mock-data';
 
 @Component({
   selector: 'app-stockchart-treemap-example',

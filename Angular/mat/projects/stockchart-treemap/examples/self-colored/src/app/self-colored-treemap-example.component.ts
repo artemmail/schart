@@ -1,8 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
-import { TreeMapComponent } from '../tree-map/tree-map.component';
-import { TreeMapOptions } from '../tree-map/tree-map.models';
-import { MockTreemapNode, createPerformanceTreemap, performanceColorScale } from './mock-data';
+import { TreeMapComponent, TreeMapOptions } from 'stockchart-treemap';
+import { MockTreemapNode, createPerformanceTreemap, performanceColorScale } from '../../../shared/mock-data';
 
 @Component({
   selector: 'app-self-colored-treemap-example',
