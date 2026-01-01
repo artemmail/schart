@@ -151,7 +151,7 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/architect:run-commands",
+          "builder": "@angular-devkit/build-angular:run-commands",
           "options": {
             "commands": [
               {
@@ -165,7 +165,7 @@
           }
         },
         "serve": {
-          "builder": "@angular-devkit/architect:run-commands",
+          "builder": "@angular-devkit/build-angular:run-commands",
           "options": {
             "commands": [
               {
