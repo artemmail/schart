@@ -5,7 +5,7 @@ import {
   OnInit,
   ViewChild
 } from '@angular/core';
-import { StockChartTreemapComponent2 } from '../../Controls/stockChart-treemap/stockChart-treemap.component';
+import { StockChartTreemapComponent } from '../../Controls/stockChart-treemap/stockChart-treemap.component';
 import { MarketBoardComponent } from '../../Controls/market-board/market-board.component';
 import { FootPrintRequestModel } from 'src/app/models/tickerpreset';
 import { Title } from '@angular/platform-browser';
@@ -21,7 +21,7 @@ import { ReportsService } from 'src/app/service/reports.service';
   styleUrls: ['./market-map.component.css'],
 })
 export class MarketMapComponent implements OnInit, AfterViewInit {
-  @ViewChild(StockChartTreemapComponent2) stockChartTreemapComponent: StockChartTreemapComponent2;
+  @ViewChild(StockChartTreemapComponent) stockChartTreemapComponent: StockChartTreemapComponent;
   @ViewChild(MarketBoardComponent) marketBoardComponent: MarketBoardComponent;
   @ViewChild(DateRangePickerComponent) dateRangePickerComponent: DateRangePickerComponent;
   @ViewChild(PresetSelectorComponent1) dateRangeSelectorComponent: PresetSelectorComponent1;

@@ -32,7 +32,7 @@ import { TreeMapEvent } from '../tree-map/tree-map.models';
   providers: [MoneyToStrPipe],
   imports: [CommonModule, TreeMapComponent]
 })
-export class StockChartTreemapComponent2 implements AfterViewInit, OnDestroy {
+export class StockChartTreemapComponent implements AfterViewInit, OnDestroy {
   @Input() startDate?: Date;
   @Input() endDate?: Date;
   @Input() categories?: string;

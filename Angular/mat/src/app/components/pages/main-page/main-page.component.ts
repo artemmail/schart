@@ -4,7 +4,7 @@ import { Title } from '@angular/platform-browser';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { MaterialModule } from 'src/app/material.module';
 import { SharedModule } from 'src/app/shared.module';
-import { StockChartTreemapComponent2 } from '../../Controls/stockChart-treemap/stockChart-treemap.component';
+import { StockChartTreemapComponent } from '../../Controls/stockChart-treemap/stockChart-treemap.component';
 import { LeaderboardTableComponent } from '../../Controls/leaderboard-table/leaderboard-table.component';
 
 @Component({
@@ -12,13 +12,13 @@ import { LeaderboardTableComponent } from '../../Controls/leaderboard-table/lead
   selector: 'app-main-page',  
   templateUrl: './main-page.component.html',
   styleUrl: './main-page.component.css',
-  imports: [CommonModule, MaterialModule, SharedModule, StockChartTreemapComponent2, LeaderboardTableComponent],
+  imports: [CommonModule, MaterialModule, SharedModule, StockChartTreemapComponent, LeaderboardTableComponent],
   
 })
 export class MainPageComponent {
 
   public selectedMarket: number  = 0;
-  @ViewChild(StockChartTreemapComponent2)  stockChartTreemapComponent: StockChartTreemapComponent2;
+  @ViewChild(StockChartTreemapComponent)  stockChartTreemapComponent: StockChartTreemapComponent;
 
 
 

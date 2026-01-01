@@ -55,7 +55,7 @@ import { CostToStrPipe } from './pipes/cost-to-str.pipe copy';
 
 import { LeadersReportComponent } from './components/Reports/leaders-report/leaders-report.component';
 
-import { StockChartTreemapComponent2 } from './components/Controls/stockChart-treemap/stockChart-treemap.component';
+import { StockChartTreemapComponent } from './components/Controls/stockChart-treemap/stockChart-treemap.component';
 import { CategorySelectorComponent } from './components/Controls/CategorySelector/category-selector.component';
 import { ComboBoxComponent } from './components/Controls/ComboBox/combobox.component';
 import { MultiPageComponent } from './components/pages/multicandles/multicandles.component';
@@ -158,7 +158,7 @@ registerLocaleData(localeRu, 'ru');
     NgxMatDatepickerInput,
     MoneyToStrPipe,
     CostToStrPipe,
-    StockChartTreemapComponent2,
+    StockChartTreemapComponent,
 ],
   declarations: [
     ResizeListenerDirective,
@@ -296,7 +296,7 @@ registerLocaleData(localeRu, 'ru');
 
     LeadersReportComponent,
     
-    StockChartTreemapComponent2,
+    StockChartTreemapComponent,
     CategorySelectorComponent,
     ComboBoxComponent,
     MultiPageComponent,

@@ -5,7 +5,7 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
-import { StockChartTreemapComponent2 } from 'src/app/components/Controls/stockChart-treemap/stockChart-treemap.component';
+import { StockChartTreemapComponent } from 'src/app/components/Controls/stockChart-treemap/stockChart-treemap.component';
 
 
 @Component({
@@ -13,11 +13,11 @@ import { StockChartTreemapComponent2 } from 'src/app/components/Controls/stockCh
   selector: 'mobile-marketmap',
   templateUrl: './marketmap.component.html',
   styleUrl: './marketmap.component.css',
-  imports: [StockChartTreemapComponent2]
+  imports: [StockChartTreemapComponent]
 })
 export class MarketMapComponent implements OnInit {
 
-  a: StockChartTreemapComponent2 ;
+  a: StockChartTreemapComponent ;
   ngOnInit() {
     this.updateContainerHeight();
   }
