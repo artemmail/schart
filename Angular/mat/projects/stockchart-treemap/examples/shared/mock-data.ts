@@ -1,5 +1,4 @@
-import { projectColorByValue } from '../tree-map/tree-map.utils';
-import { TreeMapColorScale } from '../tree-map/tree-map.models';
+import { projectColorByValue, TreeMapColorScale } from 'stockchart-treemap';
 
 export interface MockTreemapNode {
   name: string;

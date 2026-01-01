@@ -23,6 +23,7 @@
     "typeRoots": ["node_modules/@types", "src/types"],
     "paths": {
       "stockchart-treemap": [
+        "./projects/stockchart-treemap/src/public-api.ts",
         "./dist/stockchart-treemap"
       ],
       "tinymce": ["tinymce/tinymce.min"],

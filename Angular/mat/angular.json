@@ -144,26 +144,99 @@
         }
       }
     },
-    "stockchart-treemap-examples": {
-      "projectType": "library",
-      "root": "projects/stockchart-treemap",
-      "sourceRoot": "projects/stockchart-treemap/src",
-      "prefix": "lib",
+    "stockchart-treemap-market-map": {
+      "projectType": "application",
+      "root": "projects/stockchart-treemap/examples/market-map",
+      "sourceRoot": "projects/stockchart-treemap/examples/market-map/src",
+      "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "project": "projects/stockchart-treemap/ng-package.examples.json"
+            "outputPath": "dist/stockchart-treemap/examples/market-map",
+            "index": "projects/stockchart-treemap/examples/market-map/src/index.html",
+            "main": "projects/stockchart-treemap/examples/market-map/src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "projects/stockchart-treemap/examples/market-map/tsconfig.app.json",
+            "assets": [],
+            "styles": [
+              "projects/stockchart-treemap/examples/market-map/src/styles.css"
+            ],
+            "scripts": []
           },
           "configurations": {
             "production": {
-              "tsConfig": "projects/stockchart-treemap/tsconfig.examples.json"
+              "outputHashing": "all"
             },
             "development": {
-              "tsConfig": "projects/stockchart-treemap/tsconfig.examples.json"
+              "optimization": false,
+              "sourceMap": true,
+              "namedChunks": true
             }
           },
           "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "stockchart-treemap-market-map:build:production"
+            },
+            "development": {
+              "buildTarget": "stockchart-treemap-market-map:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        }
+      }
+    },
+    "stockchart-treemap-self-colored": {
+      "projectType": "application",
+      "root": "projects/stockchart-treemap/examples/self-colored",
+      "sourceRoot": "projects/stockchart-treemap/examples/self-colored/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": "dist/stockchart-treemap/examples/self-colored",
+            "index": "projects/stockchart-treemap/examples/self-colored/src/index.html",
+            "main": "projects/stockchart-treemap/examples/self-colored/src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "projects/stockchart-treemap/examples/self-colored/tsconfig.app.json",
+            "assets": [],
+            "styles": [
+              "projects/stockchart-treemap/examples/self-colored/src/styles.css"
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "stockchart-treemap-self-colored:build:production"
+            },
+            "development": {
+              "buildTarget": "stockchart-treemap-self-colored:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
         }
       }
     }

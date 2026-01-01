@@ -1,4 +1,4 @@
-import { createMockMarketMap, createPerformanceTreemap } from './examples/mock-data';
+import { createMockMarketMap, createPerformanceTreemap } from '../examples/shared/mock-data';
 
 describe('stockchart-treemap mock data', () => {
   it('generates sectors with tickers', () => {
