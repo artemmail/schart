@@ -1,24 +1,24 @@
-:host, .k-treemap {
+:host, .sc-treemap {
   display: block;
   width: 100%;
   height: 100%;
 }
 
-.k-treemap {
+.sc-treemap {
   position: relative;
   overflow: hidden;
   user-select: none;
   font-family: Arial, sans-serif;
 }
 
-.k-treemap-root {
+.sc-treemap-root {
   position: relative;
   width: 100%;
   height: 100%;
 }
 
 /* wrap — контекст позиционирования детей */
-.k-treemap-wrap {
+.sc-treemap-wrap {
   position: relative;
   width: 100%;
   height: 100%;
@@ -27,29 +27,29 @@
   flex: 1 1 auto;
 }
 
-.k-treemap-wrap-col { flex-direction: column; }
-.k-treemap-wrap-row { flex-direction: row; }
+.sc-treemap-wrap-col { flex-direction: column; }
+.sc-treemap-wrap-row { flex-direction: row; }
 
 /* tile */
-.k-treemap-tile {
+.sc-treemap-tile {
   position: absolute;
   box-sizing: border-box;
   overflow: hidden;
   border: 1px solid rgba(0,0,0,0.08);
 }
 
-.k-treemap-tile.k-node {
+.sc-treemap-tile.k-node {
   background: rgba(0,0,0,0.01);
   display: flex;
 }
 
-.k-treemap-tile.k-node.k-layout-col { flex-direction: column; }
-.k-treemap-tile.k-node.k-layout-row { flex-direction: row; }
+.sc-treemap-tile.k-node.k-layout-col { flex-direction: column; }
+.sc-treemap-tile.k-node.k-layout-row { flex-direction: row; }
 
-.k-treemap-tile.k-leaf { cursor: pointer; }
+.sc-treemap-tile.k-leaf { cursor: pointer; }
 
 /* leaf content */
-.k-treemap-leaf-content {
+.sc-treemap-leaf-content {
   padding: 8px;
   font-size: 12px;
   line-height: 1.2;
@@ -72,17 +72,17 @@
   text-align: center;   
 }
 
-.k-treemap-tile.k-leaf.k-hover {
+.sc-treemap-tile.k-leaf.k-hover {
   outline: 2px solid rgba(0,0,0,0.25);
   outline-offset: -2px;
 }
 
 /* inverse (как в оригинале по brightness) */
-.k-treemap-tile.k-leaf.k-inverse { color: #000; }
-.k-treemap-tile.k-leaf:not(.k-inverse) { color: #fff; }
+.sc-treemap-tile.k-leaf.k-inverse { color: #000; }
+.sc-treemap-tile.k-leaf:not(.k-inverse) { color: #fff; }
 
 /* title */
-.k-treemap-title {
+.sc-treemap-title {
   box-sizing: border-box;
   padding: 6px 8px;
   font-size: 14px;
@@ -97,13 +97,13 @@
   text-align: center;   
 }
 
-.k-treemap-title-inner {
+.sc-treemap-title-inner {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.k-treemap-title-vertical {
+.sc-treemap-title-vertical {
   writing-mode: vertical-rl;
   text-orientation: mixed;
   padding: 8px 6px;
@@ -113,8 +113,8 @@
 /* ===== FIX: title+wrap absolute только внутри контейнеров ===== */
 
 /* Заголовок контейнера позиционируем абсолютно (иначе он ломает математику layout) */
-.k-treemap-title.tm-title-top,
-.k-treemap-title.tm-title-left {
+.sc-treemap-title.tm-title-top,
+.sc-treemap-title.tm-title-left {
   position: absolute;
   z-index: 2;
 }
@@ -132,7 +132,7 @@
 }
 
 /* ВАЖНО: вот этот wrap должен быть absolute, чтобы top/left НЕ оставляли "дырку" */
-.k-treemap-node-wrap {
+.sc-treemap-node-wrap {
   position: absolute;
   right: 0;
   bottom: 0;
@@ -142,10 +142,10 @@
 }
 
 /* Классы, которые ты ставишь на wrap */
-.k-treemap-node-wrap.tm-wrap-top { left: 0; }  /* top задаём инлайном */
-.k-treemap-node-wrap.tm-wrap-left { top: 0; }  /* left задаём инлайном */
+.sc-treemap-node-wrap.tm-wrap-top { left: 0; }  /* top задаём инлайном */
+.sc-treemap-node-wrap.tm-wrap-left { top: 0; }  /* left задаём инлайном */
 
 /* Контейнер-тайл (родитель) — просто clipping-контейнер */
-.k-treemap-tile.k-node {
+.sc-treemap-tile.k-node {
   overflow: hidden;
 }

@@ -54,7 +54,7 @@
 <div class="content overflow-hidden">
   <div id="container">
     <!-- Режим карта -->
-    <app-kendo-treemap2
+    <app-stockchart-treemap
       *ngIf="style === 0"
       [startDate]="dateRangePickerComponent?.getStart()"
       [endDate]="dateRangePickerComponent?.getEnd()"
@@ -62,7 +62,7 @@
       [rperiod]="rperiod"
       [top]="top"
       [market]="market"
-    ></app-kendo-treemap2>
+    ></app-stockchart-treemap>
 
     <!-- Режим доска -->
   

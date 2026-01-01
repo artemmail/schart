@@ -5,7 +5,7 @@ import {
   OnInit,
   ViewChild
 } from '@angular/core';
-import { KendoTreemapComponent2 } from '../../Controls/kendo-treemap/kendo-treemap2.component';
+import { StockChartTreemapComponent2 } from '../../Controls/stockChart-treemap/stockChart-treemap.component';
 import { MarketBoardComponent } from '../../Controls/market-board/market-board.component';
 import { FootPrintRequestModel } from 'src/app/models/tickerpreset';
 import { Title } from '@angular/platform-browser';
@@ -21,7 +21,7 @@ import { ReportsService } from 'src/app/service/reports.service';
   styleUrls: ['./market-map.component.css'],
 })
 export class MarketMapComponent implements OnInit, AfterViewInit {
-  @ViewChild(KendoTreemapComponent2) kendoTreemapComponent: KendoTreemapComponent2;
+  @ViewChild(StockChartTreemapComponent2) stockChartTreemapComponent: StockChartTreemapComponent2;
   @ViewChild(MarketBoardComponent) marketBoardComponent: MarketBoardComponent;
   @ViewChild(DateRangePickerComponent) dateRangePickerComponent: DateRangePickerComponent;
   @ViewChild(PresetSelectorComponent1) dateRangeSelectorComponent: PresetSelectorComponent1;
@@ -73,8 +73,8 @@ export class MarketMapComponent implements OnInit, AfterViewInit {
   onCategoriesChangeString(selectedCategoriesString: string) {
     this.initialCategories = selectedCategoriesString;
     if (this.hasCategories()) {
-      if (this.style === 0 && this.kendoTreemapComponent) {
-        this.kendoTreemapComponent.updateParams({
+      if (this.style === 0 && this.stockChartTreemapComponent) {
+        this.stockChartTreemapComponent.updateParams({
           categories: selectedCategoriesString,
           rperiod: this.rperiod,
           market: this.market,
@@ -98,8 +98,8 @@ export class MarketMapComponent implements OnInit, AfterViewInit {
   onMarketChange(market: number): void {
     this.market = market;
     if (this.hasCategories()) {
-      if (this.style === 0 && this.kendoTreemapComponent) {
-        this.kendoTreemapComponent.updateParams({
+      if (this.style === 0 && this.stockChartTreemapComponent) {
+        this.stockChartTreemapComponent.updateParams({
           market: this.market,
           categories: this.initialCategories,
           rperiod: this.rperiod,
@@ -123,8 +123,8 @@ export class MarketMapComponent implements OnInit, AfterViewInit {
   changeDate(ev: any) {
     this.dateRangeSelectorComponent.setCustom();
     if (this.hasCategories()) {
-      if (this.style === 0 && this.kendoTreemapComponent) {
-        this.kendoTreemapComponent.updateParams({
+      if (this.style === 0 && this.stockChartTreemapComponent) {
+        this.stockChartTreemapComponent.updateParams({
           startDate: ev.start,
           endDate: ev.end,
           categories: this.initialCategories,
@@ -148,8 +148,8 @@ export class MarketMapComponent implements OnInit, AfterViewInit {
   changeTop(ev: number) {
     this.top = ev;
     if (this.hasCategories()) {
-      if (this.style === 0 && this.kendoTreemapComponent) {
-        this.kendoTreemapComponent.updateParams({
+      if (this.style === 0 && this.stockChartTreemapComponent) {
+        this.stockChartTreemapComponent.updateParams({
           top: this.top,
           categories: this.initialCategories,
           rperiod: this.rperiod,
@@ -177,8 +177,8 @@ export class MarketMapComponent implements OnInit, AfterViewInit {
     this.dateRangePickerComponent.setDatesRange(startDate, endDate);
 
     if (this.hasCategories()) {
-      if (this.style === 0 && this.kendoTreemapComponent) {
-        this.kendoTreemapComponent.updateParams({
+      if (this.style === 0 && this.stockChartTreemapComponent) {
+        this.stockChartTreemapComponent.updateParams({
           startDate: startDate,
           endDate: endDate,
           categories: this.initialCategories,
@@ -202,8 +202,8 @@ export class MarketMapComponent implements OnInit, AfterViewInit {
   onStyleChange(newStyle: number) {
     this.style = newStyle;
     if (this.hasCategories()) {
-      if (this.style === 0 && this.kendoTreemapComponent) {
-        this.kendoTreemapComponent.updateParams({
+      if (this.style === 0 && this.stockChartTreemapComponent) {
+        this.stockChartTreemapComponent.updateParams({
           categories: this.initialCategories,
           rperiod: this.rperiod,
           market: this.market,

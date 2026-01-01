@@ -5,7 +5,7 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
-import { KendoTreemapComponent2 } from 'src/app/components/Controls/kendo-treemap/kendo-treemap2.component';
+import { StockChartTreemapComponent2 } from 'src/app/components/Controls/stockChart-treemap/stockChart-treemap.component';
 
 
 @Component({
@@ -13,11 +13,11 @@ import { KendoTreemapComponent2 } from 'src/app/components/Controls/kendo-treema
   selector: 'mobile-marketmap',
   templateUrl: './marketmap.component.html',
   styleUrl: './marketmap.component.css',
-  imports: [KendoTreemapComponent2]
+  imports: [StockChartTreemapComponent2]
 })
 export class MarketMapComponent implements OnInit {
 
-  a: KendoTreemapComponent2 ;
+  a: StockChartTreemapComponent2 ;
   ngOnInit() {
     this.updateContainerHeight();
   }

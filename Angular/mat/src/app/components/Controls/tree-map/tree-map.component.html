@@ -1,8 +1,8 @@
-<div #host class="k-treemap k-widget">
+<div #host class="sc-treemap k-widget">
   <ng-container *ngIf="root as r">
-    <div class="k-treemap-root">
+    <div class="sc-treemap-root">
       <!-- дети псевдо-корня -->
-      <div class="k-treemap-wrap k-treemap-wrap-col">
+      <div class="sc-treemap-wrap sc-treemap-wrap-col">
         <ng-container *ngFor="let child of r.children; trackBy: trackByUid">
           <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child }"></ng-container>
         </ng-container>
@@ -15,7 +15,7 @@
   <!-- Leaf -->
   <ng-container *ngIf="isLeaf(node); else containerTpl">
     <div
-      class="k-treemap-tile k-leaf"
+      class="sc-treemap-tile k-leaf"
       [class.k-inverse]="isInverse(node)"
       [class.k-hover]="hoveredUid === node.uid"
       [style.left.px]="node.coord.left"
@@ -28,7 +28,7 @@
       (click)="onTileClick(node)"
       [attr.data-uid]="node.uid"
     >
-      <div class="k-treemap-leaf-content">
+      <div class="sc-treemap-leaf-content">
         <ng-container *ngIf="tileTemplate; else defaultLeaf">
           <ng-container
             *ngTemplateOutlet="tileTemplate; context: { $implicit: node.dataItem, node: node, isLeaf: true }">
@@ -48,7 +48,7 @@
 <!-- Container -->
 <ng-template #containerTpl>
   <div
-    class="k-treemap-tile k-node"
+    class="sc-treemap-tile k-node"
     [style.left.px]="node.coord.left"
     [style.top.px]="node.coord.top"
     [style.width.px]="node.coord.width"
@@ -58,8 +58,8 @@
     <!-- TITLE: убираем из flow -->
     <ng-container *ngIf="titleSizeFor(node) as ts">
       <div
-        class="k-treemap-title"
-        [class.k-treemap-title-vertical]="isTitleSide()"
+        class="sc-treemap-title"
+        [class.sc-treemap-title-vertical]="isTitleSide()"
         [class.tm-title-top]="!isTitleSide()"
         [class.tm-title-left]="isTitleSide()"
         [style.height.px]="!isTitleSide() ? ts : null"
@@ -75,14 +75,14 @@
         </ng-container>
 
         <ng-template #defaultTitle>
-          <div class="k-treemap-title-inner">{{ node.text }}</div>
+          <div class="sc-treemap-title-inner">{{ node.text }}</div>
         </ng-template>
       </div>
     </ng-container>
 
     <!-- WRAP: занимает ровно оставшееся место -->
     <div
-      class="k-treemap-wrap k-treemap-node-wrap"
+      class="sc-treemap-wrap sc-treemap-node-wrap"
       [class.tm-wrap-top]="!isTitleSide()"
       [class.tm-wrap-left]="isTitleSide()"
       [style.top.px]="!isTitleSide() ? titleSizeFor(node) : 0"

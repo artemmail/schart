@@ -4,7 +4,7 @@ import { Title } from '@angular/platform-browser';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { MaterialModule } from 'src/app/material.module';
 import { SharedModule } from 'src/app/shared.module';
-import { KendoTreemapComponent2 } from '../../Controls/kendo-treemap/kendo-treemap2.component';
+import { StockChartTreemapComponent2 } from '../../Controls/stockChart-treemap/stockChart-treemap.component';
 import { LeaderboardTableComponent } from '../../Controls/leaderboard-table/leaderboard-table.component';
 
 @Component({
@@ -12,20 +12,20 @@ import { LeaderboardTableComponent } from '../../Controls/leaderboard-table/lead
   selector: 'app-main-page',  
   templateUrl: './main-page.component.html',
   styleUrl: './main-page.component.css',
-  imports: [CommonModule, MaterialModule, SharedModule, KendoTreemapComponent2, LeaderboardTableComponent],
+  imports: [CommonModule, MaterialModule, SharedModule, StockChartTreemapComponent2, LeaderboardTableComponent],
   
 })
 export class MainPageComponent {
 
   public selectedMarket: number  = 0;
-  @ViewChild(KendoTreemapComponent2)  kendoTreemapComponent: KendoTreemapComponent2;
+  @ViewChild(StockChartTreemapComponent2)  stockChartTreemapComponent: StockChartTreemapComponent2;
 
 
 
   onMarketChange(market: number): void {
     
 
-    this.kendoTreemapComponent.updateParams({ market: this.selectedMarket });
+    this.stockChartTreemapComponent.updateParams({ market: this.selectedMarket });
   }
 
   constructor(private titleService: Title,   private dialogService: DialogService) {

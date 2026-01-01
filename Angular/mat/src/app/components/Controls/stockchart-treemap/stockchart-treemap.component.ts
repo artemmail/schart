@@ -26,13 +26,13 @@ import { TreeMapEvent } from '../tree-map/tree-map.models';
 
 @Component({
   standalone: true,
-  selector: 'app-kendo-treemap2',
-  templateUrl: './kendo-treemap2.component.html',
-  styleUrls: ['./kendo-treemap2.component.css'],
+  selector: 'app-stockchart-treemap',
+  templateUrl: './stockchart-treemap.component.html',
+  styleUrls: ['./stockchart-treemap.component.css'],
   providers: [MoneyToStrPipe],
   imports: [CommonModule, TreeMapComponent]
 })
-export class KendoTreemapComponent2 implements AfterViewInit, OnDestroy {
+export class StockChartTreemapComponent2 implements AfterViewInit, OnDestroy {
   @Input() startDate?: Date;
   @Input() endDate?: Date;
   @Input() categories?: string;
@@ -186,7 +186,7 @@ constructor(
     this.router.navigate([route], { queryParams });
   }
 
-  // ====== Tooltip (аналог kendoTooltip) ======
+  // ====== Tooltip (аналог stockChartTooltip) ======
   onTileHover(e: TreeMapEvent<any>): void {
     this.item = e.dataItem;
     if (!this.item) return;
