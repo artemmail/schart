@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
+import { FootPrintRequestParamsNew } from 'src/app/models/FootPrintPar';
 import { TickerPresetNew } from 'src/app/models/tickerpreset';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { CommonService } from 'src/app/service/common.service';
@@ -77,13 +78,28 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
 
 
     this.route.queryParams.subscribe((params) => {
+      const requestParams: FootPrintRequestParamsNew = {
+        ...params,
+        period: params['period'] ? Number(params['period']) : undefined,
+        candlesOnly:
+          params['candlesOnly'] === true || params['candlesOnly'] === 'true',
+      };
+
       this.commonService
-        .getControlsNew(params)
+        .getControlsNew(requestParams)
         .subscribe((data: TickerPresetNew) => {
-         
-          this.params = { ...this.params, ...data };
-          this.isCandlestick = this.route.snapshot.url.join('/').includes('CandlestickChart');
-          const chartType = this.isCandlestick ? "свечной" : "кластерный";    
+          this.isCandlestick =
+            this.route.snapshot.url
+              .join('/')
+              .includes('CandlestickChart') || requestParams.candlesOnly === true;
+
+          this.params = {
+            ...this.params,
+            ...data,
+            candlesOnly: requestParams.candlesOnly ?? data.candlesOnly,
+          };
+
+          const chartType = this.isCandlestick ? "свечной" : "кластерный";
           this.titleService.setTitle(`${this.params.ticker} ${chartType} график`);
           this.isInited = true;
 
