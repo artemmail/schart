@@ -207,6 +207,10 @@ export class FootprintWidgetComponent
           this.renderer.presetItems = items;
         }
         this.presetItems = items;
+
+        if (items.length && (this.presetIndex === undefined || this.presetIndex === null)) {
+          this.setPresetIndex(items[0].Value);
+        }
       });
   }
 
