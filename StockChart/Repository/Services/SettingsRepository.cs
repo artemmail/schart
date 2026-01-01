@@ -69,7 +69,11 @@ namespace StockChart.Repository
             if (chartSettings == null)
                 throw new Exception("Не удалось сохранить настройки - у пользователя нет прав");
 
+            await SetDefaultChartSettingsAsync(user.Id);
+
+            chartSettings.Default = true;
             chartSettings.LastUpdate = DateTime.Now;
+            chartSettings.LastSelection = DateTime.Now;
             _dbContext.Update(chartSettings);
             await _dbContext.SaveChangesAsync();
         }

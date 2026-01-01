@@ -188,7 +188,7 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
 
   presetChange(a: number) {
     this.chartSettingsService.getChartSettings(a).subscribe((x) => {
-      
+
       if (this.isCandlestick)
         x.CandlesOnly = true;
 
@@ -199,6 +199,8 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
       } else {
         this.footPrint.reload();
       }
+
+      this.chartSettingsService.saveChartSettings(a).subscribe();
     });
   }
 
