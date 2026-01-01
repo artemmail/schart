@@ -248,6 +248,7 @@ registerLocaleData(localeRu, 'ru');
   exports: [
     ResizeListenerDirective,
     FootPrintComponent,
+    FootprintWidgetComponent,
     SeasonalityComponent,
     SpinnerOverlayComponent,
     VolumeDashboardComponent,
