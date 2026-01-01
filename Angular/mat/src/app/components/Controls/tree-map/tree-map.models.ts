@@ -9,6 +9,7 @@ export interface TreeMapOptions {
   childrenField: string;  // default: "items"
 
   colors: Array<string | [string, string]>;
+  colorScale?: TreeMapColorScale;
 
   /** Размер заголовка контейнеров: px (для horizontal - ширина, иначе - высота) */
   titleSize: number;
@@ -24,6 +25,12 @@ export interface TreeMapOptions {
 
   /** Не углубляться, если тайл меньше этого размера */
   minTileSize: number;
+}
+
+export interface TreeMapColorScale {
+  min: string;
+  max: string;
+  center?: string; // цвет для 0
 }
 
 export interface TreeMapTileContext<T = any> {

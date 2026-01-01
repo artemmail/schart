@@ -1,4 +1,4 @@
-import { TreeNode } from './tree-map.models';
+import { TreeMapColorScale, TreeNode } from './tree-map.models';
 
 const UNDEFINED = 'undefined';
 
@@ -60,6 +60,28 @@ export function colorsByLength(min: string, max: string, length: number): string
   return colors;
 }
 
+export function projectColorByValue(value: number, min: number, max: number, scale: TreeMapColorScale): string {
+  const hasCenter = typeof scale.center === 'string';
+  const clampedMin = Math.min(min, max);
+  const clampedMax = Math.max(min, max);
+
+  if (clampedMin === clampedMax) {
+    return scale.center ?? scale.max ?? scale.min;
+  }
+
+  if (hasCenter && clampedMin < 0 && clampedMax > 0) {
+    if (value >= 0) {
+      const ratio = clampedMax === 0 ? 0 : clamp01(value / clampedMax);
+      return interpolateColor(scale.center ?? scale.min, scale.max, ratio);
+    }
+    const ratio = clampedMin === 0 ? 0 : clamp01(value / clampedMin);
+    return interpolateColor(scale.center ?? scale.max, scale.min, ratio);
+  }
+
+  const ratio = clamp01((value - clampedMin) / (clampedMax - clampedMin));
+  return interpolateColor(scale.min, scale.max, ratio);
+}
+
 function colorByIndex(min: number, max: number, index: number, length: number, isDarker: boolean): number {
   const minColor = Math.min(Math.abs(min), Math.abs(max));
   const maxColor = Math.max(Math.abs(min), Math.abs(max));
@@ -69,8 +91,24 @@ function colorByIndex(min: number, max: number, index: number, length: number, i
   return isDarker ? (minColor + currentStep) : (maxColor - currentStep);
 }
 
+function interpolateColor(min: string, max: string, ratio: number): string {
+  const start = rgbToDecimal(min);
+  const end = rgbToDecimal(max);
+  const t = clamp01(ratio);
+
+  return buildColorFromRGB({
+    r: lerp(start.r, end.r, t),
+    g: lerp(start.g, end.g, t),
+    b: lerp(start.b, end.b, t)
+  });
+}
+
 function buildColorFromRGB(color: { r: number; g: number; b: number }): string {
   return '#' + decimalToRgb(color.r) + decimalToRgb(color.g) + decimalToRgb(color.b);
+}
+
+function lerp(from: number, to: number, t: number): number {
+  return from + (to - from) * t;
 }
 
 function rgbToDecimal(color: string): { r: number; g: number; b: number } {
@@ -116,4 +154,9 @@ export function colorBrightness(color?: string): number {
     brightness = Math.sqrt(0.241 * c.r * c.r + 0.691 * c.g * c.g + 0.068 * c.b * c.b);
   }
   return brightness;
+}
+
+function clamp01(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(1, Math.max(0, value));
 }

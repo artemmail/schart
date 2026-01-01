@@ -19,7 +19,7 @@ import { Observable, Subscription, defer, from, isObservable, of, timer } from '
 import { switchMap } from 'rxjs/operators';
 import { Coord, Layout, TreeMapEvent, TreeMapOptions, TreeMapTileContext, TreeNode } from './tree-map.models';
 import { SliceAndDiceLayout, SquarifiedLayout } from './tree-map.layouts';
-import { colorBrightness, colorsByLength, defined, getField, roundN, toNumber } from './tree-map.utils';
+import { colorBrightness, colorsByLength, defined, getField, projectColorByValue, roundN, toNumber } from './tree-map.utils';
 
 @Component({
   selector: 'app-treemap',
@@ -71,6 +71,7 @@ export class TreeMapComponent<T = any> implements AfterViewInit, OnChanges, OnDe
       colorField: 'color',
       childrenField: 'items',
       colors: ['#5B8FF9', '#5AD8A6', '#5D7092', '#F6BD16', '#E8684A', '#6DC8EC'],
+      colorScale: undefined,
       titleSize: 26,
       showTopLevelTitles: true,
       deriveParentValueFromChildren: true,
@@ -314,8 +315,37 @@ this.cdr.markForCheck();   // <-- важно
     const items = node.children;
     if (!items?.length) return;
 
+    if (this.cfg.colorScale) {
+      this.applyProjectedColors(items, this.cfg.colorScale);
+    }
+
     const colors = this.cfg.colors;
-    if (!colors.length) return;
+    if (colors.length) {
+      this.applyPaletteColors(items, colors);
+    } else {
+      this.applyFallbackColors(items);
+    }
+
+    for (const c of items) this.applyColors(c);
+  }
+
+  private applyProjectedColors(nodes: TreeNode<T>[], scale: NonNullable<TreeMapOptions['colorScale']>): void {
+    const values = nodes.flatMap(n => this.collectValues(n));
+    if (!values.length) return;
+
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+
+    const allNodes = nodes.flatMap(n => this.collectNodes(n));
+    for (const n of allNodes) {
+      if (!defined(n.color)) {
+        n.color = projectColorByValue(n.value ?? 0, min, max, scale);
+      }
+    }
+  }
+
+  private applyPaletteColors(nodes: TreeNode<T>[], colors: Array<string | [string, string]>): void {
+    if (!nodes.length) return;
 
     const chosen = colors[this.colorIdx % colors.length];
     let colorRange: string[] | null = null;
@@ -323,23 +353,38 @@ this.cdr.markForCheck();   // <-- важно
     // ВАЖНО: намеренно повторяем логику из твоего кода:
     // colorsByLength возвращает length+2, а мы берём первые length элементов.
     if (Array.isArray(chosen)) {
-      colorRange = colorsByLength(chosen[0], chosen[1], items.length);
+      colorRange = colorsByLength(chosen[0], chosen[1], nodes.length);
     }
 
     let leafNodes = false;
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
 
-      if (!defined(item.color)) {
-        item.color = colorRange ? colorRange[i] : (chosen as string);
+      if (!defined(node.color)) {
+        node.color = colorRange ? colorRange[i] : (chosen as string);
       }
 
-      if (!item.children?.length) leafNodes = true;
+      if (!node.children?.length) leafNodes = true;
     }
 
     if (leafNodes) this.colorIdx++;
+  }
 
-    for (const c of items) this.applyColors(c);
+  private applyFallbackColors(nodes: TreeNode<T>[]): void {
+    for (const n of nodes) {
+      if (!defined(n.color)) n.color = '#B0B0B0';
+    }
+  }
+
+  private collectNodes(node: TreeNode<T>): TreeNode<T>[] {
+    const res: TreeNode<T>[] = [node];
+    for (const c of node.children ?? []) res.push(...this.collectNodes(c));
+    return res;
+  }
+
+  private collectValues(node: TreeNode<T>): number[] {
+    if (!node.children?.length) return [node.value ?? 0];
+    return node.children.flatMap(c => this.collectValues(c));
   }
 
   private layoutNode(node: TreeNode<T>, layout: Layout): void {
