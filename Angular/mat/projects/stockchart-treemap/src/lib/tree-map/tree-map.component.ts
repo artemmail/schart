@@ -81,9 +81,7 @@ export class TreeMapComponent<T = any> implements AfterViewInit, OnChanges, OnDe
       deriveParentValueFromChildren: true,
       roundDecimals: 4,
       minTileSize: 2,
-      ...this.options,
-      valueField,
-      colorValueField
+      ...this.options
     };
   }
 

@@ -151,7 +151,7 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:application",
+          "builder": "@angular-devkit/build-angular:browser",
           "options": {
             "outputPath": "dist/stockchart-treemap/examples/market-map",
             "index": "projects/stockchart-treemap/examples/market-map/src/index.html",
@@ -199,7 +199,7 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:application",
+          "builder": "@angular-devkit/build-angular:browser",
           "options": {
             "outputPath": "dist/stockchart-treemap/examples/self-colored",
             "index": "projects/stockchart-treemap/examples/self-colored/src/index.html",
