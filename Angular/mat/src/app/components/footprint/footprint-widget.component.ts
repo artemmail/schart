@@ -177,7 +177,6 @@ export class FootprintWidgetComponent
       )
       .subscribe((clusterData) => {
         this.renderer?.applyData(clusterData);
-        this.settingsManager.recalculate();
       });
 
     this.footprintRealtimeUpdater.updates$
