@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
-import { TreeMapComponent, TreeMapEvent } from '../Controls/tree-map/tree-map.component';
+import { TreeMapComponent } from '../Controls/tree-map/tree-map.component';
+import { TreeMapEvent } from '../Controls/tree-map/tree-map.models';
 
 
 @Component({

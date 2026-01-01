@@ -19,8 +19,10 @@ import { switchMap, startWith } from 'rxjs/operators';
 import { MoneyToStrPipe } from 'src/app/pipes/money-to-str.pipe';
 import { Router } from '@angular/router';
 
-import { TreeMapComponent, TreeMapEvent } from '../tree-map/tree-map.component'; // <-- поправь путь под себя
+import { TreeMapComponent } from '../tree-map/tree-map.component'; // <-- поправь путь под себя
 import { FootprintWidgetComponent } from '../../footprint/footprint-widget.component';
+import { TreeMapEvent } from '../tree-map/tree-map.models';
+
 
 @Component({
   standalone: true,
