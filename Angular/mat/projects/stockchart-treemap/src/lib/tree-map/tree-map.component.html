@@ -1,0 +1,96 @@
+<div #host class="sc-treemap k-widget">
+  <ng-container *ngIf="root as r">
+    <div class="sc-treemap-root">
+      <!-- дети псевдо-корня -->
+      <div class="sc-treemap-wrap sc-treemap-wrap-col">
+        <ng-container *ngFor="let child of r.children; trackBy: trackByUid">
+          <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child }"></ng-container>
+        </ng-container>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<ng-template #nodeTpl let-node>
+  <!-- Leaf -->
+  <ng-container *ngIf="isLeaf(node); else containerTpl">
+    <div
+      class="sc-treemap-tile k-leaf"
+      [class.k-inverse]="isInverse(node)"
+      [class.k-hover]="hoveredUid === node.uid"
+      [style.left.px]="node.coord.left"
+      [style.top.px]="node.coord.top"
+      [style.width.px]="node.coord.width"
+      [style.height.px]="node.coord.height"
+      [style.backgroundColor]="node.color"
+      (mouseenter)="onTileMouseEnter(node)"
+      (mouseleave)="onTileMouseLeave(node)"
+      (click)="onTileClick(node)"
+      [attr.data-uid]="node.uid"
+    >
+      <div class="sc-treemap-leaf-content">
+        <ng-container *ngIf="tileTemplate; else defaultLeaf">
+          <ng-container
+            *ngTemplateOutlet="tileTemplate; context: { $implicit: node.dataItem, node: node, isLeaf: true }">
+          </ng-container>
+        </ng-container>
+
+        <ng-template #defaultLeaf>
+          <!-- дефолт под твой формат: name + ticker + percent -->
+          <div class="leaf-meta">{{ node.text }}</div>
+
+          
+        </ng-template>
+      </div>
+    </div>
+  </ng-container>
+
+<!-- Container -->
+<ng-template #containerTpl>
+  <div
+    class="sc-treemap-tile k-node"
+    [style.left.px]="node.coord.left"
+    [style.top.px]="node.coord.top"
+    [style.width.px]="node.coord.width"
+    [style.height.px]="node.coord.height"
+    [attr.data-uid]="node.uid"
+  >
+    <!-- TITLE: убираем из flow -->
+    <ng-container *ngIf="titleSizeFor(node) as ts">
+      <div
+        class="sc-treemap-title"
+        [class.sc-treemap-title-vertical]="isTitleSide()"
+        [class.tm-title-top]="!isTitleSide()"
+        [class.tm-title-left]="isTitleSide()"
+        [style.height.px]="!isTitleSide() ? ts : null"
+        [style.width.px]="isTitleSide() ? ts : null"
+        (mouseenter)="onTileMouseEnter(node)"
+        (mouseleave)="onTileMouseLeave(node)"
+        (click)="onTileClick(node)"
+      >
+        <ng-container *ngIf="titleTemplate; else defaultTitle">
+          <ng-container
+            *ngTemplateOutlet="titleTemplate; context: { $implicit: node.dataItem, node: node, isLeaf: false }">
+          </ng-container>
+        </ng-container>
+
+        <ng-template #defaultTitle>
+          <div class="sc-treemap-title-inner">{{ node.text }}</div>
+        </ng-template>
+      </div>
+    </ng-container>
+
+    <!-- WRAP: занимает ровно оставшееся место -->
+    <div
+      class="sc-treemap-wrap sc-treemap-node-wrap"
+      [class.tm-wrap-top]="!isTitleSide()"
+      [class.tm-wrap-left]="isTitleSide()"
+      [style.top.px]="!isTitleSide() ? titleSizeFor(node) : 0"
+      [style.left.px]="isTitleSide() ? titleSizeFor(node) : 0"
+    >
+      <ng-container *ngFor="let child of node.children; trackBy: trackByUid">
+        <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child }"></ng-container>
+      </ng-container>
+    </div>
+  </div>
+</ng-template>

@@ -1,0 +1,23 @@
+{
+  "name": "stockchart-treemap",
+  "version": "1.0.0",
+  "description": "Standalone Angular treemap component with StockChart-themed demos and mock data generators.",
+  "keywords": [
+    "angular",
+    "treemap",
+    "stockchart",
+    "visualization"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@angular/common": "^20.3.0",
+    "@angular/core": "^20.3.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "sideEffects": false
+}

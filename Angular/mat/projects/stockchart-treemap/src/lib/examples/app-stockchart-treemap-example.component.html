@@ -1,0 +1,32 @@
+<div class="example-card">
+  <div class="example-header">
+    <h3>Демо «app-stockchart-treemap»</h3>
+    <p>
+      Компонент получает сгенерированное дерево с секторами и тикерами и автоматически
+      пересчитывает цвета через <code>TreeMapColorScale</code> для удобного восприятия приростов и падений.
+    </p>
+  </div>
+
+  <div class="example-body">
+    <stockchart-treemap
+      class="treemap-canvas"
+      [data]="data"
+      [options]="treemapOptions"
+      (tileHover)="onTileHover($event)"
+      (tileClick)="onTileClick($event)"
+      (mouseleave)="onTileLeave()"
+    ></stockchart-treemap>
+
+    <div class="example-sidebar" *ngIf="hovered || selected">
+      <h4>Детали</h4>
+      <div *ngIf="hovered" class="metric">
+        <span class="metric-label">Наведение:</span>
+        <span class="metric-value">{{ hovered?.name }} ({{ hovered?.change?.toFixed(2) }}%)</span>
+      </div>
+      <div *ngIf="selected" class="metric">
+        <span class="metric-label">Выбрано:</span>
+        <span class="metric-value">{{ selected?.name }} — {{ selected?.value | number:'1.0-0' }} млн</span>
+      </div>
+    </div>
+  </div>
+</div>
