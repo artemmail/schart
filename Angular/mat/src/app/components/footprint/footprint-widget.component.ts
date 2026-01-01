@@ -158,6 +158,11 @@ export class FootprintWidgetComponent
     );
   }
 
+  setPresetIndex(presetIndex: number) {
+    this.presetIndex = presetIndex;
+    this.footprintDataLoader.setPresetIndex(presetIndex);
+  }
+
   private buildInitOptions(): FootprintInitOptions {
     return { minimode: this.minimode, deltamode: this.deltamode };
   }
@@ -172,6 +177,7 @@ export class FootprintWidgetComponent
       )
       .subscribe((clusterData) => {
         this.renderer?.applyData(clusterData);
+        this.settingsManager.recalculate();
       });
 
     this.footprintRealtimeUpdater.updates$
