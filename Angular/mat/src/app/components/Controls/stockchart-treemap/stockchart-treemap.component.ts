@@ -40,13 +40,10 @@ export class StockChartTreemapComponent implements AfterViewInit, OnDestroy {
   @Input() top: number = 50;
   @Input() market: number = 0;
 
-
-  aaa: TreeMapComponent;
-
-  // данные для treemap
+  
   data: any[] = [];
 
-  // опции treemap (под твой JSON уже подходят дефолты, но явно укажем)
+  
   treemapOptions = {
     type: 'squarified' as const,
     textField: 'name',

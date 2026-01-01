@@ -20,6 +20,7 @@
   <app-date-range-selector
     #presetSelector
     [ticker]="params.ticker"
+    [rperiod]="params?.rperiod"
     (selectionChange)="applyPreset($event)"
   ></app-date-range-selector>
 </div>

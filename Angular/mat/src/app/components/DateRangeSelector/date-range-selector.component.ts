@@ -22,6 +22,7 @@ export class PresetSelectorComponent1 implements OnInit {
 
   presets: SelectListItemText[] = [];
   Dic: { [rperiod: string]: FootPrintRequestParams } = {};
+  private valueChangesInitialized = false;
 
   constructor(private commonService: CommonService) {}
 
@@ -45,8 +46,7 @@ export class PresetSelectorComponent1 implements OnInit {
       if (markets && markets.length > 0) {
         this.presets = this.transformList(markets);
         this.Dic = this.createRperiodDictionary(markets);
-        const initialMarket = this.rperiod;
-
+        const initialMarket = this.resolveInitialRperiod(markets);
         this.marketControl.setValue(initialMarket);
       } else {
         this.presets = [];
@@ -56,11 +56,14 @@ export class PresetSelectorComponent1 implements OnInit {
     });
 
     // Подписка на изменения выбора пресета
-    this.marketControl.valueChanges.subscribe((value) => {
-      if (this.Dic && value in this.Dic && value !== 'custom') {
-        this.selectionChange.emit(this.Dic[value]);
-      }
-    });
+    if (!this.valueChangesInitialized) {
+      this.marketControl.valueChanges.subscribe((value) => {
+        if (this.Dic && value in this.Dic && value !== 'custom') {
+          this.selectionChange.emit(this.Dic[value]);
+        }
+      });
+      this.valueChangesInitialized = true;
+    }
   }
 
   public setCustom() {
@@ -85,5 +88,20 @@ export class PresetSelectorComponent1 implements OnInit {
 
   getSelectedPreset(): FootPrintRequestParams {
     return this.Dic[this.marketControl.value];
+  }
+
+  private resolveInitialRperiod(list: SelectListItemParams[]): string {
+    if (this.rperiod) {
+      if (this.rperiod in this.Dic) {
+        return this.rperiod;
+      }
+
+      if (this.rperiod === 'custom') {
+        return 'custom';
+      }
+    }
+
+    const firstPreset = list.find((item) => item.Value.rperiod)?.Value.rperiod;
+    return firstPreset ?? 'custom';
   }
 }

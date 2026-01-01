@@ -14,6 +14,7 @@ import { SelectListItemNumber, SmallPeriodPreset } from 'src/app/models/preserts
 import { TickerAutocompleteComponent } from '../ticker-autocomplete/ticker-autocomplete.component';
 
 import { FootPrintParameters } from 'src/app/models/Params';
+import { FootPrintRequestParams } from 'src/app/models/FootPrintPar';
 import { MatEventEmitterService } from 'src/app/service/mat-event-emitter.service';
 import { CommonService } from 'src/app/service/common.service';
 import { tap } from 'rxjs/operators';
@@ -53,13 +54,24 @@ export class FootPrintParamsComponent
 
   refresh() {}
 
-  applyPreset(foundPreset: FootPrintParameters) {
-    this.params.startDate = foundPreset.startDate;
-    this.params.endDate = foundPreset.endDate;
-    this.params.period = foundPreset.period;
-    this.params.priceStep = foundPreset.priceStep;
+  applyPreset(foundPreset: FootPrintRequestParams) {
+    if (!this.params || !foundPreset) {
+      return;
+    }
 
-    this.DateRange.setDatesRange(this.params.startDate, this.params.endDate);
+    this.params.rperiod = foundPreset.rperiod ?? this.params.rperiod;
+    this.params.startDate = foundPreset.startDate ?? this.params.startDate;
+    this.params.endDate = foundPreset.endDate ?? this.params.endDate;
+    if (foundPreset.period !== undefined) {
+      this.params.period = foundPreset.period;
+    }
+    if (foundPreset.priceStep !== undefined) {
+      this.params.priceStep = foundPreset.priceStep;
+    }
+
+    if (this.DateRange && this.params.startDate && this.params.endDate) {
+      this.DateRange.setDatesRange(this.params.startDate, this.params.endDate);
+    }
   }
 
   SelectPeriod(val: any) {}
@@ -68,6 +80,7 @@ export class FootPrintParamsComponent
     return {
       ticker: this.params.ticker,
       period: this.params.period,
+      rperiod: this.params.rperiod,
       priceStep: this.params.priceStep,
       startDate: this.DateRange.getStart(),
       endDate: this.DateRange.getEnd(),
