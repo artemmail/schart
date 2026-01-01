@@ -15,6 +15,13 @@
    npm publish --access public
    ```
 
+## Сборка примерных компонентов для отладки
+Для локального тестирования и пошаговой отладки демо-компонентов соберите отдельный пакет `stockchart-treemap-examples`:
+```bash
+npm run build:stockchart-treemap-examples
+```
+Сборка использует tsconfig для примеров и кладёт артефакты в `dist/stockchart-treemap-examples`, чтобы их можно было подключить в песочнице или во внешнем приложении без вмешательства в основной пакет.
+
 ## Подключение
 ```ts
 import { bootstrapApplication } from '@angular/platform-browser';

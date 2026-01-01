@@ -143,6 +143,29 @@
           }
         }
       }
+    },
+    "stockchart-treemap-examples": {
+      "projectType": "library",
+      "root": "projects/stockchart-treemap",
+      "sourceRoot": "projects/stockchart-treemap/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "projects/stockchart-treemap/ng-package.examples.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/stockchart-treemap/tsconfig.examples.json"
+            },
+            "development": {
+              "tsConfig": "projects/stockchart-treemap/tsconfig.examples.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        }
+      }
     }
   },
   "cli": {
