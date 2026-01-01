@@ -150,7 +150,7 @@ export class MarketBoardComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   navigateToFootPrint(ticker: string): void {
-    this.router.navigate(['/FootPrint'], { queryParams: { candlesOnly: true, rperiod: 'day', period: 5, ticker: ticker } });
+    this.router.navigate(['/FootPrint'], { queryParams: { ticker } });
   }
 
   navigateToMultiCandles(tickers: string): void {
