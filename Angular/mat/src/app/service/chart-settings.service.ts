@@ -31,7 +31,7 @@ export class ChartSettingsService {
   }
 
   saveChartSettings(id: number): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/Post?id=${id}`, {});
+    return this.http.post<void>(`${this.apiUrl}/Post?id=${id}`, {}, { withCredentials: true });
   }
 
   

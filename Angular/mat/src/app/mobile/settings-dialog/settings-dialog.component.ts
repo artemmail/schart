@@ -44,9 +44,11 @@ export class SettingsDialogComponent {
   }
 
   presetChange(a: number) {
-    this.chartSettingsService.getChartSettings(a).subscribe((x) => {          
-      this.footPrint.FPsettings = x;      
+    this.chartSettingsService.getChartSettings(a).subscribe((x) => {
+      this.footPrint.FPsettings = x;
       this.footPrint.resize();
+
+      this.chartSettingsService.saveChartSettings(a).subscribe();
     });
   }
 

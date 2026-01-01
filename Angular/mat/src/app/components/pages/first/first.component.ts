@@ -183,6 +183,8 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
 
       this.footPrint.FPsettings = x;
       this.footPrint.resize();
+
+      this.chartSettingsService.saveChartSettings(a).subscribe();
     });
   }
 

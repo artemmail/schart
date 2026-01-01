@@ -147,6 +147,8 @@ export class FootPrintSettingsDialogComponent {
       this.fp.FPsettings = x;
       this.settings = this.fp.FPsettings;
       this.fp.resize();
+
+      this.chartSettingsService.saveChartSettings(a).subscribe();
     });
   }
 
