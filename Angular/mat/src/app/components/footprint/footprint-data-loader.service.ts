@@ -128,6 +128,10 @@ export class FootprintDataLoaderService implements OnDestroy {
     }
   }
 
+  setPresetIndex(presetIndex: number) {
+    this.presetIndex = presetIndex;
+  }
+
   private async requestRange(params: FootPrintParameters): Promise<boolean> {
     try {
       const rangeData = await firstValueFrom(
