@@ -39,7 +39,7 @@ import { Subject, takeUntil } from 'rxjs';
 export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(FootprintWidgetComponent) footPrint: FootprintWidgetComponent;
 
-  
+
 
 
   params: TickerPresetNew;
@@ -49,6 +49,8 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
   footprintPostInit = (component: FootPrintComponent) => {
     component.applyDefaultPostInit();
   };
+
+  private viewInitialized = false;
 
   constructor(
     private settingsService: SettingsService,
@@ -104,8 +106,8 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
           this.isInited = true;
 
 
-       //   this.params.period='custom';
-          this.isInited = true;
+          this.tryLoadFootprint();
+
           try {
             this.cdr.detectChanges();
           } catch (s) {
@@ -175,12 +177,19 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
       this.footPrint.serverRequest(this.params);
     }
   }
-  
+
   load() {
+    if (!this.footPrint || !this.params) {
+      return;
+    }
+
     this.footPrint.serverRequest(this.params);
   }
-  
-  ngAfterViewInit(): void {}
+
+  ngAfterViewInit(): void {
+    this.viewInitialized = true;
+    this.tryLoadFootprint();
+  }
 
 
 
@@ -207,7 +216,7 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
   p(a: any) {
     alert(JSON.stringify(a));
     this.chartSettingsService.getChartSettings(a).subscribe((x) => {
-      
+
       if (this.isCandlestick)
         x.CandlesOnly = true;
 
@@ -225,6 +234,15 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
     }, 350);
   }
 
+
+  private tryLoadFootprint() {
+    if (!this.viewInitialized || !this.isInited) {
+      return;
+    }
+
+    this.load();
+  }
+
  
   onCloseMarkUp() {
     this.footPrint.markupManager.changeMode('Edit');
@@ -239,7 +257,7 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
   {
     this.footPrint.getCsv();
   }
-  
+
 
 
 }
