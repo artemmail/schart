@@ -167,7 +167,7 @@ constructor(
     if (!item) return;
 
     if (item.ticker) {
-      this.navigateTo('/FootPrint', { candlesOnly: true, rperiod: 'day', period: 5, ticker: item.ticker });
+      this.navigateTo('/FootPrint', { ticker: item.ticker });
       return;
     }
 
