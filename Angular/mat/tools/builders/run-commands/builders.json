@@ -1,0 +1,10 @@
+{
+  "$schema": "../../../node_modules/@angular-devkit/architect/src/builders-schema.json",
+  "builders": {
+    "run-commands": {
+      "implementation": "./run-commands",
+      "schema": "./schema.json",
+      "description": "Run one or more shell commands (optionally in parallel)."
+    }
+  }
+}

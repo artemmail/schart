@@ -151,7 +151,7 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/architect:run-commands",
+          "builder": "./tools/builders/run-commands:run-commands",
           "options": {
             "commands": [
               {
@@ -165,7 +165,7 @@
           }
         },
         "serve": {
-          "builder": "@angular-devkit/architect:run-commands",
+          "builder": "./tools/builders/run-commands:run-commands",
           "options": {
             "commands": [
               {
@@ -214,6 +214,7 @@
               "outputHashing": "all"
             },
             "development": {
+              "outputPath": "dist-dev/stockchart-treemap/examples/market-map",
               "optimization": false,
               "sourceMap": true,
               "namedChunks": true
@@ -262,6 +263,7 @@
               "outputHashing": "all"
             },
             "development": {
+              "outputPath": "dist-dev/stockchart-treemap/examples/self-colored",
               "optimization": false,
               "sourceMap": true,
               "namedChunks": true

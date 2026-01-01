@@ -1,0 +1,6 @@
+{
+  "name": "workspace-run-commands-builder",
+  "version": "0.0.0",
+  "private": true,
+  "builders": "./builders.json"
+}
