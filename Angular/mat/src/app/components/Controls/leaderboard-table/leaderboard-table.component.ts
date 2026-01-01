@@ -14,7 +14,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatTable, MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSort, MatSortModule } from '@angular/material/sort';
-import { BehaviorSubject, interval, Observable, of } from 'rxjs';
+import { BehaviorSubject, EMPTY, interval, Observable } from 'rxjs';
 import { startWith, switchMap, distinctUntilChanged, tap } from 'rxjs/operators';
 import { Leader } from 'src/app/models/Leaders';
 import { environment } from 'src/app/environment';
@@ -87,7 +87,7 @@ export class LeaderboardTableComponent implements OnInit, OnDestroy, AfterViewIn
         switchMap((visible) =>
           visible
             ? interval(2000).pipe(startWith(0), switchMap(() => this.fetchData()))
-            : of([] as Leader[])
+            : EMPTY
         ),
         takeUntilDestroyed(this.destroyRef)
       )
