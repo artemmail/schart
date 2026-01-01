@@ -7,7 +7,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "jest"
+    "test": "jest",
+    "build:stockchart-treemap-examples": "npm run ng -- build stockchart-treemap-examples --configuration development"
   },
   "dependencies": {
     "@angular/animations": "20.3.13",
