@@ -177,6 +177,7 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   }
 
   presetChange(a: number) {
+    this.footPrint.setPresetIndex(a);
     this.chartSettingsService.getChartSettings(a).subscribe((x) => {
       if (this.isCandlestick) x.CandlesOnly = true;
 

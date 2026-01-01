@@ -174,6 +174,11 @@ export class FootprintWidgetComponent
     );
   }
 
+  setPresetIndex(presetIndex: number) {
+    this.presetIndex = presetIndex;
+    this.footprintDataLoader.setPresetIndex(presetIndex);
+  }
+
   get layoutState$() {
     return this.settingsManager.layoutState$;
   }
