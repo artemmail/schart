@@ -8,7 +8,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "jest",
-    "build:stockchart-treemap-examples": "npm run ng -- build stockchart-treemap-market-map --configuration development && npm run ng -- build stockchart-treemap-self-colored --configuration development"
+    "build:stockchart-treemap-examples": "npm run ng -- run stockchart-treemap-examples:build"
   },
   "dependencies": {
     "@angular/animations": "20.3.13",

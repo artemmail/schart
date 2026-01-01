@@ -144,6 +144,49 @@
         }
       }
     },
+    "stockchart-treemap-examples": {
+      "projectType": "application",
+      "root": "projects/stockchart-treemap/examples",
+      "sourceRoot": "projects/stockchart-treemap/examples",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/architect:run-commands",
+          "options": {
+            "commands": [
+              {
+                "command": "ng build stockchart-treemap-market-map --configuration development"
+              },
+              {
+                "command": "ng build stockchart-treemap-self-colored --configuration development"
+              }
+            ],
+            "parallel": false
+          }
+        },
+        "serve": {
+          "builder": "@angular-devkit/architect:run-commands",
+          "options": {
+            "commands": [
+              {
+                "command": "ng serve stockchart-treemap-market-map --configuration development"
+              }
+            ],
+            "parallel": false
+          },
+          "configurations": {
+            "self-colored": {
+              "commands": [
+                {
+                  "command": "ng serve stockchart-treemap-self-colored --configuration development"
+                }
+              ],
+              "parallel": false
+            }
+          }
+        }
+      }
+    },
     "stockchart-treemap-market-map": {
       "projectType": "application",
       "root": "projects/stockchart-treemap/examples/market-map",

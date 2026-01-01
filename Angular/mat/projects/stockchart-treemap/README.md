@@ -22,6 +22,15 @@ npm run build:stockchart-treemap-examples
 ```
 Сборка использует tsconfig для примеров и кладёт артефакты в `dist/stockchart-treemap-examples`, чтобы их можно было подключить в песочнице или во внешнем приложении без вмешательства в основной пакет.
 
+Для живого просмотра примеров запустите дев-сервер с подходящей конфигурацией:
+```bash
+# карта рынка на стандартном порту 4200
+ng serve stockchart-treemap-examples
+
+# вариант с собственными цветами на порту 4200
+ng serve stockchart-treemap-examples --configuration self-colored
+```
+
 ## Подключение
 ```ts
 import { bootstrapApplication } from '@angular/platform-browser';
