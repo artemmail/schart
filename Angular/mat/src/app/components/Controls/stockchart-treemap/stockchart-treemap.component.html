@@ -1,14 +1,14 @@
 
 
 <div #wrapper class="tm-wrapper" (mouseleave)="onMouseLeaveWrapper()">
-  <app-treemap
+  <stockchart-treemap
     #treemap
     class="tm-treemap"
     [data]="data"
     [options]="treemapOptions"
     (tileClick)="onTileClick($event)"
     (tileHover)="onTileHover($event)"
-  ></app-treemap>
+  ></stockchart-treemap>
 
   <!-- Tooltip -->
   <div

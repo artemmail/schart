@@ -22,7 +22,7 @@ import { SliceAndDiceLayout, SquarifiedLayout } from './tree-map.layouts';
 import { colorBrightness, colorsByLength, defined, getField, projectColorByValue, roundN, toNumber } from './tree-map.utils';
 
 @Component({
-  selector: 'app-treemap',
+  selector: 'stockchart-treemap',
   standalone: true,
   imports: [CommonModule],
   templateUrl: './tree-map.component.html',
