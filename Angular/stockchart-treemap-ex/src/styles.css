@@ -1,0 +1,70 @@
+:root {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: #f3f6fb;
+  color: #1f2933;
+}
+
+a {
+  color: #1976d2;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.nav {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.nav a {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid #cfd8dc;
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.nav a.active {
+  background: #1976d2;
+  border-color: #1976d2;
+  color: #fff;
+  text-decoration: none;
+}
+
+.examples {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.footer-note {
+  font-size: 14px;
+  color: #546e7a;
+}

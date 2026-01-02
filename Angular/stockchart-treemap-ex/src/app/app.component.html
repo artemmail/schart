@@ -1,0 +1,23 @@
+<main>
+  <header class="header">
+    <h1>Stockchart Treemap</h1>
+    <p>
+      Мини-приложение с примерами использования компонента
+      <code>stockchart-treemap</code> из npm. Выберите одну из страниц ниже и запустите
+      <code>ng serve</code>, чтобы попробовать демо локально.
+    </p>
+    <nav class="nav">
+      <a routerLink="/market-map" routerLinkActive="active">Рыночная карта</a>
+      <a routerLink="/self-colored" routerLinkActive="active">Авто-градиент</a>
+    </nav>
+  </header>
+
+  <section class="examples">
+    <router-outlet />
+  </section>
+
+  <p class="footer-note">
+    Импорт компонента выполняется напрямую из пакета <code>stockchart-treemap</code>, поэтому примеры
+    совпадают с опубликованной версией.
+  </p>
+</main>
