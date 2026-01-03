@@ -1,10 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { NewsService } from 'src/app/service/news.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { MaterialModule } from 'src/app/material.module';
+import { InfiniteScrollModule } from 'ngx-infinite-scroll';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-topic-list',
+  imports: [MaterialModule, InfiniteScrollModule],
   templateUrl: './topic-list.component.html',
   styleUrls: ['./topic-list.component.css'],
 })

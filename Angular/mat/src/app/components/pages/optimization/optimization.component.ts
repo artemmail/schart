@@ -8,10 +8,18 @@ import { ReportsService } from 'src/app/service/reports.service';
 import { FootPrintRequestModel } from 'src/app/models/tickerpreset';
 import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-picker.component';
 import { PortfolioTableComponent } from '../portfolio copy/portfolio-table.component';
+import { MaterialModule } from 'src/app/material.module';
+import { PresetSelectorComponent1 } from '../../DateRangeSelector/date-range-selector.component';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-portfolio-chart',
+  imports: [
+    MaterialModule,
+    DateRangePickerComponent,
+    PresetSelectorComponent1,
+    PortfolioTableComponent,
+  ],
   templateUrl: './optimization.component.html',
   styleUrls: ['./optimization.component.css']
 })

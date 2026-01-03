@@ -1,4 +1,5 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { PortfolioService } from 'src/app/service/portfolio.service';
 import { MatTableDataSource } from '@angular/material/table';
 import { AuthService } from 'src/app/service/auth.service';
@@ -13,10 +14,12 @@ import { FootPrintParameters } from 'src/app/models/Params';
 import { JsonEditorComponent } from 'ang-jsoneditor';
 import { FootPrintComponent } from '../../footprint/footprint.component';
 import { FootprintWidgetComponent } from '../../footprint/footprint-widget.component';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-portfolio',
+  imports: [CommonModule, MaterialModule, FootprintWidgetComponent, PortfolioTableComponent],
   templateUrl: './portfolio.component.html',
   styleUrls: ['./portfolio.component.css'],
 })

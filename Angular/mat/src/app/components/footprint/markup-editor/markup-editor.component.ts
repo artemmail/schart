@@ -3,6 +3,9 @@ import { ProfileModel } from 'src/app/models/profileModel';
 import { MarkUpManager } from '../Markup/Manager';
 import { FootPrintComponent } from '../footprint.component';
 import { MarkupMode } from '../Markup/ShapeType';
+import { MaterialModule } from 'src/app/material.module';
+import { ComboBoxComponent } from '../../Controls/ComboBox/combobox.component';
+import { PalettePickerComponent } from 'src/lib/palette-picker.component';
 import {
   fontsPreset,
   profilePeriodsPreset,
@@ -10,8 +13,9 @@ import {
 } from 'src/app/models/preserts';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-markup-editor',
+  imports: [MaterialModule, ComboBoxComponent, PalettePickerComponent],
   templateUrl: './markup-editor.component.html',
   styleUrls: ['./markup-editor.component.css'],
 })

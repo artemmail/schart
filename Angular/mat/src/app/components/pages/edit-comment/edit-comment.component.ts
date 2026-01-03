@@ -1,14 +1,18 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from 'src/app/service/auth.service';
 import { NewsService } from 'src/app/service/news.service';
 import { Title } from '@angular/platform-browser';
 import { Comment } from 'src/app/models/UserTopic';
+import { MaterialModule } from 'src/app/material.module';
+import { EditorComponent } from '../../Controls/timy-mce/app-editor.component';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-edit-comment',
+  imports: [CommonModule, MaterialModule, EditorComponent],
   templateUrl: './edit-comment.component.html',
   styleUrls: ['./edit-comment.component.css']
 })

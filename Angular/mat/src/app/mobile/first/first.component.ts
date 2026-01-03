@@ -30,7 +30,7 @@ import { Subject, takeUntil } from 'rxjs';
 
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-first1',
   templateUrl: './first.component.html',
   styleUrls: ['./first.component.scss'],

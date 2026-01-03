@@ -2,10 +2,13 @@ import { Component, Input, OnInit, SimpleChanges } from '@angular/core';
 import { Barometer } from 'src/app/models//Barometer';
 import { CommonService } from 'src/app/service/common.service';
 import { ReportsService } from 'src/app/service/reports.service';
+import { MaterialModule } from 'src/app/material.module';
+import { ArrowDisplayComponent } from '../../Controls/arrow-display/arrow-display.component';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-barometer-table',
+  imports: [MaterialModule, ArrowDisplayComponent],
   templateUrl: './barometer.component.html',
   styleUrls: ['./barometer.component.css'],
 })

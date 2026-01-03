@@ -1,11 +1,14 @@
 import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { Title } from '@angular/platform-browser';
 import { contractGroups } from 'src/app/models/option-data.model';
+import { MaterialModule } from 'src/app/material.module';
 
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-contract-groups',
+  imports: [CommonModule, MaterialModule],
   templateUrl: './contract-groups.component.html',
   styleUrls: ['./contract-groups.component.css']
 })

@@ -10,12 +10,15 @@ import {
 import { FormControl, FormGroup } from '@angular/forms';
 import { DateAdapter } from '@angular/material/core';
 import { NgxMaterialTimepickerComponent } from 'ngx-material-timepicker';
+import { NgxMaterialTimepickerModule } from 'ngx-material-timepicker';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
   selector: 'app-date-range-picker',
   templateUrl: './date-range-picker.component.html',
   styleUrls: ['./date-range-picker.component.css'],
-  standalone: false,
+  standalone: true,
+  imports: [MaterialModule, NgxMaterialTimepickerModule],
 })
 export class DateRangePickerComponent implements AfterViewInit {
   @Output() selectionChange = new EventEmitter<{ start: Date | null; end: Date | null }>();

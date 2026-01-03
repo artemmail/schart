@@ -1,15 +1,19 @@
 // support-dialog.component.ts
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ApplicationUser } from 'src/app/models/UserTopic';
 import { AuthService } from 'src/app/service/auth.service';
 import { SelectListItemText } from 'src/app/models/preserts';
 import { MatDialogRef } from '@angular/material/dialog';
 import { DialogService } from 'src/app/service/DialogService.service';
+import { MaterialModule } from 'src/app/material.module';
+import { EditorComponent } from '../../Controls/timy-mce/app-editor.component';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-support-dialog',
+  imports: [CommonModule, MaterialModule, EditorComponent],
   templateUrl: './support-dialog.component.html',
   styleUrls: ['./support-dialog.component.css'],
 })

@@ -3,10 +3,13 @@ import { MatTableDataSource } from '@angular/material/table';
 
 import { Subscription } from 'rxjs';
 import { PortfolioService } from 'src/app/service/portfolio.service';
+import { MaterialModule } from 'src/app/material.module';
+import { CostToStrPipe } from 'src/app/pipes/cost-to-str.pipe copy';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-portfolio-table',
+  imports: [MaterialModule, CostToStrPipe],
   templateUrl: './portfolio-table.component.html',
   styleUrls: ['./portfolio-table.component.css']
 })

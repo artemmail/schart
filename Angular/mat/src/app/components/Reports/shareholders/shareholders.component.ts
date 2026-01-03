@@ -2,11 +2,13 @@ import { Component, OnInit } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { STOCK_TICKERS } from 'src/app/data/companyinfo';
+import { ShareholdersChartComponent } from '../../tables/shareholders-chart/shareholders-chart.component';
 
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-shareholders',
+  imports: [ShareholdersChartComponent],
   templateUrl: './shareholders.component.html',
   styleUrls: ['./shareholders.component.css']
 })

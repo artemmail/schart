@@ -41,14 +41,7 @@ export class MyHammerConfig extends HammerGestureConfig {
 
 
 @NgModule({
-  declarations: [
-    AppMobileComponent,
-
-    SettingsComponent,
-///   LeaderboardTableComponent,
-    FirstComponent1
-    
-  ],
+  declarations: [],
   providers: [
     { provide: LOCALE_ID, useValue: 'ru-RU' },
     {
@@ -70,6 +63,9 @@ export class MyHammerConfig extends HammerGestureConfig {
     MaterialModule,
     SharedModule,
     HttpClientModule,
+    AppMobileComponent,
+    SettingsComponent,
+    FirstComponent1,
     HeaderComponent,
     LeadersComponent,
     LeadersBinanceComponent,

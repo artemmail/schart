@@ -7,10 +7,13 @@ import { candleseekerResult } from 'src/app/models/Barometer';
 import { MarketSelectorComponent } from '../../Controls/MarketSelector/market-selector.component';
 import { SelectListItemNumber } from 'src/app/models/preserts';
 import { Title } from '@angular/platform-browser';
+import { MaterialModule } from 'src/app/material.module';
+import { ComboBoxComponent } from '../../Controls/ComboBox/combobox.component';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-volume-splash',
+  imports: [MaterialModule, MarketSelectorComponent, ComboBoxComponent],
   templateUrl: './volume-splash.component.html',
   styleUrls: ['./volume-splash.component.css'],
 })

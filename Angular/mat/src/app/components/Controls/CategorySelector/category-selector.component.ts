@@ -10,11 +10,13 @@ import {
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { SelectListItemText } from 'src/app/models/preserts';
 import { CommonService } from 'src/app/service/common.service';
+import { MaterialModule } from 'src/app/material.module';
 
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-category-selector',
+  imports: [MaterialModule],
   templateUrl: "./category-selector.component.html",
   styleUrls: [ "./category-selector.component.css"]
 })

@@ -4,7 +4,7 @@ import { YooMoneyService } from 'src/app/service/yoomoney.service';
 import { OperationDetails } from 'src/app/models/YooMoneyModels';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-operation-details-dialog',
   templateUrl: './operation-details-dialog.component.html',
   styleUrls: ['./operation-details-dialog.component.css']

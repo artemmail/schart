@@ -13,10 +13,24 @@ import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-pi
 import { TopPreset } from 'src/app/models/preserts';
 import { PresetSelectorComponent1 } from '../../DateRangeSelector/date-range-selector.component';
 import { ReportsService } from 'src/app/service/reports.service';
+import { MaterialModule } from 'src/app/material.module';
+import { MarketSelectorComponent } from '../../Controls/MarketSelector/market-selector.component';
+import { CategorySelectorComponent } from '../../Controls/CategorySelector/category-selector.component';
+import { ComboBoxComponent } from '../../Controls/ComboBox/combobox.component';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-marketmap',
+  imports: [
+    MaterialModule,
+    MarketSelectorComponent,
+    CategorySelectorComponent,
+    ComboBoxComponent,
+    PresetSelectorComponent1,
+    DateRangePickerComponent,
+    StockChartTreemapComponent,
+    MarketBoardComponent,
+  ],
   templateUrl: './market-map.component.html',
   styleUrls: ['./market-map.component.css'],
 })

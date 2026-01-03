@@ -4,10 +4,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Chart } from 'chart.js/auto';
 import { formatDate } from '@angular/common';
 import { NpmStatService } from 'src/app/service/npmstat.service';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-npm-stat-chart',
+  imports: [MaterialModule],
   templateUrl: './npm-stat-chart.component.html',
   styleUrls: ['./npm-stat-chart.component.css']
 })

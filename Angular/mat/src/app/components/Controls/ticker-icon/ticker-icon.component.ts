@@ -1,9 +1,11 @@
 
 import { Component, Input, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-ticker-icon',
+  imports: [CommonModule],
   templateUrl: './ticker-icon.component.html',
   styleUrls: ['./ticker-icon.component.scss']
 })

@@ -1,11 +1,13 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { Chart } from 'chart.js';
 import { PaymentTableData, ProfitData, UserService } from 'src/app/service/users.service';
+import { MaterialModule } from 'src/app/material.module';
 
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-profit-charts',
+  imports: [MaterialModule],
   templateUrl: './profit-charts.component.html',
   styleUrls: ['./profit-charts.component.css'],
 })

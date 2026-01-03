@@ -3,10 +3,12 @@ import { FormControl } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { SelectListItemText, SelectListItemNumber } from 'src/app/models/preserts';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
+import { MaterialModule } from 'src/app/material.module';
 
 
-@Component({ standalone: false, 
+@Component({ standalone: true, 
   selector: 'app-preset-selector',
+  imports: [MaterialModule],
   templateUrl: './preset-selector.component.html',
   styleUrls: ['./preset-selector.component.css']
 })

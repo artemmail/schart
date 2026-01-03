@@ -5,10 +5,12 @@ import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { SelectListItemText } from 'src/app/models/preserts';
 
 import { TickerService } from 'src/app/service/FootPrint/AutoComplete/AutoComplete';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-ticker-autocomplete',
+  imports: [MaterialModule],
   templateUrl: './ticker-autocomplete.component.html',
   styleUrls: ['./ticker-autocomplete.component.css'],
   providers: [{

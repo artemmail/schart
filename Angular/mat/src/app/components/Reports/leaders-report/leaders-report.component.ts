@@ -10,10 +10,23 @@ import { FootPrintRequestModel } from 'src/app/models/tickerpreset';
 import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-picker.component';
 import { TopPreset } from 'src/app/models/preserts';
 import { Title } from '@angular/platform-browser';
+import { MaterialModule } from 'src/app/material.module';
+import { MarketSelectorComponent } from '../../Controls/MarketSelector/market-selector.component';
+import { ComboBoxComponent } from '../../Controls/ComboBox/combobox.component';
+import { PresetSelectorComponent1 } from '../../DateRangeSelector/date-range-selector.component';
+import { MoneyToStrPipe } from 'src/app/pipes/money-to-str.pipe';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-leader',
+  imports: [
+    MaterialModule,
+    MarketSelectorComponent,
+    ComboBoxComponent,
+    PresetSelectorComponent1,
+    DateRangePickerComponent,
+    MoneyToStrPipe,
+  ],
   templateUrl: './leaders-report.component.html',
   styleUrls: ['./leaders-report.component.css'],
 })

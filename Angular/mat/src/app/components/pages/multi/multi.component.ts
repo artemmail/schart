@@ -3,7 +3,7 @@ import { FootprintWidgetComponent } from '../../footprint/footprint-widget.compo
 import { Injector } from '@angular/core';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-multi',
   templateUrl: './multi.component.html',
   styleUrls: ['./multi.component.css']

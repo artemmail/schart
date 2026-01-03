@@ -26,7 +26,6 @@
 
           <div class="flex-item">
             <app-date-range-selector
-              [(ngModel)]="ticker"
               [ticker]="ticker"
               [rperiod]="'day'"
               (selectionChange)="applyPreset($event)"

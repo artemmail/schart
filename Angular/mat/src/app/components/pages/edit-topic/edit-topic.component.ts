@@ -1,15 +1,19 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from 'src/app/service/auth.service';
 import { NewsService } from 'src/app/service/news.service';
+import { MaterialModule } from 'src/app/material.module';
+import { EditorComponent } from '../../Controls/timy-mce/app-editor.component';
 
 import { Topic } from 'src/app/models/UserTopic';
 import { Title } from '@angular/platform-browser';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-edit-topic',
+  imports: [CommonModule, MaterialModule, EditorComponent],
   templateUrl: './edit-topic.component.html',
   styleUrls: ['./edit-topic.component.css']
 })

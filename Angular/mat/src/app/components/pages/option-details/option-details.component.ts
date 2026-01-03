@@ -5,10 +5,12 @@ import { ActivatedRoute } from '@angular/router';
 
 import { OptionCodeModel, OptionData } from 'src/app/models/option-data.model';
 import {  OptionCodeService } from 'src/app/service/OptionCodeParserService.service';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-option-details',
+  imports: [MaterialModule],
   templateUrl: './option-details.component.html',
   styleUrls: ['./option-details.component.css']
 })

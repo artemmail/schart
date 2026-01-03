@@ -21,8 +21,9 @@ import { FootprintRealtimeUpdaterService } from './footprint-realtime-updater.se
 import { FootprintInitOptions } from './footprint-data.types';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-footprint-widget',
+  imports: [FootPrintComponent],
   templateUrl: './footprint-widget.component.html',
   styleUrls: ['./footprint-widget.component.css'],
   providers: [

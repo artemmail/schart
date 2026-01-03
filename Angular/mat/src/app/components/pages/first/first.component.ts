@@ -7,6 +7,7 @@ import {
   ViewEncapsulation,
   AfterViewChecked,
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
 import { TickerPresetNew } from 'src/app/models/tickerpreset';
@@ -19,12 +20,28 @@ import { FootprintWidgetComponent } from '../../footprint/footprint-widget.compo
 import { FootPrintParamsComponent } from '../../Controls/FootPrintParams/footpintparmas.component';
 import { NonModalDialogComponent } from '../../FootPrintParts/NonModal/non-modal-dialog.component';
 import { DialogService } from 'src/app/service/DialogService.service';
+import { MarkupEditorComponent } from '../../footprint/markup-editor/markup-editor.component';
+import { FootPrintSettingsDialogComponent } from '../../footprint/foot-print-settings-dialog/foot-print-settings-dialog.component';
+import { TopOrdersComponentFP } from '../../FootPrintParts/top-orders/top-orders.component';
+import { VolumeSearchTableComponent } from '../../FootPrintParts/volume-search-table/volume-search-table.component';
+import { MaterialModule } from 'src/app/material.module';
 
 import { Title } from '@angular/platform-browser';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-first',
+  imports: [
+    CommonModule,
+    MaterialModule,
+    FootprintWidgetComponent,
+    FootPrintParamsComponent,
+    NonModalDialogComponent,
+    MarkupEditorComponent,
+    FootPrintSettingsDialogComponent,
+    TopOrdersComponentFP,
+    VolumeSearchTableComponent,
+  ],
   templateUrl: './first.component.html',
   styleUrls: ['./first.component.scss'],
   encapsulation: ViewEncapsulation.None,

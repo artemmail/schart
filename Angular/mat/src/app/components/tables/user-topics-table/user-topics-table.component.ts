@@ -4,10 +4,12 @@ import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { UserTopic, PaginatedResult } from 'src/app/models/UserTopic';
 import { NewsService } from 'src/app/service/news.service';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-user-topics-table',
+  imports: [MaterialModule],
   templateUrl: './user-topics-table.component.html',
   styleUrls: ['./user-topics-table.component.css'],
 })

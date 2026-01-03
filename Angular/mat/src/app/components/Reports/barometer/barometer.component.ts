@@ -10,10 +10,14 @@ import { environment } from 'src/app/environment';
 import { CommonService } from 'src/app/service/common.service';
 import { ReportsService } from 'src/app/service/reports.service';
 import { Title } from '@angular/platform-browser';
+import { MaterialModule } from 'src/app/material.module';
+import { MarketSelectorComponent } from '../../Controls/MarketSelector/market-selector.component';
+import { ArrowDisplayComponent } from '../../Controls/arrow-display/arrow-display.component';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-barometer',
+  imports: [MaterialModule, MarketSelectorComponent, ArrowDisplayComponent],
   templateUrl: './barometer.component.html',
   styleUrls: ['./barometer.component.css'],
 })

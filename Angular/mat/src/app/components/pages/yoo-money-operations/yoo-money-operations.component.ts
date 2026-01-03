@@ -6,11 +6,13 @@ import { YooMoneyService } from 'src/app/service/yoomoney.service';
 import { MatDialog } from '@angular/material/dialog';
 import { OperationDetailsDialogComponent } from '../operation-details-dialog/operation-details-dialog.component';
 import { BillDetailsDialogComponent } from '../bill-details-dialog/bill-details-dialog.component';
+import { MaterialModule } from 'src/app/material.module';
 
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-yoo-money-operations',
+  imports: [MaterialModule],
   templateUrl: './yoo-money-operations.component.html',
   styleUrls: ['./yoo-money-operations.component.css']
 })

@@ -13,10 +13,12 @@ import { MatDialog } from '@angular/material/dialog';
 import { PaymentInstructionsDialogComponent } from '../../Controls/payment-instructions-dialog/payment-instructions-dialog.component';
 import { Title } from '@angular/platform-browser';
 import { DialogService } from 'src/app/service/DialogService.service';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-subscription',
+  imports: [MaterialModule],
   templateUrl: './subscription.component.html',
   styleUrls: ['./subscription.component.css'],
 })

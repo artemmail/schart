@@ -2,7 +2,6 @@ import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Chart } from 'chart.js/auto';
 import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-picker.component';
-import { PresetSelectorComponent } from '../../Controls/PresetSelector/preset-selector.component';
 import { TickerAutocompleteComponent } from '../../Controls/ticker-autocomplete/ticker-autocomplete.component';
 import {
   BigPeriodPreset,
@@ -20,6 +19,8 @@ import { Observable, tap } from 'rxjs';
 import { CommonService } from 'src/app/service/common.service';
 import { removeUTC } from 'src/app/service/FootPrint/Formating/formatting.service';
 import { Title } from '@angular/platform-browser';
+import { MaterialModule } from 'src/app/material.module';
+import { ComboBoxComponent } from '../../Controls/ComboBox/combobox.component';
 
 interface VolumeStat {
   Volume: number;
@@ -50,15 +51,20 @@ interface CandleStats {
 }
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-candles-stat',
+  imports: [
+    MaterialModule,
+    DateRangePickerComponent,
+    TickerAutocompleteComponent,
+    ComboBoxComponent,
+  ],
   templateUrl: './candles-stat.component.html',
   styleUrls: ['./candles-stat.component.css'],
 })
 export class CandlesStatComponent implements OnInit {
   @ViewChild(DateRangePickerComponent) DateRange: DateRangePickerComponent;
   @ViewChild(TickerAutocompleteComponent)  tickerAutocomplete: TickerAutocompleteComponent;
-  @ViewChild('presetSelector') presetSelector: PresetSelectorComponent;
   ticker: string = 'GAZP';
 
   smallPeriodPresetShort = SmallPeriodPresetShort;

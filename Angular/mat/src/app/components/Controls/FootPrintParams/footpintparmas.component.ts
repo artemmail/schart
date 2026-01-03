@@ -19,10 +19,19 @@ import { MatEventEmitterService } from 'src/app/service/mat-event-emitter.servic
 import { CommonService } from 'src/app/service/common.service';
 import { tap } from 'rxjs/operators';
 import { PresetSelectorComponent1 } from '../../DateRangeSelector/date-range-selector.component';
+import { MaterialModule } from 'src/app/material.module';
+import { ComboBoxComponent } from '../ComboBox/combobox.component';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'footprint-params',
+  imports: [
+    MaterialModule,
+    DateRangePickerComponent,
+    TickerAutocompleteComponent,
+    PresetSelectorComponent1,
+    ComboBoxComponent,
+  ],
   templateUrl: './footpintparmas.component.html',
   styleUrls: ['./footpintparmas.component.css'],
   providers: [

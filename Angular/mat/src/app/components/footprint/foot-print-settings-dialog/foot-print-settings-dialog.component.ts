@@ -10,11 +10,12 @@ import {
 import { FootPrintComponent } from '../footprint.component';
 import { ProfileModel } from 'src/app/models/profileModel';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
-import { PresetSelectorComponent } from '../../Controls/PresetSelector/preset-selector.component';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-footprint-settings-dialog',
+  imports: [MaterialModule],
   templateUrl: './foot-print-settings-dialog.component.html',
   styleUrls: ['./foot-print-settings-dialog.component.css'],
   encapsulation: ViewEncapsulation.None,

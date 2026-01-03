@@ -8,10 +8,13 @@ import { Title } from '@angular/platform-browser';
 
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { MaterialModule } from 'src/app/material.module';
+import { MarketSelectorComponent } from '../../Controls/MarketSelector/market-selector.component';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-volume-dashboard',
+  imports: [MaterialModule, MarketSelectorComponent],
   templateUrl: './volume-dashboard.component.html',
   styleUrls: ['./volume-dashboard.component.css'],
 })

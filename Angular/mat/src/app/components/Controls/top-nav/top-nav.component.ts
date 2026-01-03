@@ -6,6 +6,9 @@ import { ApplicationUser } from 'src/app/models/UserTopic';
 import { AuthEventService } from 'src/app/service/AuthEventService';
 import { AuthService } from 'src/app/service/auth.service';
 import { NavService } from 'src/app/service/nav.service';
+import { MaterialModule } from 'src/app/material.module';
+import { RouterModule } from '@angular/router';
+import { OpenSupportDialogDirective } from 'src/app/directives/open-support-dialog.directive';
 
 // Определяем тип, включающий только имена методов
 type FirstComponentMethods =
@@ -17,8 +20,9 @@ type FirstComponentMethods =
   | 'getCsv';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-top-nav',
+  imports: [MaterialModule, RouterModule, OpenSupportDialogDirective],
   templateUrl: './top-nav.component.html',
   styleUrls: ['./top-nav.component.scss'],
 })

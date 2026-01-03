@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { MatDialogRef } from '@angular/material/dialog';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-payment-instructions-dialog',
   templateUrl: './payment-instructions-dialog.component.html',
   styleUrls: ['./payment-instructions-dialog.component.css']

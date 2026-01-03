@@ -2,11 +2,14 @@ import { Component, OnInit } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { STOCK_TICKERS, TICK_DESCR } from 'src/app/data/companyinfo';
+import { MaterialModule } from 'src/app/material.module';
+import { CompanyTableComponent } from '../../tables/company-table/company-table.component';
 
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-financial',
+  imports: [MaterialModule, CompanyTableComponent],
   templateUrl: './financial.component.html',
   styleUrls: ['./financial.component.css']
 })

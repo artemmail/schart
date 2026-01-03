@@ -3,7 +3,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-information-dialog',
   templateUrl: './information-dialog.component.html',
 })

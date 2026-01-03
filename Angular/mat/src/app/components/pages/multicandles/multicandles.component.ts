@@ -24,6 +24,8 @@ import { SelectListItemNumber, SmallPeriodPresetShort }
         from 'src/app/models/preserts';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { CommonService } from 'src/app/service/common.service';
+import { MaterialModule } from 'src/app/material.module';
+import { ComboBoxComponent } from '../../Controls/ComboBox/combobox.component';
 
 /* ────────────────────────────────────────────────────────────── */
 /*      ДЕФОЛТНЫЙ НАБОР ТИКЕРОВ                                   */
@@ -32,8 +34,14 @@ const DEFAULT_TICKERS =
   'GAZP,SBER,ROSN,LKOH,VTBR,GMKN,PLZL,T,NVTK,AFKS';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector   : 'app-multicandles',
+  imports: [
+    MaterialModule,
+    ComboBoxComponent,
+    PresetSelectorComponent1,
+    DateRangePickerComponent,
+  ],
   templateUrl: './multicandles.component.html',
   styleUrls  : ['./multicandles.component.css']
 })

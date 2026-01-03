@@ -1,10 +1,12 @@
 import { Component, Input, OnChanges } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
 import { OpenPosition } from 'src/app/models/fundamental.model';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-open-positions-table',
+  imports: [MaterialModule],
   templateUrl: './open-positions-table.component.html',
   styleUrls: ['./open-positions-table.component.css']
 })
@@ -15,13 +17,19 @@ export class OpenPositionsTableComponent implements OnChanges {
   dataSource = new MatTableDataSource([]);
 
   ngOnChanges(): void {
-    
-      this.updateTable();
-    
+    if (!this.openPositions) {
+      this.dataSource.data = [];
+      return;
+    }
+    this.updateTable();
   }
 
   updateTable(): void {
     const lastPosition = this.openPositions;
+    if (!lastPosition) {
+      this.dataSource.data = [];
+      return;
+    }
     
     this.dataSource.data = [
       {

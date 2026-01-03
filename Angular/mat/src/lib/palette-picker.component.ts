@@ -1,10 +1,11 @@
-import { CommonModule } from '@angular/common';
 import { Component, Input, Output, EventEmitter, OnInit, forwardRef } from '@angular/core';
 import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'palette-picker',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule],
   
   templateUrl: './palette-picker.component.html',
   styleUrls: ['./palette-picker.component.css'],

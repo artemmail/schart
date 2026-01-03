@@ -6,10 +6,13 @@ import { map, Observable } from 'rxjs';
 import { stat_dic, STOCK_TICKERS } from 'src/app/data/companyinfo';
 import { FilteredDataResult } from 'src/app/models/fundamental.model';
 import { DataService } from 'src/app/service/companydata.service';
+import { MaterialModule } from 'src/app/material.module';
+import { CompanyTableComponent } from '../company-table/company-table.component';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-filtered-data-chart',
+  imports: [MaterialModule, CompanyTableComponent],
   templateUrl: './filtered-data-chart.component.html',
   styleUrls: ['./filtered-data-chart.component.css']
 })

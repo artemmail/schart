@@ -1,7 +1,7 @@
 import { Component, Input } from '@angular/core';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-custom-tooltip',
   templateUrl: './custom-tooltip.component.html',
   styleUrls: ['./custom-tooltip.component.css']

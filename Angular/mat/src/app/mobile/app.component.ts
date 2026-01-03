@@ -8,6 +8,8 @@ import { MatSidenav } from '@angular/material/sidenav';
 import { AuthService } from '../service/auth.service';
 import { AuthEventService } from '../service/AuthEventService';
 import { ApplicationUser } from '../models/UserTopic';
+import { MaterialModule } from 'src/app/material.module';
+import { HeaderComponent } from './header/header.component';
 
 import * as Hammer from 'hammerjs';
 
@@ -21,8 +23,9 @@ declare global {
 const METRIKA_ID = 16829734;
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'angular-material-drawer',
+  imports: [MaterialModule, HeaderComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })

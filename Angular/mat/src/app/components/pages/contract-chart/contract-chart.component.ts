@@ -7,10 +7,13 @@ import { OpenPosition } from 'src/app/models/fundamental.model';
 import { DataService } from 'src/app/service/companydata.service';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
+import { MaterialModule } from 'src/app/material.module';
+import { OpenPositionsTableComponent } from '../../tables/open-positions-table/open-positions-table.component';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-contract-chart',
+  imports: [MaterialModule, OpenPositionsTableComponent],
   templateUrl: './contract-chart.component.html',
   styleUrls: ['./contract-chart.component.css']
 })

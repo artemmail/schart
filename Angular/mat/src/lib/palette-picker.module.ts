@@ -3,8 +3,7 @@ import { CommonModule } from '@angular/common';
 import { PalettePickerComponent } from './palette-picker.component';
 
 @NgModule({
-  declarations: [PalettePickerComponent],
-  imports: [CommonModule],
+  imports: [CommonModule, PalettePickerComponent],
   exports: [PalettePickerComponent],
 })
 export class PalettePickerModule {}

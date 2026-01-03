@@ -5,10 +5,12 @@ import { SelectListItemParams, SelectListItemText } from 'src/app/models/presert
 import { FootPrintRequestParams } from 'src/app/models/FootPrintPar';
 import { CommonService } from 'src/app/service/common.service';
 import { switchMap } from 'rxjs/operators';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-date-range-selector',
+  imports: [MaterialModule],
   templateUrl: './date-range-selector.component.html',
   styleUrls: ['./date-range-selector.component.css'],
 })

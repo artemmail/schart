@@ -1,8 +1,10 @@
 import { Component, Input } from '@angular/core';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-arrow-display',
+  imports: [MaterialModule],
   templateUrl: './arrow-display.component.html',
   styleUrls: ['./arrow-display.component.css']
 })

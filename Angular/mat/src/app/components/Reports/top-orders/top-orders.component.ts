@@ -7,6 +7,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { MatPaginator } from '@angular/material/paginator';
 import { Title } from '@angular/platform-browser';
+import { MaterialModule } from 'src/app/material.module';
 
 interface Period {
   value: string;
@@ -14,8 +15,9 @@ interface Period {
 }
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-top-orders',
+  imports: [MaterialModule, TickerAutocompleteComponent],
   templateUrl: './top-orders.component.html',
   styleUrls: ['./top-orders.component.css']
 })

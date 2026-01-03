@@ -23,7 +23,6 @@
           <div fxLayout="row" fxLayoutGap="16px">
             <div fxFlex="50%">
               <app-date-range-selector
-                [(ngModel)]="ticker"
                 [ticker]="ticker"
                 [rperiod]="rperiod"
                 (selectionChange)="onDateRangePresetChange($event)">

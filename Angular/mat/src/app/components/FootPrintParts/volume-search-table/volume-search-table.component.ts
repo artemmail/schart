@@ -14,6 +14,7 @@ import {
   VolumeSearchResult,
 } from 'src/app/service/FootPrint/ClusterStream/cluster-stream.service';
 import { FootPrintComponent } from '../../footprint/footprint.component';
+import { MaterialModule } from 'src/app/material.module';
 
 export interface VolumeSearchParams {
   ticker: string;
@@ -24,8 +25,9 @@ export interface VolumeSearchParams {
 }
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-volume-search-table',
+  imports: [MaterialModule],
   templateUrl: './volume-search-table.component.html',
   styleUrls: ['./volume-search-table.component.css'],
 })

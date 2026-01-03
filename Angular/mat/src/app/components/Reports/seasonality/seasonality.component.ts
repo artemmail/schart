@@ -8,13 +8,15 @@ import { DomSanitizer, SafeHtml, Title } from '@angular/platform-browser';
 import { TickerAutocompleteComponent } from '../../Controls/ticker-autocomplete/ticker-autocomplete.component';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { ReportsService } from 'src/app/service/reports.service';
+import { MaterialModule } from 'src/app/material.module';
 
 
 @Component({
   selector: 'app-seasonality',
   templateUrl: './seasonality.component.html',
   styleUrls: ['./seasonality.component.css'],
-    standalone: false
+    standalone: true,
+  imports: [MaterialModule, TickerAutocompleteComponent]
 })
 export class SeasonalityComponent implements OnInit , AfterViewInit{
   

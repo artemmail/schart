@@ -13,10 +13,12 @@ import { MatPaginator } from '@angular/material/paginator';
 import { ReportsService } from 'src/app/service/reports.service';
 import { TopOrdersResult } from 'src/app/models/Barometer';
 import { FootPrintComponent } from '../../footprint/footprint.component';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'footprint-top-orders',
+  imports: [MaterialModule],
   templateUrl: './top-orders.component.html',
   styleUrls: ['./top-orders.component.css'],
 })

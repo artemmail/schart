@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { ApplicationUser, Topic, Comment } from 'src/app/models/UserTopic';
@@ -7,10 +8,13 @@ import { NewsService } from 'src/app/service/news.service';
 import { ConfirmDialogComponent } from '../../Dialogs/confirm-dialog/confirm-dialog.component';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { DomSanitizer, SafeHtml, Title } from '@angular/platform-browser';
+import { MaterialModule } from 'src/app/material.module';
+import { EditorComponent } from '../../Controls/timy-mce/app-editor.component';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-service-news-details',
+  imports: [CommonModule, MaterialModule, EditorComponent],
   templateUrl: './service-news-details.component.html',
   styleUrls: ['./service-news-details.component.css'],
 })

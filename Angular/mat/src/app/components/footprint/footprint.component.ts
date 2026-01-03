@@ -32,7 +32,7 @@ import { FootprintStateService } from './footprint-state.service';
 import { HintContainerService } from './hint-container.service';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-footprint',
   templateUrl: './footprint.component.html',
   styleUrls: ['./footprint.component.css'],

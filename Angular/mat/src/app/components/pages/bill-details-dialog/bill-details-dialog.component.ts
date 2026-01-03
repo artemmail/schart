@@ -3,7 +3,7 @@ import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { BillDto, BillingService } from 'src/app/service/subscription.service';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-bill-details-dialog',
   templateUrl: './bill-details-dialog.component.html',
   styleUrls: ['./bill-details-dialog.component.css']

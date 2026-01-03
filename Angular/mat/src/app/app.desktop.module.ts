@@ -30,10 +30,9 @@ import { HttpClientModule } from '@angular/common/http';
     SharedModule,
     HttpClientModule,
     AppRoutingModule,
-  ],
-  declarations: [
     AppComponent,
   ],
+  declarations: [],
   providers: [
     { provide: MAT_DATE_LOCALE, useValue: 'ru-RU' },
     { provide: LOCALE_ID, useValue: 'ru' },

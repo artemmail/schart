@@ -5,10 +5,12 @@ import { UserService } from 'src/app/service/users.service';
 import { MatSort } from '@angular/material/sort';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { ReturnedUser } from 'src/app/models/UsersTable.model';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-user-payments',
+  imports: [MaterialModule],
   templateUrl: './users-pay-stats.component.html',
   styleUrls: ['./users-pay-stats.component.css'],
   animations: [

@@ -9,10 +9,12 @@ import { UserService } from 'src/app/service/users.service';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { Title } from '@angular/platform-browser';
 import { ApplicationUserModel } from 'src/app/models/UsersTable.model';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-user-table',
+  imports: [MaterialModule],
   templateUrl: './user-table.component.html',
   styleUrls: ['./user-table.component.css']
 })

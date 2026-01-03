@@ -7,10 +7,12 @@ import { PaymentModel, PaymentsService } from 'src/app/service/payments.service'
 import { PaymentDialogComponent } from '../../Dialogs/payments-dialog/payments-dialog.component';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-payments-table',
+  imports: [MaterialModule],
   templateUrl: './payments-table.component.html',
   styleUrls: ['./payments-table.component.css']
 })

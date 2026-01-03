@@ -6,7 +6,7 @@ import { AuthService } from 'src/app/service/auth.service';
 import { DialogService } from 'src/app/service/DialogService.service';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-resend-email-confirmation',
   templateUrl: './resend-email-confirmation.component.html',
   styleUrls: ['./resend-email-confirmation.component.css'],

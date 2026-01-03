@@ -18,6 +18,7 @@ import {
 import { filter } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { PLATFORM_ID } from '@angular/core';
+import { TopNavComponent } from './components/Controls/top-nav/top-nav.component';
 
 // --- добавляем один раз — вне класса ---
 declare global {
@@ -29,8 +30,9 @@ declare global {
 const METRIKA_ID = 16829734;
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'angular-material-drawer',
+  imports: [TopNavComponent],
   templateUrl: 'app.component.html',
   styleUrls: ['app.component.scss'],
   encapsulation: ViewEncapsulation.None,

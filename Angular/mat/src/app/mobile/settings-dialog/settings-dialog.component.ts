@@ -5,10 +5,12 @@ import { FootPrintParamsComponent } from 'src/app/components/Controls/FootPrintP
 import { FootPrintComponent } from 'src/app/components/footprint/footprint.component';
 import { TickerPresetNew } from 'src/app/models/tickerpreset';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-settings-dialog',
+  imports: [MaterialModule, FootPrintParamsComponent],
   templateUrl: './settings-dialog.component.html'
 })
 export class SettingsDialogComponent {
