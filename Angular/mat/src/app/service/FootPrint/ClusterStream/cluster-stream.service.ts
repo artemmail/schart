@@ -4,7 +4,10 @@ import { FootPrintParameters } from 'src/app/models/Params';
 import { Tick } from 'src/app/models/Column';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { catchError, map } from 'rxjs/operators';
-import { ClusterData } from 'src/app/components/footprint/models/cluster-data';
+import {
+  ClusterData,
+  ClusterDataInit,
+} from 'src/app/components/footprint/models/cluster-data';
 import { removeUTC } from '../Formating/formatting.service';
 import { environment } from 'src/app/environment';
 import {
@@ -83,7 +86,7 @@ export class ClusterStreamService {
 
   private getRange(params: QueryParams): Observable<ClusterData> {
     return this.http
-      .get<ClusterData>(`${environment.apiUrl}/api/clusters/getRange`, {
+      .get<ClusterDataInit>(`${environment.apiUrl}/api/clusters/getRange`, {
         params,
         withCredentials: true,
       })
@@ -92,7 +95,7 @@ export class ClusterStreamService {
           data.clusterData.forEach((value: { x: string | Date }) => {
             value.x = new Date(value.x as string);
           });
-          return data;
+          return new ClusterData(data);
         }),
         catchError(this.handle403Error)
       );
