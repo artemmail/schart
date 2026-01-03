@@ -7,6 +7,10 @@ import { catchError, map } from 'rxjs/operators';
 import { ClusterData } from 'src/app/components/footprint/models/cluster-data';
 import { removeUTC } from '../Formating/formatting.service';
 import { environment } from 'src/app/environment';
+import {
+  CandlesRangeSetParams,
+  CandlesRangeSetValue,
+} from 'src/app/models/candles-range-set';
 
 type QueryParams = Record<
   string,
@@ -23,36 +27,6 @@ export interface VolumeSearchResult {
   Ask: number;
   Bid: number;
   Delta: number;
-}
-
-export interface CandlesRangeSetParams {
-  ticker?: string;
-  ticker1?: string;
-  ticker2?: string;
-  rperiod?: string;
-  startDate?: Date;
-  endDate?: Date;
-  startTime?: string;
-  endTime?: string;
-  from_stamp?: string;
-  packed?: boolean;
-  count?: number;
-  period?: number;
-  timeEnable?: boolean;
-}
-
-export interface CandlesRangeSetValue {
-  Min?: number;
-  Max?: number;
-  Opn?: number;
-  Cls?: number;
-  Vol?: number;
-  Qnt?: number;
-  Bid?: number;
-  OpIn?: number;
-  Date?: number;
-  Price1?: number;
-  Price2?: number;
 }
 
 @Injectable({

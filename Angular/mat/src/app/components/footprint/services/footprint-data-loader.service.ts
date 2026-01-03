@@ -15,6 +15,7 @@ import {
   FootprintUpdateEvent,
   FootprintUpdateType,
 } from '../models/footprint-data.types';
+import { CandlesRangeSetParams } from 'src/app/models/candles-range-set';
 
 @Injectable()
 export class FootprintDataLoaderService implements OnDestroy {
@@ -134,12 +135,25 @@ export class FootprintDataLoaderService implements OnDestroy {
 
   private async requestRange(params: FootPrintParameters): Promise<boolean> {
     try {
-      const rangeData = await firstValueFrom(
-        params.period == 0
-          ? this.clusterStreamService.GetTicks(params)
-          : this.clusterStreamService.GetRange(params)
-      );
+      const [rangeData, rangeSet] = await Promise.all([
+        firstValueFrom(
+          params.period == 0
+            ? this.clusterStreamService.GetTicks(params)
+            : this.clusterStreamService.GetRange(params)
+        ),
+        this.shouldLoadRangeSet(params)
+          ? firstValueFrom(
+              this.clusterStreamService.getRangeSetArray(
+                this.buildRangeSetParams(params)
+              )
+            ).catch((err) => this.handleRangeSetError(err))
+          : Promise.resolve(null),
+      ]);
+
       this.currentData = new ClusterData(rangeData);
+      if (rangeSet?.length) {
+        this.currentData.attachRangeSet(rangeSet);
+      }
       this.dataSubject.next(this.currentData);
       return true;
     } catch (err) {
@@ -151,6 +165,31 @@ export class FootprintDataLoaderService implements OnDestroy {
       }
       return false;
     }
+  }
+
+  private shouldLoadRangeSet(params: FootPrintParameters): boolean {
+    return !!params.ticker1 && !!params.ticker2;
+  }
+
+  private buildRangeSetParams(
+    params: FootPrintParameters
+  ): CandlesRangeSetParams {
+    const { ticker, ticker1, ticker2, rperiod, startDate, endDate, period } = params;
+
+    return {
+      ticker,
+      ticker1,
+      ticker2,
+      rperiod,
+      startDate,
+      endDate,
+      period,
+    };
+  }
+
+  private handleRangeSetError(error: unknown): null {
+    console.warn('Range set data was not attached to the chart', error);
+    return null;
   }
 }
 
