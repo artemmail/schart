@@ -135,7 +135,9 @@ export class FootprintDataLoaderService implements OnDestroy {
   private async requestRange(params: FootPrintParameters): Promise<boolean> {
     try {
       const rangeData = await firstValueFrom(
-        this.clusterStreamService.GetRange(params)
+        params.period == 0
+          ? this.clusterStreamService.GetTicks(params)
+          : this.clusterStreamService.GetRange(params)
       );
       this.currentData = new ClusterData(rangeData);
       this.dataSubject.next(this.currentData);

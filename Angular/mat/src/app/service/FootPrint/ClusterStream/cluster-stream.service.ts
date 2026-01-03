@@ -8,6 +8,10 @@ import { ClusterData } from 'src/app/components/footprint/models/cluster-data';
 import { removeUTC } from '../Formating/formatting.service';
 import { environment } from 'src/app/environment';
 
+type QueryParams = Record<
+  string,
+  string | number | boolean | ReadonlyArray<string | number | boolean>
+>;
 
 export interface VolumeSearchResult {
   Time: Date;
@@ -28,57 +32,21 @@ export class ClusterStreamService {
   constructor(private http: HttpClient) {}
 
   public GetRange(model: FootPrintParameters): Observable<ClusterData> {
-    const params = { ...model };
+    const params = this.buildParams(model);
 
-    if (params.startDate != null) {
-      params.startDate = removeUTC(params.startDate);
-    }
-    if (params.endDate != null) {
-      params.endDate = removeUTC(params.endDate);
-    }
+    return model.period == 0
+      ? this.getTicks(model, params)
+      : this.getRange(params);
+  }
 
-    const handle403Error = (error: any) => {
-      if (error.status === 403) {
-        // Здесь можно добавить обработку ошибки 403, если это необходимо
-        console.error('Ошибка 403: доступ запрещен');
-      }
-      return throwError(error);
-    };
+  public GetTicks(model: FootPrintParameters): Observable<ClusterData> {
+    const params = this.buildParams(model);
+    return this.getTicks(model, params);
+  }
 
-    if (model.period == 0) {
-      
-      return this.http
-        .get<Tick[]>(`${environment.apiUrl}/api/clusters/getTicks`, {
-          params,
-          withCredentials: true,
-        })
-        .pipe(
-          
-          map((data: any) => {
-
-            
-            let a = data.map((value: Tick) => ({
-              Number: value.Number,
-              x: new Date(value.TradeDate),
-              o: value.Price,
-              c: value.Price,
-              l: value.Price,
-              h: value.Price,
-              q: value.Quantity,
-              bq: value.Quantity * value.Direction,
-              v: value.Volume,
-              bv: value.Volume * value.Direction,
-              oi: value.OI,
-            }));
-
-            return new ClusterData( {priceScale:params.priceStep??1,  clusterData:a});
-          }),
-          catchError(handle403Error)
-        );
-    }
-
+  private getRange(params: QueryParams): Observable<ClusterData> {
     return this.http
-      .get<any>(`${environment.apiUrl}/api/clusters/getRange`, {
+      .get<ClusterData>(`${environment.apiUrl}/api/clusters/getRange`, {
         params,
         withCredentials: true,
       })
@@ -89,8 +57,63 @@ export class ClusterStreamService {
           });
           return data;
         }),
-        catchError(handle403Error)
+        catchError(this.handle403Error)
       );
+  }
+
+  private getTicks(
+    model: FootPrintParameters,
+    params: QueryParams
+  ): Observable<ClusterData> {
+    return this.http
+      .get<Tick[]>(`${environment.apiUrl}/api/clusters/getTicks`, {
+        params,
+        withCredentials: true,
+      })
+      .pipe(
+        map((data: Tick[]) => {
+          const clusterData = data.map((value: Tick) => ({
+            Number: value.Number,
+            x: new Date(value.TradeDate),
+            o: value.Price,
+            c: value.Price,
+            l: value.Price,
+            h: value.Price,
+            q: value.Quantity,
+            bq: value.Quantity * value.Direction,
+            v: value.Volume,
+            bv: value.Volume * value.Direction,
+            oi: value.OI,
+          }));
+
+          return new ClusterData({
+            priceScale: model.priceStep ?? 1,
+            clusterData,
+          });
+        }),
+        catchError(this.handle403Error)
+      );
+  }
+
+  private buildParams(model: FootPrintParameters): QueryParams {
+    const params: QueryParams = { ...(model as unknown as QueryParams) };
+
+    if (model.startDate != null) {
+      params.startDate = removeUTC(model.startDate);
+    }
+    if (model.endDate != null) {
+      params.endDate = removeUTC(model.endDate);
+    }
+
+    return params;
+  }
+
+  private handle403Error(error: any) {
+    if (error.status === 403) {
+      // Здесь можно добавить обработку ошибки 403, если это необходимо
+      console.error('Ошибка 403: доступ запрещен');
+    }
+    return throwError(error);
   }
 
   public volumeSearch(
