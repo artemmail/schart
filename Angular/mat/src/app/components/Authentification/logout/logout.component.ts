@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthEventService } from 'src/app/service/AuthEventService';
 import { AuthService } from 'src/app/service/auth.service';
@@ -6,6 +7,7 @@ import { AuthService } from 'src/app/service/auth.service';
 @Component({
   standalone: true,
   selector: 'app-logout',
+  imports: [CommonModule],
   templateUrl: './logout.component.html',
   styleUrls: ['./logout.component.css']
 })
