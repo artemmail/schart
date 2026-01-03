@@ -340,6 +340,82 @@ namespace UserFunctions
             }
         }
 
+        public async Task<CandlesRangeSetValue[]> GetRangeSetArray(
+      string ticker,
+      string ticker1,
+      string ticker2,
+      double period,
+      DateTimePair dateTimePair,
+      int top)
+        {
+
+            if (!string.IsNullOrEmpty(ticker))
+            {
+                ticker = _tickersRepository.CorrectFormula(ticker);
+            }
+
+            if (!string.IsNullOrEmpty(ticker1))
+            {
+                ticker1 = _tickersRepository.CorrectFormula(ticker1);
+            }
+
+            if (!string.IsNullOrEmpty(ticker2))
+            {
+                ticker2 = _tickersRepository.CorrectFormula(ticker2);
+            }
+
+            string[] tickers = string.IsNullOrEmpty(ticker)
+                ? _tickersRepository.TickersFromFormula($"{ticker1}+{ticker2}")
+                : _tickersRepository.TickersFromFormula(ticker);
+
+            var results = new List<BaseCandle>[tickers.Length];
+            var candleSets = new List<BaseCandle>[tickers.Length];
+            var deltas = new List<decimal>[tickers.Length];
+
+            for (int i = 0; i < tickers.Length; i++)
+            {
+                string currentTicker = tickers[i];
+                _stockMarketService.UpdateAlias(ref currentTicker);
+                results[i] = (await _dbContext.GetCandlesAsync(
+                    currentTicker,
+                    period,
+                    dateTimePair.Start,
+                    dateTimePair.End,
+                    top)).Select(c => (BaseCandle)c).ToList();
+            }
+
+            for (int i = 0; i < tickers.Length; i++)
+            {
+                candleSets[i] = results[i];
+                deltas[i] = CalculateDelta(results[i]);
+            }
+
+            candleSets = AdjustCandlesSet(candleSets);
+
+            for (int i = 0; i < tickers.Length; i++)
+            {
+                deltas[i] = CalculateDelta(candleSets[i]);
+            }
+
+            if (string.IsNullOrEmpty(ticker))
+            {
+                var function1 = CreateFunction(ticker1, tickers, true);
+                var function2 = CreateFunction(ticker2, tickers, true);
+
+                var result1 = (BaseCandle[])function1.CalcExpression(candleSets, deltas);
+                var result2 = (BaseCandle[])function2.CalcExpression(candleSets, deltas);
+
+                return CandlePacker.PackPricesResultArray(result1, result2);
+            }
+            else
+            {
+                var function = CreateFunction(ticker, tickers, false);
+                var result = (BaseCandle[])function.CalcExpression(candleSets, deltas);
+
+                return CandlePacker.PackCandlesResultArray(result.ToList());
+            }
+        }
+
 
 
         public async Task<List<ClusterColumnBase>> GetRangeSetBase(

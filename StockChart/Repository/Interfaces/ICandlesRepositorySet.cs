@@ -15,6 +15,14 @@ namespace StockChart.Repository
            DateTimePair dateTimePair,
            int top);
 
+        public Task<CandlesRangeSetValue[]> GetRangeSetArray(
+           string ticker,
+           string ticker1,
+           string ticker2,
+           double period,
+           DateTimePair dateTimePair,
+           int top);
+
 
         public  Task<List<ClusterColumnBase>> GetRangeSetBase(
            string ticker,

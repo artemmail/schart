@@ -87,6 +87,50 @@ namespace StockChart.Extentions
                 };
         }
 
+        public static CandlesRangeSetValue[] PackCandlesResultArray(List<BaseCandle> candles)
+        {
+            if (candles == null)
+                return null;
+
+            var values = candles.Select(candle => new CandlesRangeSetValue
+            {
+                Min = candle.MinPrice,
+                Max = candle.MaxPrice,
+                Opn = candle.OpnPrice,
+                Cls = candle.ClsPrice,
+                Vol = candle.Volume,
+                Qnt = candle.Quantity,
+                Bid = candle.Volume > 0 ? (int)Math.Truncate(1000 * candle.BuyVolume / candle.Volume) : 0,
+                OpIn = candle.Oi,
+                Date = candle.Period.ToJavaScriptMinutes()
+            }).ToArray();
+
+            return values;
+        }
+
+        public static CandlesRangeSetValue[] PackPricesResultArray(BaseCandle[] prices1, BaseCandle[] prices2)
+        {
+            if (prices1 == null || prices2 == null)
+                return null;
+
+            var values = prices1.Zip(prices2, (p1, p2) => new CandlesRangeSetValue
+            {
+                Price1 = p1.ClsPrice,
+                Price2 = p2.ClsPrice,
+                Date = p1.Period.ToJavaScriptMinutes(),
+                Min = 0,
+                Max = 0,
+                Opn = 0,
+                Cls = 0,
+                Vol = 0,
+                Qnt = 0,
+                Bid = 0,
+                OpIn = 0
+            }).ToArray();
+
+            return values;
+        }
+
 
         public static CandlesRangeSetResult PackCandlesResult(List<BaseCandle> candles, bool packed)
         {
