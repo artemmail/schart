@@ -25,6 +25,36 @@ export interface VolumeSearchResult {
   Delta: number;
 }
 
+export interface CandlesRangeSetParams {
+  ticker?: string;
+  ticker1?: string;
+  ticker2?: string;
+  rperiod?: string;
+  startDate?: Date;
+  endDate?: Date;
+  startTime?: string;
+  endTime?: string;
+  from_stamp?: string;
+  packed?: boolean;
+  count?: number;
+  period?: number;
+  timeEnable?: boolean;
+}
+
+export interface CandlesRangeSetResult {
+  Min?: number[];
+  Max?: number[];
+  Opn?: number[];
+  Cls?: number[];
+  Vol?: number[];
+  Qnt?: number[];
+  Bid?: number[];
+  OpIn?: number[];
+  Date?: number[];
+  price1?: number[];
+  price2?: number[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -42,6 +72,39 @@ export class ClusterStreamService {
   public GetTicks(model: FootPrintParameters): Observable<ClusterData> {
     const params = this.buildParams(model);
     return this.getTicks(model, params);
+  }
+
+  public getRangeSet(
+    params: CandlesRangeSetParams
+  ): Observable<CandlesRangeSetResult> {
+    const defaultedParams: CandlesRangeSetParams = {
+      count: 2000,
+      period: 15,
+      timeEnable: false,
+      ...params,
+    };
+
+    let httpParams = new HttpParams();
+    httpParams = this.appendDate(httpParams, 'startDate', defaultedParams.startDate);
+    httpParams = this.appendDate(httpParams, 'endDate', defaultedParams.endDate);
+    httpParams = this.appendParam(httpParams, 'ticker', defaultedParams.ticker);
+    httpParams = this.appendParam(httpParams, 'ticker1', defaultedParams.ticker1);
+    httpParams = this.appendParam(httpParams, 'ticker2', defaultedParams.ticker2);
+    httpParams = this.appendParam(httpParams, 'rperiod', defaultedParams.rperiod);
+    httpParams = this.appendParam(httpParams, 'startTime', defaultedParams.startTime);
+    httpParams = this.appendParam(httpParams, 'endTime', defaultedParams.endTime);
+    httpParams = this.appendParam(httpParams, 'from_stamp', defaultedParams.from_stamp);
+    httpParams = this.appendParam(httpParams, 'packed', defaultedParams.packed);
+    httpParams = this.appendParam(httpParams, 'count', defaultedParams.count);
+    httpParams = this.appendParam(httpParams, 'period', defaultedParams.period);
+    httpParams = this.appendParam(httpParams, 'timeEnable', defaultedParams.timeEnable);
+
+    return this.http
+      .get<CandlesRangeSetResult>(`${environment.apiUrl}/api/candles/getRangeSet`, {
+        params: httpParams,
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handle403Error));
   }
 
   private getRange(params: QueryParams): Observable<ClusterData> {
@@ -106,6 +169,26 @@ export class ClusterStreamService {
     }
 
     return params;
+  }
+
+  private appendParam(
+    params: HttpParams,
+    key: string,
+    value: string | number | boolean | undefined | null
+  ): HttpParams {
+    if (value === undefined || value === null) {
+      return params;
+    }
+
+    return params.set(key, value.toString());
+  }
+
+  private appendDate(params: HttpParams, key: string, value?: Date | null): HttpParams {
+    if (value === undefined || value === null) {
+      return params;
+    }
+
+    return params.set(key, removeUTC(value));
   }
 
   private handle403Error(error: any) {
