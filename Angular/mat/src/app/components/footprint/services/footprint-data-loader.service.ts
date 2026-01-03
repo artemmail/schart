@@ -15,7 +15,6 @@ import {
   FootprintUpdateEvent,
   FootprintUpdateType,
 } from '../models/footprint-data.types';
-import { CandlesRangeSetParams } from 'src/app/models/candles-range-set';
 
 @Injectable()
 export class FootprintDataLoaderService implements OnDestroy {
@@ -134,27 +133,20 @@ export class FootprintDataLoaderService implements OnDestroy {
   }
 
   private async requestRange(params: FootPrintParameters): Promise<boolean> {
-    this.debugRangeSetRequest(params);
-    try {
-      const [rangeData, rangeSet] = await Promise.all([
-        firstValueFrom(
-          params.period == 0
-            ? this.clusterStreamService.GetTicks(params)
-            : this.clusterStreamService.GetRange(params)
-        ),
-        this.shouldLoadRangeSet(params)
-          ? firstValueFrom(
-              this.clusterStreamService.getRangeSetArray(
-                this.buildRangeSetParams(params)
-              )
-            ).catch((err) => this.handleRangeSetError(err))
-          : Promise.resolve(null),
-      ]);
 
+        let CandlesRangeSetParams = {
+      ...params,
+      ticker1: 'GAZP*2',
+      ticker2: 'SBER',
+    };
+
+
+    try {
+      const rangeData = await firstValueFrom(
+        this.clusterStreamService.getRangeSetArray(params)
+      );
+      debugger
       this.currentData = new ClusterData(rangeData);
-      if (rangeSet?.length) {
-        this.currentData.attachRangeSet(rangeSet);
-      }
       this.dataSubject.next(this.currentData);
       return true;
     } catch (err) {
@@ -166,47 +158,6 @@ export class FootprintDataLoaderService implements OnDestroy {
       }
       return false;
     }
-  }
-
-  private shouldLoadRangeSet(params: FootPrintParameters): boolean {
-    return !!params.ticker1 && !!params.ticker2;
-  }
-
-  private buildRangeSetParams(
-    params: FootPrintParameters
-  ): CandlesRangeSetParams {
-    const { ticker, ticker1, ticker2, rperiod, startDate, endDate, period } = params;
-
-    return {
-      ticker,
-      ticker1,
-      ticker2,
-      rperiod,
-      startDate,
-      endDate,
-      period,
-    };
-  }
-
-  private handleRangeSetError(error: unknown): null {
-    console.warn('Range set data was not attached to the chart', error);
-    return null;
-  }
-
-  private debugRangeSetRequest(params: FootPrintParameters): void {
-    const debugParams: CandlesRangeSetParams = {
-      ...this.buildRangeSetParams(params),
-      ticker1: 'GAZP*2',
-      ticker2: 'SBER',
-    };
-
-    firstValueFrom(this.clusterStreamService.getRangeSetArray(debugParams))
-      .then((data) =>
-        console.debug('Debug viewRangeSet data (GAZP*2 vs SBER):', data)
-      )
-      .catch((error) =>
-        console.debug('Debug viewRangeSet request failed (GAZP*2 vs SBER):', error)
-      );
   }
 }
 
