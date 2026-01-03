@@ -2,7 +2,6 @@
 import { NgModule, LOCALE_ID } from '@angular/core';
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
-import { SharedModule } from './shared.module';  // Import the SharedModule
 import { NavService } from './service/nav.service';
 import { CustomDateAdapter, MY_DATE_FORMATS } from './service/date-formats';
 import { BrowserModule } from '@angular/platform-browser';
@@ -27,7 +26,6 @@ import { HttpClientModule } from '@angular/common/http';
     ),*/
     BrowserModule,
     BrowserAnimationsModule,
-    SharedModule,
     HttpClientModule,
     AppRoutingModule,
     AppComponent,

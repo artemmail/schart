@@ -17,7 +17,6 @@ import { SettingsComponent } from './mobile/settings/settings.component';
 import { LeadersComponent } from './mobile/Leaders/leaders.component';
 
 import { AppRoutingModule } from './mobile/app.routes'; // Импортируем модуль маршрутизации
-import { SharedModule } from './shared.module';  // Import the SharedModule
 import { MaterialModule } from './material.module';
 import { NavService } from './service/nav.service';
 import { MAT_DATE_FORMATS, provideNativeDateAdapter } from '@angular/material/core';
@@ -61,7 +60,6 @@ export class MyHammerConfig extends HammerGestureConfig {
    
     HammerModule,
     MaterialModule,
-    SharedModule,
     HttpClientModule,
     AppMobileComponent,
     SettingsComponent,
