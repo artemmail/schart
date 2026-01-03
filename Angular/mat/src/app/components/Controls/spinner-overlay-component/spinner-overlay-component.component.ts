@@ -1,8 +1,10 @@
 import { Component } from '@angular/core';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @Component({
   selector: 'spinner-overlay',
-  standalone:false,
+  standalone: true,
+  imports: [MatProgressSpinnerModule],
   template: `
     <div class="spinner-overlay">
       <mat-spinner></mat-spinner>

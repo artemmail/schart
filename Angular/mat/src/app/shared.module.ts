@@ -239,11 +239,11 @@ registerLocaleData(localeRu, 'ru');
     PaymentsTableComponent,
     ProfitChartsComponent,
     MarketBoardComponent,
-],
-  declarations: [
     ResizeListenerDirective,
     SpinnerOverlayComponent,
     ImageUploaderComponent,
+],
+  declarations: [
     ConfirmEmailComponent,
 ],
   exports: [
