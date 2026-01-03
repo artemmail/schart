@@ -297,6 +297,8 @@ namespace StockChart.Repository
                     ticker = _dic.TickersFromFormula(ticker).First();
                     UpdateAlias(ref ticker);
                 }
+                else
+                    UpdateAlias(ref ticker);
             }
             int i = _dic[ticker].Id;
             return _dbContext.DayCandles.Where(x => x.Id == i).OrderByDescending(x => x.Period).Select(x => x.Period).First();
