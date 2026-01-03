@@ -90,5 +90,20 @@ namespace StockChart.Controllers
             return t;
         }
 
+        [HttpGet]
+        [Route("getRangeSetArray")]
+        public async Task<CandlesRangeSetValue[]> getRangeSetArray(string? ticker, string? ticker1, string? ticker2, string? rperiod, string? startDate, string? endDate, string? startTime, string? endTime,
+            string? from_stamp, bool? packed, int count = 2000, double period = 15, bool timeEnable = false)
+        {
+            if (!string.IsNullOrEmpty(ticker))
+            {
+                ticker = _tickersRepository.CorrectFormula(ticker);
+            }
+
+            var res = _stockMarketServiceRepository.getStartEndDateTime(ticker, rperiod, startDate, endDate, from_stamp, startTime, endTime, timeEnable);
+            var t = await _candlesRepositorySet.GetRangeSetArray(ticker, ticker1, ticker2, (int)period, res, 1000);
+            return t;
+        }
+
     }
 }

@@ -41,18 +41,18 @@ export interface CandlesRangeSetParams {
   timeEnable?: boolean;
 }
 
-export interface CandlesRangeSetResult {
-  Min?: number[];
-  Max?: number[];
-  Opn?: number[];
-  Cls?: number[];
-  Vol?: number[];
-  Qnt?: number[];
-  Bid?: number[];
-  OpIn?: number[];
-  Date?: number[];
-  price1?: number[];
-  price2?: number[];
+export interface CandlesRangeSetValue {
+  Min?: number;
+  Max?: number;
+  Opn?: number;
+  Cls?: number;
+  Vol?: number;
+  Qnt?: number;
+  Bid?: number;
+  OpIn?: number;
+  Date?: number;
+  Price1?: number;
+  Price2?: number;
 }
 
 @Injectable({
@@ -74,9 +74,9 @@ export class ClusterStreamService {
     return this.getTicks(model, params);
   }
 
-  public getRangeSet(
+  public getRangeSetArray(
     params: CandlesRangeSetParams
-  ): Observable<CandlesRangeSetResult> {
+  ): Observable<CandlesRangeSetValue[]> {
     const defaultedParams: CandlesRangeSetParams = {
       count: 2000,
       period: 15,
@@ -100,7 +100,7 @@ export class ClusterStreamService {
     httpParams = this.appendParam(httpParams, 'timeEnable', defaultedParams.timeEnable);
 
     return this.http
-      .get<CandlesRangeSetResult>(`${environment.apiUrl}/api/candles/getRangeSet`, {
+      .get<CandlesRangeSetValue[]>(`${environment.apiUrl}/api/candles/getRangeSetArray`, {
         params: httpParams,
         withCredentials: true,
       })
