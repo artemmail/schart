@@ -241,7 +241,7 @@ namespace UserFunctions
             .AddReferences(MetadataReference.CreateFromFile(typeof(string).Assembly.Location))
             .AddSyntaxTrees(syntaxTree);
 
-        public async Task<object> GetRangeSet(
+        public async Task<CandlesRangeSetResult> GetRangeSet(
       string ticker,
       string ticker1,
       string ticker2,
@@ -317,12 +317,12 @@ namespace UserFunctions
 
                 var price1 = result1.Select(x => x.ClsPrice).ToArray();
                 var price2 = result2.Select(x => x.ClsPrice).ToArray();
-                var dates = result1.Select(x => x.Period.ToJavaScriptMinutes());
+                var dates = result1.Select(x => x.Period.ToJavaScriptMinutes()).ToArray();
 
-                return new
+                return new CandlesRangeSetResult
                 {
-                    price1,
-                    price2,
+                    Price1 = price1,
+                    Price2 = price2,
                     Date = dates
                 };
             }

@@ -1,4 +1,5 @@
-﻿using StockChart.EventBus.Models;
+using StockChart.EventBus.Models;
+using StockChart.Model;
 
 namespace StockChart.Repository
 {
@@ -6,7 +7,7 @@ namespace StockChart.Repository
     {
         // New method
 
-        public Task<object> GetRangeSet(
+        public Task<CandlesRangeSetResult> GetRangeSet(
            string ticker,
            string ticker1,
            string ticker2,

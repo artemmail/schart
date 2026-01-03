@@ -15,7 +15,7 @@ namespace StockChart.Extentions
             for (int i = arr.Length - 1; i > 0; i--)
                 arr[i] = arr[i] - arr[i - 1];
         }
-        public static object PackCandlesResult(List<Candle> candles, bool packed)
+        public static CandlesRangeSetResult PackCandlesResult(List<Candle> candles, bool packed)
         {
             if (candles == null)
                 return null;
@@ -60,7 +60,7 @@ namespace StockChart.Extentions
                 for (int i = OIn.Length - 2; i > 1; i--)
                     if (OIn[i] == 0)
                         OIn[i] = OIn[i + 1];
-                return new
+                return new CandlesRangeSetResult
                 {
                     Min = Min,
                     Max = Max,
@@ -74,7 +74,7 @@ namespace StockChart.Extentions
                 };
             }
             else
-                return new
+                return new CandlesRangeSetResult
                 {
                     Min = Min,
                     Max = Max,
@@ -88,7 +88,7 @@ namespace StockChart.Extentions
         }
 
 
-        public static object PackCandlesResult(List<BaseCandle> candles, bool packed)
+        public static CandlesRangeSetResult PackCandlesResult(List<BaseCandle> candles, bool packed)
         {
             if (candles == null)
                 return null;
@@ -133,7 +133,7 @@ namespace StockChart.Extentions
                 for (int i = OIn.Length - 2; i > 1; i--)
                     if (OIn[i] == 0)
                         OIn[i] = OIn[i + 1];
-                return new
+                return new CandlesRangeSetResult
                 {
                     Min = Min,
                     Max = Max,
@@ -147,7 +147,7 @@ namespace StockChart.Extentions
                 };
             }
             else
-                return new
+                return new CandlesRangeSetResult
                 {
                     Min = Min,
                     Max = Max,

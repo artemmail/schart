@@ -77,7 +77,7 @@ namespace StockChart.Controllers
         }
         [HttpGet]
         [Route("getRangeSet")]
-        public async Task<object> getRangeSet(string? ticker, string? ticker1, string? ticker2, string? rperiod, string? startDate, string? endDate, string? startTime, string? endTime,
+        public async Task<CandlesRangeSetResult> getRangeSet(string? ticker, string? ticker1, string? ticker2, string? rperiod, string? startDate, string? endDate, string? startTime, string? endTime,
             string? from_stamp, bool? packed, int count = 2000, double period = 15, bool timeEnable = false)
         {
             if (!string.IsNullOrEmpty(ticker))
