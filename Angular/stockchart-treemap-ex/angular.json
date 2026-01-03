@@ -53,10 +53,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "stockchart-treemap-ex:build:production"
+              "buildTarget": "stockchart-treemap-ex:build:production"
             },
             "development": {
-              "browserTarget": "stockchart-treemap-ex:build:development"
+              "buildTarget": "stockchart-treemap-ex:build:development"
             }
           },
           "defaultConfiguration": "development"

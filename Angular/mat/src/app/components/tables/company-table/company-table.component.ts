@@ -1,11 +1,25 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Legend_tab, stat_dic } from 'src/app/data/companyinfo';
 import { DataItem } from 'src/app/models/fundamental.model';
 import {  DataService } from 'src/app/service/companydata.service';
+import { MoneyToStrPipe } from 'src/app/pipes/money-to-str.pipe';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-company-table',
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatIconModule,
+    MatTableModule,
+    MatTooltipModule,
+    MoneyToStrPipe,
+  ],
   templateUrl: './company-table.component.html',
   styleUrls: ['./company-table.component.css']
 })

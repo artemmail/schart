@@ -1,4 +1,7 @@
 import { AfterViewInit, Component, ElementRef, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatCardModule } from '@angular/material/card';
+import { MatTableModule } from '@angular/material/table';
 import { Chart } from 'chart.js/auto';
 
 import { map, Observable } from 'rxjs';
@@ -9,8 +12,9 @@ import {  DataService } from 'src/app/service/companydata.service';
 
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-dividends-table',
+  imports: [CommonModule, MatCardModule, MatTableModule],
   templateUrl: './dividends-table.component.html',
   styleUrls: ['./dividends-table.component.css']
 })

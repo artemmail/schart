@@ -1,11 +1,14 @@
 import { Component, OnInit, Input } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
 import { Recommendation } from 'src/app/models/fundamental.model';
 import { DataService } from 'src/app/service/companydata.service';
 
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-recommendation-list',
+  imports: [CommonModule, MatIconModule],
   templateUrl: './recommendation-list.component.html',
   styleUrls: ['./recommendation-list.component.css']
 })

@@ -1,12 +1,16 @@
 import { Component, EventEmitter, forwardRef, OnInit, Output } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { SelectListItemNumber } from 'src/app/models/preserts';
 import { CommonService } from 'src/app/service/common.service';
 
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-market-selector',
+  imports: [CommonModule, MatFormFieldModule, MatSelectModule],
   templateUrl: './market-selector.component.html',
   styleUrls: ['./market-selector.component.css'],
   providers: [

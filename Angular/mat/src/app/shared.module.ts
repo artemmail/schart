@@ -156,9 +156,17 @@ registerLocaleData(localeRu, 'ru');
     MatInputModule,
     NgxMatDatetimepicker,
     NgxMatDatepickerInput,
+    TreeMapComponent,
+    MarketSelectorComponent,
+    ComboBoxComponent,
     MoneyToStrPipe,
     CostToStrPipe,
     StockChartTreemapComponent,
+    TotalVolumeComponent,
+    StatementsComponent,
+    CompanyTableComponent,
+    RecommendationListComponent,
+    DividendsTableComponent,
 ],
   declarations: [
     ResizeListenerDirective,
@@ -183,11 +191,9 @@ registerLocaleData(localeRu, 'ru');
     TopNavComponent,
 
     SubscriptionPlansComponent,
-    MarketSelectorComponent,
     PresetSelectorComponent,
     FootPrintParamsComponent,
     MarkupEditorComponent,
-
     MarketMapComponent,
 
     CustomTooltipComponent,
@@ -202,7 +208,6 @@ registerLocaleData(localeRu, 'ru');
     ResendEmailConfirmationComponent,
 
     CandlesStatComponent,
-    TotalVolumeComponent,
     PresetSelectorComponent1,
 
     PaymentInstructionsDialogComponent,
@@ -215,7 +220,6 @@ registerLocaleData(localeRu, 'ru');
     LeadersReportComponent,
     
     CategorySelectorComponent,
-    ComboBoxComponent,
     MultiPageComponent,
     CreateTopicComponent,
     EditTopicComponent,
@@ -232,10 +236,7 @@ registerLocaleData(localeRu, 'ru');
     SupportDialogComponent,
     
     BarometerTableComponent, UserTableComponent,
-    CompanyTableComponent,
-    StatementsComponent,
-    RecommendationListComponent,
-    DividendsTableComponent, DividendsComponent, ShareHoldersComponent,
+    DividendsComponent, ShareHoldersComponent,
     FinancialComponent,
      ShareholdersChartComponent,
      FilteredDataChartComponent,

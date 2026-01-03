@@ -43,8 +43,7 @@ export class MyHammerConfig extends HammerGestureConfig {
 @NgModule({
   declarations: [
     AppMobileComponent,
-    HeaderComponent,
-    
+
     SettingsComponent,
 ///   LeaderboardTableComponent,
     FirstComponent1
@@ -71,6 +70,7 @@ export class MyHammerConfig extends HammerGestureConfig {
     MaterialModule,
     SharedModule,
     HttpClientModule,
+    HeaderComponent,
     LeadersComponent,
     LeadersBinanceComponent,
     LeadersFortsComponent,

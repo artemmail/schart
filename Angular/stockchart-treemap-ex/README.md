@@ -1,8 +1,8 @@
 # Stockchart Treemap examples
 
-Отдельный проект с примерами использования опубликованного пакета [`stockchart-treemap`](https://www.npmjs.com/package/stockchart-treemap).
+Standalone project with usage examples for the published [`stockchart-treemap`](https://www.npmjs.com/package/stockchart-treemap) package.
 
-## Запуск
+## Run
 
 ```bash
 cd Angular/stockchart-treemap-ex
@@ -10,4 +10,4 @@ npm install
 npm start
 ```
 
-По умолчанию откроется демонстрация «Рыночная карта»; во вкладке можно переключиться на пример с автоматическим градиентом.
+By default the "Market Map" demo opens; use the tab to switch to the automatic gradient example.

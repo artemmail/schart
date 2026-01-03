@@ -1,11 +1,15 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
 import { SelectListItemNumber, SelectListItemText } from 'src/app/models/preserts';
 
 
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-combobox',
+  imports: [CommonModule, MatFormFieldModule, MatSelectModule],
   template: `
     <mat-form-field style="width: 100%;">
       <mat-label>{{label}}</mat-label>

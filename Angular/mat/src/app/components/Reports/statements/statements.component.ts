@@ -1,12 +1,27 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { Title } from '@angular/platform-browser';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTabsModule } from '@angular/material/tabs';
 import { STOCK_TICKERS } from 'src/app/data/companyinfo';
+import { RecommendationListComponent } from '../recommendation-list/recommendation-list.component';
+import { CompanyTableComponent } from '../../tables/company-table/company-table.component';
+import { DividendsTableComponent } from '../../tables/dividends-table/dividends-table.component';
 
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-statements',
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatIconModule,
+    MatTabsModule,
+    RecommendationListComponent,
+    CompanyTableComponent,
+    DividendsTableComponent,
+  ],
   templateUrl: './statements.component.html',
   styleUrls: ['./statements.component.css']
 })

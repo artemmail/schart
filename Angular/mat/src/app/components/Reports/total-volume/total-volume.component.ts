@@ -1,4 +1,4 @@
-import { formatDate } from '@angular/common';
+import { formatDate, CommonModule } from '@angular/common';
 import {
   Component,
   OnInit,
@@ -7,15 +7,28 @@ import {
   HostListener,
   AfterViewInit,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
 import { Chart } from 'chart.js/auto';
 import { ReportsService } from 'src/app/service/reports.service';
 import localeRu from '@angular/common/locales/ru';
 import { SelectListItemNumber } from 'src/app/models/preserts';
 import { Title } from '@angular/platform-browser';
+import { MarketSelectorComponent } from '../../Controls/MarketSelector/market-selector.component';
+import { ComboBoxComponent } from '../../Controls/ComboBox/combobox.component';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-total-volume',
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatButtonModule,
+    MatCardModule,
+    MarketSelectorComponent,
+    ComboBoxComponent,
+  ],
   templateUrl: './total-volume.component.html',
   styleUrls: ['./total-volume.component.css'],
 })
