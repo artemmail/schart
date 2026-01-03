@@ -1,6 +1,14 @@
 import { Cluster, Column, ColumnEx } from 'src/app/models/Column';
 import { CandlesRangeSetValue } from 'src/app/models/candles-range-set';
 
+type ClusterDataColumn = Omit<Column, 'cl'> & { cl?: Cluster[] };
+
+export interface ClusterDataInit {
+  clusterData: ClusterDataColumn[];
+  priceScale: number;
+  VolumePerQuantity?: number | null;
+}
+
 export interface RangeSetPoint {
   date: Date;
   columnIndex: number;
@@ -64,7 +72,7 @@ export class ClusterData {
   maxt1: number;
   maxt2: number;
 
-  constructor(data: any) {
+  constructor(data: ClusterDataInit) {
     this.lastPrice = data.clusterData[data.clusterData.length - 1].c;
     this.priceScale = data.priceScale;
 
@@ -73,7 +81,7 @@ export class ClusterData {
       (data.clusterData[0]?.v / (data.clusterData[0]?.q * data.clusterData[0]?.c)) ??
       1;
 
-    this.clusterData = data.clusterData;
+    this.clusterData = data.clusterData.map((column) => this.addColumnInfo(column));
 
     this.calcPrices();
   }
@@ -347,7 +355,7 @@ export class ClusterData {
     return this.addColumnInfo(totalColumn);
   }
 
-  addColumnInfo(col: Column): ColumnEx {
+  addColumnInfo(col: ClusterDataColumn): ColumnEx {
     const column: ColumnEx = { ...col } as ColumnEx;
 
     column.sq = column.q - column.bq;
