@@ -1,9 +1,9 @@
-import { Matrix, Rectangle } from '../matrix';
+import { Matrix, Rectangle } from '../models/matrix';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { viewVolumesSeparated } from './view-volumes-separated';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../footprint.component';
+import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { number } from 'echarts';
 
 export class viewMiniHead extends viewVolumesSeparated {
@@ -77,4 +77,7 @@ export class viewMiniHead extends viewVolumesSeparated {
     ctx.restore();
   }
 }
+
+
+
 

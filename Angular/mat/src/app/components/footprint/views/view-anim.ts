@@ -1,9 +1,9 @@
 import { canvasPart } from './canvas-part';
-import { Matrix } from './../matrix';
-import { Rectangle } from './../matrix';
+import { Matrix } from '../models/matrix';
+import { Rectangle } from '../models/matrix';
 import { DraggableEnum } from 'src/app/models/Draggable';
-import { FootPrintComponent } from '../footprint.component';
-import { Point } from './../matrix';
+import { FootPrintComponent } from '../components/footprint/footprint.component';
+import { Point } from '../models/matrix';
 
 export class viewAnim extends canvasPart {
   imgToEnd: any;
@@ -38,4 +38,7 @@ export class viewAnim extends canvasPart {
     }, 25);
   }
 }
+
+
+
 

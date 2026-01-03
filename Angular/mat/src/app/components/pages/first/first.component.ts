@@ -15,13 +15,13 @@ import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { CommonService } from 'src/app/service/common.service';
 import { NavService } from 'src/app/service/nav.service';
 import { MatSidenav } from '@angular/material/sidenav';
-import { FootPrintComponent } from '../../footprint/footprint.component';
-import { FootprintWidgetComponent } from '../../footprint/footprint-widget.component';
+import { FootPrintComponent } from '../../footprint/components/footprint/footprint.component';
+import { FootprintWidgetComponent } from '../../footprint/components/footprint-widget/footprint-widget.component';
 import { FootPrintParamsComponent } from '../../Controls/FootPrintParams/footpintparmas.component';
 import { NonModalDialogComponent } from '../../FootPrintParts/NonModal/non-modal-dialog.component';
 import { DialogService } from 'src/app/service/DialogService.service';
-import { MarkupEditorComponent } from '../../footprint/markup-editor/markup-editor.component';
-import { FootPrintSettingsDialogComponent } from '../../footprint/footprint-settings-dialog/footprint-settings-dialog.component';
+import { MarkupEditorComponent } from '../../footprint/components/markup-editor/markup-editor.component';
+import { FootPrintSettingsDialogComponent } from '../../footprint/components/footprint-settings-dialog/footprint-settings-dialog.component';
 import { TopOrdersComponentFP } from '../../FootPrintParts/top-orders/top-orders.component';
 import { VolumeSearchTableComponent } from '../../FootPrintParts/volume-search-table/volume-search-table.component';
 import { MaterialModule } from 'src/app/material.module';
@@ -217,3 +217,6 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
     this.footPrint.getCsv();
   }
 }
+
+
+

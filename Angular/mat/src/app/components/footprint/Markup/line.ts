@@ -1,5 +1,5 @@
 
-import { Point } from '../matrix';
+import { Point } from '../models/matrix';
 
 import { Brush } from './brush';
 import { MarkUpManager } from './markup-manager';
@@ -48,4 +48,5 @@ export class Line extends Brush {
     }
   }
 }
+
 

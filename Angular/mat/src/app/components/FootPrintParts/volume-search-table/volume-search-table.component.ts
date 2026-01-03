@@ -13,7 +13,7 @@ import {
   ClusterStreamService,
   VolumeSearchResult,
 } from 'src/app/service/FootPrint/ClusterStream/cluster-stream.service';
-import { FootPrintComponent } from '../../footprint/footprint.component';
+import { FootPrintComponent } from '../../footprint/components/footprint/footprint.component';
 import { MaterialModule } from 'src/app/material.module';
 
 export interface VolumeSearchParams {
@@ -89,3 +89,4 @@ export class VolumeSearchTableComponent
       );
   }
 }
+

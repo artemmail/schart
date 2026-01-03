@@ -1,8 +1,8 @@
 import { canvasPart } from './canvas-part';
-import { Matrix, Point, Rectangle } from './../matrix';
+import { Matrix, Point, Rectangle } from '../models/matrix';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { DraggableEnum } from 'src/app/models/Draggable';
-import { FootPrintComponent } from '../footprint.component';
+import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { drob } from 'src/app/service/FootPrint/utils';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 
@@ -201,4 +201,7 @@ export class viewPrices extends canvasPart {
     this.parent.drawClusterView();
   }
 }
+
+
+
 

@@ -1,6 +1,6 @@
 import { DraggableEnum } from 'src/app/models/Draggable';
-import { FootPrintComponent } from './footprint.component';
-import { Point } from './matrix';
+import { FootPrintComponent } from '../components/footprint/footprint.component';
+import { Point } from '../models/matrix';
 import * as Hammer from 'hammerjs';
 import HammerManager = Hammer.HammerManager;
 import HammerInput = Hammer.HammerInput;
@@ -304,3 +304,6 @@ export class MouseAndTouchManager {
 
 
 }
+
+
+

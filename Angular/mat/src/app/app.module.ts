@@ -73,7 +73,7 @@ import { MatTreeModule } from '@angular/material/tree';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { ResizeListenerDirective } from './service/resize-listener-directive.directive';
-import { FootPrintComponent } from './components/footprint/footprint.component';
+import { FootPrintComponent } from './components/footprint/components/footprint/footprint.component';
 import { SeasonalityComponent } from './components/Reports/seasonality/seasonality.component';
 import { SpinnerOverlayComponent } from './components/Controls/spinner-overlay-component/spinner-overlay-component.component';
 import { VolumeSplashComponent } from './components/Reports/volume-splash/volume-splash.component';
@@ -84,7 +84,7 @@ import { TopOrdersComponent } from './components/Reports/top-orders/top-orders.c
 import { ImageUploaderComponent } from './components/pages/image-uploader/image-uploader.component';
 import { DateRangePickerComponent } from './components/Controls/DateRange/date-range-picker.component';
 import { UserTopicsTableComponent } from './components/pages/user-topics-table/user-topics-table.component';
-import { FootPrintSettingsDialogComponent } from './components/footprint/footprint-settings-dialog/footprint-settings-dialog.component';
+import { FootPrintSettingsDialogComponent } from './components/footprint/components/footprint-settings-dialog/footprint-settings-dialog.component';
 import { NavListItemComponent } from './components/Controls/nav-list-item/nav-list-item.component';
 import { MenuListItemComponent } from './components/Controls/menu-list-item/menu-list-item.component';
 import { MaterialDrawerComponent } from './components/footprint/material-drawer/material-drawer.component';
@@ -98,7 +98,7 @@ import { MarketSelectorComponent } from './components/Controls/MarketSelector/ma
 import { PresetSelectorComponent } from './components/Controls/PresetSelector/preset-selector.component';
 import { FootPrintParamsComponent } from './components/Controls/FootPrintParams/footpintparmas.component';
 import { MY_DATE_FORMATS } from './service/date-formats';
-import { MarkupEditorComponent } from './components/footprint/markup-editor/markup-editor.component';
+import { MarkupEditorComponent } from './components/footprint/components/markup-editor/markup-editor.component';
 
 import { GoogleChartsModule } from 'angular-google-charts';
 import { TreeMapComponent } from './components/Controls/tree-map/tree-map.component';
@@ -321,3 +321,4 @@ export class MaterialModule {}
 })
 export class AppModule {}
 */
+

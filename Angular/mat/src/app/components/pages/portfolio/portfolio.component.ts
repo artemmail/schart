@@ -12,8 +12,8 @@ import { Title } from '@angular/platform-browser';
 import { SelectListItemNumber, SmallPeriodPresetShort } from 'src/app/models/preserts';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { JsonEditorComponent } from 'ang-jsoneditor';
-import { FootPrintComponent } from '../../footprint/footprint.component';
-import { FootprintWidgetComponent } from '../../footprint/footprint-widget.component';
+import { FootPrintComponent } from '../../footprint/components/footprint/footprint.component';
+import { FootprintWidgetComponent } from '../../footprint/components/footprint-widget/footprint-widget.component';
 import { MaterialModule } from 'src/app/material.module';
 
 @Component({
@@ -197,3 +197,5 @@ export class PortfolioComponent implements OnInit {
     }*/
   }
 }
+
+

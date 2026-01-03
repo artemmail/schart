@@ -15,10 +15,10 @@ import { filter } from 'rxjs';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { SelectListItemNumber } from 'src/app/models/preserts';
 import { SignalRService } from 'src/app/service/FootPrint/signalr.service';
-import { FootPrintComponent } from './footprint.component';
-import { FootprintDataLoaderService } from './footprint-data-loader.service';
-import { FootprintRealtimeUpdaterService } from './footprint-realtime-updater.service';
-import { FootprintInitOptions } from './footprint-data.types';
+import { FootPrintComponent } from '../footprint/footprint.component';
+import { FootprintDataLoaderService } from '../../services/footprint-data-loader.service';
+import { FootprintRealtimeUpdaterService } from '../../services/footprint-realtime-updater.service';
+import { FootprintInitOptions } from '../../models/footprint-data.types';
 
 @Component({
   standalone: true,
@@ -256,3 +256,4 @@ export class FootprintWidgetComponent
     this.renderer?.resize();
   }
 }
+

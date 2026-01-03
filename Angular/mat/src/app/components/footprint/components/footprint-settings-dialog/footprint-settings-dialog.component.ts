@@ -7,7 +7,7 @@ import {
   profilePeriodsPreset,
   totalModesPreset,
 } from 'src/app/models/preserts';
-import { FootPrintComponent } from '../footprint.component';
+import { FootPrintComponent } from '../footprint/footprint.component';
 import { ProfileModel } from 'src/app/models/profileModel';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { MaterialModule } from 'src/app/material.module';

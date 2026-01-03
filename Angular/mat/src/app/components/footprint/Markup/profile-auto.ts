@@ -1,4 +1,4 @@
-import { Point } from '../matrix';
+import { Point } from '../models/matrix';
 
 import { Profile } from './profile';
 import { MarkUpManager } from './markup-manager';
@@ -71,4 +71,5 @@ export class ProfileAuto extends Profile {
     }
   }
 }
+
 

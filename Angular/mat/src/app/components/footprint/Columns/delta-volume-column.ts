@@ -1,5 +1,5 @@
 import { ColumnEx } from 'src/app/models/Column';
-import { Matrix, Rectangle } from '../matrix';
+import { Matrix, Rectangle } from '../models/matrix';
 
 import { ClusterColumnContext, ClusterColumnBase } from './cluster-column-base';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
@@ -48,5 +48,6 @@ export class DeltaVolumeColumn extends ClusterColumnBase {
     this.drawColumnTextDeltaTree(ctx, column, number, mtx);
   }
 }
+
 
 

@@ -1,5 +1,5 @@
 import { canvasPart } from './canvas-part';
-import { Matrix, Point, Rectangle } from './../matrix';
+import { Matrix, Point, Rectangle } from '../models/matrix';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { DeltaVolumeColumn } from '../columns/delta-volume-column';
 import { VolumeDeltaColumn } from '../columns/volume-delta-column';
@@ -12,7 +12,7 @@ import { CandleColumn } from '../columns/candle-column';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ColumnEx, createClusterColumnContext } from '../columns/cluster-column-base';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../footprint.component';
+import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 import { removeUTC } from 'src/app/service/FootPrint/Formating/formatting.service';
 import { drob } from 'src/app/service/FootPrint/utils';
@@ -486,5 +486,8 @@ override draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
 
 
 }
+
+
+
 
 

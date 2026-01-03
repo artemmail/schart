@@ -1,30 +1,30 @@
-import { FootPrintComponent } from './footprint.component';
-import { canvasPart } from './views/canvas-part';
-import { viewMiniHead } from './views/view-mini-head';
-import { viewAnim } from './views/view-anim';
-import { viewDates } from './views/view-dates';
-import { viewPrices } from './views/view-prices';
-import { viewBackground } from './views/view-background';
-import { viewBackground1 } from './views/view-background-secondary';
-import { viewDelta } from './views/view-delta';
-import { viewDeltaBars } from './views/view-delta-bars';
-import { viewHead } from './views/view-head';
-import { viewMain } from './views/view-main';
-import { viewOIDelta } from './views/view-oi-delta';
-import { viewScrollBars } from './views/view-scroll-bars';
-import { viewTotal } from './views/view-total';
-import { viewVolumes } from './views/view-volumes';
-import { viewVolumesSeparated } from './views/view-volumes-separated';
-import { viewOI } from './views/view-oi';
+import { FootPrintComponent } from '../components/footprint/footprint.component';
+import { canvasPart } from '../views/canvas-part';
+import { viewMiniHead } from '../views/view-mini-head';
+import { viewAnim } from '../views/view-anim';
+import { viewDates } from '../views/view-dates';
+import { viewPrices } from '../views/view-prices';
+import { viewBackground } from '../views/view-background';
+import { viewBackground1 } from '../views/view-background-secondary';
+import { viewDelta } from '../views/view-delta';
+import { viewDeltaBars } from '../views/view-delta-bars';
+import { viewHead } from '../views/view-head';
+import { viewMain } from '../views/view-main';
+import { viewOIDelta } from '../views/view-oi-delta';
+import { viewScrollBars } from '../views/view-scroll-bars';
+import { viewTotal } from '../views/view-total';
+import { viewVolumes } from '../views/view-volumes';
+import { viewVolumesSeparated } from '../views/view-volumes-separated';
+import { viewOI } from '../views/view-oi';
 import { Rectangle } from 'src/app/models/Rectangle';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
-import { ClusterData } from './cluster-data';
-import { Matrix } from './matrix';
+import { ClusterData } from '../models/cluster-data';
+import { Matrix } from '../models/matrix';
 import {
   FootprintLayoutDto,
   FootprintLayoutService,
   FootprintMatricesDto,
-} from './footprint-layout.service';
+} from '../services/footprint-layout.service';
 
 export class ViewsManager {
   footprint: FootPrintComponent;
@@ -407,5 +407,8 @@ export class ViewsManager {
   
   
 }
+
+
+
 
 

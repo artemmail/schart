@@ -1,10 +1,10 @@
 import { Component, Input, HostListener } from '@angular/core';
 import { ProfileModel } from 'src/app/models/profileModel';
-import { MarkUpManager } from '../markup/markup-manager';
-import { FootPrintComponent } from '../footprint.component';
-import { MarkupMode } from '../markup/shape-type';
+import { MarkUpManager } from '../../markup/markup-manager';
+import { FootPrintComponent } from '../footprint/footprint.component';
+import { MarkupMode } from '../../markup/shape-type';
 import { MaterialModule } from 'src/app/material.module';
-import { ComboBoxComponent } from '../../Controls/ComboBox/combobox.component';
+import { ComboBoxComponent } from '../../../Controls/ComboBox/combobox.component';
 import { PalettePickerComponent } from 'src/lib/palette-picker.component';
 import {
   fontsPreset,
@@ -57,4 +57,5 @@ export class MarkupEditorComponent {
     }
   }
 }
+
 

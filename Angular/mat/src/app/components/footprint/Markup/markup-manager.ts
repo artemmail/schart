@@ -1,6 +1,6 @@
 import { ProfileModel } from 'src/app/models/profileModel';
-import { FootPrintComponent } from '../footprint.component';
-import { Point } from '../matrix';
+import { FootPrintComponent } from '../components/footprint/footprint.component';
+import { Point } from '../models/matrix';
 
 import { Brush } from './brush';
 import { Line } from './line';
@@ -174,4 +174,7 @@ export class MarkUpManager {
     return shapePoint.point != null ? 'pointer' : 'move';
   }
 }
+
+
+
 

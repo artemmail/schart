@@ -2,7 +2,7 @@
 import { Component, Inject, ViewChild } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { FootPrintParamsComponent } from 'src/app/components/Controls/FootPrintParams/footpintparmas.component';
-import { FootPrintComponent } from 'src/app/components/footprint/footprint.component';
+import { FootPrintComponent } from 'src/app/components/footprint/components/footprint/footprint.component';
 import { TickerPresetNew } from 'src/app/models/tickerpreset';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { MaterialModule } from 'src/app/material.module';
@@ -65,3 +65,4 @@ export class SettingsDialogComponent {
     this.dialogRef.close();
   }
 }
+

@@ -1,8 +1,8 @@
 import { canvasPart } from './canvas-part';
-import { Matrix, Rectangle } from './../matrix';
+import { Matrix, Rectangle } from '../models/matrix';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { DraggableEnum } from 'src/app/models/Draggable';
-import { FootPrintComponent } from '../footprint.component';
+import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { hexToRgb } from 'src/app/service/FootPrint/utils';
 
 export class viewBackground extends canvasPart {
@@ -162,4 +162,7 @@ export class viewBackground extends canvasPart {
     }
   }
 }
+
+
+
 

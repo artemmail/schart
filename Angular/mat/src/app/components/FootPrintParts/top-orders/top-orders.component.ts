@@ -12,7 +12,7 @@ import { MatSort } from '@angular/material/sort';
 import { MatPaginator } from '@angular/material/paginator';
 import { ReportsService } from 'src/app/service/reports.service';
 import { TopOrdersResult } from 'src/app/models/Barometer';
-import { FootPrintComponent } from '../../footprint/footprint.component';
+import { FootPrintComponent } from '../../footprint/components/footprint/footprint.component';
 import { MaterialModule } from 'src/app/material.module';
 
 @Component({
@@ -66,3 +66,4 @@ export class TopOrdersComponentFP implements OnInit, AfterViewInit, OnChanges {
     }
   }
 }
+

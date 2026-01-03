@@ -1,10 +1,10 @@
 import { DraggableEnum } from 'src/app/models/Draggable';
-import { Matrix } from './../matrix';
-import { Point } from './../matrix';
-import { Rectangle } from './../matrix';
+import { Matrix } from '../models/matrix';
+import { Point } from '../models/matrix';
+import { Rectangle } from '../models/matrix';
 
 import { FormattingService, rounder, rrounder } from 'src/app/service/FootPrint/Formating/formatting.service';
-import { FootPrintComponent } from '../footprint.component';
+import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
 
@@ -220,3 +220,6 @@ export abstract class canvasPart {
     }
   }
 }
+
+
+

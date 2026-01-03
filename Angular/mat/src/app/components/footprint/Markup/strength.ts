@@ -1,7 +1,7 @@
 import { MoscowTimeShift, inttodate } from 'src/app/service/FootPrint/utils';
 import { Rect } from './rect';
 import { MarkUpManager } from './markup-manager';
-import { Point } from '../matrix';
+import { Point } from '../models/matrix';
 
 
 export class Strength extends Rect {
@@ -81,4 +81,5 @@ export class Strength extends Rect {
     }
   }
 }
+
 

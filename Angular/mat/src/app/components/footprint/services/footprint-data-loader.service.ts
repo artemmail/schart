@@ -8,13 +8,13 @@ import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-ma
 import { ClusterStreamService } from 'src/app/service/FootPrint/ClusterStream/cluster-stream.service';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { FootprintUtilitiesService } from './footprint-utilities.service';
-import { ClusterData } from './cluster-data';
+import { ClusterData } from '../models/cluster-data';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   FootprintInitOptions,
   FootprintUpdateEvent,
   FootprintUpdateType,
-} from './footprint-data.types';
+} from '../models/footprint-data.types';
 
 @Injectable()
 export class FootprintDataLoaderService implements OnDestroy {
@@ -151,4 +151,5 @@ export class FootprintDataLoaderService implements OnDestroy {
     }
   }
 }
+
 

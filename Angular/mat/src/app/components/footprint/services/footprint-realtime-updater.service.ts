@@ -7,7 +7,7 @@ import {
   FootprintInitOptions,
   FootprintUpdateEvent,
   FootprintUpdateType,
-} from './footprint-data.types';
+} from '../models/footprint-data.types';
 
 @Injectable()
 export class FootprintRealtimeUpdaterService implements OnDestroy {
@@ -198,3 +198,4 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     );
   }
 }
+

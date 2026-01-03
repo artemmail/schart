@@ -1,9 +1,9 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
-import { ColumnEx } from './columns/cluster-column-base';
-import { canvasPart } from './views/canvas-part';
-import { Matrix, Point } from './matrix';
+import { ColumnEx } from '../columns/cluster-column-base';
+import { canvasPart } from '../views/canvas-part';
+import { Matrix, Point } from '../models/matrix';
 import { FormattingService } from 'src/app/service/FootPrint/Formating/formatting.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
 
@@ -181,5 +181,6 @@ export class HintContainerService implements OnDestroy {
     this.hintElement = null;
   }
 }
+
 
 

@@ -1,8 +1,8 @@
 import { drob, hexToRgb } from 'src/app/service/FootPrint/utils';
 import { Rect } from './rect';
-import { ClusterData } from '../cluster-data';
+import { ClusterData } from '../models/cluster-data';
 import { MarkUpManager } from './markup-manager';
-import { Point } from '../matrix';
+import { Point } from '../models/matrix';
 
 
 export class Profile extends Rect {
@@ -204,4 +204,5 @@ export class Profile extends Rect {
     }
   }
 }
+
 

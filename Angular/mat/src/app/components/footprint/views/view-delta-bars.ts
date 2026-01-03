@@ -1,10 +1,10 @@
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ColumnEx } from '../columns/cluster-column-base';
-import { Matrix, Rectangle } from './../matrix';
+import { Matrix, Rectangle } from '../models/matrix';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { viewVolumesSeparated } from './view-volumes-separated';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../footprint.component';
+import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { drob } from 'src/app/service/FootPrint/utils';
 
 export class viewDeltaBars extends viewVolumesSeparated {
@@ -80,5 +80,8 @@ export class viewDeltaBars extends viewVolumesSeparated {
     ctx.mFillRectangle(number + 0.1, 0, 0.8, 2 * column.bq - column.q);
   }
 }
+
+
+
 
 

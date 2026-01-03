@@ -1,9 +1,9 @@
 import { canvasPart } from './canvas-part';
-import { Matrix, Rectangle} from './../matrix';
+import { Matrix, Rectangle} from '../models/matrix';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../footprint.component';
+import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 import { rounder } from 'src/app/service/FootPrint/Formating/formatting.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
@@ -80,4 +80,7 @@ export class viewBackground1 extends canvasPart {
     }
   }
 }
+
+
+
 

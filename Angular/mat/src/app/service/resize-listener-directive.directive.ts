@@ -1,5 +1,5 @@
 import { Directive, HostListener, ElementRef } from '@angular/core';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import { FootPrintComponent } from '../components/footprint/components/footprint/footprint.component';
 
 @Directive({
   selector: '[appResizeListener]',
@@ -16,3 +16,4 @@ export class ResizeListenerDirective {
 
   draw() {}
 }
+

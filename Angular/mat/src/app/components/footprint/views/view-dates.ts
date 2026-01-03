@@ -1,9 +1,9 @@
 import { canvasPart } from './canvas-part';
-import { Matrix, Point } from './../matrix';
-import { Rectangle } from './../matrix';
+import { Matrix, Point } from '../models/matrix';
+import { Rectangle } from '../models/matrix';
 
 import { DraggableEnum } from 'src/app/models/Draggable';
-import { FootPrintComponent } from '../footprint.component';
+import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { LevelMarksService, MarkLineLevel } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 
@@ -132,4 +132,7 @@ export class viewDates extends canvasPart {
     }
   }
 }
+
+
+
 

@@ -1,4 +1,4 @@
-import { Matrix, Rectangle } from '../matrix';
+import { Matrix, Rectangle } from '../models/matrix';
 import { ClusterColumnContext, ClusterColumnBase, ColumnEx } from './cluster-column-base';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 
@@ -34,5 +34,6 @@ export class BarColumn extends ClusterColumnBase {
       }
   }
 }
+
 
 

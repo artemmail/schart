@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
-import { ClusterData } from './cluster-data';
+import { ClusterData } from '../models/cluster-data';
 
 export interface FootprintComponentState {
   data: ClusterData | null;
@@ -94,4 +94,5 @@ export class FootprintStateService {
     this.update({ deltaVolumes });
   }
 }
+
 

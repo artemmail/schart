@@ -1,10 +1,10 @@
 import { canvasPart } from './canvas-part';
-import { Matrix, Point, Rectangle } from './../matrix';
+import { Matrix, Point, Rectangle } from '../models/matrix';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ColumnEx } from '../columns/cluster-column-base';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../footprint.component';
+import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { drob } from 'src/app/service/FootPrint/utils';
 
 export class viewVolumes extends canvasPart {
@@ -180,5 +180,8 @@ export class viewVolumes extends canvasPart {
     );
   }
 }
+
+
+
 
 

@@ -1,5 +1,5 @@
 import { ColumnEx } from 'src/app/models/Column';
-import { Matrix, Rectangle } from '../matrix';
+import { Matrix, Rectangle } from '../models/matrix';
 
 import { ClusterColumnContext, ClusterColumnBase } from './cluster-column-base';
 import { ChartSettings } from 'src/app/models/ChartSettings';
@@ -35,5 +35,6 @@ export class VolumeColumnTotal extends ClusterColumnBase {
     this.drawColumnText(ctx, column, number, mtx);
   }
 }
+
 
 

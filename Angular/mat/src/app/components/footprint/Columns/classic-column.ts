@@ -1,5 +1,5 @@
 import { ColumnEx } from 'src/app/models/Column';
-import { Matrix, Rectangle } from '../matrix';
+import { Matrix, Rectangle } from '../models/matrix';
 import { ClusterColumnContext, ClusterColumnBase } from './cluster-column-base';
 
 export class ClassicColumn extends ClusterColumnBase {
@@ -11,5 +11,6 @@ export class ClassicColumn extends ClusterColumnBase {
     this.drawClassicColumn_(column, number, mtx, total);
   }
 }
+
 
 

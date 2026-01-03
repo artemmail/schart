@@ -1,9 +1,9 @@
 import { ColumnEx } from 'src/app/models/Column';
-import { Matrix, Rectangle } from '../matrix';
+import { Matrix, Rectangle } from '../models/matrix';
 
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../footprint.component';
-import { ClusterData } from '../cluster-data';
+import { FootPrintComponent } from '../components/footprint/footprint.component';
+import { ClusterData } from '../models/cluster-data';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { FormattingService } from 'src/app/service/FootPrint/Formating/formatting.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
@@ -457,5 +457,8 @@ export class ClusterColumnBase {
 }
 
 export { ColumnEx };
+
+
+
 
 

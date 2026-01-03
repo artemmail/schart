@@ -1,6 +1,6 @@
 import { ProfileModel, ProfileModelParts } from 'src/app/models/profileModel';
-import { FootPrintComponent } from '../footprint.component';
-import { Point } from '../matrix';
+import { FootPrintComponent } from '../components/footprint/footprint.component';
+import { Point } from '../models/matrix';
 import { MarkUpManager } from './markup-manager';
 
 export interface ShapePoint {
@@ -161,4 +161,7 @@ export abstract class Shape {
 
   abstract drawShape(): void;
 }
+
+
+
 

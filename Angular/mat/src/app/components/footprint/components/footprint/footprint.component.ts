@@ -7,29 +7,29 @@ import {
   Input,
   OnDestroy,
 } from '@angular/core';
-import { Matrix, Rectangle } from './matrix';
+import { Matrix, Rectangle } from '../../models/matrix';
 
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { FormattingService } from 'src/app/service/FootPrint/Formating/formatting.service';
-import { ClusterData } from './cluster-data';
-import { canvasPart } from './views/canvas-part';
+import { ClusterData } from '../../models/cluster-data';
+import { canvasPart } from '../../views/canvas-part';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { ColumnEx } from 'src/app/models/Column';
-import { MarkUpManager } from './markup/markup-manager';
+import { MarkUpManager } from '../../markup/markup-manager';
 import { ProfileModel } from 'src/app/models/profileModel';
-import { MouseAndTouchManager } from './mouse-touch-manager';
-import { ViewsManager } from './views-manager';
+import { MouseAndTouchManager } from '../../managers/mouse-touch-manager';
+import { ViewsManager } from '../../managers/views-manager';
 import { SelectListItemNumber } from 'src/app/models/preserts';
-import { FootprintUtilitiesService } from './footprint-utilities.service';
+import { FootprintUtilitiesService } from '../../services/footprint-utilities.service';
 import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { Router } from '@angular/router';
-import { FootprintLayoutService } from './footprint-layout.service';
-import { FootprintRealtimeUpdaterService } from './footprint-realtime-updater.service';
-import { FootprintUpdateEvent } from './footprint-data.types';
-import { FootprintStateService } from './footprint-state.service';
-import { HintContainerService } from './hint-container.service';
+import { FootprintLayoutService } from '../../services/footprint-layout.service';
+import { FootprintRealtimeUpdaterService } from '../../services/footprint-realtime-updater.service';
+import { FootprintUpdateEvent } from '../../models/footprint-data.types';
+import { FootprintStateService } from '../../services/footprint-state.service';
+import { HintContainerService } from '../../services/hint-container.service';
 
 @Component({
   standalone: true,
@@ -498,5 +498,6 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.hintContainer.destroy();
   }
 }
+
 
 

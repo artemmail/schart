@@ -1,4 +1,4 @@
-import { Point } from '../matrix';
+import { Point } from '../models/matrix';
 
 import { MarkUpManager } from './markup-manager';
 import { Shape } from './shape';
@@ -46,4 +46,5 @@ export class Brush extends Shape {
     this.footprint.ctx.stroke();
   }
 }
+
 

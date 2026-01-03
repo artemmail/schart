@@ -14,7 +14,7 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 
-import { FootprintWidgetComponent } from '../../footprint/footprint-widget.component';
+import { FootprintWidgetComponent } from '../../footprint/components/footprint-widget/footprint-widget.component';
 import { PresetSelectorComponent1 }
         from '../../DateRangeSelector/date-range-selector.component';
 import { DateRangePickerComponent }
@@ -308,3 +308,4 @@ export class MultiPageComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 }
+

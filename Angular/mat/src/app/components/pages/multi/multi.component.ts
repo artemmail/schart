@@ -1,5 +1,5 @@
 import { Component, ViewChild, ViewContainerRef, OnInit, Renderer2, HostListener, ElementRef, Input } from '@angular/core';
-import { FootprintWidgetComponent } from '../../footprint/footprint-widget.component';
+import { FootprintWidgetComponent } from '../../footprint/components/footprint-widget/footprint-widget.component';
 import { Injector } from '@angular/core';
 
 @Component({
@@ -85,3 +85,4 @@ export class MultiComponent implements OnInit {
     div.style.width = `${itemWidth}px`;
   }
 }
+

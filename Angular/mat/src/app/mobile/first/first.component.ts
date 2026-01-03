@@ -22,8 +22,8 @@ import { MatEventEmitterService } from 'src/app/service/mat-event-emitter.servic
 import { DialogService } from 'src/app/service/DialogService.service';
 
 import { Title } from '@angular/platform-browser';
-import { FootPrintComponent } from 'src/app/components/footprint/footprint.component';
-import { FootprintWidgetComponent } from 'src/app/components/footprint/footprint-widget.component';
+import { FootPrintComponent } from 'src/app/components/footprint/components/footprint/footprint.component';
+import { FootprintWidgetComponent } from 'src/app/components/footprint/components/footprint-widget/footprint-widget.component';
 import { SelectListItemText } from 'src/app/models/preserts';
 import { SettingsService } from 'src/app/service/settings.service';
 import { SettingsDialogComponent } from '../settings-dialog/settings-dialog.component';
@@ -264,3 +264,4 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
 
 
 }
+

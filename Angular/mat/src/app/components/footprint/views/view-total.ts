@@ -1,11 +1,11 @@
 import { canvasPart } from './canvas-part';
-import { Matrix, Rectangle } from './../matrix';
+import { Matrix, Rectangle } from '../models/matrix';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { ClassicColumnTotal } from '../columns/classic-column-total';
 import { VolumeColumnTotal } from '../columns/volume-column-total';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../footprint.component';
+import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { createClusterColumnContext } from '../columns/cluster-column-base';
 
 export class viewTotal extends canvasPart {
@@ -40,5 +40,8 @@ export class viewTotal extends canvasPart {
     ctx.setLineDash([]);
   }
 }
+
+
+
 
 
