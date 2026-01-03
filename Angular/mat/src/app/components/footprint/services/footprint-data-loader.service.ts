@@ -133,19 +133,10 @@ export class FootprintDataLoaderService implements OnDestroy {
   }
 
   private async requestRange(params: FootPrintParameters): Promise<boolean> {
-
-        let CandlesRangeSetParams = {
-      ...params,
-      ticker1: 'GAZP*2',
-      ticker2: 'SBER',
-    };
-
-
     try {
       const rangeData = await firstValueFrom(
-        this.clusterStreamService.getRangeSetArray(params)
+        this.clusterStreamService.GetRange(params)
       );
-      debugger
       this.currentData = new ClusterData(rangeData);
       this.dataSubject.next(this.currentData);
       return true;
