@@ -134,6 +134,7 @@ export class FootprintDataLoaderService implements OnDestroy {
   }
 
   private async requestRange(params: FootPrintParameters): Promise<boolean> {
+    this.debugRangeSetRequest(params);
     try {
       const [rangeData, rangeSet] = await Promise.all([
         firstValueFrom(
@@ -190,6 +191,22 @@ export class FootprintDataLoaderService implements OnDestroy {
   private handleRangeSetError(error: unknown): null {
     console.warn('Range set data was not attached to the chart', error);
     return null;
+  }
+
+  private debugRangeSetRequest(params: FootPrintParameters): void {
+    const debugParams: CandlesRangeSetParams = {
+      ...this.buildRangeSetParams(params),
+      ticker1: 'GAZP*2',
+      ticker2: 'SBER',
+    };
+
+    firstValueFrom(this.clusterStreamService.getRangeSetArray(debugParams))
+      .then((data) =>
+        console.debug('Debug viewRangeSet data (GAZP*2 vs SBER):', data)
+      )
+      .catch((error) =>
+        console.debug('Debug viewRangeSet request failed (GAZP*2 vs SBER):', error)
+      );
   }
 }
 
