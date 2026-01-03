@@ -9,6 +9,7 @@ import {
   ViewChild,
   ViewEncapsulation,
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
 import { FootPrintRequestParamsNew } from 'src/app/models/FootPrintPar';
@@ -27,11 +28,13 @@ import { SelectListItemText } from 'src/app/models/preserts';
 import { SettingsService } from 'src/app/service/settings.service';
 import { SettingsDialogComponent } from '../settings-dialog/settings-dialog.component';
 import { Subject, takeUntil } from 'rxjs';
+import { MaterialModule } from 'src/app/material.module';
 
 
 @Component({
   standalone: true,
   selector: 'app-first1',
+  imports: [CommonModule, MaterialModule, FootprintWidgetComponent],
   templateUrl: './first.component.html',
   styleUrls: ['./first.component.scss'],
   encapsulation: ViewEncapsulation.None,
