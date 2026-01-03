@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { FormattingService } from 'src/app/service/FootPrint/Formating/formatting.service';
 import { FootPrintParameters } from 'src/app/models/Params';
-import { ClusterData } from './clusterData';
+import { ClusterData } from './cluster-data';
 import { saveAs } from 'file-saver';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { SelectListItemNumber } from 'src/app/models/preserts';
@@ -61,3 +61,4 @@ export class FootprintUtilitiesService {
     saveAs(blob, filename);
   }
 }
+

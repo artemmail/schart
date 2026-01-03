@@ -4,7 +4,7 @@ import { FootPrintParameters } from 'src/app/models/Params';
 import { Tick } from 'src/app/models/Column';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { catchError, map } from 'rxjs/operators';
-import { ClusterData } from 'src/app/components/footprint/clusterData';
+import { ClusterData } from 'src/app/components/footprint/cluster-data';
 import { removeUTC } from '../Formating/formatting.service';
 import { environment } from 'src/app/environment';
 

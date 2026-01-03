@@ -84,7 +84,7 @@ import { TopOrdersComponent } from './components/Reports/top-orders/top-orders.c
 import { ImageUploaderComponent } from './components/pages/image-uploader/image-uploader.component';
 import { DateRangePickerComponent } from './components/Controls/DateRange/date-range-picker.component';
 import { UserTopicsTableComponent } from './components/pages/user-topics-table/user-topics-table.component';
-import { FootPrintSettingsDialogComponent } from './components/footprint/foot-print-settings-dialog/foot-print-settings-dialog.component';
+import { FootPrintSettingsDialogComponent } from './components/footprint/footprint-settings-dialog/footprint-settings-dialog.component';
 import { NavListItemComponent } from './components/Controls/nav-list-item/nav-list-item.component';
 import { MenuListItemComponent } from './components/Controls/menu-list-item/menu-list-item.component';
 import { MaterialDrawerComponent } from './components/footprint/material-drawer/material-drawer.component';

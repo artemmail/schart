@@ -12,14 +12,14 @@ import { Matrix, Rectangle } from './matrix';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { FormattingService } from 'src/app/service/FootPrint/Formating/formatting.service';
-import { ClusterData } from './clusterData';
-import { canvasPart } from './parts/canvasPart';
+import { ClusterData } from './cluster-data';
+import { canvasPart } from './views/canvas-part';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { ColumnEx } from 'src/app/models/Column';
-import { MarkUpManager } from './Markup/Manager';
+import { MarkUpManager } from './markup/markup-manager';
 import { ProfileModel } from 'src/app/models/profileModel';
-import { MouseAndTouchManager } from './MouseAnTouchManager';
-import { ViewsManager } from './ViewsManager';
+import { MouseAndTouchManager } from './mouse-touch-manager';
+import { ViewsManager } from './views-manager';
 import { SelectListItemNumber } from 'src/app/models/preserts';
 import { FootprintUtilitiesService } from './footprint-utilities.service';
 import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
@@ -498,3 +498,5 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.hintContainer.destroy();
   }
 }
+
+

@@ -21,7 +21,7 @@ import { FootPrintParamsComponent } from '../../Controls/FootPrintParams/footpin
 import { NonModalDialogComponent } from '../../FootPrintParts/NonModal/non-modal-dialog.component';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { MarkupEditorComponent } from '../../footprint/markup-editor/markup-editor.component';
-import { FootPrintSettingsDialogComponent } from '../../footprint/foot-print-settings-dialog/foot-print-settings-dialog.component';
+import { FootPrintSettingsDialogComponent } from '../../footprint/footprint-settings-dialog/footprint-settings-dialog.component';
 import { TopOrdersComponentFP } from '../../FootPrintParts/top-orders/top-orders.component';
 import { VolumeSearchTableComponent } from '../../FootPrintParts/volume-search-table/volume-search-table.component';
 import { MaterialModule } from 'src/app/material.module';

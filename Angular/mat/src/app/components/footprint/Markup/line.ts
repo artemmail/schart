@@ -2,7 +2,7 @@
 import { Point } from '../matrix';
 
 import { Brush } from './brush';
-import { MarkUpManager } from './Manager';
+import { MarkUpManager } from './markup-manager';
 
 export class Line extends Brush {
   arrow: any;
@@ -48,3 +48,4 @@ export class Line extends Brush {
     }
   }
 }
+

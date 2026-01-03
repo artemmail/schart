@@ -1,6 +1,6 @@
 import { Point } from '../matrix';
 
-import { MarkUpManager } from './Manager';
+import { MarkUpManager } from './markup-manager';
 import { Line } from './line';
 
 export class Rect extends Line {
@@ -102,3 +102,4 @@ export class Rect extends Line {
     this.mouseDown = point;
   }
 }
+

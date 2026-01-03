@@ -1,7 +1,7 @@
 import { Point } from '../matrix';
 
 import { Profile } from './profile';
-import { MarkUpManager } from './Manager';
+import { MarkUpManager } from './markup-manager';
 
 export class ProfileAuto extends Profile {
   constructor(manager: MarkUpManager) {
@@ -71,3 +71,4 @@ export class ProfileAuto extends Profile {
     }
   }
 }
+

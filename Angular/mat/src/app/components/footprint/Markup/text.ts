@@ -1,7 +1,7 @@
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { Rect } from './rect';
 import { hexToRgb, wrapText } from 'src/app/service/FootPrint/utils';
-import { MarkUpManager } from './Manager';
+import { MarkUpManager } from './markup-manager';
 
 
 export class TextShape extends Rect {
@@ -61,3 +61,4 @@ export class TextShape extends Rect {
     }
   }
 }
+

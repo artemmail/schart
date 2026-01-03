@@ -4,7 +4,7 @@ import { ChartSettings } from 'src/app/models/ChartSettings';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { Matrix } from './matrix';
-import { ClusterData } from './clusterData';
+import { ClusterData } from './cluster-data';
 
 export interface FootprintLayoutDto {
   clusterPricesView: Rectangle;
@@ -387,3 +387,4 @@ export class FootprintLayoutService {
     return { mtxMain, mtxtotal, mtxprice, mtxhead, mtxanim };
   }
 }
+
