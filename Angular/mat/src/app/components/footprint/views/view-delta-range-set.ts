@@ -3,6 +3,7 @@ import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { canvasPart } from './canvas-part';
 import { DraggableEnum } from 'src/app/models/Draggable';
+import { drob } from 'src/app/service/FootPrint/utils';
 
 interface DeltaPoint {
   index: number;
@@ -49,7 +50,11 @@ export class viewDeltaRangeSet extends canvasPart {
     min -= padding;
 
     ctx.restore();
-    this.DrawZebra(ctx, view.x, view.y, view.w, view.h, min, max);
+    const formatPercent = (value: number) => {
+      const normalized = Math.abs(value) < 1e-9 ? 0 : value;
+      return `${drob(normalized, 2)}%`;
+    };
+    this.DrawZebra(ctx, view.x, view.y, view.w, view.h, min, max, formatPercent);
     this.drawVertical();
 
     ctx.save();

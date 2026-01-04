@@ -184,7 +184,8 @@ export abstract class canvasPart {
     Width: number,
     Height: number,
     minPrice: number,
-    maxPrice: number
+    maxPrice: number,
+    labelFormatter: (value: number) => string = MoneyToStr
   ) {
     if (Height <= 0) return;
     var d = Height / (minPrice - maxPrice);
@@ -215,7 +216,7 @@ export abstract class canvasPart {
       var yy = Math.floor(y * d + f) + 0.5;
       ctx.moveTo(Width + Left - 7, yy);
       ctx.lineTo(Width + Left + 7, yy);
-      ctx.fillText(MoneyToStr(y), Width + Left + 10, yy);
+      ctx.fillText(labelFormatter(y), Width + Left + 10, yy);
       ctx.stroke();
     }
   }

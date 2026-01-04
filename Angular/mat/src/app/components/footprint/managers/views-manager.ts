@@ -102,7 +102,7 @@ export class ViewsManager {
       canvasHeight: canvas.height,
       deltaVolumes: this.footprint.deltaVolumes,
       minimode: this.footprint.minimode,
-      settings: this.footprint.FPsettings,
+      settings: this.getSettings(),
       data,
       topLinesCount: this.footprint.topLinesCount(),
     });
@@ -123,9 +123,13 @@ export class ViewsManager {
     this.clusterTotalViewFill = layout.clusterTotalViewFill;
   }
 
-  getSettings(): ChartSettings
-  {
-       return this.data?.rangeSetLines??null == null? this.footprint.FPsettings :ChartSettingsService.miniSettings();
+  getSettings(): ChartSettings {
+    const hasRangeSet = (this.data?.rangeSetLines ?? null) != null;
+    if (!hasRangeSet) return this.footprint.FPsettings;
+
+    const settings = ChartSettingsService.miniSettings();
+    settings.Delta = true;
+    return settings;
   }
 
  createParts() {
@@ -351,9 +355,12 @@ export class ViewsManager {
         )));
 
     this.resizeable = [
-
-//this.viewRangeSet
-     // this.viewDeltaRangeSet 
+      null,
+      null,
+      this.viewDeltaRangeSet,
+      null,
+      null,
+      null,
     ];
   }
 

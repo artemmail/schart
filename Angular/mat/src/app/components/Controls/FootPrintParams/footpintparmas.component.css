@@ -8,3 +8,15 @@
 .form-container > * {
   width: calc(100% - 20px); /* Все элементы занимают 100% ширины контейнера с учетом отступов */
 }
+
+:host ::ng-deep .portfolio-field-1 .mat-form-field-flex,
+:host ::ng-deep .portfolio-field-1 .mat-mdc-text-field-wrapper {
+  background-color: rgba(242, 213, 60, 0.25);
+  border-radius: 4px;
+}
+
+:host ::ng-deep .portfolio-field-2 .mat-form-field-flex,
+:host ::ng-deep .portfolio-field-2 .mat-mdc-text-field-wrapper {
+  background-color: rgba(43, 108, 176, 0.2);
+  border-radius: 4px;
+}

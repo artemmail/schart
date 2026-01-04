@@ -178,8 +178,8 @@ export class viewRangeSet extends canvasPart {
     };
 
     const content = [
-      item('Портф1', drob(price1, 2).toString(), 'DarkGoldenRod'),
-      item('Портф2', drob(price2, 2).toString(), 'DarkBlue'),
+      item('Портф1', price1.toString(), SERIES_COLORS.price1),
+      item('Портф2', price2.toString(), SERIES_COLORS.price2),
       item('Доход 1', formatPercent(income1), signedColor(income1)),
       item('Доход 2', formatPercent(income2), signedColor(income2)),
       item('Дельта', formatPercent(delta), signedColor(delta)),
