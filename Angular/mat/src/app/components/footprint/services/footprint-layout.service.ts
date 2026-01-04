@@ -254,11 +254,15 @@ export class FootprintLayoutService {
 
     const len = Math.floor(view.w / 10);
     const len2 = Math.floor(view.w / 100);
-    const firstCol = Math.max(
-      data.clusterData.length -
-        (settings.CompressToCandles === 'Always' || params.candlesOnly ? len : len2),
-      0
-    );
+    const totalLength = Math.max(data.clusterData.length, 1);
+    const windowSize =
+      settings.CompressToCandles === 'Always' || params.candlesOnly
+        ? Math.max(len, 1)
+        : Math.max(len2, 1);
+    let firstCol = Math.max(totalLength - windowSize, 0);
+    if (firstCol >= totalLength) {
+      firstCol = Math.max(totalLength - 1, 0);
+    }
     const h = view.h / 30;
     const to = [view.x, view.y, view.x, view.y + view.h, view.x + view.w, view.y + view.h / 2];
     const from = [
@@ -266,7 +270,7 @@ export class FootprintLayoutService {
       data.lastPrice + data.priceScale * h,
       firstCol,
       data.lastPrice - data.priceScale * h,
-      data.clusterData.length,
+      totalLength,
       data.lastPrice,
     ];
     return this.alignMatrix(Matrix.fromTriangles(from, to), view, data, settings);

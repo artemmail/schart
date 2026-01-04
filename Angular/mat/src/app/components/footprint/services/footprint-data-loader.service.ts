@@ -10,6 +10,7 @@ import { DialogService } from 'src/app/service/DialogService.service';
 import { FootprintUtilitiesService } from './footprint-utilities.service';
 import { ClusterData } from '../models/cluster-data';
 import { HttpErrorResponse } from '@angular/common/http';
+import { CandlesRangeSetValue } from 'src/app/models/candles-range-set';
 import {
   FootprintInitOptions,
   FootprintUpdateEvent,
@@ -132,12 +133,113 @@ export class FootprintDataLoaderService implements OnDestroy {
     this.presetIndex = presetIndex;
   }
 
+  private buildClusterDataFromRangeSet(
+    rangeSet: CandlesRangeSetValue[],
+    priceScale: number
+  ): ClusterData {
+    const pad = priceScale || 1;
+    const prepared = rangeSet
+      .filter((value) => value.Date !== undefined)
+      .map((value, index) => {
+        const date = new Date(value.Date as number);
+        const rawPrice1 = value.Price1 ?? value.Price2 ?? 0;
+        const rawPrice2 = value.Price2 ?? value.Price1 ?? rawPrice1;
+        const price1 = Number(rawPrice1);
+        const price2 = Number(rawPrice2);
+
+        if (!Number.isFinite(price1) || !Number.isFinite(price2)) {
+          return null;
+        }
+
+        let high = Math.max(price1, price2);
+        let low = Math.min(price1, price2);
+
+        if (high === low) {
+          high += pad;
+          low -= pad;
+        }
+
+        return {
+          Number: index + 1,
+          x: date,
+          o: price1,
+          c: price2,
+          l: low,
+          h: high,
+          q: 0,
+          bq: 0,
+          v: 0,
+          bv: 0,
+          oi: 0,
+          cl: [],
+        };
+      })
+      .filter((value): value is NonNullable<typeof value> => value !== null)
+      .sort((a, b) => a.x.getTime() - b.x.getTime())
+      .map((value, index) => ({
+        ...value,
+        Number: index + 1,
+      }));
+
+    if (!prepared.length) {
+      const now = new Date();
+      prepared.push({
+        Number: 1,
+        x: now,
+        o: 1,
+        c: 1,
+        l: 1 - pad,
+        h: 1 + pad,
+        q: 0,
+        bq: 0,
+        v: 0,
+        bv: 0,
+        oi: 0,
+        cl: [],
+      });
+    }
+
+    return new ClusterData({
+      priceScale: priceScale || 1,
+      clusterData: prepared,
+    });
+  }
+
   private async requestRange(params: FootPrintParameters): Promise<boolean> {
     try {
-      const rangeData = await firstValueFrom(
-        this.clusterStreamService.GetRange(params)
-      );
-      this.currentData = new ClusterData(rangeData);
+
+      params.ticker1 = 'SBER';
+      params.ticker2 = 'GAZP';
+      if (params.ticker1 || params.ticker2) {
+        debugger
+        const rangeSet = await firstValueFrom(
+          this.clusterStreamService.getRangeSetArray({
+            ticker: params.ticker,
+            ticker1: params.ticker1,
+            ticker2: params.ticker2,
+            rperiod: params.rperiod,
+            startDate: params.startDate,
+            endDate: params.endDate,
+            period: params.period,
+            timeEnable: params.postmarket ?? false,
+          })
+        );
+
+        const rangeData = this.buildClusterDataFromRangeSet(
+          rangeSet,
+          params.priceStep
+        );
+        if (rangeSet?.length) {
+          rangeData.attachRangeSet(rangeSet);
+        }
+        this.currentData = rangeData;
+      } else {
+        const rangeData = await firstValueFrom(
+          this.clusterStreamService.GetRange(params)
+        );
+        this.currentData = rangeData;
+      }
+
       this.dataSubject.next(this.currentData);
       return true;
     } catch (err) {
