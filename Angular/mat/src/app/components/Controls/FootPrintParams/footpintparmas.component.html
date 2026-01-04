@@ -58,7 +58,7 @@
   ></app-combobox>
 </div>
 
-<mat-form-field class="elementWidth" *ngIf="!isArbitrageMode()">
+<mat-form-field class="elementWidth" *ngIf="isClusterMode()">
   <mat-label>Шаг</mat-label>
   <input
     name="sh"

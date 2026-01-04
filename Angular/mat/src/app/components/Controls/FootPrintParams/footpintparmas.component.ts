@@ -82,6 +82,9 @@ export class FootPrintParamsComponent
     return this.loadMode === 'arbitrage';
   }
 
+  isClusterMode(): boolean {
+    return this.loadMode === 'clusters';
+  }
   onArbitrageTickersChange() {
     if (this.isArbitrageMode() && this.params) {
       this.params.type = 'arbitrage';
