@@ -19,6 +19,16 @@ export class viewRangeSet extends canvasPart {
       return;
     }
 
+    const hasRawPrices = rangeSetLines.points.some(
+      (point) => Number.isFinite(point.price1) || Number.isFinite(point.price2)
+    );
+
+    if (hasRawPrices) {
+      this.drawSeries(rangeSetLines.points, mtx, (p) => p.price1, SERIES_COLORS.price1);
+      this.drawSeries(rangeSetLines.points, mtx, (p) => p.price2, SERIES_COLORS.price2);
+      return;
+    }
+
     const { min, max } = parent.data.getRangeSetBounds();
     const percentMatrix = mtx.reassignY(
       { y1: min, y2: max },
@@ -45,11 +55,18 @@ export class viewRangeSet extends canvasPart {
   private drawSeries(
     points: RangeSetPoint[],
     mtx: Matrix,
-    selector: (point: RangeSetPoint) => number,
+    selector: (point: RangeSetPoint) => number | undefined,
     color: string
   ) {
     const ctx = this.parent.ctx;
-    const ordered = [...points].sort((a, b) => a.columnIndex - b.columnIndex);
+    const ordered = [...points]
+      .map((point) => ({ point, value: selector(point) }))
+      .filter((item) => Number.isFinite(item.value))
+      .sort((a, b) => a.point.columnIndex - b.point.columnIndex);
+
+    if (!ordered.length) {
+      return;
+    }
 
     ctx.save();
     ctx.strokeStyle = color;
@@ -57,8 +74,8 @@ export class viewRangeSet extends canvasPart {
     ctx.lineWidth = 1.5;
     ctx.beginPath();
 
-    ordered.forEach((point, index) => {
-      const position = mtx.applyToPoint(point.columnIndex + 0.5, selector(point));
+    ordered.forEach(({ point, value }, index) => {
+      const position = mtx.applyToPoint(point.columnIndex + 0.5, value as number);
       if (index === 0) {
         ctx.moveTo(position.x, position.y);
       } else {
@@ -68,8 +85,8 @@ export class viewRangeSet extends canvasPart {
 
     ctx.stroke();
 
-    ordered.forEach((point) => {
-      const position = mtx.applyToPoint(point.columnIndex + 0.5, selector(point));
+    ordered.forEach(({ point, value }) => {
+      const position = mtx.applyToPoint(point.columnIndex + 0.5, value as number);
       ctx.beginPath();
       ctx.arc(position.x, position.y, 2.5, 0, Math.PI * 2);
       ctx.fill();

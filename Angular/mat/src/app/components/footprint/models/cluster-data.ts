@@ -14,6 +14,8 @@ export interface RangeSetPoint {
   columnIndex: number;
   price1Percent: number;
   price2Percent: number;
+  price1?: number;
+  price2?: number;
 }
 
 export interface RangeSetLines {
@@ -145,6 +147,7 @@ export class ClusterData {
   }
 
   attachRangeSet(values: CandlesRangeSetValue[]): void {
+    debugger
     const prepared = values
       ?.filter(
         (value) =>
@@ -180,6 +183,8 @@ export class ClusterData {
         columnIndex,
         price1Percent: this.toPercent(value.price1, basePrice1),
         price2Percent: this.toPercent(value.price2, basePrice2),
+        price1: value.price1,
+        price2: value.price2,
       });
     });
 
