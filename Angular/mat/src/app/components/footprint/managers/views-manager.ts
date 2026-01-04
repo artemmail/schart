@@ -27,6 +27,9 @@ import {
   FootprintLayoutService,
   FootprintMatricesDto,
 } from '../services/footprint-layout.service';
+import { ChartSettingsService } from 'src/app/service/chart-settings.service';
+import { ChartSettings } from 'src/app/models/ChartSettings';
+import { viewBackgroundRange } from '../views/view-background-range';
 
 export class ViewsManager {
   footprint: FootPrintComponent;
@@ -48,6 +51,7 @@ export class ViewsManager {
   viewBackground1: viewBackground1 | null = null;
   viewPrices: viewPrices | null = null;
   viewBackground: viewBackground | null = null;
+  viewBackgroundRange: viewBackgroundRange | null = null;
   viewRangeSet: viewRangeSet | null = null;
   viewDeltaRangeSet: viewDeltaRangeSet | null = null;
   viewVolumes: viewVolumes | null = null;
@@ -119,25 +123,35 @@ export class ViewsManager {
     this.clusterTotalViewFill = layout.clusterTotalViewFill;
   }
 
-  createParts() {
+  getSettings(): ChartSettings
+  {
+       return this.data?.rangeSetLines??null == null? this.footprint.FPsettings :ChartSettingsService.miniSettings();
+  }
+
+ createParts() {
     this.updateLayout();
     if (!this.layout) {
       return;
     }
+
+   if( this.data.rangeSetLines != null )
+   {
+      this.createPartsRange();
+      return;
+   }
+
     this.views = this.footprint.views = [];
     let FPsettings = this.footprint.FPsettings;
     const minimode: boolean = this.footprint.minimode;
 
-    /*
     this.viewBackground1 = new viewBackground1(
       this.footprint,
       this.clusterTotalViewFill,
       this.mtxMain
     );
-
     if (FPsettings.totalMode == 'Left' && this.data.ableCluster())
       this.views.push(this.viewBackground1);
-*/
+
     
     this.views.push(
       (this.viewBackground = new viewBackground(
@@ -156,7 +170,6 @@ export class ViewsManager {
         ))
       );
 
-      /*
       this.views.push(
         (this.viewPrices = new viewPrices(
           this.footprint,
@@ -193,22 +206,6 @@ export class ViewsManager {
 
     this.views.push(
       (this.viewMain = new viewMain(
-        this.footprint,
-        this.clusterView,
-        this.mtxMain
-      ))
-    );
-
-    this.views.push(
-      (this.viewRangeSet = new viewRangeSet(
-        this.footprint,
-        this.clusterView,
-        this.mtxMain
-      ))
-    );
-
-    this.views.push(
-      (this.viewDeltaRangeSet = new viewDeltaRangeSet(
         this.footprint,
         this.clusterView,
         this.mtxMain
@@ -289,10 +286,38 @@ export class ViewsManager {
         ))
       );
     }
-*/
+
+    // 
+    this.resizeable = [
+      this.viewVolumesSeparated,
+      this.viewOI,
+      this.viewDelta,
+      this.viewOIDelta,
+      this.viewTotal,
+      this.viewDeltaBars,
+    ];
+  }
 
 
+  createPartsRange() {
+    this.updateLayout();
+    if (!this.layout) {
+      return;
+    }
+    this.views = this.footprint.views = [];
+    let FPsettings =   this.getSettings();
+    const minimode: boolean = this.footprint.minimode;
+    
     this.views.push(
+      (this.viewBackgroundRange = new viewBackgroundRange(
+        this.footprint,
+        this.clusterView,
+        this.mtxMain
+      ))
+    );
+
+
+            this.views.push(
       (this.viewRangeSet = new viewRangeSet(
         this.footprint,
         this.clusterView,
@@ -301,14 +326,35 @@ export class ViewsManager {
     );
 
 
-    // 
+
+    if (!minimode)
+      this.views.push(
+        (this.viewDates = new viewDates(
+          this.footprint,
+          this.clusterDatesView,
+          this.mtxMain
+        ))
+      );
+
+      
+      this.views.push(
+        (this.viewPrices = new viewPrices(
+          this.footprint,
+          this.clusterPricesView,
+          this.mtxprice
+        ))
+      );
+
+
     this.resizeable = [
 
+//this.viewRangeSet
+     // this.viewDeltaRangeSet 
     ];
   }
 
   drawClusterView() {
-    const FPsettings = this.footprint.FPsettings;
+    const FPsettings =  this.getSettings(); //  this.footprint.FPsettings;
     const canvas: HTMLCanvasElement | null = this.footprint.canvas;
     const ctx: CanvasRenderingContext2D | null = canvas?.getContext('2d');
     this.data = this.footprint.data;

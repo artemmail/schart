@@ -66,8 +66,7 @@ export class ClusterData {
 
     this.volumePerQuantity =
       data.VolumePerQuantity ??
-      (data.clusterData[0]?.v / (data.clusterData[0]?.q * data.clusterData[0]?.c)) ??
-      1;
+      (data.clusterData[0]?.v / (data.clusterData[0]?.q * data.clusterData[0]?.c));
 
     this.clusterData = data.clusterData.map((column) => this.addColumnInfo(column));
 
