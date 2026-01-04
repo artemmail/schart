@@ -4,6 +4,7 @@ import { viewMiniHead } from '../views/view-mini-head';
 import { viewAnim } from '../views/view-anim';
 import { viewDates } from '../views/view-dates';
 import { viewPrices } from '../views/view-prices';
+import { viewPricesRangeSet } from '../views/view-prices-range-set';
 import { viewBackground } from '../views/view-background';
 import { viewBackground1 } from '../views/view-background-secondary';
 import { viewDelta } from '../views/view-delta';
@@ -49,7 +50,7 @@ export class ViewsManager {
   viewMiniHead: viewMiniHead | null = null;
   viewMain: viewMain | null = null;
   viewBackground1: viewBackground1 | null = null;
-  viewPrices: viewPrices | null = null;
+  viewPrices: viewPrices | viewPricesRangeSet | null = null;
   viewBackground: viewBackground | null = null;
   viewBackgroundRange: viewBackgroundRange | null = null;
   viewRangeSet: viewRangeSet | null = null;
@@ -339,7 +340,7 @@ export class ViewsManager {
 
       
       this.views.push(
-        (this.viewPrices = new viewPrices(
+        (this.viewPrices = new viewPricesRangeSet(
           this.footprint,
           this.clusterPricesView,
           this.mtxprice

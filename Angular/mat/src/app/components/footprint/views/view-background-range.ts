@@ -4,6 +4,7 @@ import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { hexToRgb } from 'src/app/service/FootPrint/utils';
+import { rounder } from 'src/app/service/FootPrint/Formating/formatting.service';
 
 export class viewBackgroundRange extends canvasPart {
   constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
@@ -127,7 +128,7 @@ export class viewBackgroundRange extends canvasPart {
 
     if (!parent.FPsettings.DeltaGraph) {
       // ===== ЦЕНА =====
-      const { startPrice, finishPrice, step } = this.calculatePriceRange(view, mtx);
+      const { startPrice, finishPrice, step } = this.calculateDynamicPriceRange(view, mtx);
       this.loopOverPrices(startPrice + step / 2, finishPrice, step * 2, (price) => {
         const top    = mtx.price2Height(price, 0);
         const bottom = mtx.price2Height(price + step, 0);
@@ -157,6 +158,17 @@ export class viewBackgroundRange extends canvasPart {
         ctx.myFillRect({ x: view.x, y: top.y, w: view.w, h: bottom.y - top.y });
       }
     }
+  }
+
+  private calculateDynamicPriceRange(view: Rectangle, mtx: Matrix): { startPrice: number; finishPrice: number; step: number } {
+    let finishPrice = mtx.Height2Price(view.y - 100);
+    let startPrice = mtx.Height2Price(view.y + view.h + 100);
+
+    const step = rounder((18 * (finishPrice - startPrice)) / view.h);
+    finishPrice = Math.floor(finishPrice / step) * step;
+    startPrice = Math.floor(startPrice / step) * step;
+
+    return { startPrice, finishPrice, step };
   }
 }
 

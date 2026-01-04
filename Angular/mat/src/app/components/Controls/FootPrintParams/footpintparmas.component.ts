@@ -186,8 +186,8 @@ export class FootPrintParamsComponent
   private applyArbitrageDefaults() {
     this.params.type = 'arbitrage';
     this.params.candlesOnly = false;
-    this.params.ticker1 = this.params.ticker1 ?? 'SBER';
-    this.params.ticker2 = this.params.ticker2 ?? 'GAZP';
+    this.params.ticker1 = this.params.ticker1 ?? 'GAZP*200+LKOH*10';
+    this.params.ticker2 = this.params.ticker2 ?? 'GMKN*3+SBER*300';
   }
 
   // Реализация ControlValueAccessor

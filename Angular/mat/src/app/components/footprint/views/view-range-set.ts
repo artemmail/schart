@@ -274,8 +274,8 @@ export class viewRangeSet extends canvasPart {
       return;
     }
 */
-    let min = parent.data.minPrice;
-    let max = parent.data.maxPrice;
+    let min = parent.data.local.minPrice;
+    let max = parent.data.local.maxPrice;
 
     if (!Number.isFinite(min) || !Number.isFinite(max)) {
       return;
