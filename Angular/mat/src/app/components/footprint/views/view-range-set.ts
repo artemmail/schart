@@ -1,7 +1,9 @@
-import { Matrix, Rectangle } from '../models/matrix';
+import { Matrix, Point, Rectangle } from '../models/matrix';
 import { canvasPart } from './canvas-part';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { CandlesRangeSetValue } from 'src/app/models/candles-range-set';
+import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
+import * as Hammer from 'hammerjs';
 
 
 const SERIES_COLORS = {
@@ -10,8 +12,184 @@ const SERIES_COLORS = {
 };
 
 export class viewRangeSet extends canvasPart {
+  private frame: number;
+  private startTime: number;
+  private v0: number;
+  private damping: number;
+  private isScrolling: boolean;
+
   constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx);
+
+    this.frame = 0;
+    this.startTime = 0;
+    this.v0 = 0;
+    this.damping = 1500.0; // коэффициент затухания скорости
+    this.isScrolling = false;
+  }
+
+  stopSwipe() {
+    if (this.parent.translateMatrix != null) {
+      if (!this.parent.markupEnabled || this.parent.markupManager.allowPan()) {
+        this.parent.viewsManager.mtx = this.parent.alignMatrix(
+          this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+        );
+        this.parent.translateMatrix = null;
+      }
+      cancelAnimationFrame(this.frame);
+      this.isScrolling = false;
+    }
+  }
+
+  calculateElapsed(): number {
+    return (Date.now() - this.startTime) / 1000; // переводим миллисекунды в секунды
+  }
+
+  calculateStopTime(): number {
+    return Math.abs(this.v0) / this.damping;
+  }
+
+  calculateDisplacement(t: number, t_stop: number): number {
+    if (t <= t_stop) {
+      return this.v0 * t - 0.5 * this.damping * t * t;
+    } else {
+      return this.v0 * t_stop - 0.5 * this.damping * t_stop * t_stop;
+    }
+  }
+
+  applyDisplacement(dx: number) {
+    if (Math.abs(dx) > 1) {
+      this.parent.translateMatrix = new Matrix().translate(dx, 0);
+      this.parent.drawClusterView();
+    } else {
+      this.stopSwipe();
+    }
+  }
+
+  onSwipe = (event: Hammer.HammerInput): void => {
+    this.interruptSwipe();
+
+    this.v0 = event.velocityX * 1000; // начальная скорость в пикселях/секунду
+    this.startTime = Date.now();
+    this.isScrolling = true;
+
+    const t_stop = this.calculateStopTime();
+
+    const inertiaScroll = () => {
+      const elapsed = this.calculateElapsed();
+      const dx = this.calculateDisplacement(elapsed, t_stop);
+
+      this.applyDisplacement(dx);
+
+      if (elapsed <= t_stop && Math.abs(dx) > 1) {
+        this.frame = requestAnimationFrame(inertiaScroll);
+      } else {
+        this.stopSwipe();
+      }
+    };
+
+    this.frame = requestAnimationFrame(inertiaScroll);
+  };
+
+  interruptSwipe() {
+    if (this.isScrolling) {
+      const elapsed = this.calculateElapsed();
+      const t_stop = this.calculateStopTime();
+      const dx = this.calculateDisplacement(elapsed, t_stop);
+
+      this.applyDisplacement(dx);
+      this.stopSwipe();
+    }
+  }
+
+  onTap(e: any) {
+    this.interruptSwipe();
+  }
+
+  onPanEnd(e: any) {
+    if (this.parent.translateMatrix != null)
+      if (!this.parent.markupEnabled || this.parent.markupManager.allowPan()) {
+        this.parent.viewsManager.mtx = this.parent.alignMatrix(
+          this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+        );
+        this.parent.translateMatrix = null;
+      }
+  }
+
+  onMouseDown(e: Point) {
+    this.interruptSwipe();
+    if (this.parent.markupEnabled) this.parent.markupManager.onMouseDown(e);
+  }
+
+  onMouseMovePressed(e: Point) {
+    if (this.parent.markupEnabled) this.parent.markupManager.onMouseDownMove(e);
+
+    if (!this.parent.markupEnabled || this.parent.markupManager.allowPan())
+      this.parent.translateMatrix = new Matrix().translate(
+        -(this.parent.mouseAndTouchManager.pressd.x - e.x),
+        -(this.parent.mouseAndTouchManager.pressd.y - e.y)
+      );
+
+    this.parent.drawClusterView();
+  }
+
+  onMouseUp(e: Point) {
+    if (this.parent.markupEnabled) this.parent.markupManager.onMouseUp(e);
+
+    if (!this.parent.markupEnabled || this.parent.markupManager.allowPan()) {
+      if (this.parent.translateMatrix != null)
+        this.parent.viewsManager.mtx = this.parent.alignMatrix(
+          this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+        );
+      this.parent.translateMatrix = null;
+    }
+
+    this.parent.drawClusterView();
+  }
+
+  onPinchEnd(e: any) {
+    if (this.parent.translateMatrix != null)
+      this.parent.viewsManager.mtx = this.parent.alignMatrix(
+        this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+      );
+    this.parent.translateMatrix = null;
+  }
+
+  onPinchStart(e: any) {
+    //alert('pinch');
+    var s = e.scale;
+    var sx = Math.abs(Math.cos((e.angle * 3.14159) / 180));
+    var sy = Math.abs(Math.sin((e.angle * 3.14159) / 180));
+    sx = sy = s;
+    var x = e.center.x;
+    var y = e.center.y;
+    var m = Matrix.fromTriangles(
+      [x, y, x + 1, y + 1, x + 1, y - 1],
+      [x, y, x + sx, y + sy, x + sx, y - sy]
+    );
+    this.parent.translateMatrix = m;
+    this.parent.drawClusterView();
+  }
+
+  onPinchMove(e: any) {
+    this.onPinchStart(e);
+  }
+
+  onMouseWheel(ev: MyMouseEvent, wheelDistance: number) {
+    var s = Math.pow(1.05, wheelDistance);
+    const [x, y] = [ev.position.x, ev.position.y];
+
+    this.parent.hideHint();
+
+    var m = Matrix.fromTriangles(
+      [x, y, x + 1, y + 1, x + 1, y - 1],
+      [x, y, x + s, y + s, x + s, y - s]
+    );
+    this.parent.viewsManager.mtx = this.parent.alignMatrix(
+      m.multiply(this.parent.viewsManager.mtx),
+      this.parent.isPriceVisible()
+    );
+    this.parent.drawClusterView();
   }
 
   draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
