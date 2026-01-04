@@ -348,7 +348,7 @@ namespace UserFunctions
       DateTimePair dateTimePair,
       int top)
         {
-
+            ticker = null;
             if (!string.IsNullOrEmpty(ticker))
             {
                 ticker = _tickersRepository.CorrectFormula(ticker);
@@ -405,7 +405,23 @@ namespace UserFunctions
                 var result1 = (BaseCandle[])function1.CalcExpression(candleSets, deltas);
                 var result2 = (BaseCandle[])function2.CalcExpression(candleSets, deltas);
 
-                return CandlePacker.PackPricesResultArray(result1, result2);
+                var price1 = result1.Select(x => x.ClsPrice).ToArray();
+                var price2 = result2.Select(x => x.ClsPrice).ToArray();
+                var dates = result1.Select(x => x.Period.ToJavaScriptMinutes()).ToArray();
+
+                var len = Math.Min(price1.Length, Math.Min(price2.Length, dates.Length));
+                var values = new CandlesRangeSetValue[len];
+                for (int i = 0; i < len; i++)
+                {
+                    values[i] = new CandlesRangeSetValue
+                    {
+                        Price1 = price1[i],
+                        Price2 = price2[i],
+                        Date = dates[i]
+                    };
+                }
+
+                return values;
             }
             else
             {
