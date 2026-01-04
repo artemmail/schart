@@ -82,12 +82,25 @@ export class ClusterStreamService {
         withCredentials: true,
       })
       .pipe(
-        map((values) =>
-          values.map((value) => ({
+        map((values) => {
+          const normalizedValues = values.map((value) => ({
             ...value,
             Date: new Date(value.Date),
-          }))
-        ),
+          }));
+
+          if (!normalizedValues.length) {
+            return normalizedValues;
+          }
+
+          const basePrice1 = normalizedValues[0].Price1;
+          const basePrice2 = normalizedValues[0].Price2;
+
+          return normalizedValues.map((value) => ({
+            ...value,
+            Price1normalized: basePrice1 ? value.Price1 / basePrice1 : 0,
+            Price2normalized: basePrice2 ? value.Price2 / basePrice2 : 0,
+          }));
+        }),
         catchError(this.handle403Error)
       );
   }
