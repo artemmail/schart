@@ -9,20 +9,6 @@ export interface ClusterDataInit {
   VolumePerQuantity?: number | null;
 }
 
-export interface RangeSetPoint {
-  date: Date;
-  columnIndex: number;
-  price1Percent: number;
-  price2Percent: number;
-  price1?: number;
-  price2?: number;
-}
-
-export interface RangeSetLines {
-  points: RangeSetPoint[];
-  minPercent: number;
-  maxPercent: number;
-}
 
 export class ClusterData {
   ladder: Record<number, number> = {};
@@ -68,7 +54,7 @@ export class ClusterData {
   maxPrice: number;
   minPrice: number;
 
-  rangeSetLines: RangeSetLines | null = null;
+  rangeSetLines: CandlesRangeSetValue[] | null = null;
 
   totalColumn: ColumnEx | any;
   maxt1: number;
@@ -146,82 +132,13 @@ export class ClusterData {
     }
   }
 
-  attachRangeSet(values: CandlesRangeSetValue[]): void {
-
-    const prepared = values?.map((value) => ({
-      price1: value.Price1,
-      price2: value.Price2,
-      date: new Date(value.Date),
-    }));
-
-
-    if (!prepared?.length) {
-      this.rangeSetLines = null;
-      return;
-    }
-
-    const basePrice1 = prepared[0].price1;
-    const basePrice2 = prepared[0].price2;
-
-    const points: RangeSetPoint[] = [];
-
-    prepared.forEach((value) => {
-      const columnIndex = this.findNearestColumnIndex(value.date);
-
-      if (columnIndex === null) {
-        return;
-      }
-
-      points.push({
-        date: value.date,
-        columnIndex,
-        price1Percent: this.toPercent(value.price1, basePrice1),
-        price2Percent: this.toPercent(value.price2, basePrice2),
-        price1: value.price1,
-        price2: value.price2,
-      });
-    });
-
-    if (!points.length) {
-      this.rangeSetLines = null;
-      return;
-    }
-
-    const percentValues = points.flatMap((point) => [
-      point.price1Percent,
-      point.price2Percent,
-    ]);
-
-    this.rangeSetLines = {
-      points,
-      minPercent: Math.min(...percentValues),
-      maxPercent: Math.max(...percentValues),
-    };
-  }
+  
 
   hasRangeSetLines(): boolean {
-    return !!this.rangeSetLines?.points.length;
+    return !!this.rangeSetLines?.length;
   }
 
-  getRangeSetBounds(): { min: number; max: number } {
-    if (!this.rangeSetLines) {
-      return { min: 0, max: 0 };
-    }
 
-    const { minPercent, maxPercent } = this.rangeSetLines;
-    const span = maxPercent - minPercent;
-    const padding = Math.max(1, span * 0.1);
-
-    let min = Math.min(0, minPercent) - padding;
-    let max = Math.max(0, maxPercent) + padding;
-
-    if (min === max) {
-      min -= 1;
-      max += 1;
-    }
-
-    return { min, max };
-  }
 
   private toPercent(value: number, base: number): number {
     if (!isFinite(base) || base === 0) {

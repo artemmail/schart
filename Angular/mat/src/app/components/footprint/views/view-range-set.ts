@@ -1,7 +1,8 @@
 import { Matrix, Rectangle } from '../models/matrix';
 import { canvasPart } from './canvas-part';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
-import { RangeSetPoint } from '../models/cluster-data';
+import { CandlesRangeSetValue } from 'src/app/models/candles-range-set';
+
 
 const SERIES_COLORS = {
   price1: '#f2d53c',
@@ -24,8 +25,8 @@ export class viewRangeSet extends canvasPart {
     );
 
     if (hasRawPrices) {
-      this.drawSeries(rangeSetLines.points, mtx, (p) => p.price1, SERIES_COLORS.price1);
-      this.drawSeries(rangeSetLines.points, mtx, (p) => p.price2, SERIES_COLORS.price2);
+      this.drawSeries(rangeSetLines.points, mtx, (p) => p.Price1, SERIES_COLORS.price1);
+      this.drawSeries(rangeSetLines.points, mtx, (p) => p.Price2, SERIES_COLORS.price2);
       return;
     }
 
@@ -36,8 +37,8 @@ export class viewRangeSet extends canvasPart {
     );
 
     this.drawZeroLine(percentMatrix, view);
-    this.drawSeries(rangeSetLines.points, percentMatrix, (p) => p.price1Percent, SERIES_COLORS.price1);
-    this.drawSeries(rangeSetLines.points, percentMatrix, (p) => p.price2Percent, SERIES_COLORS.price2);
+    this.drawSeries(rangeSetLines.points, percentMatrix, (p) => p.Price1normalized, SERIES_COLORS.price1);
+    this.drawSeries(rangeSetLines.points, percentMatrix, (p) => p.Price2normalized, SERIES_COLORS.price2);
   }
 
   private drawZeroLine(mtx: Matrix, view: Rectangle) {
@@ -53,9 +54,9 @@ export class viewRangeSet extends canvasPart {
   }
 
   private drawSeries(
-    points: RangeSetPoint[],
+    points: CandlesRangeSetValue[],
     mtx: Matrix,
-    selector: (point: RangeSetPoint) => number | undefined,
+    selector: (point: CandlesRangeSetValue) => number | undefined,
     color: string
   ) {
     const ctx = this.parent.ctx;

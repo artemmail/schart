@@ -96,7 +96,7 @@ namespace StockChart.Extentions
             {
                 Price1 = candle.ClsPrice,
                 Price2 = candle.ClsPrice,
-                Date = candle.Period.ToJavaScriptMinutes()
+                Date = candle.Period
             }).ToArray();
 
             return values;
@@ -111,7 +111,7 @@ namespace StockChart.Extentions
             {
                 Price1 = p1.ClsPrice,
                 Price2 = p2.ClsPrice,
-                Date = p1.Period.ToJavaScriptMinutes()
+                Date = p1.Period
             }).ToArray();
 
             return values;

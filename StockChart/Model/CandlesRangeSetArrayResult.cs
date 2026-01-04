@@ -2,7 +2,7 @@ namespace StockChart.Model
 {
     public class CandlesRangeSetValue
     {
-        public long Date { get; set; }
+        public DateTime Date { get; set; }
 
         public decimal Price1 { get; set; }
 

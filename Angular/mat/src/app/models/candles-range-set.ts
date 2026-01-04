@@ -20,4 +20,5 @@ export interface CandlesRangeSetValue {
   Price2: number;
   Price1normalized: number;
   Price2normalized: number;
+  columnIndex: number;
 }

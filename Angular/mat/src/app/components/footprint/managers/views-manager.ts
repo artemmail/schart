@@ -126,14 +126,16 @@ export class ViewsManager {
     let FPsettings = this.footprint.FPsettings;
     const minimode: boolean = this.footprint.minimode;
 
+    /*
     this.viewBackground1 = new viewBackground1(
       this.footprint,
       this.clusterTotalViewFill,
       this.mtxMain
     );
+
     if (FPsettings.totalMode == 'Left' && this.data.ableCluster())
       this.views.push(this.viewBackground1);
-
+*/
     
     this.views.push(
       (this.viewBackground = new viewBackground(
@@ -152,6 +154,7 @@ export class ViewsManager {
         ))
       );
 
+      /*
       this.views.push(
         (this.viewPrices = new viewPrices(
           this.footprint,
@@ -276,15 +279,21 @@ export class ViewsManager {
         ))
       );
     }
+*/
+
+
+    this.views.push(
+      (this.viewRangeSet = new viewRangeSet(
+        this.footprint,
+        this.clusterView,
+        this.mtxMain
+      ))
+    );
+
 
     // 
     this.resizeable = [
-      this.viewVolumesSeparated,
-      this.viewOI,
-      this.viewDelta,
-      this.viewOIDelta,
-      this.viewTotal,
-      this.viewDeltaBars,
+
     ];
   }
 
@@ -295,12 +304,14 @@ export class ViewsManager {
     this.data = this.footprint.data;
 
     if (!this.data || !canvas || !ctx) return;
+    if (canvas.width <= 1 || canvas.height <= 1) return;
 
     if (!this.layout) {
       this.updateLayout();
     }
 
     if (!this.layout) return;
+    if (this.clusterView.w <= 1 || this.clusterView.h <= 1) return;
 
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -311,6 +322,7 @@ export class ViewsManager {
       return;
     }
 
+    
     this.matrices = this.layoutService.buildMatrices(
       this.mtx,
       this.layout,
@@ -327,7 +339,8 @@ export class ViewsManager {
     this.mtxanim = this.matrices.mtxanim;
     this.createParts();
     this.footprint.getMinMaxIndex(this.mtxMain);
-    for (const view in this.views) this.views[view].drawCanvas();
+    for (const view in this.views) 
+      this.views[view].drawCanvas();
   }
 
   alignCanvas() {
@@ -408,6 +421,7 @@ export class ViewsManager {
       }
       var newX = this.clusterView.x + this.clusterView.w;
       var newY = this.clusterView.y + this.clusterView.h / 2;
+      
       this.mtx = this.footprint.alignMatrix(
         this.mtx.getTranslate(newX - oldX, newY - oldY)
       );

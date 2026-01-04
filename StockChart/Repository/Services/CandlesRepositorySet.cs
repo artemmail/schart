@@ -407,7 +407,7 @@ namespace UserFunctions
 
                 var price1 = result1.Select(x => x.ClsPrice).ToArray();
                 var price2 = result2.Select(x => x.ClsPrice).ToArray();
-                var dates = result1.Select(x => x.Period.ToJavaScriptMinutes()).ToArray();
+                var dates = result1.Select(x => x.Period).ToArray();
 
                 var len = Math.Min(price1.Length, Math.Min(price2.Length, dates.Length));
                 var values = new CandlesRangeSetValue[len];

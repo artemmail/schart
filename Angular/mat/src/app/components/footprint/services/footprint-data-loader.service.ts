@@ -137,13 +137,13 @@ export class FootprintDataLoaderService implements OnDestroy {
     rangeSet: CandlesRangeSetValue[],
     priceScale: number
   ): ClusterData {
-    const pad = priceScale || 1;
+    const pad = priceScale || 0.01;
     const prepared = rangeSet
       .filter((value) => value.Date !== undefined)
       .map((value, index) => {
-        const date = new Date(value.Date as number);
-        const rawPrice1 = value.Price1 ?? value.Price2 ?? 0;
-        const rawPrice2 = value.Price2 ?? value.Price1 ?? rawPrice1;
+        const date = new Date(value.Date );
+        const rawPrice1 = value.Price1normalized;
+        const rawPrice2 = value.Price2normalized;
         const price1 = Number(rawPrice1);
         const price2 = Number(rawPrice2);
 
@@ -158,6 +158,8 @@ export class FootprintDataLoaderService implements OnDestroy {
           high += pad;
           low -= pad;
         }
+
+        debugger
 
         return {
           Number: index + 1,
@@ -225,12 +227,12 @@ export class FootprintDataLoaderService implements OnDestroy {
           })
         );
 
-        const rangeData = this.buildClusterDataFromRangeSet(
+        let rangeData = this.buildClusterDataFromRangeSet(
           rangeSet,
           params.priceStep
         );
         if (rangeSet?.length) {
-          rangeData.attachRangeSet(rangeSet);
+          rangeData.rangeSetLines = (rangeSet);
         }
         this.currentData = rangeData;
       } else {
