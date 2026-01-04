@@ -3,6 +3,7 @@ export interface FootPrintParameters {
     ticker?: string;
     ticker1?: string;
     ticker2?: string;
+    type?: string;
     period: number;
     rperiod?: string;
     priceStep: number;

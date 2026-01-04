@@ -83,6 +83,14 @@ export class CommonService {
       httpParams = httpParams.set('ticker', params.ticker);
     }
 
+    if (params.ticker1 !== undefined) {
+      httpParams = httpParams.set('ticker1', params.ticker1);
+    }
+
+    if (params.ticker2 !== undefined) {
+      httpParams = httpParams.set('ticker2', params.ticker2);
+    }
+
     if (params.priceStep !== undefined) {
       httpParams = httpParams.set('priceStep', params.priceStep.toString());
     }
@@ -124,6 +132,14 @@ export class CommonService {
 
     if (params.ticker !== undefined) {
       httpParams = httpParams.set('ticker', params.ticker);
+    }
+
+    if (params.ticker1 !== undefined) {
+      httpParams = httpParams.set('ticker1', params.ticker1);
+    }
+
+    if (params.ticker2 !== undefined) {
+      httpParams = httpParams.set('ticker2', params.ticker2);
     }
 
     if (params.priceStep !== undefined) {

@@ -10,6 +10,8 @@ export interface FootPrintRequestParams {
 
   export interface FootPrintRequestParamsNew {
     ticker?: string;
+    ticker1?: string;
+    ticker2?: string;
     priceStep?: number;
     startDate?: Date;
     endDate?: Date;
