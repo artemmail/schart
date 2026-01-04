@@ -243,7 +243,7 @@ export class viewRangeSet extends canvasPart {
     var s = Math.pow(1.05, wheelDistance);
     const [x, y] = [ev.position.x, ev.position.y];
 
-    this.parent.hideHint();
+    this.drawHint(ev);
 
     var m = Matrix.fromTriangles(
       [x, y, x + 1, y + 1, x + 1, y - 1],
