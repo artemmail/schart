@@ -15,30 +15,46 @@ export class viewRangeSet extends canvasPart {
   }
 
   draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
-    const rangeSetLines = parent.data?.rangeSetLines;
-    if (!rangeSetLines?.points.length) {
+    const rangeSetLines = parent.data?.rangeSetLines ?? [];
+    if (!rangeSetLines.length) {
       return;
     }
 
-    const hasRawPrices = rangeSetLines.points.some(
-      (point) => Number.isFinite(point.price1) || Number.isFinite(point.price2)
+    const hasRawPrices = rangeSetLines.some(
+      (point) => Number.isFinite(point.Price1) || Number.isFinite(point.Price2)
     );
 
     if (hasRawPrices) {
-      this.drawSeries(rangeSetLines.points, mtx, (p) => p.Price1, SERIES_COLORS.price1);
-      this.drawSeries(rangeSetLines.points, mtx, (p) => p.Price2, SERIES_COLORS.price2);
+      this.drawSeries(rangeSetLines, mtx, (p) => p.Price1, SERIES_COLORS.price1);
+      this.drawSeries(rangeSetLines, mtx, (p) => p.Price2, SERIES_COLORS.price2);
       return;
     }
 
-    const { min, max } = parent.data.getRangeSetBounds();
+    let min = parent.data.minPrice;
+    let max = parent.data.maxPrice;
+
+    if (!Number.isFinite(min) || !Number.isFinite(max)) {
+      return;
+    }
+
+    if (max === min) {
+      const pad = parent.data.priceScale || 1;
+      max += pad;
+      min -= pad;
+    } else {
+      const pad = (max - min) / 10;
+      max += pad;
+      min -= pad;
+    }
+
     const percentMatrix = mtx.reassignY(
       { y1: min, y2: max },
       { y1: view.y + view.h, y2: view.y }
     );
 
     this.drawZeroLine(percentMatrix, view);
-    this.drawSeries(rangeSetLines.points, percentMatrix, (p) => p.Price1normalized, SERIES_COLORS.price1);
-    this.drawSeries(rangeSetLines.points, percentMatrix, (p) => p.Price2normalized, SERIES_COLORS.price2);
+    this.drawSeries(rangeSetLines, percentMatrix, (p) => p.Price1normalized, SERIES_COLORS.price1);
+    this.drawSeries(rangeSetLines, percentMatrix, (p) => p.Price2normalized, SERIES_COLORS.price2);
   }
 
   private drawZeroLine(mtx: Matrix, view: Rectangle) {
