@@ -11,6 +11,7 @@ import { viewDeltaBars } from '../views/view-delta-bars';
 import { viewHead } from '../views/view-head';
 import { viewMain } from '../views/view-main';
 import { viewRangeSet } from '../views/view-range-set';
+import { viewDeltaRangeSet } from '../views/view-delta-range-set';
 import { viewOIDelta } from '../views/view-oi-delta';
 import { viewScrollBars } from '../views/view-scroll-bars';
 import { viewTotal } from '../views/view-total';
@@ -48,6 +49,7 @@ export class ViewsManager {
   viewPrices: viewPrices | null = null;
   viewBackground: viewBackground | null = null;
   viewRangeSet: viewRangeSet | null = null;
+  viewDeltaRangeSet: viewDeltaRangeSet | null = null;
   viewVolumes: viewVolumes | null = null;
   viewHead: viewHead | null = null;
   viewAnim: viewAnim | null = null;
@@ -199,6 +201,14 @@ export class ViewsManager {
 
     this.views.push(
       (this.viewRangeSet = new viewRangeSet(
+        this.footprint,
+        this.clusterView,
+        this.mtxMain
+      ))
+    );
+
+    this.views.push(
+      (this.viewDeltaRangeSet = new viewDeltaRangeSet(
         this.footprint,
         this.clusterView,
         this.mtxMain
