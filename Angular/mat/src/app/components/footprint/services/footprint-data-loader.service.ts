@@ -211,10 +211,14 @@ export class FootprintDataLoaderService implements OnDestroy {
 
   private async requestRange(params: FootPrintParameters): Promise<boolean> {
     try {
+      const isArbitrageMode = params.type === 'arbitrage';
 
-      params.ticker1 = 'SBER';
-      params.ticker2 = 'GAZP';
-      if (params.ticker1 || params.ticker2) {
+      if (isArbitrageMode) {
+        params.ticker1 = params.ticker1 ?? 'SBER';
+        params.ticker2 = params.ticker2 ?? 'GAZP';
+      }
+
+      if (isArbitrageMode && (params.ticker1 || params.ticker2)) {
         
         const rangeSet = await firstValueFrom(
           this.clusterStreamService.getRangeSetArray({

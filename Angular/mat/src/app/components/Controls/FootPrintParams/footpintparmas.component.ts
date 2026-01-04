@@ -5,7 +5,7 @@ import {
   OnInit,
   Input,
   forwardRef,
-  ChangeDetectorRef
+  ChangeDetectorRef,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-picker.component';
@@ -52,6 +52,7 @@ export class FootPrintParamsComponent
   @Input() params: TickerPresetNew;
 
   presets2: SelectListItemNumber[] = SmallPeriodPreset;
+  loadMode: 'candles' | 'clusters' | 'arbitrage' = 'clusters';
 
   constructor(
     private commonService: CommonService,
@@ -62,6 +63,30 @@ export class FootPrintParamsComponent
   }
 
   refresh() {}
+
+  onLoadModeChange(mode: 'candles' | 'clusters' | 'arbitrage') {
+    this.loadMode = mode;
+    if (!this.params) {
+      return;
+    }
+
+    if (mode === 'arbitrage') {
+      this.applyArbitrageDefaults();
+    } else {
+      this.params.type = undefined;
+      this.params.candlesOnly = mode === 'candles';
+    }
+  }
+
+  isArbitrageMode(): boolean {
+    return this.loadMode === 'arbitrage';
+  }
+
+  onArbitrageTickersChange() {
+    if (this.isArbitrageMode() && this.params) {
+      this.params.type = 'arbitrage';
+    }
+  }
 
   applyPreset(foundPreset: FootPrintRequestParams) {
     if (!this.params || !foundPreset) {
@@ -86,14 +111,22 @@ export class FootPrintParamsComponent
   SelectPeriod(val: any) {}
 
   public GetModel(): FootPrintParameters {
+    this.params.type = this.isArbitrageMode() ? 'arbitrage' : undefined;
+    if (!this.isArbitrageMode()) {
+      this.params.ticker1 = undefined;
+      this.params.ticker2 = undefined;
+    }
     return {
       ticker: this.params.ticker,
+      ticker1: this.params.ticker1,
+      ticker2: this.params.ticker2,
       period: this.params.period,
       rperiod: this.params.rperiod,
       priceStep: this.params.priceStep,
       startDate: this.DateRange.getStart(),
       endDate: this.DateRange.getEnd(),
       candlesOnly: this.params.candlesOnly,
+      type: this.params.type,
     };
   }
 
@@ -118,7 +151,7 @@ export class FootPrintParamsComponent
   }
 
   public ngOnInit() {
-    // Инициализация компонента
+    this.syncLoadMode();
   }
 
   public ngAfterViewInit() {
@@ -133,6 +166,27 @@ export class FootPrintParamsComponent
 
   private subscribeToEventEmitter() {}
 
+  private syncLoadMode() {
+    if (!this.params) {
+      return;
+    }
+
+    if (this.params.type === 'arbitrage') {
+      this.loadMode = 'arbitrage';
+      this.applyArbitrageDefaults();
+      return;
+    }
+
+    this.loadMode = this.params.candlesOnly ? 'candles' : 'clusters';
+  }
+
+  private applyArbitrageDefaults() {
+    this.params.type = 'arbitrage';
+    this.params.candlesOnly = false;
+    this.params.ticker1 = this.params.ticker1 ?? 'SBER';
+    this.params.ticker2 = this.params.ticker2 ?? 'GAZP';
+  }
+
   // Реализация ControlValueAccessor
   writeValue(value: any): void {
     if (value) {
@@ -146,6 +200,8 @@ export class FootPrintParamsComponent
           this.params.endDate
         );
       }
+
+      this.syncLoadMode();
     }
   }
 

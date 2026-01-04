@@ -1,22 +1,25 @@
 <mat-form-field class="elementWidth">
   <mat-label>Загрузка</mat-label>
-  <mat-select [(ngModel)]="params.candlesOnly" name="svech">
-    <mat-option [value]="true">Свечи</mat-option>
-    <mat-option [value]="false">Свечи+Кластера</mat-option>
+  <mat-select [(ngModel)]="loadMode" name="svech" (selectionChange)="onLoadModeChange($event.value)">
+    <mat-option value="candles">Свечи</mat-option>
+    <mat-option value="clusters">Свечи+Кластера</mat-option>
+    <mat-option value="arbitrage">Арбитраж</mat-option>
   </mat-select>
 </mat-form-field>
 
-<div class="elementWidth" style="width: 250px;">
+<div class="elementWidth" style="width: 250px;" *ngIf="!isArbitrageMode()">
   <app-ticker-autocomplete
     name="autocomplete1"
     [(ngModel)]="params.ticker"
     (tickerChange)="onTickerSelected($event)"
   ></app-ticker-autocomplete>
-
-  <app-date-range-picker enableSetTime="true"></app-date-range-picker>
 </div>
 
 <div class="elementWidth" style="width: 250px;">
+  <app-date-range-picker enableSetTime="true"></app-date-range-picker>
+</div>
+
+<div class="elementWidth" style="width: 250px;" *ngIf="!isArbitrageMode()">
   <app-date-range-selector
     #presetSelector
     [ticker]="params.ticker"
@@ -34,7 +37,7 @@
   ></app-combobox>
 </div>
 
-<mat-form-field class="elementWidth">
+<mat-form-field class="elementWidth" *ngIf="!isArbitrageMode()">
   <mat-label>Шаг</mat-label>
   <input
     name="sh"
@@ -44,5 +47,25 @@
     [step]="params.minStep"
     type="number"
     (input)="refresh()"
+  />
+</mat-form-field>
+
+<mat-form-field class="elementWidth" *ngIf="isArbitrageMode()">
+  <mat-label>Портфель 1</mat-label>
+  <input
+    name="portfolio1"
+    matInput
+    [(ngModel)]="params.ticker1"
+    (input)="onArbitrageTickersChange()"
+  />
+</mat-form-field>
+
+<mat-form-field class="elementWidth" *ngIf="isArbitrageMode()">
+  <mat-label>Портфель 2</mat-label>
+  <input
+    name="portfolio2"
+    matInput
+    [(ngModel)]="params.ticker2"
+    (input)="onArbitrageTickersChange()"
   />
 </mat-form-field>

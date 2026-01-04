@@ -29,6 +29,8 @@ export class TickerPreset {
 
 export class TickerPresetNew {
   ticker: string;
+  ticker1?: string;
+  ticker2?: string;
   period: number;
   rperiod: string;
   @DateField()
@@ -38,4 +40,5 @@ export class TickerPresetNew {
   minStep: number;
   priceStep: number;
   candlesOnly: boolean;
+  type?: string;
 }
