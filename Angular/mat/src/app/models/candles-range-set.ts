@@ -18,4 +18,6 @@ export interface CandlesRangeSetValue {
   Date: Date;
   Price1: number;
   Price2: number;
+  Price1normalized: number;
+  Price2normalized: number;
 }
