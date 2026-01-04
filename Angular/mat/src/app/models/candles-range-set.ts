@@ -15,15 +15,7 @@ export interface CandlesRangeSetParams {
 }
 
 export interface CandlesRangeSetValue {
-  Min?: number;
-  Max?: number;
-  Opn?: number;
-  Cls?: number;
-  Vol?: number;
-  Qnt?: number;
-  Bid?: number;
-  OpIn?: number;
-  Date?: number;
-  Price1?: number;
-  Price2?: number;
+  Date: Date;
+  Price1: number;
+  Price2: number;
 }

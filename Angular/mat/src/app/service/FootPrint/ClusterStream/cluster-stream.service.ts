@@ -81,7 +81,15 @@ export class ClusterStreamService {
         params: httpParams,
         withCredentials: true,
       })
-      .pipe(catchError(this.handle403Error));
+      .pipe(
+        map((values) =>
+          values.map((value) => ({
+            ...value,
+            Date: new Date(value.Date),
+          }))
+        ),
+        catchError(this.handle403Error)
+      );
   }
 
   private getRange(params: QueryParams): Observable<ClusterData> {

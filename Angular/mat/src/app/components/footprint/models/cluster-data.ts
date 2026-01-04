@@ -147,19 +147,13 @@ export class ClusterData {
   }
 
   attachRangeSet(values: CandlesRangeSetValue[]): void {
-    debugger
-    const prepared = values
-      ?.filter(
-        (value) =>
-          value.Price1 !== undefined &&
-          value.Price2 !== undefined &&
-          value.Date !== undefined
-      )
-      .map((value) => ({
-        price1: value.Price1 ?? 0,
-        price2: value.Price2 ?? 0,
-        date: new Date(value.Date as number),
-      }));
+
+    const prepared = values?.map((value) => ({
+      price1: value.Price1,
+      price2: value.Price2,
+      date: new Date(value.Date),
+    }));
+
 
     if (!prepared?.length) {
       this.rangeSetLines = null;
