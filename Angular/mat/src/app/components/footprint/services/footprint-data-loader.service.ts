@@ -138,6 +138,7 @@ export class FootprintDataLoaderService implements OnDestroy {
     priceScale: number
   ): ClusterData {
     const pad = priceScale || 0.01;
+    let a =0;
     const prepared = rangeSet
       .filter((value) => value.Date !== undefined)
       .map((value, index) => {
@@ -146,6 +147,7 @@ export class FootprintDataLoaderService implements OnDestroy {
         const rawPrice2 = value.Price2normalized;
         const price1 = Number(rawPrice1);
         const price2 = Number(rawPrice2);
+        
 
         if (!Number.isFinite(price1) || !Number.isFinite(price2)) {
           return null;
@@ -159,7 +161,7 @@ export class FootprintDataLoaderService implements OnDestroy {
           low -= pad;
         }
 
-        debugger
+        
 
         return {
           Number: index + 1,
@@ -213,7 +215,7 @@ export class FootprintDataLoaderService implements OnDestroy {
       params.ticker1 = 'SBER';
       params.ticker2 = 'GAZP';
       if (params.ticker1 || params.ticker2) {
-        debugger
+        
         const rangeSet = await firstValueFrom(
           this.clusterStreamService.getRangeSetArray({
             ticker: params.ticker,

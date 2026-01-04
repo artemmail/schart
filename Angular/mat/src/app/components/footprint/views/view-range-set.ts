@@ -15,6 +15,8 @@ export class viewRangeSet extends canvasPart {
   }
 
   draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
+
+    debugger
     const rangeSetLines = parent.data?.rangeSetLines ?? [];
     if (!rangeSetLines.length) {
       return;
@@ -23,13 +25,13 @@ export class viewRangeSet extends canvasPart {
     const hasRawPrices = rangeSetLines.some(
       (point) => Number.isFinite(point.Price1) || Number.isFinite(point.Price2)
     );
-
+/*
     if (hasRawPrices) {
       this.drawSeries(rangeSetLines, mtx, (p) => p.Price1, SERIES_COLORS.price1);
       this.drawSeries(rangeSetLines, mtx, (p) => p.Price2, SERIES_COLORS.price2);
       return;
     }
-
+*/
     let min = parent.data.minPrice;
     let max = parent.data.maxPrice;
 

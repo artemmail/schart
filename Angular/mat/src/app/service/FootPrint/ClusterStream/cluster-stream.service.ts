@@ -95,10 +95,12 @@ export class ClusterStreamService {
           const basePrice1 = normalizedValues[0].Price1;
           const basePrice2 = normalizedValues[0].Price2;
 
+          let a: number = 0;
           return normalizedValues.map((value) => ({
             ...value,
             Price1normalized: basePrice1 ? value.Price1 / basePrice1 : 0,
             Price2normalized: basePrice2 ? value.Price2 / basePrice2 : 0,
+            columnIndex: a++
           }));
         }),
         catchError(this.handle403Error)
