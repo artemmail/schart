@@ -140,6 +140,7 @@ export class viewRangeSet extends canvasPart {
 
   drawHint(event: MyMouseEvent) {
     const rangeSetLines = this.parent.data?.rangeSetLines;
+    const isScrolling = this.parent.translateMatrix !== null;
 
     if (!rangeSetLines?.length) {
       this.parent.hideHint();
@@ -150,7 +151,7 @@ export class viewRangeSet extends canvasPart {
     const index = Math.floor(point.x);
 
     if (index < 0 || index >= rangeSetLines.length) {
-      this.parent.hideHint();
+      if (!isScrolling) this.parent.hideHint();
       return;
     }
 
@@ -163,7 +164,7 @@ export class viewRangeSet extends canvasPart {
     const delta = income1 - income2;
 
     if (!Number.isFinite(price1) || !Number.isFinite(price2)) {
-      this.parent.hideHint();
+      if (!isScrolling) this.parent.hideHint();
       return;
     }
 
