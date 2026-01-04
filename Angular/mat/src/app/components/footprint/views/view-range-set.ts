@@ -4,6 +4,7 @@ import { FootPrintComponent } from '../components/footprint/footprint.component'
 import { CandlesRangeSetValue } from 'src/app/models/candles-range-set';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 import * as Hammer from 'hammerjs';
+import { drob } from 'src/app/service/FootPrint/utils';
 
 
 const SERIES_COLORS = {
@@ -131,6 +132,68 @@ export class viewRangeSet extends canvasPart {
       );
 
     this.parent.drawClusterView();
+  }
+
+  onMouseMove(e: MyMouseEvent) {
+    this.drawHint(e);
+  }
+
+  drawHint(event: MyMouseEvent) {
+    const rangeSetLines = this.parent.data?.rangeSetLines;
+
+    if (!rangeSetLines?.length) {
+      this.parent.hideHint();
+      return;
+    }
+
+    const point = this.mtx.inverse().applyToPoint1(event.position);
+    const index = Math.floor(point.x);
+
+    if (index < 0 || index >= rangeSetLines.length) {
+      this.parent.hideHint();
+      return;
+    }
+
+    const line = rangeSetLines[index];
+
+    const price1 = line.Price1;
+    const price2 = line.Price2;
+    const income1 = (line.Price1normalized - 1) * 100;
+    const income2 = (line.Price2normalized - 1) * 100;
+    const delta = income1 - income2;
+
+    if (!Number.isFinite(price1) || !Number.isFinite(price2)) {
+      this.parent.hideHint();
+      return;
+    }
+
+    const formatPercent = (value: number) => `${drob(value, 2)}%`;
+    const signedColor = (value: number) =>
+      value > 0 ? 'green' : value < 0 ? 'red' : 'black';
+
+    const item = (label: string, value: string, color?: string) => {
+      const colorStyle = color ? ` style="color:${color}"` : '';
+      return `<li style='font-size: 12px;'><b${colorStyle}>${label}: </b>${value}</li>`;
+    };
+
+    const content = [
+      item('Портф1', drob(price1, 2).toString(), 'DarkGoldenRod'),
+      item('Портф2', drob(price2, 2).toString(), 'DarkBlue'),
+      item('Доход 1', formatPercent(income1), signedColor(income1)),
+      item('Доход 2', formatPercent(income2), signedColor(income2)),
+      item('Дельта', formatPercent(delta), signedColor(delta)),
+      item('Date', this.formatService.toStr(line.Date)),
+      item('Time', this.formatService.TimeFormat2(line.Date)),
+    ].join('');
+
+    const hintContent = `<ul style='font-size: 10px;margin: 0; padding: 0px;list-style-type:none'>${content} </ul>`;
+
+    const position = {
+      x: event.screen.x / window.devicePixelRatio + 5,
+      y: event.screen.y / window.devicePixelRatio + 5,
+    };
+
+    this.parent.showHint(hintContent, position);
   }
 
   onMouseUp(e: Point) {
