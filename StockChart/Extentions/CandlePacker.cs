@@ -94,14 +94,8 @@ namespace StockChart.Extentions
 
             var values = candles.Select(candle => new CandlesRangeSetValue
             {
-                Min = candle.MinPrice,
-                Max = candle.MaxPrice,
-                Opn = candle.OpnPrice,
-                Cls = candle.ClsPrice,
-                Vol = candle.Volume,
-                Qnt = candle.Quantity,
-                Bid = candle.Volume > 0 ? (int)Math.Truncate(1000 * candle.BuyVolume / candle.Volume) : 0,
-                OpIn = candle.Oi,
+                Price1 = candle.ClsPrice,
+                Price2 = candle.ClsPrice,
                 Date = candle.Period.ToJavaScriptMinutes()
             }).ToArray();
 
@@ -117,15 +111,7 @@ namespace StockChart.Extentions
             {
                 Price1 = p1.ClsPrice,
                 Price2 = p2.ClsPrice,
-                Date = p1.Period.ToJavaScriptMinutes(),
-                Min = 0,
-                Max = 0,
-                Opn = 0,
-                Cls = 0,
-                Vol = 0,
-                Qnt = 0,
-                Bid = 0,
-                OpIn = 0
+                Date = p1.Period.ToJavaScriptMinutes()
             }).ToArray();
 
             return values;
