@@ -325,9 +325,6 @@ export class ViewsManager {
       ))
     );
 
-
-
-    if (!minimode)
       this.views.push(
         (this.viewDates = new viewDates(
           this.footprint,
@@ -345,6 +342,13 @@ export class ViewsManager {
         ))
       );
 
+
+        this.views.push(
+        (this.viewDeltaRangeSet = new viewDeltaRangeSet(
+          this.footprint,
+          this.clusterDeltaView,
+          this.mtxMain
+        )));
 
     this.resizeable = [
 
