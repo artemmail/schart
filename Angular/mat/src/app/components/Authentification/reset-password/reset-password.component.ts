@@ -2,11 +2,13 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService, ResetPasswordInputModel } from 'src/app/service/auth.service';
 import { DialogService } from 'src/app/service/DialogService.service';
+import { MaterialModule } from 'src/app/material.module';
 
 
 @Component({
   standalone: true,
   selector: 'app-reset-password',
+  imports: [MaterialModule],
   templateUrl: './reset-password.component.html',
   styleUrls: ['./reset-password.component.css']
 })

@@ -4,10 +4,12 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { AuthService } from 'src/app/service/auth.service';
 import { DialogService } from 'src/app/service/DialogService.service';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
   standalone: true,
   selector: 'app-resend-email-confirmation',
+  imports: [MaterialModule],
   templateUrl: './resend-email-confirmation.component.html',
   styleUrls: ['./resend-email-confirmation.component.css'],
 })
