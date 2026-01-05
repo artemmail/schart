@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FootPrintRequestParamsNew } from 'src/app/models/FootPrintPar';
 import { TickerPresetNew } from 'src/app/models/tickerpreset';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
@@ -65,6 +65,7 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
     public matEventEmitterService: MatEventEmitterService,
     public dialog: MatDialog,
     private route: ActivatedRoute,
+    private router: Router,
     private dialogService: DialogService,
     private titleService: Title
   ) {
@@ -83,13 +84,18 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
 
 
     this.route.queryParams.subscribe((params) => {
+      const isPairTradingRoute = this.router.url.includes(
+        '/CandlestickChart/PairTrading'
+      );
       const modeParam = params['mode'] ?? params['type'];
+      const normalizedMode =
+        modeParam ?? (isPairTradingRoute ? 'arbitrage' : undefined);
       const requestParams: FootPrintRequestParamsNew = {
         ...params,
         period: params['period'] ? Number(params['period']) : undefined,
         candlesOnly:
           params['candlesOnly'] === true || params['candlesOnly'] === 'true',
-        type: modeParam,
+        type: normalizedMode,
         ticker1: params['ticker1'],
         ticker2: params['ticker2'],
       };

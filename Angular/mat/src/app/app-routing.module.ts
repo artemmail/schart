@@ -83,6 +83,7 @@ const routes: Routes = [
   
   { path: 'FootPrint', component: FirstComponent },
   { path: 'CandlestickChart', component: FirstComponent },
+  { path: 'CandlestickChart/PairTrading', component: FirstComponent },
 
   { path: 'UserPaymentsStat', component: UserPaymentsStatComponent },
   { path: 'ProfitCharts', component: ProfitChartsComponent },

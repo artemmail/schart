@@ -44,6 +44,7 @@ export const routes: Routes = [
 
   { path: 'FootPrint', component: FirstComponent1 },
   { path: 'CandlestickChart', component: FirstComponent1 },
+  { path: 'CandlestickChart/PairTrading', component: FirstComponent1 },
   
   { path: 'Leaders', component: LeadersComponent },
   { path: 'Forts', component: LeadersFortsComponent },
