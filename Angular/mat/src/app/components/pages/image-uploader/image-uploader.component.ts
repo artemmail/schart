@@ -7,12 +7,14 @@ import { catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { ImageSaveService } from 'src/app/service/image-save.service';
 import { Title } from '@angular/platform-browser';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
   selector: 'image-uploader',
   templateUrl: './image-uploader.component.html',
   styleUrls: ['./image-uploader.component.css'],
   standalone: true,
+  imports: [MaterialModule],
 })
 export class ImageUploaderComponent {
   filename: string | null = null;
