@@ -2,6 +2,7 @@ import {
   AfterViewInit,
   Component,
   HostListener,
+  OnDestroy,
   OnInit,
   ViewChild
 } from '@angular/core';
@@ -34,7 +35,7 @@ import { ComboBoxComponent } from '../../Controls/ComboBox/combobox.component';
   templateUrl: './market-map.component.html',
   styleUrls: ['./market-map.component.css'],
 })
-export class MarketMapComponent implements OnInit, AfterViewInit {
+export class MarketMapComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(StockChartTreemapComponent) stockChartTreemapComponent: StockChartTreemapComponent;
   @ViewChild(MarketBoardComponent) marketBoardComponent: MarketBoardComponent;
   @ViewChild(DateRangePickerComponent) dateRangePickerComponent: DateRangePickerComponent;
@@ -53,6 +54,7 @@ export class MarketMapComponent implements OnInit, AfterViewInit {
     { Text: 'Карта', Value: 0 },
     { Text: 'Доска', Value: 1 }
   ];
+  private sizeRafId: number | null = null;
 
   constructor(
     private titleService: Title,
@@ -65,7 +67,14 @@ export class MarketMapComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    this.size();
+    this.scheduleSize();
+  }
+
+  ngOnDestroy(): void {
+    if (this.sizeRafId !== null) {
+      cancelAnimationFrame(this.sizeRafId);
+      this.sizeRafId = null;
+    }
   }
 
   @HostListener('window:resize', ['$event'])
@@ -215,6 +224,7 @@ export class MarketMapComponent implements OnInit, AfterViewInit {
 
   onStyleChange(newStyle: number) {
     this.style = newStyle;
+    this.scheduleSize();
     if (this.hasCategories()) {
       if (this.style === 0 && this.stockChartTreemapComponent) {
         this.stockChartTreemapComponent.updateParams({
@@ -240,5 +250,17 @@ export class MarketMapComponent implements OnInit, AfterViewInit {
 
   hasCategories(): boolean {
     return true;// this.initialCategories && this.initialCategories.trim() !== '';
+  }
+
+  private scheduleSize(): void {
+    if (this.sizeRafId !== null) {
+      cancelAnimationFrame(this.sizeRafId);
+    }
+    this.sizeRafId = requestAnimationFrame(() => {
+      this.sizeRafId = requestAnimationFrame(() => {
+        this.sizeRafId = null;
+        this.size();
+      });
+    });
   }
 }
