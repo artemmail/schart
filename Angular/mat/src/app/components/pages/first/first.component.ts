@@ -11,6 +11,7 @@ import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
 import { TickerPresetNew } from 'src/app/models/tickerpreset';
+import { FootPrintRequestParamsNew } from 'src/app/models/FootPrintPar';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { CommonService } from 'src/app/service/common.service';
 import { NavService } from 'src/app/service/nav.service';
@@ -94,11 +95,26 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {
       // Обработка параметров маршрута, если необходимо
-
+      const requestParams: FootPrintRequestParamsNew = {
+        ...params,
+        period: params['period'] ? Number(params['period']) : undefined,
+        candlesOnly:
+          params['candlesOnly'] === true || params['candlesOnly'] === 'true',
+        type: params['mode'] ?? params['type'],
+        ticker1: params['ticker1'],
+        ticker2: params['ticker2'],
+      };
       this.commonService
-        .getControlsNew(params)
+        .getControlsNew(requestParams)
         .subscribe((data: TickerPresetNew) => {
-          this.params = { ...this.params, ...data };
+          this.params = {
+            ...this.params,
+            ...data,
+            candlesOnly: requestParams.candlesOnly ?? data.candlesOnly,
+            type: requestParams.type ?? data.type,
+            ticker1: requestParams.ticker1 ?? data.ticker1,
+            ticker2: requestParams.ticker2 ?? data.ticker2,
+          };
           this.isCandlestick = this.route.snapshot.url
             .join('/')
             .includes('CandlestickChart');

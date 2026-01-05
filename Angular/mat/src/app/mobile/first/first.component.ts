@@ -83,11 +83,15 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
 
 
     this.route.queryParams.subscribe((params) => {
+      const modeParam = params['mode'] ?? params['type'];
       const requestParams: FootPrintRequestParamsNew = {
         ...params,
         period: params['period'] ? Number(params['period']) : undefined,
         candlesOnly:
           params['candlesOnly'] === true || params['candlesOnly'] === 'true',
+        type: modeParam,
+        ticker1: params['ticker1'],
+        ticker2: params['ticker2'],
       };
 
       this.commonService
@@ -102,6 +106,9 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
             ...this.params,
             ...data,
             candlesOnly: requestParams.candlesOnly ?? data.candlesOnly,
+            type: requestParams.type ?? data.type,
+            ticker1: requestParams.ticker1 ?? data.ticker1,
+            ticker2: requestParams.ticker2 ?? data.ticker2,
           };
 
           const chartType = this.isCandlestick ? "свечной" : "кластерный";
