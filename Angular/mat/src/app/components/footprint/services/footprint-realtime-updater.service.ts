@@ -95,6 +95,10 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
   }
 
   private shouldSubscribe(params: FootPrintParameters): boolean {
+    if (params.type === 'arbitrage') {
+      return false;
+    }
+
     const normalize = (date: Date) => {
       const copy = new Date(date);
       copy.setHours(0, 0, 0, 0);
