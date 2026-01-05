@@ -53,16 +53,13 @@ namespace StockChart.Controllers
         [HttpGet("positions/{contractName}")]
         public async Task<IActionResult> GetOpenPositionsByContract(string contractName)
         {
+            var isDemoContract = string.Equals(contractName?.Trim(), "Si", StringComparison.OrdinalIgnoreCase);
             var applicationUser = await _userManager.GetUserAsync(User);
 
-            if (applicationUser == null)
+            if (!isDemoContract && (applicationUser == null || !_usersRepository.IsPayed(applicationUser, 1)))
             {
-                return Unauthorized();
-            }
-
-            if (!_usersRepository.IsPayed(applicationUser, 1) && contractName != "Si")
-            {
-                var message = "Оформите подписку. Бесплатно доступен Si";
+                var message = "Данные по открытому интересу доступны по активной подписке. " +
+                    "Оформите подписку, чтобы посмотреть все контракты, или выберите бесплатный контракт Si.";
                 return StatusCode(StatusCodes.Status403Forbidden, message);
             }
 

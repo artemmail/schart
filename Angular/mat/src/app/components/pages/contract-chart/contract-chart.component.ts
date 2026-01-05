@@ -214,14 +214,16 @@ export class ContractChartComponent implements OnInit {
 
   private async handleRequestError(err: any): Promise<void> {
     if (this.isUnauthorizedError(err)) {
-      const message = 'Данные по открытому интересу доступны по активной подписке. ' +
+      const serverMessage = this.getServerMessage(err);
+      const message = serverMessage || 'Данные по открытому интересу доступны по активной подписке. ' +
         'Оформите подписку, чтобы посмотреть все контракты, или выберите бесплатный контракт Si.';
       await this.dialogService.info_async(message);
       return;
     }
 
     if (err instanceof HttpErrorResponse) {
-      const message = err.error?.title || err.error?.message || err.message || 'Не удалось загрузить данные.';
+      const serverMessage = this.getServerMessage(err);
+      const message = serverMessage || err.message || 'Не удалось загрузить данные.';
       await this.dialogService.info_async(message);
     } else {
       await this.dialogService.info_async('Не удалось загрузить данные.');
@@ -229,6 +231,15 @@ export class ContractChartComponent implements OnInit {
   }
 
   private isUnauthorizedError(err: any): err is HttpErrorResponse {
-    return err instanceof HttpErrorResponse && err.status === 401;
+    return err instanceof HttpErrorResponse && (err.status === 401 || err.status === 403);
+  }
+
+  private getServerMessage(err: HttpErrorResponse): string | null {
+    if (typeof err.error === 'string') {
+      const trimmed = err.error.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    }
+
+    return err.error?.title || err.error?.message || null;
   }
 }
