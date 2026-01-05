@@ -1,10 +1,12 @@
 import { Component, Inject } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
   standalone: true,
   selector: 'app-information-dialog',
+  imports: [MaterialModule],
   templateUrl: './information-dialog.component.html',
 })
 export class InformationDialogComponent {
