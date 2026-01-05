@@ -1,4 +1,7 @@
 import { AfterViewInit, Component, ElementRef, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatCardModule } from '@angular/material/card';
+import { MatTableModule } from '@angular/material/table';
 import { Chart, ChartConfiguration, ChartType } from 'chart.js/auto';
 import { Observable } from 'rxjs';
 import { ShareholdersStructure } from 'src/app/models/fundamental.model';
@@ -9,6 +12,7 @@ import { DataService } from 'src/app/service/companydata.service';
 @Component({
   standalone: true,
   selector: 'app-shareholders-chart',
+  imports: [CommonModule, MatCardModule, MatTableModule],
   templateUrl: './shareholders-chart.component.html',
   styleUrls: ['./shareholders-chart.component.css']
 })
