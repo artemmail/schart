@@ -102,12 +102,26 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
       const modeParam = params['mode'] ?? params['type'];
       const normalizedMode =
         modeParam ?? (isPairTradingRoute ? 'arbitrage' : undefined);
+      const modeValue =
+        typeof normalizedMode === 'string'
+          ? normalizedMode.toLowerCase()
+          : undefined;
+      const candlesOnlyFromMode =
+        modeValue === 'candles'
+          ? true
+          : modeValue === 'clusters'
+          ? false
+          : undefined;
+      const typeFromMode =
+        modeValue === 'arbitrage' ? 'arbitrage' : undefined;
       const requestParams: FootPrintRequestParamsNew = {
         ...params,
         period: params['period'] ? Number(params['period']) : undefined,
         candlesOnly:
-          params['candlesOnly'] === true || params['candlesOnly'] === 'true',
-        type: normalizedMode,
+          (candlesOnlyFromMode ??
+            (params['candlesOnly'] === true ||
+              params['candlesOnly'] === 'true')),
+        type: typeFromMode ?? normalizedMode,
         ticker1: params['ticker1'],
         ticker2: params['ticker2'],
       };
@@ -238,6 +252,51 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
 
   getCsv() {
     this.footPrint.getCsv();
+  }
+
+  openCurrentChartUrl(): void {
+    const model =
+      this.footPrintParamsComponent?.GetModel?.() ??
+      (this.params as any | undefined);
+
+    if (!model) {
+      return;
+    }
+
+    const toIsoString = (value: unknown): string | undefined => {
+      if (!value) {
+        return undefined;
+      }
+      if (value instanceof Date) {
+        return value.toISOString();
+      }
+      return new Date(value as any).toISOString();
+    };
+
+    const mode =
+      model.type ?? (model.candlesOnly ? 'candles' : 'clusters');
+
+    const queryParams: Record<string, unknown> = {
+      period: model.period,
+      priceStep: model.priceStep,
+      rperiod: model.rperiod,
+      startDate: toIsoString(model.startDate),
+      endDate: toIsoString(model.endDate),
+      mode,
+    };
+
+    if (mode === 'arbitrage') {
+      queryParams.ticker1 = model.ticker1;
+      queryParams.ticker2 = model.ticker2;
+    } else {
+      queryParams.ticker = model.ticker;
+    }
+
+    const urlTree = this.router.createUrlTree(['/FootPrint'], {
+      queryParams,
+    });
+    const url = this.router.serializeUrl(urlTree);
+    window.open(url, '_blank');
   }
 }
 

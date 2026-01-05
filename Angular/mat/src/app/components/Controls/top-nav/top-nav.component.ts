@@ -17,7 +17,8 @@ type FirstComponentMethods =
   | 'openNonModalMarkUp'
   | 'openNonModalTopOrders'
   | 'uploadImage'
-  | 'getCsv';
+  | 'getCsv'
+  | 'openCurrentChartUrl';
 
 @Component({
   standalone: true,
@@ -163,5 +164,9 @@ export class TopNavComponent implements OnInit, OnDestroy {
 
   getCsv(): void {
     this.executeFirstComponentMethod('getCsv');
+  }
+
+  openCurrentChartUrl(): void {
+    this.executeFirstComponentMethod('openCurrentChartUrl');
   }
 }

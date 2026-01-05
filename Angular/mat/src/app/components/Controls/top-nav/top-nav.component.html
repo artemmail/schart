@@ -122,6 +122,10 @@
         <mat-icon>file_download</mat-icon>
         Скачать CSV
       </button>
+      <button mat-menu-item (click)="openCurrentChartUrl()">
+        <mat-icon>link</mat-icon>
+        URL на текущий график
+      </button>
     </mat-menu>
   
     <mat-menu #addMenu="matMenu">

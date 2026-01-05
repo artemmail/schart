@@ -90,12 +90,26 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
       const modeParam = params['mode'] ?? params['type'];
       const normalizedMode =
         modeParam ?? (isPairTradingRoute ? 'arbitrage' : undefined);
+      const modeValue =
+        typeof normalizedMode === 'string'
+          ? normalizedMode.toLowerCase()
+          : undefined;
+      const candlesOnlyFromMode =
+        modeValue === 'candles'
+          ? true
+          : modeValue === 'clusters'
+          ? false
+          : undefined;
+      const typeFromMode =
+        modeValue === 'arbitrage' ? 'arbitrage' : undefined;
       const requestParams: FootPrintRequestParamsNew = {
         ...params,
         period: params['period'] ? Number(params['period']) : undefined,
         candlesOnly:
-          params['candlesOnly'] === true || params['candlesOnly'] === 'true',
-        type: normalizedMode,
+          (candlesOnlyFromMode ??
+            (params['candlesOnly'] === true ||
+              params['candlesOnly'] === 'true')),
+        type: typeFromMode ?? normalizedMode,
         ticker1: params['ticker1'],
         ticker2: params['ticker2'],
       };
