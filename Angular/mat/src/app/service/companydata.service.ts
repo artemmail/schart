@@ -24,17 +24,19 @@ export class DataService {
 
   // Метод для получения всех доступных контрактов
   getAllContracts(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.apiUrl}/contracts`);
+    return this.http.get<string[]>(`${this.apiUrl}/contracts`, { withCredentials: true });
   }
 
   // Метод для получения всех открытых позиций по имени контракта
   getOpenPositionsByContract(contractName: string): Observable<OpenPosition[]> {
-    return this.http.get<OpenPosition[]>(`${this.apiUrl}/positions/${contractName}`).pipe(
-      map(positions => 
-        positions.map(position => ({
-          ...position,
-          Date: new Date(position.Date) // Преобразуем ISO строку в объект Date
-        })).sort((a, b) => a.Date.getTime() - b.Date.getTime()) // Сортируем по дате
+    return this.http
+      .get<OpenPosition[]>(`${this.apiUrl}/positions/${contractName}`, { withCredentials: true })
+      .pipe(
+        map(positions =>
+          positions.map(position => ({
+            ...position,
+            Date: new Date(position.Date) // Преобразуем ISO строку в объект Date
+          })).sort((a, b) => a.Date.getTime() - b.Date.getTime()) // Сортируем по дате
       )
     );
   }

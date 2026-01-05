@@ -37,6 +37,8 @@ export class ContractChartComponent implements OnInit {
 
   chart: any;
 
+  private readonly demoContract = 'Si';
+
   constructor(
     private dataService: DataService,
     public dialogService: DialogService,
@@ -46,11 +48,18 @@ export class ContractChartComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.dataService.getAllContracts().subscribe((contracts) => {
-      this.contracts = contracts;
+    this.dataService.getAllContracts().subscribe({
+      next: (contracts) => {
+        this.contracts = this.ensureDemoContract(contracts);
 
-      if (this.contracts.includes(this.selectedContract)) {
-        this.onContractChange();
+        if (this.contracts.includes(this.selectedContract)) {
+          this.onContractChange();
+        }
+      },
+      error: async (err) => {
+        this.contracts = this.ensureDemoContract([]);
+        await this.handleRequestError(err);
+        await this.onContractChange();
       }
     });
 
@@ -91,10 +100,12 @@ export class ContractChartComponent implements OnInit {
         this.updateChart();
       } catch (err) {
         console.error('Ошибка при выполнении запроса к серверу', err);
-        if (err instanceof HttpErrorResponse) {
-          await this.dialogService.info_async(err.error);
-        } else {
-          await this.dialogService.info_async(err);
+        const unauthorized = this.isUnauthorizedError(err);
+        await this.handleRequestError(err);
+
+        if (unauthorized && this.selectedContract !== this.demoContract) {
+          this.selectedContract = this.demoContract;
+          await this.onContractChange();
         }
       }
     }
@@ -191,5 +202,33 @@ export class ContractChartComponent implements OnInit {
         }
       }
     });
+  }
+
+  private ensureDemoContract(contracts: string[]): string[] {
+    if (!contracts.includes(this.demoContract)) {
+      return [this.demoContract, ...contracts];
+    }
+
+    return contracts;
+  }
+
+  private async handleRequestError(err: any): Promise<void> {
+    if (this.isUnauthorizedError(err)) {
+      const message = 'Данные по открытому интересу доступны по активной подписке. ' +
+        'Оформите подписку, чтобы посмотреть все контракты, или выберите бесплатный контракт Si.';
+      await this.dialogService.info_async(message);
+      return;
+    }
+
+    if (err instanceof HttpErrorResponse) {
+      const message = err.error?.title || err.error?.message || err.message || 'Не удалось загрузить данные.';
+      await this.dialogService.info_async(message);
+    } else {
+      await this.dialogService.info_async('Не удалось загрузить данные.');
+    }
+  }
+
+  private isUnauthorizedError(err: any): err is HttpErrorResponse {
+    return err instanceof HttpErrorResponse && err.status === 401;
   }
 }
