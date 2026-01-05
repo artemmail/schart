@@ -55,7 +55,7 @@ namespace StockChart.EventBus.RabbitMQ
             {
                 logger.LogError("rabbit!", ex);
                 Thread.Sleep(5000);
-                //  goto l1;
+                  goto l1;
             }
         }
 
