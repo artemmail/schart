@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
+import { DragDropModule } from '@angular/cdk/drag-drop';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { ViewContainerRef } from '@angular/core';
 import { DialogZIndexService } from 'src/app/service/dialog-zindex.service';
@@ -16,7 +17,7 @@ import { MaterialModule } from 'src/app/material.module';
 @Component({
   standalone: true,
   selector: 'app-non-modal-dialog',
-  imports: [CommonModule, MaterialModule],
+  imports: [CommonModule, MaterialModule, DragDropModule],
   templateUrl: './non-modal-dialog.component.html',
   styleUrls: ['./non-modal-dialog.component.scss'],
 })

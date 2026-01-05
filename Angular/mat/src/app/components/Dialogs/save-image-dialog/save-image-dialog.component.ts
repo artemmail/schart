@@ -1,13 +1,29 @@
 import { Component, Inject } from '@angular/core';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { CommonModule } from '@angular/common';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { DomSanitizer } from '@angular/platform-browser';
+import { ReactiveFormsModule } from '@angular/forms';
 import { ImageSaveService } from 'src/app/service/image-save.service';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 
 
 @Component({
   standalone: true,
   selector: 'app-save-image-dialog',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+  ],
   templateUrl: './save-image-dialog.component.html',
 })
 export class SaveImageDialogComponent {
@@ -21,7 +37,6 @@ export class SaveImageDialogComponent {
     public dialogRef: MatDialogRef<SaveImageDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { canvas: HTMLCanvasElement },
     private fb: FormBuilder,
-    private sanitizer: DomSanitizer,
     private imageSaveService: ImageSaveService
   ) {
     this.form = this.fb.group({
