@@ -214,16 +214,27 @@ constructor(
     const tile = host.querySelector<HTMLElement>(`[data-uid="${uid}"]`);
     if (!tile) return;
 
-    // Позиционируем справа от тайла, но удерживаем внутри wrapper
+    // Позиционируем слева или справа от тайла, чтобы не перекрывать его
     const hostRect = host.getBoundingClientRect();
     const tileRect = tile.getBoundingClientRect();
     const gap = this.tooltipGap;
 
-    let left = tileRect.right - hostRect.left + gap;
-    let top = tileRect.top - hostRect.top;
+    const spaceRight = hostRect.right - tileRect.right;
+    const spaceLeft = tileRect.left - hostRect.left;
+    const rightLeft = tileRect.right - hostRect.left + gap;
+    const leftLeft = tileRect.left - hostRect.left - this.tooltipWidth - gap;
 
-    left = Math.min(left, hostRect.width - this.tooltipWidth - gap);
-    left = Math.max(left, gap);
+    let left: number;
+    if (spaceRight >= this.tooltipWidth + gap) {
+      left = rightLeft;
+    } else if (spaceLeft >= this.tooltipWidth + gap) {
+      left = leftLeft;
+    } else {
+      left = spaceRight >= spaceLeft ? rightLeft : leftLeft;
+      left = Math.min(left, hostRect.width - this.tooltipWidth - gap);
+      left = Math.max(left, gap);
+    }
+    let top = tileRect.top - hostRect.top;
 
     top = Math.min(top, hostRect.height - this.tooltipHeight - gap);
     top = Math.max(top, gap);
