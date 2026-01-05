@@ -137,7 +137,7 @@ export class FootprintDataLoaderService implements OnDestroy {
     rangeSet: CandlesRangeSetValue[],
     priceScale: number
   ): ClusterData {
-    const pad = priceScale || 0.01;
+    const emptyPad = Math.max(Math.abs(priceScale || 1) * 0.001, 1e-6);
     let a =0;
     const prepared = rangeSet
       .filter((value) => value.Date !== undefined)
@@ -157,6 +157,8 @@ export class FootprintDataLoaderService implements OnDestroy {
         let low = Math.min(price1, price2);
 
         if (high === low) {
+          const base = Math.max(Math.abs(price1), Math.abs(price2));
+          const pad = Math.max(base * 0.001, 1e-6);
           high += pad;
           low -= pad;
         }
@@ -192,8 +194,8 @@ export class FootprintDataLoaderService implements OnDestroy {
         x: now,
         o: 1,
         c: 1,
-        l: 1 - pad,
-        h: 1 + pad,
+        l: 1 - emptyPad,
+        h: 1 + emptyPad,
         q: 0,
         bq: 0,
         v: 0,

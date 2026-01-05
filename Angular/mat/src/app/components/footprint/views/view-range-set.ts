@@ -282,7 +282,8 @@ export class viewRangeSet extends canvasPart {
     }
 
     if (max === min) {
-      const pad = parent.data.priceScale || 1;
+      const base = Math.abs(min);
+      const pad = Math.max(base * 0.001, 1e-6);
       max += pad;
       min -= pad;
     } else {
