@@ -39,7 +39,7 @@ export class StockChartTreemapComponent implements AfterViewInit, OnDestroy {
   @Input() endDate?: Date;
   @Input() categories?: string;
   @Input() rperiod: string = 'day';
-  @Input() top: number = 50;
+  @Input() top: number = 100;
   @Input() market: number = 0;
 
   
@@ -66,8 +66,8 @@ export class StockChartTreemapComponent implements AfterViewInit, OnDestroy {
   tooltipTextHtml = '';
   tooltipWidth = 400;
   tooltipHeight = 300;
-  readonly tooltipLargeWidth = 400;
-  readonly tooltipLargeHeight = 300;
+  readonly tooltipLargeWidth = 500;
+  readonly tooltipLargeHeight = 400;
   readonly tooltipSmallWidth = 220;
   readonly tooltipSmallHeight = 80;
   private readonly tooltipGap = 8;
