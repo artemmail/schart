@@ -287,6 +287,11 @@ namespace UserFunctions
                     dateTimePair.End,
                     top);
 
+                if (candles == null || candles.Count == 0)
+                {
+                    throw new Exception($"Нет торгов по тикеру {currentTicker}");
+                }
+
                 results[i] = candles.Select(c => (BaseCandle)c).ToList();
             }
 
@@ -376,12 +381,19 @@ namespace UserFunctions
             {
                 string currentTicker = tickers[i];
                 _stockMarketService.UpdateAlias(ref currentTicker);
-                results[i] = (await _dbContext.GetCandlesAsync(
+                var candles = await _dbContext.GetCandlesAsync(
                     currentTicker,
                     period,
                     dateTimePair.Start,
                     dateTimePair.End,
-                    top)).Select(c => (BaseCandle)c).ToList();
+                    top);
+
+                if (candles == null || candles.Count == 0)
+                {
+                    throw new Exception($"Нет торгов по тикеру {currentTicker}");
+                }
+
+                results[i] = candles.Select(c => (BaseCandle)c).ToList();
             }
 
             for (int i = 0; i < tickers.Length; i++)
@@ -454,12 +466,19 @@ namespace UserFunctions
             {
                 string currentTicker = tickers[i];
                 _stockMarketService.UpdateAlias(ref currentTicker);
-                results[i] = (await _dbContext.GetCandlesAsync(
+                var candles = await _dbContext.GetCandlesAsync(
                     currentTicker,
                     period,
                     dateTimePair.Start,
                     dateTimePair.End,
-                    top)).Select(c => (BaseCandle)c).ToList();
+                    top);
+
+                if (candles == null || candles.Count == 0)
+                {
+                    throw new Exception($"Нет торгов по тикеру {currentTicker}");
+                }
+
+                results[i] = candles.Select(c => (BaseCandle)c).ToList();
             }
 
             for (int i = 0; i < tickers.Length; i++)
