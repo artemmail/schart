@@ -252,7 +252,7 @@ namespace StockChart.Repository
                     }
                     else if (correctedTicker == null)
                     {
-                        throw new Exception($"Unknown ticker symbol: {token}");
+                        throw new Exception($"Тикер {token} не найден.");
                     }
                 }
             }
@@ -309,7 +309,7 @@ namespace StockChart.Repository
                     }
                     else
                     {
-                        throw new Exception($"Unknown ticker symbol: {token}");
+                        throw new Exception($"Тикер {token} не найден.");
                     }
                 }
             }
