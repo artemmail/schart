@@ -77,32 +77,46 @@ namespace StockChart.Controllers
         }
         [HttpGet]
         [Route("getRangeSet")]
-        public async Task<CandlesRangeSetResult> getRangeSet(string? ticker, string? ticker1, string? ticker2, string? rperiod, string? startDate, string? endDate, string? startTime, string? endTime,
+        public async Task<ActionResult<CandlesRangeSetResult>> getRangeSet(string? ticker, string? ticker1, string? ticker2, string? rperiod, string? startDate, string? endDate, string? startTime, string? endTime,
             string? from_stamp, bool? packed, int count = 2000, double period = 15, bool timeEnable = false)
         {
-            if (!string.IsNullOrEmpty(ticker))
+            try
             {
-                ticker = _tickersRepository.CorrectFormula(ticker);
-            }
+                if (!string.IsNullOrEmpty(ticker))
+                {
+                    ticker = _tickersRepository.CorrectFormula(ticker);
+                }
 
-            var res = _stockMarketServiceRepository.getStartEndDateTime(ticker, rperiod, startDate, endDate, from_stamp, startTime, endTime, timeEnable);
-            var t = await _candlesRepositorySet.GetRangeSet(ticker, ticker1, ticker2, (int)period, res, 1000);
-            return t;
+                var res = _stockMarketServiceRepository.getStartEndDateTime(ticker, rperiod, startDate, endDate, from_stamp, startTime, endTime, timeEnable);
+                var t = await _candlesRepositorySet.GetRangeSet(ticker, ticker1, ticker2, (int)period, res, 1000);
+                return Ok(t);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         [HttpGet]
         [Route("getRangeSetArray")]
-        public async Task<CandlesRangeSetValue[]> getRangeSetArray(string? ticker, string? ticker1, string? ticker2, string? rperiod, string? startDate, string? endDate, string? startTime, string? endTime,
+        public async Task<ActionResult<CandlesRangeSetValue[]>> getRangeSetArray(string? ticker, string? ticker1, string? ticker2, string? rperiod, string? startDate, string? endDate, string? startTime, string? endTime,
             string? from_stamp, bool? packed, int count = 2000, double period = 15, bool timeEnable = false)
         {
-            if (!string.IsNullOrEmpty(ticker))
+            try
             {
-                ticker = _tickersRepository.CorrectFormula(ticker);
-            }
+                if (!string.IsNullOrEmpty(ticker))
+                {
+                    ticker = _tickersRepository.CorrectFormula(ticker);
+                }
 
-            var res = _stockMarketServiceRepository.getStartEndDateTime(ticker, rperiod, startDate, endDate, from_stamp, startTime, endTime, timeEnable);
-            var t = await _candlesRepositorySet.GetRangeSetArray(ticker, ticker1, ticker2, (int)period, res, 1000);
-            return t;
+                var res = _stockMarketServiceRepository.getStartEndDateTime(ticker, rperiod, startDate, endDate, from_stamp, startTime, endTime, timeEnable);
+                var t = await _candlesRepositorySet.GetRangeSetArray(ticker, ticker1, ticker2, (int)period, res, 1000);
+                return Ok(t);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
     }
