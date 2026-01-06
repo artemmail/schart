@@ -1,11 +1,14 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { YooMoneyService } from 'src/app/service/yoomoney.service';
 import { OperationDetails } from 'src/app/models/YooMoneyModels';
 
 @Component({
   standalone: true,
   selector: 'app-operation-details-dialog',
+  imports: [CommonModule, MatDialogModule, MatButtonModule],
   templateUrl: './operation-details-dialog.component.html',
   styleUrls: ['./operation-details-dialog.component.css']
 })
