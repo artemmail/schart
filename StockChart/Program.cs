@@ -253,9 +253,12 @@ app.MapWhen(ShouldUseAngular, appBuilder =>
     Console.WriteLine("Angular (обычная логика)");
     appBuilder.UseRouting();
     appBuilder.UseEndpoints(endpoints =>
+    {
+        endpoints.MapControllers();
         endpoints.MapControllerRoute(
             name: "api",
-            pattern: "api/{controller=Home}/{action=Index}/{id?}"));
+            pattern: "api/{controller=Home}/{action=Index}/{id?}");
+    });
     appBuilder.UseSpa(spa =>
     {
         spa.Options.SourcePath = "ClientApp";
@@ -272,7 +275,10 @@ app.MapWhen(ShouldUseRazor, appBuilder =>
     appBuilder.UseRouting();
     appBuilder.UseAuthorization();
     appBuilder.UseEndpoints(endpoints =>
-        endpoints.MapRazorPages());
+    {
+        endpoints.MapControllers();
+        endpoints.MapRazorPages();
+    });
 });
 
 
