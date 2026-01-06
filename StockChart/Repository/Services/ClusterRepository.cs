@@ -118,6 +118,7 @@ namespace StockChart.Repository.Services
         public async Task<List<ClusterColumnWCF>> ClusterProfileQuery(int id, byte market, decimal period, DateTimePair Dates, decimal step, bool Postmarket)
         {
 
+            /*
             try
             {
                 if (Dates.Start.Date == DateTime.Now.Date)
@@ -131,7 +132,7 @@ namespace StockChart.Repository.Services
             }
             catch (Exception ex)
             {
-            }
+            }*/
             var list = new List<ClusterColumnWCF>();
             decimal minPrice = decimal.MaxValue;
             decimal maxPrice = 0;
