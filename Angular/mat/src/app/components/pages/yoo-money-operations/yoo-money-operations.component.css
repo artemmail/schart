@@ -27,7 +27,7 @@
 /* Цвета иконок для колонки СБП операции */
 .sbp-icon {
   vertical-align: middle;
-  font-size: 20px;
+  font-size: 24px;
 }
 
 .sbp-icon-yes {
@@ -41,9 +41,11 @@
 .mat-column-direction mat-icon[color="primary"],
 .mat-column-direction mat-icon.mat-primary {
   color: var(--mat-sys-primary, #005cbb);
+  font-size: 24px;
 }
 
 .mat-column-direction mat-icon[color="warn"],
 .mat-column-direction mat-icon.mat-warn {
   color: var(--mat-sys-error, #ba1a1a);
+  font-size: 24px;
 }

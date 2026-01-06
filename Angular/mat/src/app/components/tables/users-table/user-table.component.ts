@@ -1,20 +1,39 @@
 // user-table.component.ts
 
 import { Component, OnInit, ViewChild } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, PageEvent } from '@angular/material/paginator'; // Импортируйте PageEvent
 import { MatSort, Sort } from '@angular/material/sort'; // Импортируйте Sort
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTableModule } from '@angular/material/table';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatSortModule } from '@angular/material/sort';
 import { UserService } from 'src/app/service/users.service';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { Title } from '@angular/platform-browser';
 import { ApplicationUserModel } from 'src/app/models/UsersTable.model';
-import { MaterialModule } from 'src/app/material.module';
 
 @Component({
   standalone: true,
   selector: 'app-user-table',
-  imports: [MaterialModule],
+  imports: [
+    CommonModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatSortModule,
+    MatButtonModule,
+    MatIconModule,
+    MatDialogModule,
+  ],
   templateUrl: './user-table.component.html',
   styleUrls: ['./user-table.component.css']
 })
