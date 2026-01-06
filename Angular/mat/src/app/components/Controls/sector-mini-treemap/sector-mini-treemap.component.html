@@ -1,0 +1,14 @@
+<div class="mini-treemap">
+  <stockchart-treemap
+    class="mini-tree"
+    [data]="treeData"
+    [options]="options"
+    [titleTemplate]="titleTpl"
+  ></stockchart-treemap>
+</div>
+
+<ng-template #titleTpl let-item let-node="node">
+  <div class="mini-title">
+    {{ item?.name }} — Объем: {{ (item?.value ?? node?.value) | moneyToStr }}
+  </div>
+</ng-template>
