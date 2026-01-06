@@ -19,8 +19,10 @@ import { switchMap, startWith } from 'rxjs/operators';
 import { MoneyToStrPipe } from 'src/app/pipes/money-to-str.pipe';
 import { Router } from '@angular/router';
 
+import { MarketMapSquare } from 'src/app/service/reports.service';
 import { TreeMapComponent } from '../tree-map/tree-map.component'; // <-- поправь путь под себя
 import { FootprintWidgetComponent } from '../../footprint/components/footprint-widget/footprint-widget.component';
+import { SectorMiniTreemapComponent } from '../sector-mini-treemap/sector-mini-treemap.component';
 import { TreeMapEvent } from '../tree-map/tree-map.models';
 
 
@@ -79,7 +81,10 @@ export class StockChartTreemapComponent implements AfterViewInit, OnDestroy {
   @ViewChild('wrapper', { static: true }) wrapper!: ElementRef<HTMLElement>;
 
   @ViewChild('tooltipHost', { read: ViewContainerRef }) tooltipHost!: ViewContainerRef;
-  private tooltipCmp?: ComponentRef<FootprintWidgetComponent>;
+  private tooltipCmp?: ComponentRef<any>;
+  private tooltipIsTitle: boolean = false;
+  private tooltipSectorItems: MarketMapSquare[] | null = null;
+  private tooltipSectorName: string | null = null;
 
 constructor(
   private el: ElementRef<HTMLElement>,
@@ -189,8 +194,13 @@ constructor(
     if (!this.item) return;
 
     const isTitle = !!e.node.children?.length;
-    this.tooltipWidth = isTitle ? this.tooltipSmallWidth : this.tooltipLargeWidth;
-    this.tooltipHeight = isTitle ? this.tooltipSmallHeight : this.tooltipLargeHeight;
+    this.tooltipWidth = this.tooltipLargeWidth;
+    this.tooltipHeight = this.tooltipLargeHeight;
+    this.tooltipIsTitle = isTitle;
+    const sectorItems =
+      isTitle && Array.isArray(this.item.items) ? (this.item.items as MarketMapSquare[]) : null;
+    this.tooltipSectorItems = sectorItems;
+    this.tooltipSectorName = sectorItems ? (this.item.name ?? null) : null;
 
     // showAfter 200ms
     if (this.showTimer) clearTimeout(this.showTimer);
@@ -249,10 +259,21 @@ constructor(
   }
 
   private renderTooltipContent(): void {
-    // очищаем прошлый footprint (если был)
     this.tooltipHost?.clear();
-    this.tooltipCmp?.destroy();
-    this.tooltipCmp = undefined;
+    if (this.tooltipCmp) {
+      this.tooltipCmp.destroy();
+      this.tooltipCmp = undefined;
+    }
+
+    if (this.tooltipIsTitle && this.tooltipSectorItems?.length) {
+      const cmp = this.tooltipHost.createComponent(SectorMiniTreemapComponent, { injector: this.injector });
+      cmp.instance.data = this.tooltipSectorItems;
+      cmp.instance.sectorName = this.tooltipSectorName;
+      cmp.changeDetectorRef.detectChanges();
+      this.tooltipCmp = cmp;
+      this.tooltipTextHtml = '';
+      return;
+    }
 
     if (!this.item) {
       this.tooltipTextHtml = '';
@@ -261,7 +282,7 @@ constructor(
 
     // логика как в старом коде:
     // если есть cls -> показываем footprint
-    if (this.item.cls) {
+    if (!this.tooltipIsTitle && this.item.cls) {
       // динамически создаём FootprintWidgetComponent внутрь tooltipHost
       const cmp = this.tooltipHost.createComponent(FootprintWidgetComponent, { injector: this.injector });
       this.tooltipCmp = cmp;
@@ -281,7 +302,7 @@ constructor(
       return;
     }
 
-    // иначе — простой текстовый тултип
+    // иначе - простой текстовый тултип
     const vol = this.moneyToStrPipe.transform(this.item.value);
     this.tooltipTextHtml =
       `<p><b>${escapeHtml(this.item.name ?? '')}</b></p>` +
