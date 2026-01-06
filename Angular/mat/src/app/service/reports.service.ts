@@ -180,7 +180,7 @@ export class ReportsService {
     endDate?: Date,
     categories?: string,
     rperiod: string = 'day',
-    top: number = 50,
+    top: number = 100,
     market: number = 0
   ): Observable<{ value: number; items: MarketMapItem[] }[]> {
     let params = new HttpParams();
@@ -201,7 +201,7 @@ export class ReportsService {
   ): Observable<{ value: number; items: MarketMapItem[] }[]> {
     const defaultParams: MarketMapParams = {
       rperiod: 'day',
-      top: 50,
+      top: 100,
       market: 0,
     };
 
