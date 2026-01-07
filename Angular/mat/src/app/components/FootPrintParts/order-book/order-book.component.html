@@ -1,0 +1,60 @@
+<div class="order-book">
+  <div class="order-book__loading" *ngIf="isLoading">
+    <mat-progress-spinner diameter="24" mode="indeterminate"></mat-progress-spinner>
+    <span>Загрузка...</span>
+  </div>
+
+  <div class="order-book__empty" *ngIf="!isLoading && !bids.length && !asks.length">
+    Нет данных
+  </div>
+
+  <div class="order-book__grid" *ngIf="!isLoading && (bids.length || asks.length)">
+    <div class="order-book__side">
+      <div class="order-book__side-title bid">Покупка</div>
+      <div class="order-book__list">
+        <table class="order-book__table">
+          <thead>
+            <tr>
+              <th>Цена</th>
+              <th>Объем</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let level of bids">
+              <td class="order-book__price">
+                {{ level.price | number : '1.2-6' }}
+              </td>
+              <td class="order-book__bid">
+                {{ level.volume | number : '1.0-0' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="order-book__side">
+      <div class="order-book__side-title ask">Продажа</div>
+      <div class="order-book__list">
+        <table class="order-book__table">
+          <thead>
+            <tr>
+              <th>Цена</th>
+              <th>Объем</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let level of asks">
+              <td class="order-book__price">
+                {{ level.price | number : '1.2-6' }}
+              </td>
+              <td class="order-book__ask">
+                {{ level.volume | number : '1.0-0' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

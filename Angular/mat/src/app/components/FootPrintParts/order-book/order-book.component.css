@@ -1,0 +1,85 @@
+.order-book {
+  min-width: 460px;
+  max-width: 720px;
+}
+
+.order-book__loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+  font-size: 12px;
+}
+
+.order-book__empty {
+  color: #666;
+  font-size: 12px;
+}
+
+.order-book__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.order-book__side {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.order-book__side-title {
+  padding: 6px 8px;
+  font-weight: 600;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.order-book__side-title.bid {
+  color: #04a344;
+}
+
+.order-book__side-title.ask {
+  color: #d61800;
+}
+
+.order-book__list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.order-book__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.order-book__table th,
+.order-book__table td {
+  padding: 4px 8px;
+  font-size: 12px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.order-book__table th {
+  position: sticky;
+  top: 0;
+  background: #f6f6f6;
+  z-index: 1;
+}
+
+.order-book__price {
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+
+.order-book__bid {
+  color: #04a344;
+  font-variant-numeric: tabular-nums;
+}
+
+.order-book__ask {
+  color: #d61800;
+  font-variant-numeric: tabular-nums;
+}

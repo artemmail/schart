@@ -106,6 +106,16 @@
         </app-volume-search-table>
       </app-non-modal-dialog>
     </ng-container>
+
+    <ng-container *ngIf="showOrderBookDialog">
+      <app-non-modal-dialog
+        #orderBookDialog
+        title="Биржевой стакан"
+        (onCloseCallback)="onCloseOrderBook()"
+      >
+        <footprint-order-book [params]="footPrint.params"></footprint-order-book>
+      </app-non-modal-dialog>
+    </ng-container>
   </div>
   
   <ng-template #loading>

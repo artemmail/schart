@@ -25,6 +25,7 @@ import { MarkupEditorComponent } from '../../footprint/components/markup-editor/
 import { FootPrintSettingsDialogComponent } from '../../footprint/components/footprint-settings-dialog/footprint-settings-dialog.component';
 import { TopOrdersComponentFP } from '../../FootPrintParts/top-orders/top-orders.component';
 import { VolumeSearchTableComponent } from '../../FootPrintParts/volume-search-table/volume-search-table.component';
+import { FootprintOrderBookComponent } from '../../FootPrintParts/order-book/order-book.component';
 import { MaterialModule } from 'src/app/material.module';
 
 import { Title } from '@angular/platform-browser';
@@ -42,6 +43,7 @@ import { Title } from '@angular/platform-browser';
     FootPrintSettingsDialogComponent,
     TopOrdersComponentFP,
     VolumeSearchTableComponent,
+    FootprintOrderBookComponent,
   ],
   templateUrl: './first.component.html',
   styleUrls: ['./first.component.scss'],
@@ -60,6 +62,8 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   topOrdersDialog: NonModalDialogComponent;
   @ViewChild('volumeSearchDialog', { static: false })
   volumeSearchDialog: NonModalDialogComponent;
+  @ViewChild('orderBookDialog', { static: false })
+  orderBookDialog: NonModalDialogComponent;
 
   // Reference to MatSidenav
   @ViewChild(MatSidenav, { static: false }) appDrawer: MatSidenav;
@@ -76,6 +80,7 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   showSettingsDialog: boolean = false;
   showTopOrdersDialog: boolean = false;
   showVolumeSearchDialog: boolean = false;
+  showOrderBookDialog: boolean = false;
 
   constructor(
     private commonService: CommonService,
@@ -174,6 +179,7 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
     this.showSettingsDialog = false;
     this.showTopOrdersDialog = false;
     this.showVolumeSearchDialog = false;
+    this.showOrderBookDialog = false;
   }
 
   openNonModalSettings() {
@@ -225,9 +231,25 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
     });
   }
 
+  openNonModalOrderBook() {
+    this.showOrderBookDialog = false;
+    setTimeout(() => {
+      this.showOrderBookDialog = true;
+      setTimeout(() => {
+        if (this.orderBookDialog) {
+          this.orderBookDialog.openDialog();
+        }
+      });
+    });
+  }
+
   onCloseMarkUp() {
     this.footPrint.markupManager.changeMode('Edit');
     this.showMarkupDialog = false; // Скрываем диалог при закрытии
+  }
+
+  onCloseOrderBook() {
+    this.showOrderBookDialog = false;
   }
 
   presetChange(a: number) {
