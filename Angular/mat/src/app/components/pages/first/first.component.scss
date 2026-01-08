@@ -209,9 +209,25 @@ body {
   line-height: 1.5; /* Высота строки для кнопок */
 }
 
+.icon-button .mdc-button__label,
+.icon-button .mat-button-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+}
+
 .icon-button mat-icon {
-  font-size: 19px; /* Размер иконки */
-  margin-bottom: 4px; /* Отступ между иконкой и текстом */  
+  font-size: 27px; /* Размер иконки */
+  width: 100%;
+  height: 29px;
+  line-height: 19px;
+  display: block;
+  text-align: center;
+  transform: translateX(5px);
+  margin: 0; /* Отступ между иконкой и текстом управляется через gap */
 }
 
 .button-text {
