@@ -3,10 +3,10 @@
   <ng-container matColumnDef="ticker">
     <th mat-header-cell *matHeaderCellDef>Бумага</th>
     <td mat-cell *matCellDef="let element">
-      <a href="#" *ngIf="element.profit" (click)="onTickerClick($event, element)">
+      <a href="#" *ngIf="element?.ticker" (click)="onTickerClick($event, element)">
         {{ element.price ? element.ticker + ' (' + element.name + ')' : element.name }}
       </a>      
-      <span *ngIf="!element.profit">
+      <span *ngIf="!element?.ticker">
         <b> {{ element.name }}</b>
       </span>
     </td>

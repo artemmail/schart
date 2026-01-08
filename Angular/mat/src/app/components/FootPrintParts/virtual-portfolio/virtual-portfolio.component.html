@@ -8,5 +8,8 @@
     </mat-select>
   </mat-form-field>
 
-  <app-portfolio-table [(portfolioNumber)]="selectedPortfolioNumber"></app-portfolio-table>
+  <app-portfolio-table
+    [(portfolioNumber)]="selectedPortfolioNumber"
+    (tickerClick)="onTickerClick($event)"
+  ></app-portfolio-table>
 </div>

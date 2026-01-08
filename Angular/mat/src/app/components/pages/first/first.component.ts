@@ -172,11 +172,24 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   }
 
   public load() {
-    const a: any = this.footPrintParamsComponent.GetModel();
-    this.footPrint.serverRequest(a);
+    this.requestFootprint();
 
     // Сбрасываем флаги диалогов, чтобы они обновились при следующем открытии
     this.resetDialogFlags();
+  }
+
+  private requestFootprint(): void {
+    const model: any = this.footPrintParamsComponent.GetModel();
+    this.footPrint.serverRequest(model);
+  }
+
+  onVirtualPortfolioTickerSelected(ticker: string): void {
+    if (!ticker) {
+      return;
+    }
+
+    this.footPrintParamsComponent?.onTickerSelected(ticker);
+    this.requestFootprint();
   }
 
   private resetDialogFlags() {

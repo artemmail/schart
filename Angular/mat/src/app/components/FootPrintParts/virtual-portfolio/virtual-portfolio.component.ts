@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { MaterialModule } from 'src/app/material.module';
 import { SelectListItemText } from 'src/app/models/preserts';
 import { PortfolioService } from 'src/app/service/portfolio.service';
@@ -20,6 +20,7 @@ interface VirtualPortfolioOption {
 export class FootprintVirtualPortfolioComponent implements OnInit {
   portfolios: VirtualPortfolioOption[] = [];
   selectedPortfolioNumber = 1;
+  @Output() tickerSelected = new EventEmitter<string>();
 
   constructor(private portfolioService: PortfolioService) {}
 
@@ -44,5 +45,12 @@ export class FootprintVirtualPortfolioComponent implements OnInit {
         this.selectedPortfolioNumber = 1;
       },
     });
+  }
+
+  onTickerClick(row: any): void {
+    const ticker = typeof row?.ticker === 'string' ? row.ticker : '';
+    if (ticker) {
+      this.tickerSelected.emit(ticker);
+    }
   }
 }
