@@ -8,52 +8,61 @@
     Нет данных
   </div>
 
-  <div class="order-book__grid" *ngIf="!isLoading && (bids.length || asks.length)">
-    <div class="order-book__side">
-      <div class="order-book__side-title bid">Покупка</div>
-      <div class="order-book__list">
-        <table class="order-book__table">
-          <thead>
-            <tr>
-              <th>Цена</th>
-              <th>Объем</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let level of bids">
-              <td class="order-book__price">
-                {{ level.price | number : '1.2-6' }}
-              </td>
-              <td class="order-book__bid">
-                {{ level.volume | number : '1.0-0' }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+  <div class="order-book__content" *ngIf="!isLoading && (bids.length || asks.length)">
+    <div class="order-book__chart">
+      <svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="bidFill" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#38c976" stop-opacity="0.35"></stop>
+            <stop offset="100%" stop-color="#38c976" stop-opacity="0"></stop>
+          </linearGradient>
+          <linearGradient id="askFill" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#f16c6c" stop-opacity="0.35"></stop>
+            <stop offset="100%" stop-color="#f16c6c" stop-opacity="0"></stop>
+          </linearGradient>
+        </defs>
+        <path class="order-book__chart-area bid" [attr.d]="bidChartAreaPath" fill="url(#bidFill)"></path>
+        <path class="order-book__chart-area ask" [attr.d]="askChartAreaPath" fill="url(#askFill)"></path>
+        <path class="order-book__chart-line bid" [attr.d]="bidChartPath"></path>
+        <path class="order-book__chart-line ask" [attr.d]="askChartPath"></path>
+      </svg>
     </div>
 
-    <div class="order-book__side">
-      <div class="order-book__side-title ask">Продажа</div>
-      <div class="order-book__list">
-        <table class="order-book__table">
-          <thead>
-            <tr>
-              <th>Цена</th>
-              <th>Объем</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let level of asks">
-              <td class="order-book__price">
-                {{ level.price | number : '1.2-6' }}
-              </td>
-              <td class="order-book__ask">
-                {{ level.volume | number : '1.0-0' }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <div class="order-book__grid">
+      <div class="order-book__side bid">
+        <div class="order-book__side-title">Покупка</div>
+        <div class="order-book__list">
+          <div
+            class="order-book__row bid"
+            *ngFor="let level of bids; trackBy: trackByPrice"
+            [style.--bar-width]="getBidWidth(level) + '%'"
+          >
+            <div class="order-book__cell order-book__price">
+              {{ level.price | number : '1.2-6' }}
+            </div>
+            <div class="order-book__cell order-book__volume bid">
+              {{ level.volume | number : '1.0-0' }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="order-book__side ask">
+        <div class="order-book__side-title">Продажа</div>
+        <div class="order-book__list">
+          <div
+            class="order-book__row ask"
+            *ngFor="let level of asks; trackBy: trackByPrice"
+            [style.--bar-width]="getAskWidth(level) + '%'"
+          >
+            <div class="order-book__cell order-book__price">
+              {{ level.price | number : '1.2-6' }}
+            </div>
+            <div class="order-book__cell order-book__volume ask">
+              {{ level.volume | number : '1.0-0' }}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
