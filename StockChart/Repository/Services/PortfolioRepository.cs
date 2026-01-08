@@ -160,6 +160,9 @@ namespace StockChart.Repository.Services
 
         public async Task<List<Portfolio>> GetPortfolio(Guid UserId, byte portfolio)
         {
+            await SellExpiredShares(UserId, portfolio);
+            await RemoveSharesWithoutCurrentPrice(UserId, portfolio);
+
             var res = await _dbContext.UserGameShares
                 .Where(z => z.UserId == UserId && z.PortfolioNumber == portfolio)
                 .Select(y => new
@@ -189,6 +192,78 @@ namespace StockChart.Repository.Services
                      profit = (x.currprice - x.Price) * x.Quantity
                  }
               ).ToList();
+        }
+
+        private async Task SellExpiredShares(Guid userId, byte portfolio)
+        {
+            var today = DateTime.Today;
+            var shares = await _dbContext.UserGameShares
+                .Where(x => x.UserId == userId && x.PortfolioNumber == portfolio)
+                .Select(x => new { x.DictionaryId, x.Quantity })
+                .ToListAsync();
+
+            foreach (var share in shares)
+            {
+                if (share.Quantity == 0)
+                    continue;
+
+                if (!tikrep.TickersById.TryGetValue(share.DictionaryId, out var dict))
+                    continue;
+
+                if (!dict.ToDate.HasValue || dict.ToDate.Value.Date >= today)
+                    continue;
+
+                var expiryPrice = await _dbContext.DayCandles
+                    .Where(x => x.Id == share.DictionaryId && x.Period <= dict.ToDate.Value)
+                    .OrderByDescending(x => x.Period)
+                    .Select(x => x.ClsPrice)
+                    .FirstOrDefaultAsync();
+
+                if (expiryPrice <= 0)
+                    continue;
+
+                await MakeOrder(userId, dict.Securityid, -share.Quantity, portfolio, price: expiryPrice);
+            }
+        }
+
+        private async Task RemoveSharesWithoutCurrentPrice(Guid userId, byte portfolio)
+        {
+            var shares = await _dbContext.UserGameShares
+                .Where(x => x.UserId == userId && x.PortfolioNumber == portfolio)
+                .Select(x => new { x.DictionaryId, x.Quantity, x.Price })
+                .ToListAsync();
+
+            if (shares.Count == 0)
+                return;
+
+            var ids = shares.Select(x => x.DictionaryId).Distinct().ToList();
+            var availableIds = await _dbContext.DayCandles
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => x.Id)
+                .Distinct()
+                .ToListAsync();
+
+            var availableSet = new HashSet<int>(availableIds);
+            var missingShares = shares
+                .Where(x => x.Quantity != 0 && !availableSet.Contains(x.DictionaryId))
+                .ToList();
+
+            if (missingShares.Count == 0)
+                return;
+
+            var missingIds = missingShares.Select(x => x.DictionaryId).Distinct().ToList();
+            var shareEntities = await _dbContext.UserGameShares
+                .Where(x => x.UserId == userId && x.PortfolioNumber == portfolio && missingIds.Contains(x.DictionaryId))
+                .ToListAsync();
+
+            _dbContext.RemoveRange(shareEntities);
+
+            var refund = missingShares.Sum(x => x.Price * x.Quantity);
+            var ballance = await GetBallance(userId, portfolio);
+            ballance.Ballance += refund;
+            _dbContext.Update(ballance);
+
+            await _dbContext.SaveChangesAsync();
         }
         public async Task MakeOrder(Guid UserId, string ticker, int quantity, byte PortfolioNumber, decimal? money = null, decimal? price = null)
         {
@@ -273,6 +348,7 @@ namespace StockChart.Repository.Services
             var share = _dbContext.UserGameShares.Where(x => x.UserId == UserId && x.PortfolioNumber == PortfolioNumber && x.DictionaryId == tickerid).FirstOrDefault();
             if (share != null)
             {
+                if (share.Quantity + quantity !=0)
                 share.Price = (share.Price * share.Quantity + price.Value * quantity) / (share.Quantity + quantity);
                 share.Quantity += quantity;
                 if (share.Quantity == 0)
