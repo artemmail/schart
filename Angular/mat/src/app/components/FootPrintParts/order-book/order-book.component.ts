@@ -193,9 +193,9 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
   private updateVisualization(): void {
     this.maxBidVolume = this.getMaxVolume(this.bids);
     this.maxAskVolume = this.getMaxVolume(this.asks);
-    this.bidChartPath = this.buildStepLinePath(this.bids, 0, 50, this.maxBidVolume, false, true);
+    this.bidChartPath = this.buildStepLinePath(this.bids, 0, 50, this.maxBidVolume, false, false);
     this.bidChartAreaPath = this.buildStepAreaPath(this.bids, 0, 50, this.maxBidVolume);
-    this.askChartPath = this.buildStepLinePath(this.asks, 50, 100, this.maxAskVolume, true, false);
+    this.askChartPath = this.buildStepLinePath(this.asks, 50, 100, this.maxAskVolume, false, false);
     this.askChartAreaPath = this.buildStepAreaPath(this.asks, 50, 100, this.maxAskVolume);
     this.rows = this.buildRows();
     this.updateTableMaxHeight();
