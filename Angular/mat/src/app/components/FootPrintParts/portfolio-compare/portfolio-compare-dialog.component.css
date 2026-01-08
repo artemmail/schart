@@ -1,0 +1,16 @@
+.portfolio-compare__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.portfolio-compare__field {
+  width: 260px;
+}
+
+.portfolio-compare__hint {
+  color: #b00020;
+  font-size: 12px;
+  margin-top: 4px;
+}
+

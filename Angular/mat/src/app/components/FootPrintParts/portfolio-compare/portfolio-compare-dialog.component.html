@@ -1,0 +1,44 @@
+<h2 mat-dialog-title>Сравнение портфелей</h2>
+
+<div mat-dialog-content class="portfolio-compare">
+  <div class="portfolio-compare__row" *ngIf="isLoading">
+    <mat-progress-spinner diameter="22" mode="indeterminate"></mat-progress-spinner>
+    <span>Загрузка...</span>
+  </div>
+
+  <div class="portfolio-compare__row" *ngIf="!isLoading">
+    <mat-form-field appearance="fill" class="portfolio-compare__field">
+      <mat-label>Первый портфель</mat-label>
+      <mat-select [(value)]="portfolio1">
+        <mat-option *ngFor="let portfolio of portfolios" [value]="portfolio.value">
+          {{ portfolio.text }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill" class="portfolio-compare__field">
+      <mat-label>Второй портфель</mat-label>
+      <mat-select [(value)]="portfolio2">
+        <mat-option *ngFor="let portfolio of portfolios" [value]="portfolio.value">
+          {{ portfolio.text }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="portfolio-compare__hint" *ngIf="portfolio1 === portfolio2">
+      Нужно выбрать 2 разных портфеля
+    </div>
+  </div>
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Отмена</button>
+  <button
+    mat-raised-button
+    color="primary"
+    [disabled]="isLoading || portfolio1 === portfolio2"
+    (click)="submit()"
+  >
+    OK
+  </button>
+</div>
