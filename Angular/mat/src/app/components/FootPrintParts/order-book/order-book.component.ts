@@ -263,15 +263,15 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
     const width = endX - startX;
     const step = levels.length > 1 ? width / (levels.length - 1) : 0;
 
-    let linePath = '';
-    levels.forEach((level, index) => {
+    const points = levels.map((level, index) => {
       const x = startX + step * index;
       const y = height - (level.volume / maxVolume) * height;
-      if (index === 0) {
-        linePath = `M ${x.toFixed(2)} ${y.toFixed(2)}`;
-      } else {
-        linePath += ` H ${x.toFixed(2)} V ${y.toFixed(2)}`;
-      }
+      return { x, y };
+    });
+
+    let linePath = `L ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+    points.slice(1).forEach((point) => {
+      linePath += ` H ${point.x.toFixed(2)} V ${point.y.toFixed(2)}`;
     });
 
     return `M ${startX} ${height} ${linePath} L ${endX} ${height} Z`;
