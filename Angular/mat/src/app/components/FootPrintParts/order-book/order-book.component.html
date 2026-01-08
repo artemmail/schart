@@ -28,40 +28,31 @@
       </svg>
     </div>
 
-    <div class="order-book__grid">
-      <div class="order-book__side bid">
-        <div class="order-book__side-title">Покупка</div>
-        <div class="order-book__list">
-          <div
-            class="order-book__row bid"
-            *ngFor="let level of bids; trackBy: trackByPrice"
-            [style.--bar-width]="getBidWidth(level) + '%'"
-          >
-            <div class="order-book__cell order-book__price">
-              {{ level.price | number : '1.2-6' }}
-            </div>
-            <div class="order-book__cell order-book__volume bid">
-              {{ level.volume | number : '1.0-0' }}
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="order-book__labels">
+      <span class="order-book__label bid">ПОКУПКА</span>
+      <span class="order-book__label ask">ПРОДАЖА</span>
+    </div>
 
-      <div class="order-book__side ask">
-        <div class="order-book__side-title">Продажа</div>
-        <div class="order-book__list">
-          <div
-            class="order-book__row ask"
-            *ngFor="let level of asks; trackBy: trackByPrice"
-            [style.--bar-width]="getAskWidth(level) + '%'"
-          >
-            <div class="order-book__cell order-book__price">
-              {{ level.price | number : '1.2-6' }}
-            </div>
-            <div class="order-book__cell order-book__volume ask">
-              {{ level.volume | number : '1.0-0' }}
-            </div>
-          </div>
+    <div class="order-book__table">
+      <div class="order-book__row" *ngFor="let row of rows; trackBy: trackByRow">
+        <div class="order-book__cell order-book__price left">
+          {{ row.bidPrice !== null ? (row.bidPrice | number : '1.2-6') : '—' }}
+        </div>
+        <div
+          class="order-book__cell order-book__volume bid"
+          [style.--bar-width]="getBidWidth(row.bidVolume) + '%'"
+        >
+          {{ row.bidVolume !== null ? (row.bidVolume | number : '1.0-0') : '' }}
+        </div>
+        <div class="order-book__divider"></div>
+        <div
+          class="order-book__cell order-book__volume ask"
+          [style.--bar-width]="getAskWidth(row.askVolume) + '%'"
+        >
+          {{ row.askVolume !== null ? (row.askVolume | number : '1.0-0') : '' }}
+        </div>
+        <div class="order-book__cell order-book__price right">
+          {{ row.askPrice !== null ? (row.askPrice | number : '1.2-6') : '—' }}
         </div>
       </div>
     </div>
