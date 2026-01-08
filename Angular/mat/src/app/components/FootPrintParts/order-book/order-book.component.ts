@@ -163,11 +163,11 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
   }
 
   getBidWidth(level: OrderBookLevel): number {
-    return this.maxBidVolume ? (level.volume / this.maxBidVolume) * 100 : 0;
+    return this.maxBidVolume ? (level.volume / this.maxBidVolume) * 50 : 0;
   }
 
   getAskWidth(level: OrderBookLevel): number {
-    return this.maxAskVolume ? (level.volume / this.maxAskVolume) * 100 : 0;
+    return this.maxAskVolume ? (level.volume / this.maxAskVolume) * 50 : 0;
   }
 
   trackByPrice(index: number, level: OrderBookLevel): number {
@@ -224,14 +224,12 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
     const width = endX - startX;
     const step = levels.length > 1 ? width / (levels.length - 1) : 0;
 
-    const linePath = levels
-      .map((level, index) => {
-        const x = startX + step * index;
-        const y = height - (level.volume / maxVolume) * height;
-        return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-      })
-      .join(' ');
+    const points = levels.map((level, index) => {
+      const x = startX + step * index;
+      const y = height - (level.volume / maxVolume) * height;
+      return `L ${x.toFixed(2)} ${y.toFixed(2)}`;
+    });
 
-    return `M ${startX} ${height} ${linePath} L ${endX} ${height} Z`;
+    return `M ${startX} ${height} ${points.join(' ')} L ${endX} ${height} Z`;
   }
 }
