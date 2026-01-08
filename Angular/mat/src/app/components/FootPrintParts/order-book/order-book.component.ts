@@ -13,6 +13,13 @@ interface OrderBookLevel {
   volume: number;
 }
 
+interface OrderBookRow {
+  bidPrice: number | null;
+  bidVolume: number | null;
+  askVolume: number | null;
+  askPrice: number | null;
+}
+
 @Component({
   standalone: true,
   selector: 'footprint-order-book',
@@ -34,6 +41,7 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
   bidChartAreaPath = '';
   askChartPath = '';
   askChartAreaPath = '';
+  rows: OrderBookRow[] = [];
 
   private ladderSubscription?: Subscription;
   private subscriptionKey: string | null = null;
@@ -153,6 +161,7 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
   private clearData(): void {
     this.bids = [];
     this.asks = [];
+    this.rows = [];
     this.maxBidVolume = 0;
     this.maxAskVolume = 0;
     this.bidChartPath = '';
@@ -162,32 +171,33 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
     this.isLoading = false;
   }
 
-  getBidWidth(level: OrderBookLevel): number {
-    return this.maxBidVolume ? (level.volume / this.maxBidVolume) * 50 : 0;
+  getBidWidth(volume: number | null): number {
+    return volume && this.maxBidVolume ? (volume / this.maxBidVolume) * 100 : 0;
   }
 
-  getAskWidth(level: OrderBookLevel): number {
-    return this.maxAskVolume ? (level.volume / this.maxAskVolume) * 50 : 0;
+  getAskWidth(volume: number | null): number {
+    return volume && this.maxAskVolume ? (volume / this.maxAskVolume) * 100 : 0;
   }
 
-  trackByPrice(index: number, level: OrderBookLevel): number {
-    return level.price;
+  trackByRow(index: number, row: OrderBookRow): string {
+    return `${row.bidPrice ?? 'x'}-${row.askPrice ?? 'x'}-${index}`;
   }
 
   private updateVisualization(): void {
     this.maxBidVolume = this.getMaxVolume(this.bids);
     this.maxAskVolume = this.getMaxVolume(this.asks);
-    this.bidChartPath = this.buildLinePath(this.bids, 0, 50, this.maxBidVolume);
-    this.bidChartAreaPath = this.buildAreaPath(this.bids, 0, 50, this.maxBidVolume);
-    this.askChartPath = this.buildLinePath(this.asks, 50, 100, this.maxAskVolume);
-    this.askChartAreaPath = this.buildAreaPath(this.asks, 50, 100, this.maxAskVolume);
+    this.bidChartPath = this.buildStepLinePath(this.bids, 0, 50, this.maxBidVolume);
+    this.bidChartAreaPath = this.buildStepAreaPath(this.bids, 0, 50, this.maxBidVolume);
+    this.askChartPath = this.buildStepLinePath(this.asks, 50, 100, this.maxAskVolume);
+    this.askChartAreaPath = this.buildStepAreaPath(this.asks, 50, 100, this.maxAskVolume);
+    this.rows = this.buildRows();
   }
 
   private getMaxVolume(levels: OrderBookLevel[]): number {
     return levels.reduce((max, level) => Math.max(max, level.volume), 0);
   }
 
-  private buildLinePath(
+  private buildStepLinePath(
     levels: OrderBookLevel[],
     startX: number,
     endX: number,
@@ -201,35 +211,59 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
     const width = endX - startX;
     const step = levels.length > 1 ? width / (levels.length - 1) : 0;
 
-    return levels
-      .map((level, index) => {
-        const x = startX + step * index;
-        const y = height - (level.volume / maxVolume) * height;
-        return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-      })
-      .join(' ');
-  }
-
-  private buildAreaPath(
-    levels: OrderBookLevel[],
-    startX: number,
-    endX: number,
-    maxVolume: number
-  ): string {
-    if (!levels.length || maxVolume <= 0) {
-      return '';
-    }
-
-    const height = 40;
-    const width = endX - startX;
-    const step = levels.length > 1 ? width / (levels.length - 1) : 0;
-
-    const points = levels.map((level, index) => {
+    let path = '';
+    levels.forEach((level, index) => {
       const x = startX + step * index;
       const y = height - (level.volume / maxVolume) * height;
-      return `L ${x.toFixed(2)} ${y.toFixed(2)}`;
+      if (index === 0) {
+        path = `M ${x.toFixed(2)} ${y.toFixed(2)}`;
+      } else {
+        path += ` H ${x.toFixed(2)} V ${y.toFixed(2)}`;
+      }
     });
 
-    return `M ${startX} ${height} ${points.join(' ')} L ${endX} ${height} Z`;
+    return path;
+  }
+
+  private buildStepAreaPath(
+    levels: OrderBookLevel[],
+    startX: number,
+    endX: number,
+    maxVolume: number
+  ): string {
+    if (!levels.length || maxVolume <= 0) {
+      return '';
+    }
+
+    const height = 40;
+    const width = endX - startX;
+    const step = levels.length > 1 ? width / (levels.length - 1) : 0;
+
+    let linePath = '';
+    levels.forEach((level, index) => {
+      const x = startX + step * index;
+      const y = height - (level.volume / maxVolume) * height;
+      if (index === 0) {
+        linePath = `M ${x.toFixed(2)} ${y.toFixed(2)}`;
+      } else {
+        linePath += ` H ${x.toFixed(2)} V ${y.toFixed(2)}`;
+      }
+    });
+
+    return `M ${startX} ${height} ${linePath} L ${endX} ${height} Z`;
+  }
+
+  private buildRows(): OrderBookRow[] {
+    const count = Math.max(this.bids.length, this.asks.length);
+    return Array.from({ length: count }, (_, index) => {
+      const bid = this.bids[index];
+      const ask = this.asks[index];
+      return {
+        bidPrice: bid?.price ?? null,
+        bidVolume: bid?.volume ?? null,
+        askVolume: ask?.volume ?? null,
+        askPrice: ask?.price ?? null,
+      };
+    });
   }
 }

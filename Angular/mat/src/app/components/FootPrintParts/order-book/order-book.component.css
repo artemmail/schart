@@ -35,7 +35,7 @@
 
 .order-book__chart-line {
   fill: none;
-  stroke-width: 1;
+  stroke-width: 1.5;
 }
 
 .order-book__chart-line.bid {
@@ -46,65 +46,90 @@
   stroke: #e45a5a;
 }
 
-.order-book__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+.order-book__labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 6px;
 }
 
-.order-book__side {
-  background: #fff;
-  border-radius: 16px;
-  padding: 10px 12px 12px;
-}
-
-.order-book__side-title {
-  padding: 0 4px 8px;
+.order-book__label {
   font-weight: 600;
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9b9b9b;
+  color: #c1c1c1;
 }
 
-.order-book__list {
+.order-book__label.bid {
+  color: rgba(26, 163, 74, 0.35);
+}
+
+.order-book__label.ask {
+  color: rgba(228, 90, 90, 0.35);
+}
+
+.order-book__table {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  max-height: 360px;
+  overflow-y: auto;
 }
 
 .order-book__row {
-  position: relative;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(60px, 1fr) minmax(80px, 1.1fr) 8px minmax(80px, 1.1fr) minmax(60px, 1fr);
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
-  border-radius: 12px;
+  padding: 6px 6px;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
+}
+
+.order-book__divider {
+  width: 4px;
+  height: 18px;
+  justify-self: center;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.order-book__volume {
+  position: relative;
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-weight: 600;
   overflow: hidden;
 }
 
-.order-book__row::before {
+.order-book__volume::before {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
   width: var(--bar-width, 0%);
-  opacity: 0.6;
-  z-index: 0;
+  opacity: 0.65;
   border-radius: 12px;
 }
 
-.order-book__row.bid::before {
-  right: 50%;
-  background: linear-gradient(270deg, rgba(56, 201, 118, 0.22), rgba(56, 201, 118, 0.08));
+.order-book__volume.bid {
+  text-align: right;
+  color: #1aa34a;
 }
 
-.order-book__row.ask::before {
-  left: 50%;
-  background: linear-gradient(90deg, rgba(241, 108, 108, 0.22), rgba(241, 108, 108, 0.08));
+.order-book__volume.bid::before {
+  right: 0;
+  background: linear-gradient(270deg, rgba(56, 201, 118, 0.22), rgba(56, 201, 118, 0.05));
+}
+
+.order-book__volume.ask {
+  text-align: left;
+  color: #e45a5a;
+}
+
+.order-book__volume.ask::before {
+  left: 0;
+  background: linear-gradient(90deg, rgba(241, 108, 108, 0.22), rgba(241, 108, 108, 0.05));
 }
 
 .order-book__cell {
@@ -118,14 +143,6 @@
   color: #8d8d8d;
 }
 
-.order-book__volume {
-  font-weight: 600;
-}
-
-.order-book__volume.bid {
-  color: #1aa34a;
-}
-
-.order-book__volume.ask {
-  color: #e45a5a;
+.order-book__price.right {
+  text-align: right;
 }
