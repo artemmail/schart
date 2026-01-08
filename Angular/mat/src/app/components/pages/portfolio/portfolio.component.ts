@@ -121,6 +121,10 @@ export class PortfolioComponent implements OnInit {
       });
   }
 
+  showPortfolioLocal(): void {
+    this.PortfolioTable?.loadPortfolio();
+  }
+
   buySpec() {
     this.portfolioService
       .makeOrderSpec(

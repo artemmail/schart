@@ -1,0 +1,45 @@
+:host {
+  display: block;
+}
+
+table {
+  width: 100%;
+}
+
+/* Legacy table (pre-MDC) */
+.mat-header-cell,
+.mat-cell {
+  padding: 2px 8px;
+  line-height: 18px;
+}
+
+.mat-header-row,
+.mat-row {
+  height: 24px;
+}
+
+.mat-row .mat-cell,
+.mat-header-row .mat-header-cell {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+/* MDC table */
+.mdc-data-table__header-cell,
+.mdc-data-table__cell,
+.mat-mdc-header-cell,
+.mat-mdc-cell {
+  padding: 2px 8px;
+  line-height: 18px;
+}
+
+.mdc-data-table__row,
+.mat-mdc-header-row,
+.mat-mdc-row {
+  height: 24px;
+}
+
+.mdc-data-table__row:not(:last-child) .mdc-data-table__cell,
+.mat-mdc-row .mat-mdc-cell,
+.mat-mdc-header-row .mat-mdc-header-cell {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}

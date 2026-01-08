@@ -26,6 +26,7 @@ import { FootPrintSettingsDialogComponent } from '../../footprint/components/foo
 import { TopOrdersComponentFP } from '../../FootPrintParts/top-orders/top-orders.component';
 import { VolumeSearchTableComponent } from '../../FootPrintParts/volume-search-table/volume-search-table.component';
 import { FootprintOrderBookComponent } from '../../FootPrintParts/order-book/order-book.component';
+import { FootprintVirtualPortfolioComponent } from '../../FootPrintParts/virtual-portfolio/virtual-portfolio.component';
 import { MaterialModule } from 'src/app/material.module';
 
 import { Title } from '@angular/platform-browser';
@@ -44,6 +45,7 @@ import { Title } from '@angular/platform-browser';
     TopOrdersComponentFP,
     VolumeSearchTableComponent,
     FootprintOrderBookComponent,
+    FootprintVirtualPortfolioComponent,
   ],
   templateUrl: './first.component.html',
   styleUrls: ['./first.component.scss'],
@@ -64,6 +66,8 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   volumeSearchDialog: NonModalDialogComponent;
   @ViewChild('orderBookDialog', { static: false })
   orderBookDialog: NonModalDialogComponent;
+  @ViewChild('virtualPortfolioDialog', { static: false })
+  virtualPortfolioDialog: NonModalDialogComponent;
 
   // Reference to MatSidenav
   @ViewChild(MatSidenav, { static: false }) appDrawer: MatSidenav;
@@ -81,6 +85,7 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   showTopOrdersDialog: boolean = false;
   showVolumeSearchDialog: boolean = false;
   showOrderBookDialog: boolean = false;
+  showVirtualPortfolioDialog: boolean = false;
 
   constructor(
     private commonService: CommonService,
@@ -180,6 +185,7 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
     this.showTopOrdersDialog = false;
     this.showVolumeSearchDialog = false;
     this.showOrderBookDialog = false;
+    this.showVirtualPortfolioDialog = false;
   }
 
   openNonModalSettings() {
@@ -243,6 +249,18 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
     });
   }
 
+  openNonModalVirtualPortfolio() {
+    this.showVirtualPortfolioDialog = false;
+    setTimeout(() => {
+      this.showVirtualPortfolioDialog = true;
+      setTimeout(() => {
+        if (this.virtualPortfolioDialog) {
+          this.virtualPortfolioDialog.openDialog();
+        }
+      });
+    });
+  }
+
   onCloseMarkUp() {
     this.footPrint.markupManager.changeMode('Edit');
     this.showMarkupDialog = false; // Скрываем диалог при закрытии
@@ -250,6 +268,10 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
 
   onCloseOrderBook() {
     this.showOrderBookDialog = false;
+  }
+
+  onCloseVirtualPortfolio() {
+    this.showVirtualPortfolioDialog = false;
   }
 
   presetChange(a: number) {

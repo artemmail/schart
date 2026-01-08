@@ -1,0 +1,9 @@
+.virtual-portfolio {
+  min-width: 760px;
+  max-width: 90vw;
+}
+
+.virtual-portfolio__select {
+  width: 260px;
+}
+

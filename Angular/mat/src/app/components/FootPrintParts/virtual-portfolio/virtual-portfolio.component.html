@@ -1,0 +1,12 @@
+<div class="virtual-portfolio">
+  <mat-form-field appearance="fill" class="virtual-portfolio__select">
+    <mat-label>Портфель</mat-label>
+    <mat-select [(value)]="selectedPortfolioNumber">
+      <mat-option *ngFor="let portfolio of portfolios" [value]="portfolio.value">
+        {{ portfolio.text }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <app-portfolio-table [(portfolioNumber)]="selectedPortfolioNumber"></app-portfolio-table>
+</div>

@@ -116,6 +116,16 @@
         <footprint-order-book [params]="footPrint.params"></footprint-order-book>
       </app-non-modal-dialog>
     </ng-container>
+
+    <ng-container *ngIf="showVirtualPortfolioDialog">
+      <app-non-modal-dialog
+        #virtualPortfolioDialog
+        title="Виртуальный портфель"
+        (onCloseCallback)="onCloseVirtualPortfolio()"
+      >
+        <footprint-virtual-portfolio></footprint-virtual-portfolio>
+      </app-non-modal-dialog>
+    </ng-container>
   </div>
   
   <ng-template #loading>
