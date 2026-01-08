@@ -124,6 +124,7 @@
         (onCloseCallback)="onCloseVirtualPortfolio()"
       >
         <footprint-virtual-portfolio
+          [ticker]="params?.ticker"
           (tickerSelected)="onVirtualPortfolioTickerSelected($event)"
         ></footprint-virtual-portfolio>
       </app-non-modal-dialog>

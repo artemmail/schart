@@ -3,7 +3,13 @@
   max-width: 90vw;
 }
 
+.virtual-portfolio__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
 .virtual-portfolio__select {
   width: 260px;
 }
-

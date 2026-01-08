@@ -1,9 +1,16 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MaterialModule } from 'src/app/material.module';
 import { SelectListItemText } from 'src/app/models/preserts';
 import { PortfolioService } from 'src/app/service/portfolio.service';
 import { PortfolioTableComponent } from '../../pages/portfolio copy/portfolio-table.component';
+import {
+  VirtualPortfolioTradeDialogComponent,
+  VirtualPortfolioTradeDialogData,
+  VirtualPortfolioTradeDialogResult,
+} from './virtual-portfolio-trade-dialog.component';
 
 interface VirtualPortfolioOption {
   value: number;
@@ -20,9 +27,15 @@ interface VirtualPortfolioOption {
 export class FootprintVirtualPortfolioComponent implements OnInit {
   portfolios: VirtualPortfolioOption[] = [];
   selectedPortfolioNumber = 1;
+  @Input() ticker: string | null = null;
   @Output() tickerSelected = new EventEmitter<string>();
+  @ViewChild(PortfolioTableComponent) portfolioTable?: PortfolioTableComponent;
 
-  constructor(private portfolioService: PortfolioService) {}
+  constructor(
+    private portfolioService: PortfolioService,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
+  ) {}
 
   ngOnInit(): void {
     this.portfolioService.getPortfolios().subscribe({
@@ -52,5 +65,41 @@ export class FootprintVirtualPortfolioComponent implements OnInit {
     if (ticker) {
       this.tickerSelected.emit(ticker);
     }
+  }
+
+  openTradeDialog(action: 'buy' | 'sell'): void {
+    const ticker = (this.ticker ?? '').trim();
+    if (!ticker) {
+      this.snackBar.open('Сначала выберите тикер', 'OK', { duration: 2500 });
+      return;
+    }
+
+    const data: VirtualPortfolioTradeDialogData = {
+      action,
+      ticker,
+    };
+
+    this.dialog
+      .open<
+        VirtualPortfolioTradeDialogComponent,
+        VirtualPortfolioTradeDialogData,
+        VirtualPortfolioTradeDialogResult
+      >(VirtualPortfolioTradeDialogComponent, {
+        data,
+        width: '360px',
+        autoFocus: true,
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        const quantity = result?.quantity;
+        if (!quantity || quantity <= 0) {
+          return;
+        }
+
+        const signedQuantity = action === 'buy' ? quantity : -quantity;
+        this.portfolioService
+          .makeOrder(ticker, signedQuantity, this.selectedPortfolioNumber)
+          .subscribe(() => this.portfolioTable?.loadPortfolio());
+      });
   }
 }

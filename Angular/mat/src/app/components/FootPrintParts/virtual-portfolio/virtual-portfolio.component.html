@@ -1,12 +1,21 @@
 <div class="virtual-portfolio">
-  <mat-form-field appearance="fill" class="virtual-portfolio__select">
-    <mat-label>Портфель</mat-label>
-    <mat-select [(value)]="selectedPortfolioNumber">
-      <mat-option *ngFor="let portfolio of portfolios" [value]="portfolio.value">
-        {{ portfolio.text }}
-      </mat-option>
-    </mat-select>
-  </mat-form-field>
+  <div class="virtual-portfolio__controls">
+    <mat-form-field appearance="fill" class="virtual-portfolio__select">
+      <mat-label>Портфель</mat-label>
+      <mat-select [(value)]="selectedPortfolioNumber">
+        <mat-option *ngFor="let portfolio of portfolios" [value]="portfolio.value">
+          {{ portfolio.text }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" (click)="openTradeDialog('buy')">
+      Купить
+    </button>
+    <button mat-raised-button color="warn" (click)="openTradeDialog('sell')">
+      Продать
+    </button>
+  </div>
 
   <app-portfolio-table
     [(portfolioNumber)]="selectedPortfolioNumber"
