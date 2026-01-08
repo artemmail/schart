@@ -1,0 +1,9 @@
+.trade-dialog__ticker {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.trade-dialog__quantity {
+  width: 100%;
+}
+

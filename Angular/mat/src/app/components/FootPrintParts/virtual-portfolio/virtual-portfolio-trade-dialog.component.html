@@ -1,0 +1,24 @@
+<h2 mat-dialog-title>
+  {{ data.action === 'buy' ? 'Купить' : 'Продать' }}
+</h2>
+
+<div mat-dialog-content class="trade-dialog">
+  <div class="trade-dialog__ticker">{{ data.ticker }}</div>
+
+  <mat-form-field appearance="fill" class="trade-dialog__quantity">
+    <mat-label>Количество</mat-label>
+    <input matInput type="number" min="1" [(ngModel)]="quantity" />
+  </mat-form-field>
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Отмена</button>
+  <button
+    mat-raised-button
+    [color]="data.action === 'buy' ? 'primary' : 'warn'"
+    (click)="submit()"
+  >
+    {{ data.action === 'buy' ? 'Купить' : 'Продать' }}
+  </button>
+</div>
+
