@@ -35,7 +35,7 @@
 
 .order-book__chart-line {
   fill: none;
-  stroke-width: 1.5;
+  stroke-width: 1;
 }
 
 .order-book__chart-line.bid {
@@ -68,8 +68,6 @@
 }
 
 .order-book__list {
-  max-height: 360px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -100,13 +98,13 @@
 }
 
 .order-book__row.bid::before {
-  left: 0;
-  background: linear-gradient(90deg, rgba(56, 201, 118, 0.22), rgba(56, 201, 118, 0.08));
+  right: 50%;
+  background: linear-gradient(270deg, rgba(56, 201, 118, 0.22), rgba(56, 201, 118, 0.08));
 }
 
 .order-book__row.ask::before {
-  right: 0;
-  background: linear-gradient(270deg, rgba(241, 108, 108, 0.22), rgba(241, 108, 108, 0.08));
+  left: 50%;
+  background: linear-gradient(90deg, rgba(241, 108, 108, 0.22), rgba(241, 108, 108, 0.08));
 }
 
 .order-book__cell {
