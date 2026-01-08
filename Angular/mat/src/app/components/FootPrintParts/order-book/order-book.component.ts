@@ -193,9 +193,9 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
   private updateVisualization(): void {
     this.maxBidVolume = this.getMaxVolume(this.bids);
     this.maxAskVolume = this.getMaxVolume(this.asks);
-    this.bidChartPath = this.buildStepLinePath(this.bids, 0, 50, this.maxBidVolume);
+    this.bidChartPath = this.buildStepLinePath(this.bids, 0, 50, this.maxBidVolume, false, true);
     this.bidChartAreaPath = this.buildStepAreaPath(this.bids, 0, 50, this.maxBidVolume);
-    this.askChartPath = this.buildStepLinePath(this.asks, 50, 100, this.maxAskVolume);
+    this.askChartPath = this.buildStepLinePath(this.asks, 50, 100, this.maxAskVolume, true, false);
     this.askChartAreaPath = this.buildStepAreaPath(this.asks, 50, 100, this.maxAskVolume);
     this.rows = this.buildRows();
     this.updateTableMaxHeight();
@@ -225,7 +225,9 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
     levels: OrderBookLevel[],
     startX: number,
     endX: number,
-    maxVolume: number
+    maxVolume: number,
+    includeStartBaseline = true,
+    includeEndBaseline = true
   ): string {
     if (!levels.length || maxVolume <= 0) {
       return '';
@@ -233,18 +235,26 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
 
     const height = 40;
     const width = endX - startX;
-    const step = levels.length > 1 ? width / (levels.length - 1) : 0;
+    const binWidth = width / levels.length;
+    const format = (value: number) => value.toFixed(2);
+    const yValues = levels.map((level) => height - (level.volume / maxVolume) * height);
 
     let path = '';
-    levels.forEach((level, index) => {
-      const x = startX + step * index;
-      const y = height - (level.volume / maxVolume) * height;
-      if (index === 0) {
-        path = `M ${x.toFixed(2)} ${y.toFixed(2)}`;
-      } else {
-        path += ` H ${x.toFixed(2)} V ${y.toFixed(2)}`;
+    if (includeStartBaseline) {
+      path = `M ${format(startX)} ${format(height)} V ${format(yValues[0])}`;
+    } else {
+      path = `M ${format(startX)} ${format(yValues[0])}`;
+    }
+
+    for (let index = 0; index < levels.length; index += 1) {
+      const xRight = startX + binWidth * (index + 1);
+      path += ` H ${format(xRight)}`;
+      if (index < levels.length - 1) {
+        path += ` V ${format(yValues[index + 1])}`;
+      } else if (includeEndBaseline) {
+        path += ` V ${format(height)}`;
       }
-    });
+    }
 
     return path;
   }
@@ -261,20 +271,20 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
 
     const height = 40;
     const width = endX - startX;
-    const step = levels.length > 1 ? width / (levels.length - 1) : 0;
+    const binWidth = width / levels.length;
+    const format = (value: number) => value.toFixed(2);
+    const yValues = levels.map((level) => height - (level.volume / maxVolume) * height);
 
-    const points = levels.map((level, index) => {
-      const x = startX + step * index;
-      const y = height - (level.volume / maxVolume) * height;
-      return { x, y };
-    });
+    let path = `M ${format(startX)} ${format(height)} V ${format(yValues[0])}`;
+    for (let index = 0; index < levels.length; index += 1) {
+      const xRight = startX + binWidth * (index + 1);
+      path += ` H ${format(xRight)}`;
+      if (index < levels.length - 1) {
+        path += ` V ${format(yValues[index + 1])}`;
+      }
+    }
 
-    let linePath = `L ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
-    points.slice(1).forEach((point) => {
-      linePath += ` H ${point.x.toFixed(2)} V ${point.y.toFixed(2)}`;
-    });
-
-    return `M ${startX} ${height} ${linePath} L ${endX} ${height} Z`;
+    return `${path} V ${format(height)} Z`;
   }
 
   private buildRows(): OrderBookRow[] {
