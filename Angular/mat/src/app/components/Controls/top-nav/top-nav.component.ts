@@ -18,6 +18,7 @@ type FirstComponentMethods =
   | 'openNonModalTopOrders'
   | 'openNonModalOrderBook'
   | 'openNonModalVirtualPortfolio'
+  | 'openModalPortfolioCompare'
   | 'uploadImage'
   | 'getCsv'
   | 'openCurrentChartUrl';
@@ -166,6 +167,10 @@ export class TopNavComponent implements OnInit, OnDestroy {
 
   openNonModalVirtualPortfolio(): void {
     this.executeFirstComponentMethod('openNonModalVirtualPortfolio');
+  }
+
+  openModalPortfolioCompare(): void {
+    this.executeFirstComponentMethod('openModalPortfolioCompare');
   }
 
   uploadImage(): void {

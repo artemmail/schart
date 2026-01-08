@@ -28,6 +28,12 @@ import { VolumeSearchTableComponent } from '../../FootPrintParts/volume-search-t
 import { FootprintOrderBookComponent } from '../../FootPrintParts/order-book/order-book.component';
 import { FootprintVirtualPortfolioComponent } from '../../FootPrintParts/virtual-portfolio/virtual-portfolio.component';
 import { MaterialModule } from 'src/app/material.module';
+import { PortfolioService } from 'src/app/service/portfolio.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import {
+  PortfolioCompareDialogComponent,
+  PortfolioCompareDialogResult,
+} from '../../FootPrintParts/portfolio-compare/portfolio-compare-dialog.component';
 
 import { Title } from '@angular/platform-browser';
 
@@ -96,7 +102,9 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
     private router: Router,
     private dialogService: DialogService,
     private cdr: ChangeDetectorRef,
-    private titleService: Title
+    private titleService: Title,
+    private portfolioService: PortfolioService,
+    private snackBar: MatSnackBar
   ) {
     titleService.setTitle('Кластерный график');
   }
@@ -190,6 +198,48 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
 
     this.footPrintParamsComponent?.onTickerSelected(ticker);
     this.requestFootprint();
+  }
+
+  openModalPortfolioCompare(): void {
+    this.dialog
+      .open<PortfolioCompareDialogComponent, unknown, PortfolioCompareDialogResult>(
+        PortfolioCompareDialogComponent,
+        { width: '620px', autoFocus: false }
+      )
+      .afterClosed()
+      .subscribe((result) => {
+        if (!result) {
+          return;
+        }
+
+        if (result.portfolio1 === result.portfolio2) {
+          this.snackBar.open('Нужно выбрать 2 разных портфеля', 'OK', {
+            duration: 2500,
+          });
+          return;
+        }
+
+        this.portfolioService
+          .portfolioCompares(result.portfolio1, result.portfolio2)
+          .subscribe((data) => {
+            const ticker1 = data?.res1 ?? '';
+            const ticker2 = data?.res2 ?? '';
+            if (!ticker1 || !ticker2) {
+              this.snackBar.open('Один из портфелей пуст', 'OK', {
+                duration: 2500,
+              });
+              return;
+            }
+
+            this.footPrintParamsComponent?.onLoadModeChange('arbitrage');
+            this.params.type = 'arbitrage';
+            this.params.candlesOnly = false;
+            this.params.ticker1 = ticker1;
+            this.params.ticker2 = ticker2;
+
+            this.requestFootprint();
+          });
+      });
   }
 
   private resetDialogFlags() {
