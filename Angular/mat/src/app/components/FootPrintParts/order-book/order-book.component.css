@@ -1,6 +1,6 @@
 .order-book {
-  min-width: 460px;
-  max-width: 720px;
+  width: 380px;
+  max-width: 90vw;
   color: #202020;
 }
 
@@ -35,7 +35,7 @@
 
 .order-book__chart-line {
   fill: none;
-  stroke-width: 1.5;
+  stroke-width: 0.5;
 }
 
 .order-book__chart-line.bid {
@@ -71,8 +71,7 @@
 .order-book__table {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-height: 360px;
+  gap: 0px;
   overflow-y: auto;
 }
 
@@ -81,7 +80,7 @@
   grid-template-columns: minmax(60px, 1fr) minmax(80px, 1.1fr) 8px minmax(80px, 1.1fr) minmax(60px, 1fr);
   align-items: center;
   gap: 8px;
-  padding: 6px 6px;
+  padding: 0px 6px;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
@@ -96,7 +95,7 @@
 
 .order-book__volume {
   position: relative;
-  padding: 6px 10px;
+  padding: 3px 10px;
   border-radius: 12px;
   font-weight: 600;
   overflow: hidden;
@@ -114,22 +113,24 @@
 
 .order-book__volume.bid {
   text-align: right;
-  color: #1aa34a;
+  color: #6ba583;
 }
+
 
 .order-book__volume.bid::before {
   right: 0;
-  background: linear-gradient(270deg, rgba(56, 201, 118, 0.22), rgba(56, 201, 118, 0.05));
+  background: linear-gradient(270deg, rgba(107, 165, 131, 0.3), rgba(107, 165, 131, 0.2));
 }
+
 
 .order-book__volume.ask {
   text-align: left;
-  color: #e45a5a;
+  color: #d75442;
 }
 
 .order-book__volume.ask::before {
   left: 0;
-  background: linear-gradient(90deg, rgba(241, 108, 108, 0.22), rgba(241, 108, 108, 0.05));
+  background: linear-gradient(90deg, rgba(215, 84, 66, 0.3), rgba(215, 84, 66, 0.2));
 }
 
 .order-book__cell {

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, NgZone, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
+import { Component, HostListener, Input, NgZone, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { MaterialModule } from 'src/app/material.module';
@@ -42,6 +42,7 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
   askChartPath = '';
   askChartAreaPath = '';
   rows: OrderBookRow[] = [];
+  tableMaxHeightPx: number | null = null;
 
   private ladderSubscription?: Subscription;
   private subscriptionKey: string | null = null;
@@ -53,6 +54,11 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
     if (changes['params']) {
       void this.configureSubscription();
     }
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    this.updateTableMaxHeight();
   }
 
   ngOnDestroy(): void {
@@ -162,6 +168,7 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
     this.bids = [];
     this.asks = [];
     this.rows = [];
+    this.tableMaxHeightPx = null;
     this.maxBidVolume = 0;
     this.maxAskVolume = 0;
     this.bidChartPath = '';
@@ -191,6 +198,23 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
     this.askChartPath = this.buildStepLinePath(this.asks, 50, 100, this.maxAskVolume);
     this.askChartAreaPath = this.buildStepAreaPath(this.asks, 50, 100, this.maxAskVolume);
     this.rows = this.buildRows();
+    this.updateTableMaxHeight();
+  }
+
+  private updateTableMaxHeight(): void {
+    const rowCount = this.rows.length;
+    if (!rowCount) {
+      this.tableMaxHeightPx = null;
+      return;
+    }
+
+    const rowHeightPx = 24;
+    const rowGapPx = 3;
+    const contentHeightPx = rowCount * rowHeightPx + (rowCount - 1) * rowGapPx;
+    const viewportLimitPx =
+      typeof window === 'undefined' ? 500 : Math.floor(window.innerHeight * 0.6);
+
+    this.tableMaxHeightPx = Math.min(contentHeightPx, viewportLimitPx);
   }
 
   private getMaxVolume(levels: OrderBookLevel[]): number {

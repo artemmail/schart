@@ -33,10 +33,10 @@
       <span class="order-book__label ask">ПРОДАЖА</span>
     </div>
 
-    <div class="order-book__table">
+    <div class="order-book__table" [style.max-height.px]="tableMaxHeightPx">
       <div class="order-book__row" *ngFor="let row of rows; trackBy: trackByRow">
         <div class="order-book__cell order-book__price left">
-          {{ row.bidPrice !== null ? (row.bidPrice | number : '1.2-6') : '—' }}
+          {{ row.bidPrice !== null ? (row.bidPrice | number : '1.2-6') : '-' }}
         </div>
         <div
           class="order-book__cell order-book__volume bid"

@@ -42,6 +42,8 @@ export class NonModalDialogComponent {
 
     if (top !== undefined && left !== undefined) {
       overlayConfig.top(`${top}px`).left(`${left}px`);
+    } else {
+      overlayConfig.centerHorizontally().centerVertically();
     }
 
     this.overlayRef = this.overlay.create({
@@ -55,24 +57,6 @@ export class NonModalDialogComponent {
     );
 
     this.overlayRef.attach(dialogPortal);
-
-    setTimeout(() => {
-      const dialogElement = this.overlayRef.overlayElement.querySelector(
-        '.non-modal-dialog'
-      ) as HTMLElement;
-
-      const windowWidth = window.innerWidth;
-      const windowHeight = window.innerHeight;
-      const dialogRect = dialogElement.getBoundingClientRect();
-      const dialogWidth = dialogRect.width;
-      const dialogHeight = dialogRect.height;
-
-      const centeredTop = (windowHeight - dialogHeight) / 2;
-      const centeredLeft = (windowWidth - dialogWidth) / 2;
-
-      overlayConfig.top(`${centeredTop}px`).left(`${centeredLeft}px`);
-      this.overlayRef.updatePosition();
-    });
   }
 
   closeDialog() {
