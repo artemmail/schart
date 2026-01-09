@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using StockChart.Model.Settings;
 
 namespace StockChart.Model;
@@ -55,7 +56,12 @@ public class ApplicationDbContext2
     public ApplicationDbContext2()
     {
     }
-    public ApplicationDbContext2(DbContextOptions options)
+    [ActivatorUtilitiesConstructor]
+    public ApplicationDbContext2(DbContextOptions<ApplicationDbContext2> options)
+        : base(options)
+    {
+    }
+    protected ApplicationDbContext2(DbContextOptions options)
         : base(options)
     {
     }
@@ -93,6 +99,38 @@ public class ApplicationDbContext2
         }
     }
 
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Explicit decimal types to avoid implicit precision defaults/truncation warnings.
+        modelBuilder.Entity<Bill>(entity =>
+        {
+            entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<Dictionary>(entity =>
+        {
+            entity.Property(e => e.Minstep).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Volperqnt).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<Payment>(entity =>
+        {
+            entity.Property(e => e.PayAmount).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<UserGameBallance>(entity =>
+        {
+            entity.Property(e => e.Ballance).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<UserGameOrder>(entity =>
+        {
+            entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+        });
+    }
+
 
 
 
@@ -102,7 +140,12 @@ public partial class ApplicationDbContext : ApplicationDbContext2
     public ApplicationDbContext()
     {
     }
-    public ApplicationDbContext(DbContextOptions options)
+    [ActivatorUtilitiesConstructor]
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+       : base(options)
+    {
+    }
+    protected ApplicationDbContext(DbContextOptions options)
        : base(options)
     {
     }

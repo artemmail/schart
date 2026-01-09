@@ -77,6 +77,8 @@
       <app-non-modal-dialog
         #markupDialog
         title="Пометки"
+        dialogKey="markup"
+        [settings]="footPrint.renderer?.FPsettings"
         (onCloseCallback)="onCloseMarkUp()"
       >
         <app-markup-editor [NP]="footPrint.renderer"></app-markup-editor>
@@ -84,7 +86,12 @@
     </ng-container>
   
     <ng-container *ngIf="showSettingsDialog">
-      <app-non-modal-dialog #settingsDialog title="Настройки">
+      <app-non-modal-dialog
+        #settingsDialog
+        title="Настройки"
+        dialogKey="settings"
+        [settings]="footPrint.renderer?.FPsettings"
+      >
         <app-footprint-settings-dialog
           [fp]="footPrint.renderer"
           [reloadData]="footPrint.reload.bind(footPrint)"
@@ -95,13 +102,23 @@
     </ng-container>
   
     <ng-container *ngIf="showTopOrdersDialog">
-      <app-non-modal-dialog #topOrdersDialog title="Крупнейшие сделки">
+      <app-non-modal-dialog
+        #topOrdersDialog
+        title="Крупнейшие сделки"
+        dialogKey="topOrders"
+        [settings]="footPrint.renderer?.FPsettings"
+      >
         <footprint-top-orders [NP]="footPrint.renderer"></footprint-top-orders>
       </app-non-modal-dialog>
     </ng-container>
   
     <ng-container *ngIf="showVolumeSearchDialog">
-      <app-non-modal-dialog #volumeSearchDialog title="Volume search">
+      <app-non-modal-dialog
+        #volumeSearchDialog
+        title="Volume search"
+        dialogKey="volumeSearch"
+        [settings]="footPrint.renderer?.FPsettings"
+      >
         <app-volume-search-table [NP]="footPrint.renderer">
         </app-volume-search-table>
       </app-non-modal-dialog>
@@ -111,6 +128,8 @@
       <app-non-modal-dialog
         #orderBookDialog
         title="Биржевой стакан"
+        dialogKey="orderBook"
+        [settings]="footPrint.renderer?.FPsettings"
         (onCloseCallback)="onCloseOrderBook()"
       >
         <footprint-order-book [params]="footPrint.params"></footprint-order-book>
@@ -121,6 +140,8 @@
       <app-non-modal-dialog
         #virtualPortfolioDialog
         title="Виртуальный портфель"
+        dialogKey="virtualPortfolio"
+        [settings]="footPrint.renderer?.FPsettings"
         (onCloseCallback)="onCloseVirtualPortfolio()"
       >
         <footprint-virtual-portfolio

@@ -17,7 +17,7 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.6")
+                .HasAnnotation("ProductVersion", "9.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -282,64 +282,6 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.ToTable("Bill");
                 });
 
-            modelBuilder.Entity("StockChart.Model.SubscriptionPlan", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Code")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Count")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("DiscountMoney")
-                        .HasColumnType("money");
-
-                    b.Property<string>("Interval")
-                        .IsRequired()
-                        .HasMaxLength(8)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(8)");
-
-                    b.Property<bool>("IsReferal")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal>("OrdinalMoney")
-                        .HasColumnType("money");
-
-                    b.Property<int?>("ReferalCount")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ReferalInterval")
-                        .HasMaxLength(8)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(8)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SubscriptionPlans");
-                });
-
-            modelBuilder.Entity("StockChart.Model.TaxSetting", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("DiscountBefore")
-                        .HasColumnType("datetime");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("TaxSettings");
-                });
-
             modelBuilder.Entity("StockChart.Model.CategoryType", b =>
                 {
                     b.Property<int>("Id")
@@ -389,6 +331,9 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
 
                     b.Property<bool>("DeltaBars")
                         .HasColumnType("bit");
+
+                    b.Property<string>("DialogPositions")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("ExtendedToolTip")
                         .HasColumnType("bit");

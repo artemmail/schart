@@ -1,5 +1,11 @@
 <ng-template #dialogTemplate>
-  <div class="non-modal-dialog" cdkDrag (cdkDragStarted)="onDragStart()" (cdkDragEnded)="onDragEnd()">
+  <div
+    class="non-modal-dialog"
+    #dialogRoot
+    cdkDrag
+    (cdkDragStarted)="onDragStart()"
+    (cdkDragEnded)="onDragEnd($event)"
+  >
     <div class="non-modal-dialog-header" cdkDragHandle>
       {{ title }}
       <button class="close-button" (click)="closeDialog()">

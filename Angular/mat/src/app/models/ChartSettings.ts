@@ -28,5 +28,6 @@ export interface ChartSettings {
   Name: string;
   VolumesHeight: number[];
   DeltaGraph: boolean;
+  DialogPositions?: Record<string, { x: number; y: number }>;
 }
 

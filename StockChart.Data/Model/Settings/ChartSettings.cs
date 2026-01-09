@@ -54,6 +54,7 @@ public partial class ChartSettings
     public int VolumesHeight4 { get; set; }
     public int VolumesHeight5 { get; set; }
 
+    public string? DialogPositions { get; set; }
 
 
 

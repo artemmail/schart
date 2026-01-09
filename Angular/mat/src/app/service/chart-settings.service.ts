@@ -86,8 +86,8 @@ export class ChartSettingsService {
       Default: false,
       Name: 'Свечи мини',
       VolumesHeight: [95, 110, 132, 75, 120, 123],
-      
-  DeltaGraph: false
+      DeltaGraph: false,
+      DialogPositions: {}
     };
   }
 
@@ -122,7 +122,8 @@ export class ChartSettingsService {
   MaxTrades: false,
   Name: '',
 
-  DeltaGraph: false
+  DeltaGraph: false,
+  DialogPositions: {}
 };
   }
 }

@@ -1,4 +1,5 @@
 ﻿
+using Newtonsoft.Json;
 using StockChart.Model;
 
 public class ChartSettingsDTO
@@ -33,6 +34,7 @@ public class ChartSettingsDTO
     public string Name { get; set; }
 
     public int[] VolumesHeight { get; set; }
+    public Dictionary<string, DialogPositionDTO>? DialogPositions { get; set; }
 
     public ChartSettingsDTO()
     {
@@ -80,6 +82,7 @@ public class ChartSettingsDTO
         chartSettings.VolumesHeight3 = VolumesHeight[3];
         chartSettings.VolumesHeight4 = VolumesHeight[4];
         chartSettings.VolumesHeight5 = VolumesHeight[5];
+        chartSettings.DialogPositions = SerializeDialogPositions(DialogPositions);
     }
 
     public void CopyToSettingsDTO(ChartSettings chartSettings)
@@ -112,5 +115,39 @@ public class ChartSettingsDTO
         MaxTrades = chartSettings.MaxTrades;
         Default = chartSettings.Default;
         VolumesHeight = new int[] { chartSettings.VolumesHeight0, chartSettings.VolumesHeight1, chartSettings.VolumesHeight2, chartSettings.VolumesHeight3, chartSettings.VolumesHeight4, chartSettings.VolumesHeight5 };
+        DialogPositions = DeserializeDialogPositions(chartSettings.DialogPositions);
     }
+
+    private static string? SerializeDialogPositions(Dictionary<string, DialogPositionDTO>? positions)
+    {
+        if (positions == null || positions.Count == 0)
+        {
+            return null;
+        }
+
+        return JsonConvert.SerializeObject(positions);
+    }
+
+    private static Dictionary<string, DialogPositionDTO>? DeserializeDialogPositions(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonConvert.DeserializeObject<Dictionary<string, DialogPositionDTO>>(json);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+}
+
+public class DialogPositionDTO
+{
+    public int x { get; set; }
+    public int y { get; set; }
 }
