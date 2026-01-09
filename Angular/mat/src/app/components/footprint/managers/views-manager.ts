@@ -130,6 +130,7 @@ export class ViewsManager {
 
     const settings = ChartSettingsService.miniSettings();
     settings.Delta = true;
+    settings.VolumesHeight = this.footprint.FPsettings.VolumesHeight ?? settings.VolumesHeight;
     return settings;
   }
 

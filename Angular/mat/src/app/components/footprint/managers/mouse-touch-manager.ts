@@ -5,6 +5,11 @@ import * as Hammer from 'hammerjs';
 import HammerManager = Hammer.HammerManager;
 import HammerInput = Hammer.HammerInput;
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
+import {
+  VolumeHeightKeyOrder,
+  getVolumeHeightDefaults,
+  normalizeVolumeHeights,
+} from 'src/app/models/volume-heights';
 
 export class MouseAndTouchManager {
   footprint: FootPrintComponent;
@@ -58,10 +63,14 @@ export class MouseAndTouchManager {
       const dragModeIndex = this.footprint.dragMode;
       const deltaVolume = this.footprint.consumeDeltaVolume(dragModeIndex);
       if (deltaVolume !== 0) {
-        const volumesHeight = [...FPsettings.VolumesHeight];
-        volumesHeight[dragModeIndex] += deltaVolume;
-        this.footprint.FPsettings = { ...FPsettings, VolumesHeight: volumesHeight };
-        this.footprint.saveSettings();
+        const dragKey = VolumeHeightKeyOrder[dragModeIndex];
+        if (dragKey) {
+          const defaults = getVolumeHeightDefaults(!!FPsettings.CandlesOnly);
+          const volumesHeight = normalizeVolumeHeights(FPsettings.VolumesHeight, defaults);
+          volumesHeight[dragKey] += deltaVolume;
+          this.footprint.FPsettings = { ...FPsettings, VolumesHeight: volumesHeight };
+          this.footprint.saveSettings();
+        }
       }
       this.footprint.dragMode = null;
       return;
@@ -235,8 +244,17 @@ export class MouseAndTouchManager {
         ? point.x - this.pressd.x
         : this.pressd.y - point.y;
 
-      if (this.footprint.FPsettings.VolumesHeight[this.footprint.dragMode] + Delta > 10)
-        this.footprint.updateDeltaVolume(this.footprint.dragMode, Delta);
+      const dragKey = VolumeHeightKeyOrder[this.footprint.dragMode];
+      if (dragKey) {
+        const defaults = getVolumeHeightDefaults(!!this.footprint.FPsettings.CandlesOnly);
+        const volumesHeight = normalizeVolumeHeights(
+          this.footprint.FPsettings.VolumesHeight,
+          defaults
+        );
+        if (volumesHeight[dragKey] + Delta > 10) {
+          this.footprint.updateDeltaVolume(this.footprint.dragMode, Delta);
+        }
+      }
 
       this.footprint.translateMatrix = null;
       this.footprint.viewsManager.drawClusterView();

@@ -1,9 +1,15 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../environment';
 import { ChartSettings } from '../models/ChartSettings';
 import { SelectListItemNumber } from '../models/preserts';
+import {
+  DEFAULT_VOLUME_HEIGHTS,
+  MINI_VOLUME_HEIGHTS,
+  getVolumeHeightDefaults,
+  normalizeVolumeHeights,
+} from '../models/volume-heights';
 
 @Injectable({
   providedIn: 'root',
@@ -15,19 +21,21 @@ export class ChartSettingsService {
 
 
   public getChartSettings(model: number | null): Observable<ChartSettings> {
- 
-    if (model == null)
-      return this.http.get<ChartSettings>(
-        `${this.apiUrl}/get`, { withCredentials: true }
-      );
+    const normalize = (settings: ChartSettings) =>
+      ChartSettingsService.normalizeSettings(settings);
 
-    return this.http.get<ChartSettings>(
-      `${this.apiUrl}/get`,
-      {
+    if (model == null) {
+      return this.http
+        .get<ChartSettings>(`${this.apiUrl}/get`, { withCredentials: true })
+        .pipe(map(normalize));
+    }
+
+    return this.http
+      .get<ChartSettings>(`${this.apiUrl}/get`, {
         params: { id: model },
-        withCredentials: true
-      },
-    );
+        withCredentials: true,
+      })
+      .pipe(map(normalize));
   }
 
   saveChartSettings(id: number): Observable<void> {
@@ -49,7 +57,7 @@ export class ChartSettingsService {
   }
 
   updateSettings(model: ChartSettings): Observable<number> {
-    return this.http.put<number>(this.apiUrl, model);
+    return this.http.put<number>(this.apiUrl, ChartSettingsService.normalizeSettings(model));
   }
 
   deleteSettings(model: ChartSettings): Observable<number> {
@@ -85,7 +93,7 @@ export class ChartSettingsService {
       MaxTrades: false,
       Default: false,
       Name: 'Свечи мини',
-      VolumesHeight: [95, 110, 132, 75, 120, 123],
+      VolumesHeight: { ...MINI_VOLUME_HEIGHTS },
       DeltaGraph: false,
       DialogPositions: {}
     };
@@ -93,7 +101,7 @@ export class ChartSettingsService {
 
   static DefaultSettings(): ChartSettings {
     return {
-  VolumesHeight: [50, 50, 50, 50, 120, 50, 50],
+  VolumesHeight: { ...DEFAULT_VOLUME_HEIGHTS },
   Default: false,
   CandlesOnly: false,
   Head: true,
@@ -125,5 +133,13 @@ export class ChartSettingsService {
   DeltaGraph: false,
   DialogPositions: {}
 };
+  }
+
+  static normalizeSettings(settings: ChartSettings): ChartSettings {
+    const defaults = getVolumeHeightDefaults(!!settings.CandlesOnly);
+    return {
+      ...settings,
+      VolumesHeight: normalizeVolumeHeights(settings.VolumesHeight, defaults),
+    };
   }
 }

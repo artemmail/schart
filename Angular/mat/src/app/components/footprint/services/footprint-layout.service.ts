@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Rectangle } from 'src/app/models/Rectangle';
 import { ChartSettings } from 'src/app/models/ChartSettings';
+import { getVolumeHeightDefaults, normalizeVolumeHeights } from 'src/app/models/volume-heights';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { Matrix } from '../models/matrix';
@@ -50,7 +51,11 @@ export class FootprintLayoutService {
 
     const newTotal = settings.totalMode === 'Under' || !data.ableCluster();
     const hiddenTotal = settings.totalMode === 'Hidden' && data.ableCluster();
-    const totalLen = hiddenTotal ? 0 : settings.VolumesHeight[4];
+    const volumeHeights = normalizeVolumeHeights(
+      settings.VolumesHeight,
+      getVolumeHeightDefaults(!!settings.CandlesOnly)
+    );
+    const totalLen = hiddenTotal ? 0 : volumeHeights.Total;
 
     let graphTopSpace = settings.Head ? topLinesCount * 20 * this.colorsService.sscale() : 0;
     const miniHeadTop = 25;
@@ -70,23 +75,23 @@ export class FootprintLayoutService {
     ];
 
     if (settings.SeparateVolume) {
-      volumesHeight[0] += settings.VolumesHeight[0];
+      volumesHeight[0] += volumeHeights.SeparateVolume;
     }
 
     if (data.ableOI() && settings.OI) {
-      volumesHeight[1] += settings.VolumesHeight[1];
+      volumesHeight[1] += volumeHeights.OI;
     }
 
     if (settings.Delta) {
-      volumesHeight[2] += settings.VolumesHeight[2];
+      volumesHeight[2] += volumeHeights.Delta;
     }
 
     if (settings.DeltaBars) {
-      volumesHeight[4] += settings.VolumesHeight[5];
+      volumesHeight[4] += volumeHeights.DeltaBars;
     }
 
     if (data.ableOI() && settings.OIDelta) {
-      volumesHeight[3] += settings.VolumesHeight[3];
+      volumesHeight[3] += volumeHeights.OIDelta;
     }
 
     const totalVerticalHeight =

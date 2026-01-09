@@ -47,13 +47,7 @@ public partial class ChartSettings
     public DateTime LastUpdate { get; set; }
     public DateTime LastSelection { get; set; }
 
-    public int VolumesHeight0 { get; set; }
-    public int VolumesHeight1 { get; set; }
-    public int VolumesHeight2 { get; set; }
-    public int VolumesHeight3 { get; set; }
-    public int VolumesHeight4 { get; set; }
-    public int VolumesHeight5 { get; set; }
-
+    public string? VolumesHeight { get; set; }
     public string? DialogPositions { get; set; }
 
 

@@ -387,23 +387,8 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.Property<Guid?>("UserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("VolumesHeight0")
-                        .HasColumnType("int");
-
-                    b.Property<int>("VolumesHeight1")
-                        .HasColumnType("int");
-
-                    b.Property<int>("VolumesHeight2")
-                        .HasColumnType("int");
-
-                    b.Property<int>("VolumesHeight3")
-                        .HasColumnType("int");
-
-                    b.Property<int>("VolumesHeight4")
-                        .HasColumnType("int");
-
-                    b.Property<int>("VolumesHeight5")
-                        .HasColumnType("int");
+                    b.Property<string>("VolumesHeight")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("classic")
                         .IsRequired()

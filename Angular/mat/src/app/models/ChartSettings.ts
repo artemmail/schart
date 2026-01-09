@@ -1,3 +1,5 @@
+import type { VolumeHeightMap } from './volume-heights';
+
 export interface ChartSettings {
     CandlesOnly: boolean;
   Head: boolean;
@@ -26,7 +28,7 @@ export interface ChartSettings {
   MaxTrades: boolean;
   Default: boolean;
   Name: string;
-  VolumesHeight: number[];
+  VolumesHeight?: VolumeHeightMap;
   DeltaGraph: boolean;
   DialogPositions?: Record<string, { x: number; y: number }>;
 }
