@@ -77,6 +77,11 @@ public static class DateTimeJavaScript
     }
     public static DateTime parseDateTime(this string sDateTime)
     {
+        if (DateTimeOffset.TryParse(sDateTime, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dto))
+        {
+            return dto.DateTime;
+        }
+
         return DateTime.Parse(sDateTime, _DateTimeCulture.DateTimeFormat);
     }
     public static DateTime DateTimeFromMinutes(this long minutes)
