@@ -17,20 +17,25 @@ export class viewBackground extends canvasPart {
     const data       = parent.data.clusterData;
     const CanvasW    = parent.canvas?.width ?? 0;
 
-    ctx.fillStyle = ColorsService.Gray1;
+    ctx.fillStyle = ColorsService.Gray2;
+    ctx.myFillRect(view);
     ctx.setLineDash([5, 3, 5]);
+    const prevStrokeStyle = ctx.strokeStyle;
+    const prevLineWidth = ctx.lineWidth;
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 1;
     ctx.beginPath();
 
-    // ───── «шахматка»/гор.полосы ─────
-    const firstBarRect = parent.clusterRect(data[parent.minIndex].o, parent.minIndex, mtx);
-    const horiz        = firstBarRect.w <= 20 || FP.CandlesOnly;
-    if (horiz) this.drawHorizontalBackground(parent, view, mtx);   // ← исправлено
+    // ───── верт./гор.полосы ─────
+    this.drawHorizontalBackground(parent, view, mtx);
+    const dateDelimiterXs: number[] = [];
+    let lastBarRect: Rectangle | null = null;
 
     for (let i = parent.minIndex; i <= parent.maxIndex; i++) {
       const barRect = parent.clusterRect(data[i].o, i, mtx);
+      lastBarRect = barRect;
+      ctx.myLine(barRect.x, view.y, barRect.x, view.y + view.h);
 
-      if (!horiz && firstBarRect.w > 20 && i % 2 === 1 && barRect.w > 20)
-        ctx.myFillRect({ x: barRect.x, y: view.y, w: barRect.w, h: view.h });
 
       if (
         i > 0 &&
@@ -39,10 +44,13 @@ export class viewBackground extends canvasPart {
           this.formatService.MoscowTimeShift(data[i].x),
           parent.params.period
         )
-      ) ctx.myLine(barRect.x, view.y, barRect.x, view.y + view.h);
+      ) dateDelimiterXs.push(barRect.x);
     }
 
     // ───── диапазоны дат ─────
+    if (lastBarRect)
+      ctx.myLine(lastBarRect.x + lastBarRect.w, view.y, lastBarRect.x + lastBarRect.w, view.y + view.h);
+
     const dates = parent.levelMarksService.getDates();
     for (const date in dates) {
       const line = dates[date];
@@ -56,6 +64,12 @@ export class viewBackground extends canvasPart {
       ctx.myFillRect(r);
     }
 
+    ctx.stroke();
+    ctx.strokeStyle = prevStrokeStyle;
+    ctx.lineWidth = prevLineWidth;
+    ctx.beginPath();
+    for (const x of dateDelimiterXs)
+      ctx.myLine(x, view.y, x, view.y + view.h);
     ctx.stroke();
     ctx.restore(); ctx.save();
 
@@ -126,16 +140,14 @@ export class viewBackground extends canvasPart {
   // ───────────────────────── Horizontal Zebra ─────────────────────────
   private drawHorizontalBackground(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
     const ctx = parent.ctx;
-    ctx.fillStyle = ColorsService.Gray1;
 
     if (!parent.FPsettings.DeltaGraph) {
       // ===== ЦЕНА =====
       const { startPrice, finishPrice, step } = this.calculatePriceRange(view, mtx);
-      this.loopOverPrices(startPrice + step / 2, finishPrice, step * 2, (price) => {
-        const top    = mtx.price2Height(price, 0);
-        const bottom = mtx.price2Height(price + step, 0);
-        ctx.myFillRect({ x: view.x, y: top.y, w: view.w, h: bottom.y - top.y });
-      });
+      for (let price = finishPrice; price >= startPrice; price -= step) {
+        const pos = mtx.price2Height(price, 0);
+        ctx.myLine(view.x, pos.y, view.x + view.w, pos.y);
+      }
     } else {
       // ===== DELTAGRAPH =====
       let min = parent.data.minCumDelta, max = parent.data.maxCumDelta;
@@ -154,10 +166,9 @@ export class viewBackground extends canvasPart {
         { y1: view.y + view.h, y2: view.y }
       );
 
-      for (let v = min + step / 2; v <= max; v += step * 2) {
-        const top    = mY.applyToPoint(0, v);
-        const bottom = mY.applyToPoint(0, v + step);
-        ctx.myFillRect({ x: view.x, y: top.y, w: view.w, h: bottom.y - top.y });
+      for (let v = min; v <= max; v += step) {
+        const pos = mY.applyToPoint(0, v);
+        ctx.myLine(view.x, pos.y, view.x + view.w, pos.y);
       }
     }
   }

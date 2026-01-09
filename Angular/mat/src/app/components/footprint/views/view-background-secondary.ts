@@ -29,15 +29,24 @@ export class viewBackground1 extends canvasPart {
     );
     var parts = view.w / 25;
     var step = rounder(maxx / parts);
+    ctx.fillStyle = ColorsService.Gray2;
+    ctx.myFillRect({ x: view.x, y: view.y, w: view.w, h: view.h });
+    const prevStrokeStyle = ctx.strokeStyle;
+    const prevLineWidth = ctx.lineWidth;
+    const prevLineDash = ctx.getLineDash ? ctx.getLineDash() : null;
+    ctx.setLineDash([5, 3, 5]);
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    var x = 0;
-    for (let i = 0; i < maxx; i += step) {
-      ctx.fillStyle = x++ % 2 == 0 ? ColorsService.Gray1 : 'white';
+    for (let i = 0; i <= maxx; i += step) {
       var p1 = mtx.applyToPoint(i, 0);
-      var p2 = mtx.applyToPoint(i + step, 0);
-      ctx.myFillRect({ x: p1.x, y: view.y, w: p2.x - p1.x, h: view.h });
+      ctx.myLine(p1.x, view.y, p1.x, view.y + view.h);
     }
     ctx.stroke();
+    if (prevLineDash) ctx.setLineDash(prevLineDash);
+    else ctx.setLineDash([]);
+    ctx.strokeStyle = prevStrokeStyle;
+    ctx.lineWidth = prevLineWidth;
     ctx.clip();
     ctx.restore();
     ctx.strokeStyle = '#aaa';

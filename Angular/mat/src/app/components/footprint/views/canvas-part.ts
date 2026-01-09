@@ -122,6 +122,7 @@ export abstract class canvasPart {
       'selectedPoint' in parent.mouseAndTouchManager
     ) {
       var e = parent.mouseAndTouchManager.selectedPoint;
+      this.ctx.beginPath();
       this.ctx.strokeStyle = 'rgba(200, 200, 200, 0.7)';
       this.ctx.myLine(e.x, this.view.y, e.x, this.view.y + this.view.h);
       this.ctx.stroke();
@@ -197,21 +198,25 @@ export abstract class canvasPart {
     var y = 0;
     ctx.font = '12px sans-serif';
     ctx.textBaseline = 'middle';
+    ctx.fillStyle = ColorsService.Gray2;
+    ctx.fillRect(Left, Top, Width, Height);
+    const prevLineDash = ctx.getLineDash ? ctx.getLineDash() : null;
+    ctx.setLineDash([5, 3, 5]);
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let y = s + r; y < maxPrice + r; y += r) {
+      var yy = Math.floor(y * d + f) + 0.5;
+      if (yy < Top || yy > Top + Height) continue;
+      ctx.moveTo(Left, yy);
+      ctx.lineTo(Left + Width, yy);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
     ctx.strokeStyle = ColorsService.lineColor;
     ctx.lineWidth = 1;
-    ctx.fillStyle = ColorsService.Gray1;
-    var odd = 0;
-    for (let y = s + r; y < maxPrice + r * 2; y += r * 2) {
-      var yy = Math.floor(y * d + f) + 0.5;
-      var y1 = yy;
-      var y2 = yy + Math.abs(r * d);
-      if (y1 < Top) y1 = Top;
-      if (y2 > Top) {
-        if (y2 > Height + Top) y2 = Height + Top;
-        ctx.fillRect(0.5 + Left, y1, Width, y2 - y1);
-      }
-    }
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
     for (let y = s + r; y < maxPrice; y += r) {
       var yy = Math.floor(y * d + f) + 0.5;
       ctx.moveTo(Width + Left - 7, yy);
@@ -219,6 +224,10 @@ export abstract class canvasPart {
       ctx.fillText(labelFormatter(y), Width + Left + 10, yy);
       ctx.stroke();
     }
+    ctx.strokeStyle = '#ddd';
+    ctx.myStrokeRect({ x: Left, y: Top, w: Width, h: Height });
+    ctx.strokeStyle = ColorsService.lineColor;
+    if (prevLineDash) ctx.setLineDash(prevLineDash);
   }
 }
 
