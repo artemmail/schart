@@ -75,12 +75,7 @@ export class viewBackground extends canvasPart {
 
     // ───── клип по области кластера ─────
     ctx.beginPath();
-    ctx.myRect({
-      x: 0,
-      w: CanvasW,
-      y: parent.viewsManager.clusterView.y,
-      h: parent.viewsManager.clusterView.h,
-    });
+    ctx.rect(0, parent.viewsManager.clusterView.y, CanvasW, parent.viewsManager.clusterView.h);
     ctx.clip();
 
     // ───── выделение выбранной цены ─────
@@ -98,11 +93,20 @@ export class viewBackground extends canvasPart {
     // ───── перекрестие ─────
     if (FP.ToolTip && !parent.hiddenHint && 'selectedPoint' in parent.mouseAndTouchManager) {
       const p = parent.mouseAndTouchManager.selectedPoint;
-      parent.selectedPrice1 = this.mtx.inverse().applyToPoint(p.x, p.y).y;
-      ctx.strokeStyle = 'rgba(200,200,200,.7)';
-      ctx.myLine(view.x, p.y, view.x + view.w, p.y);
-      ctx.myLine(p.x, view.y, p.x, view.y + view.h);
-      ctx.stroke();
+      const inY = p.y >= view.y && p.y <= view.y + view.h;
+      const inX = p.x >= view.x && p.x <= view.x + view.w;
+      if (inY || inX) {
+        ctx.strokeStyle = 'rgba(200,200,200,.7)';
+        ctx.beginPath();
+        if (inY) {
+          parent.selectedPrice1 = this.mtx.inverse().applyToPoint(p.x, p.y).y;
+          ctx.myLine(view.x, p.y, view.x + view.w, p.y);
+        }
+        if (inX) {
+          ctx.myLine(p.x, view.y, p.x, view.y + view.h);
+        }
+        ctx.stroke();
+      }
     }
 
     // ───── уровни цен ─────
