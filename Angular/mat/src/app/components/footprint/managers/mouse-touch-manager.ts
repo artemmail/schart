@@ -56,8 +56,13 @@ export class MouseAndTouchManager {
     const FPsettings = this.footprint.FPsettings;
     if (this.footprint.dragMode != null) {
       const dragModeIndex = this.footprint.dragMode;
-      FPsettings.VolumesHeight[dragModeIndex] +=
-        this.footprint.consumeDeltaVolume(dragModeIndex);
+      const deltaVolume = this.footprint.consumeDeltaVolume(dragModeIndex);
+      if (deltaVolume !== 0) {
+        const volumesHeight = [...FPsettings.VolumesHeight];
+        volumesHeight[dragModeIndex] += deltaVolume;
+        this.footprint.FPsettings = { ...FPsettings, VolumesHeight: volumesHeight };
+        this.footprint.saveSettings();
+      }
       this.footprint.dragMode = null;
       return;
     }

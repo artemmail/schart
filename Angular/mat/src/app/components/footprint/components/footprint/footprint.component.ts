@@ -10,6 +10,7 @@ import {
 import { Matrix, Rectangle } from '../../models/matrix';
 
 import { ChartSettings } from 'src/app/models/ChartSettings';
+import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { FormattingService } from 'src/app/service/FootPrint/Formating/formatting.service';
 import { ClusterData } from '../../models/cluster-data';
@@ -133,6 +134,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     public dialogService: DialogService,
     public router: Router,
     private footprintLayoutService: FootprintLayoutService,
+    private chartSettingsService: ChartSettingsService,
     private state: FootprintStateService,
     private hintContainer: HintContainerService
   ) {
@@ -456,6 +458,10 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
 
     this.initSize();
     this.resize();
+  }
+
+  saveSettings(): void {
+    this.chartSettingsService.updateSettings(this.FPsettings).subscribe();
   }
 
   applyData(clusterData: ClusterData) {
