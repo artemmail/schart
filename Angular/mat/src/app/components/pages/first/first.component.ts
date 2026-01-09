@@ -253,72 +253,78 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
 
   openNonModalSettings() {
     // Обновляем данные перед открытием диалога
+    const wasOpen = this.showSettingsDialog;
     this.showSettingsDialog = false;
     setTimeout(() => {
       this.showSettingsDialog = true;
       setTimeout(() => {
         if (this.settingsDialog) {
-          this.settingsDialog.openDialog();
+          this.settingsDialog.openDialog(undefined, undefined, wasOpen);
         }
       });
     });
   }
 
   openNonModalVolumeSearch() {
+    const wasOpen = this.showVolumeSearchDialog;
     this.showVolumeSearchDialog = false;
     setTimeout(() => {
       this.showVolumeSearchDialog = true;
       setTimeout(() => {
         if (this.volumeSearchDialog) {
-          this.volumeSearchDialog.openDialog();
+          this.volumeSearchDialog.openDialog(undefined, undefined, wasOpen);
         }
       });
     });
   }
 
   async openNonModalMarkUp() {
+    const wasOpen = this.showMarkupDialog;
     this.showMarkupDialog = false;
     setTimeout(() => {
       this.showMarkupDialog = true;
       setTimeout(() => {
         if (this.markupDialog) {
-          this.markupDialog.openDialog();
+          this.markupDialog.openDialog(undefined, undefined, wasOpen);
         }
       });
     });
   }
 
   openNonModalTopOrders() {
+    const wasOpen = this.showTopOrdersDialog;
     this.showTopOrdersDialog = false;
     setTimeout(() => {
       this.showTopOrdersDialog = true;
       setTimeout(() => {
         if (this.topOrdersDialog) {
-          this.topOrdersDialog.openDialog();
+          this.topOrdersDialog.openDialog(undefined, undefined, wasOpen);
         }
       });
     });
   }
 
   openNonModalOrderBook() {
+    const wasOpen = this.showOrderBookDialog;
     this.showOrderBookDialog = false;
     setTimeout(() => {
       this.showOrderBookDialog = true;
       setTimeout(() => {
         if (this.orderBookDialog) {
-          this.orderBookDialog.openDialog();
+          this.orderBookDialog.openDialog(undefined, undefined, wasOpen);
         }
       });
     });
   }
 
   openNonModalVirtualPortfolio() {
+    const wasOpen = this.showVirtualPortfolioDialog;
     this.showVirtualPortfolioDialog = false;
     setTimeout(() => {
       this.showVirtualPortfolioDialog = true;
       setTimeout(() => {
         if (this.virtualPortfolioDialog) {
-          this.virtualPortfolioDialog.openDialog();
+          this.virtualPortfolioDialog.openDialog(undefined, undefined, wasOpen);
         }
       });
     });

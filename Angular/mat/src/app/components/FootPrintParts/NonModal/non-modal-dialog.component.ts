@@ -41,12 +41,13 @@ export class NonModalDialogComponent {
     private chartSettingsService: ChartSettingsService
   ) {}
 
-  openDialog(top?: number, left?: number) {
+  openDialog(top?: number, left?: number, forceDefaultPosition = false) {
+    const shouldResetPosition = forceDefaultPosition || !!this.overlayRef;
     if (this.overlayRef) this.closeDialog();
     //return;
 
     const overlayConfig = this.overlay.position().global();
-    const savedPosition = this.getSavedPosition();
+    const savedPosition = shouldResetPosition ? null : this.getSavedPosition();
 
     if (top !== undefined && left !== undefined) {
       overlayConfig.top(`${top}px`).left(`${left}px`);
@@ -67,6 +68,10 @@ export class NonModalDialogComponent {
     );
 
     this.overlayRef.attach(dialogPortal);
+
+    if (shouldResetPosition) {
+      this.saveCurrentPosition();
+    }
   }
 
   closeDialog() {
@@ -83,6 +88,10 @@ export class NonModalDialogComponent {
 
   onDragEnd(_event: CdkDragEnd) {
     this.isDragging = false;
+    this.saveCurrentPosition();
+  }
+
+  private saveCurrentPosition() {
     if (!this.dialogKey || !this.settings || !this.dialogRoot) {
       return;
     }
@@ -93,23 +102,25 @@ export class NonModalDialogComponent {
         return;
       }
 
-      const position = {
+      this.savePosition({
         x: Math.round(rect.left),
         y: Math.round(rect.top),
-      };
-
-      const current = this.settings?.DialogPositions?.[this.dialogKey];
-      if (current && current.x === position.x && current.y === position.y) {
-        return;
-      }
-
-      if (!this.settings.DialogPositions) {
-        this.settings.DialogPositions = {};
-      }
-
-      this.settings.DialogPositions[this.dialogKey] = position;
-      this.chartSettingsService.updateSettings(this.settings).subscribe();
+      });
     });
+  }
+
+  private savePosition(position: { x: number; y: number }) {
+    const current = this.settings?.DialogPositions?.[this.dialogKey];
+    if (current && current.x === position.x && current.y === position.y) {
+      return;
+    }
+
+    if (!this.settings.DialogPositions) {
+      this.settings.DialogPositions = {};
+    }
+
+    this.settings.DialogPositions[this.dialogKey] = position;
+    this.chartSettingsService.updateSettings(this.settings).subscribe();
   }
 
   private getSavedPosition(): { x: number; y: number } | null {
