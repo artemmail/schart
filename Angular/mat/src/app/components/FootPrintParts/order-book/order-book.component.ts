@@ -37,6 +37,7 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
   isLoading = true;
   maxBidVolume = 0;
   maxAskVolume = 0;
+  maxVolume = 0;
   bidChartPath = '';
   bidChartAreaPath = '';
   askChartPath = '';
@@ -171,6 +172,7 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
     this.tableMaxHeightPx = null;
     this.maxBidVolume = 0;
     this.maxAskVolume = 0;
+    this.maxVolume = 0;
     this.bidChartPath = '';
     this.bidChartAreaPath = '';
     this.askChartPath = '';
@@ -179,11 +181,11 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
   }
 
   getBidWidth(volume: number | null): number {
-    return volume && this.maxBidVolume ? (volume / this.maxBidVolume) * 100 : 0;
+    return volume && this.maxVolume ? (volume / this.maxVolume) * 100 : 0;
   }
 
   getAskWidth(volume: number | null): number {
-    return volume && this.maxAskVolume ? (volume / this.maxAskVolume) * 100 : 0;
+    return volume && this.maxVolume ? (volume / this.maxVolume) * 100 : 0;
   }
 
   trackByRow(index: number, row: OrderBookRow): string {
@@ -193,10 +195,11 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
   private updateVisualization(): void {
     this.maxBidVolume = this.getMaxVolume(this.bids);
     this.maxAskVolume = this.getMaxVolume(this.asks);
-    this.bidChartPath = this.buildStepLinePath(this.bids, 50, 0, this.maxBidVolume, false, false);
-    this.bidChartAreaPath = this.buildStepAreaPath(this.bids, 50, 0, this.maxBidVolume);
-    this.askChartPath = this.buildStepLinePath(this.asks, 50, 100, this.maxAskVolume, false, false);
-    this.askChartAreaPath = this.buildStepAreaPath(this.asks, 50, 100, this.maxAskVolume);
+    this.maxVolume = Math.max(this.maxBidVolume, this.maxAskVolume);
+    this.bidChartPath = this.buildStepLinePath(this.bids, 50, 0, this.maxVolume, false, false);
+    this.bidChartAreaPath = this.buildStepAreaPath(this.bids, 50, 0, this.maxVolume);
+    this.askChartPath = this.buildStepLinePath(this.asks, 50, 100, this.maxVolume, false, false);
+    this.askChartAreaPath = this.buildStepAreaPath(this.asks, 50, 100, this.maxVolume);
     this.rows = this.buildRows();
     this.updateTableMaxHeight();
   }
