@@ -31,7 +31,7 @@ import { ComboBoxComponent } from '../../Controls/ComboBox/combobox.component';
 /*      ДЕФОЛТНЫЙ НАБОР ТИКЕРОВ                                   */
 /* ────────────────────────────────────────────────────────────── */
 const DEFAULT_TICKERS =
-  'GAZP,SBER,ROSN,LKOH,VTBR,GMKN,PLZL,T,NVTK,AFKS';
+  'Si,MX,GAZP,SBER,ROSN,LKOH,VTBR,GMKN,PLZL,T,NVTK,AFKS';
 
 @Component({
   standalone: true,

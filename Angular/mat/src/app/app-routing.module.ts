@@ -53,7 +53,7 @@ import { UserPaymentsStatComponent } from './components/pages/users-pay-stats/us
 import { PaymentsTableComponent } from './components/tables/payments-table/payments-table.component';
 import { ProfitChartsComponent } from './components/pages/profit-charts/profit-charts.component';
 import { VolumeDashboardComponent } from './components/Reports/volume-dashboard/volume-dashboard.component';
-import { AppComponent1 } from './components/test-map/app.component';
+
 
 const routes: Routes = [
   
