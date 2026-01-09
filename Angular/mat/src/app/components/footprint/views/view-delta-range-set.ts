@@ -21,50 +21,42 @@ export class viewDeltaRangeSet extends canvasPart {
     super(parent, view, mtx, DraggableEnum.Top);
   }
 
-  /**
-   * Строит ряд доходности портфеля в процентах:
-   * PnL(t) = (p1(t)-e1) + (e2-p2(t))
-   * Return%(t) = PnL(t) / (|e1|+|e2|) * 100
-   *
-   * p1/p2 уже "ноталы" (цена*кол-во / сумма по портфелю).
-   */
   private buildDeltaSeries(): DeltaPoint[] {
-    const rangeSetLines = this.parent.data?.rangeSetLines ?? [];
+  const rangeSetLines = this.parent.data?.rangeSetLines ?? [];
 
-    const raw: RawPoint[] = rangeSetLines
-      .map((line: any, idx: number) => {
-        const p1 = Number(line?.Price1normalized ?? line?.Price1);
-        const p2 = Number(line?.Price2normalized ?? line?.Price2);
+  const raw = rangeSetLines
+    .map((line: any, idx: number) => {
+      // ВАЖНО: сначала берем "Price*" (там уже SBER*100 + ...),
+      // а normalized используем только как fallback.
+      const p1 = Number(line?.Price1 ?? line?.Price1normalized);
+      const p2 = Number(line?.Price2 ?? line?.Price2normalized);
 
-        if (!Number.isFinite(p1) || !Number.isFinite(p2)) {
-          return null;
-        }
+      if (!Number.isFinite(p1) || !Number.isFinite(p2)) return null;
 
-        return {
-          index: Number.isFinite(line?.columnIndex) ? Number(line.columnIndex) : idx,
-          p1,
-          p2,
-        } as RawPoint;
-      })
-      .filter((p: RawPoint | null): p is RawPoint => p !== null)
-      .sort((a, b) => a.index - b.index);
+      return {
+        index: Number.isFinite(line?.columnIndex) ? Number(line.columnIndex) : idx,
+        p1,
+        p2,
+      };
+    })
+    .filter((x: any) => x !== null)
+    .sort((a: any, b: any) => a.index - b.index);
 
-    if (!raw.length) return [];
+  if (!raw.length) return [];
 
-    // "Вход" = первая валидная точка серии
-    const e1 = raw[0].p1;
-    const e2 = raw[0].p2;
+  const e1 = raw[0].p1;
+  const e2 = raw[0].p2;
 
-    // База для % (gross exposure)
-    let base = Math.abs(e1) + Math.abs(e2);
-    if (!Number.isFinite(base) || base < 1e-12) base = 1; // защита от деления на 0
+  let base = Math.abs(e1) + Math.abs(e2);
+  if (!Number.isFinite(base) || base < 1e-12) base = 1;
 
-    return raw.map((pt) => {
-      const pnl = (pt.p1 - e1) + (e2 - pt.p2);
-      const retPct = (pnl / base) * 100;
-      return { index: pt.index, value: retPct };
-    });
-  }
+  return raw.map((pt: any) => {
+    const pnl = (pt.p1 - e1) + (e2 - pt.p2);
+    const retPct = (pnl / base) * 100;
+    return { index: pt.index, value: retPct } as DeltaPoint;
+  });
+}
+
 
   draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
     const ctx = this.parent.ctx;
