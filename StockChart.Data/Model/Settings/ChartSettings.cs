@@ -20,6 +20,7 @@ public partial class ChartSettings
     public bool Head { get; set; }
     public bool OI { get; set; }
     public bool OIDelta { get; set; }
+    public bool OIDeltaDivideBy2 { get; set; }
     public bool Delta { get; set; }
 
     public bool DeltaBars { get; set; }

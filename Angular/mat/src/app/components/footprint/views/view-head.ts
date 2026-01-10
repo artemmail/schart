@@ -46,7 +46,11 @@ export class viewHead extends canvasPart {
       } else {
         var labels = ['Накопл. Дельта', 'Дельта(ASK-BID)'];
         if (parent.topVolumes()) labels.push('Объем');
-        if (parent.oiEnable()) labels.push('ОИ дельта/2');
+        if (parent.oiEnable()) {
+          labels.push(
+            parent.FPsettings.OIDeltaDivideBy2 ? 'ОИ дельта/2' : 'ОИ дельта'
+          );
+        }
         for (let i: number = 0; i < im; i++) {
           var p1 = mtx.applyToPoint(0, i);
           var p2 = mtx.applyToPoint(1, i + 1);

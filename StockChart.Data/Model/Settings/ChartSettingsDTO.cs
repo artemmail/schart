@@ -9,6 +9,7 @@ public class ChartSettingsDTO
     public bool Head { get; set; }
     public bool OI { get; set; }
     public bool OIDelta { get; set; }
+    public bool OIDeltaDivideBy2 { get; set; }
     public bool Delta { get; set; }
     public bool DeltaBars { get; set; }
     public string CompressToCandles { get; set; }
@@ -53,6 +54,7 @@ public class ChartSettingsDTO
         chartSettings.Head = Head;
         chartSettings.OI = OI;
         chartSettings.OIDelta = OIDelta;
+        chartSettings.OIDeltaDivideBy2 = OIDeltaDivideBy2;
         chartSettings.DeltaBars = DeltaBars;
         chartSettings.Delta = Delta;
         chartSettings.CompressToCandles = CompressToCandles;
@@ -90,6 +92,7 @@ public class ChartSettingsDTO
         Head = chartSettings.Head;
         OI = chartSettings.OI;
         OIDelta = chartSettings.OIDelta;
+        OIDeltaDivideBy2 = chartSettings.OIDeltaDivideBy2;
         DeltaBars = chartSettings.DeltaBars;
         Delta = chartSettings.Delta;
         CompressToCandles = chartSettings.CompressToCandles;

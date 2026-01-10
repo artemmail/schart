@@ -194,6 +194,14 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.state.setSettings(settings);
   }
 
+  applyOideltaDivider(): void {
+    if (!this.data) {
+      return;
+    }
+
+    this.data.setOiDeltaDivideBy2(!!this.FPsettings.OIDeltaDivideBy2);
+  }
+
   get deltaVolumes(): readonly number[] {
     return this.state.snapshot.deltaVolumes;
   }
@@ -452,6 +460,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
 
   applySettings(settings: ChartSettings) {
     this.FPsettings = settings;
+    this.applyOideltaDivider();
     if (!this.viewInitialized || !this.data || !this.params) {
       return;
     }
@@ -467,6 +476,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   applyData(clusterData: ClusterData) {
     const isNewDataInstance = this.data !== clusterData;
     this.data = clusterData;
+    this.applyOideltaDivider();
     this.hintContainer.ensureHintElement();
     if (!this.viewInitialized || !this.params || !isNewDataInstance) {
       return;

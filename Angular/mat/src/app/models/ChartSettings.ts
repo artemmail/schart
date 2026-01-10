@@ -5,6 +5,7 @@ export interface ChartSettings {
   Head: boolean;
   OI: boolean;
   OIDelta: boolean;
+  OIDeltaDivideBy2: boolean;
   Delta: boolean;
   DeltaBars: boolean;
   CompressToCandles: string;

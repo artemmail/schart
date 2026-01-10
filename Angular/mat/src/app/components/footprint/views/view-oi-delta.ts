@@ -44,7 +44,10 @@ export class viewOIDelta extends viewVolumesSeparated {
   }
 
   getLegendLine() {
-    return { Text: 'OIDelta', Value: drob(this.parent.selectedColumn.oiDelta, 3) };
+    const label = this.parent.FPsettings.OIDeltaDivideBy2
+      ? 'OIDelta/2'
+      : 'OIDelta';
+    return { Text: label, Value: drob(this.parent.selectedColumn.oiDelta, 3) };
   }
 
   drawVolumeColumnOI(column: ColumnEx, number: number, mtx: Matrix) {

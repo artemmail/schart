@@ -45,6 +45,9 @@
           <mat-checkbox [(ngModel)]="fp.FPsettings.Contracts" (change)="onChange($event)">Объем в контрактах</mat-checkbox>
         </div>
         <div>
+          <mat-checkbox [(ngModel)]="fp.FPsettings.OIDeltaDivideBy2" (ngModelChange)="onOideltaDivideChange($event)">Делить OI на 2</mat-checkbox>
+        </div>
+        <div>
           <mat-checkbox [(ngModel)]="fp.FPsettings.ShrinkY" (change)="onChange($event)">Adjust to viewport</mat-checkbox>
         </div>
         <div>

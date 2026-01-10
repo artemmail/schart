@@ -49,4 +49,5 @@ export interface ColumnEx extends Column {
   maxOIDelta: number;
   cumDelta: number;
   oiDelta: number;
+  oiRaw?: number;
 }

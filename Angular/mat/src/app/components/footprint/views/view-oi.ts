@@ -30,9 +30,7 @@ export class viewOI extends viewVolumesSeparated {
     minOI -= d;
 
     ctx.restore();
-    //   this.DrawZebra(ctx, view.x, view.y, view.w, view.h, this.minOI, this.maxOI);
-
-    this.DrawZebra(ctx, view.x, view.y, view.w, view.h, 0, maxOI - minOI);
+    this.DrawZebra(ctx, view.x, view.y, view.w, view.h, minOI, maxOI);
     ctx.save();
     this.ctx.beginPath();
     this.ctx.myRect(this.view);
@@ -51,13 +49,15 @@ export class viewOI extends viewVolumesSeparated {
   }
 
   getLegendLine() {
-    return { Text: 'OI', Value: drob(this.parent.selectedColumn.oi, 3) };
+    const label = this.parent.FPsettings.OIDeltaDivideBy2 ? 'OI/2' : 'OI';
+    return { Text: label, Value: drob(this.parent.selectedColumn.oi, 3) };
   }
 
   drawVolumeColumnOI(column: ColumnEx, number: number, mtx: Matrix) {
     var ctx = this.ctx;
+    const baseOi = this.data.minOI ?? 0;
     ctx.fillStyle = column == this.parent.selectedColumn ? '#0A2D6D' : '#2050A8';
-    ctx.mFillRectangle(number + 0.1, 0, 0.8, column.oi);
+    ctx.mFillRectangle(number + 0.1, baseOi, 0.8, column.oi - baseOi);
   }
 }
 

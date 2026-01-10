@@ -7,6 +7,7 @@ export interface ClusterDataInit {
   clusterData: ClusterDataColumn[];
   priceScale: number;
   VolumePerQuantity?: number | null;
+  oiDeltaDivideBy2?: boolean;
 }
 
 
@@ -60,9 +61,12 @@ export class ClusterData {
   maxt1: number;
   maxt2: number;
 
+  private oiDeltaDivideBy2 = false;
+
   constructor(data: ClusterDataInit) {
     this.lastPrice = data.clusterData[data.clusterData.length - 1].c;
     this.priceScale = data.priceScale;
+    this.oiDeltaDivideBy2 = data.oiDeltaDivideBy2 ?? false;
 
     this.volumePerQuantity =
       data.VolumePerQuantity ??
@@ -71,6 +75,26 @@ export class ClusterData {
     this.clusterData = data.clusterData.map((column) => this.addColumnInfo(column));
 
     this.calcPrices();
+  }
+
+  setOiDeltaDivideBy2(value: boolean): void {
+    const normalized = !!value;
+    if (this.oiDeltaDivideBy2 === normalized) {
+      return;
+    }
+
+    this.oiDeltaDivideBy2 = normalized;
+    this.calcPrices();
+  }
+
+  private normalizeOiValues(): void {
+    const divider = this.oiDeltaDivideBy2 ? 2 : 1;
+    this.clusterData.forEach((column) => {
+      if (column.oiRaw === undefined || column.oiRaw === null) {
+        column.oiRaw = column.oi;
+      }
+      column.oi = column.oiRaw / divider;
+    });
   }
 
   isWrongMerge(data: ClusterData): boolean {
@@ -403,6 +427,7 @@ export class ClusterData {
   calcPrices() {
     const data = this.clusterData;
     this.ColumnNumberByDate = {};
+    this.normalizeOiValues();
 
     for (let i = 0; i < data.length; i++) {
       data[i] = this.addColumnInfo(data[i]);
@@ -412,7 +437,7 @@ export class ClusterData {
       } else {
         data[i].cumDelta =
           (data[i].deltaTotal ?? 0) + (data[i - 1].cumDelta ?? 0);
-        data[i].oiDelta = (data[i].oi - data[i - 1].oi) / 2;
+        data[i].oiDelta = data[i].oi - data[i - 1].oi;
       }
     }
 

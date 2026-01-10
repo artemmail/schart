@@ -360,6 +360,9 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.Property<bool>("OIDelta")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("OIDeltaDivideBy2")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("OpenClose")
                         .HasColumnType("bit");
 

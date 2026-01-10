@@ -85,6 +85,14 @@ export class FootPrintSettingsDialogComponent {
   }
 
   onChange(event: any) {
+    this.fp.applyOideltaDivider();
+    this.save();
+    this.fp.resize();
+  }
+
+  onOideltaDivideChange(value: boolean) {
+    this.fp.FPsettings.OIDeltaDivideBy2 = value;
+    this.fp.applyOideltaDivider();
     this.save();
     this.fp.resize();
   }
@@ -146,6 +154,7 @@ export class FootPrintSettingsDialogComponent {
   presetChange(a: number) {
     this.chartSettingsService.getChartSettings(a).subscribe((x) => {
       this.fp.FPsettings = x;
+      this.fp.applyOideltaDivider();
       this.settings = this.fp.FPsettings;
       this.fp.resize();
 

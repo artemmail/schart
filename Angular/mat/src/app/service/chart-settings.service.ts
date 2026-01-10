@@ -70,6 +70,7 @@ export class ChartSettingsService {
       Head: false,
       OI: false,
       OIDelta: false,
+      OIDeltaDivideBy2: false,
       Delta: false,
       DeltaBars: false,
       CompressToCandles: 'Always',
@@ -107,6 +108,7 @@ export class ChartSettingsService {
   Head: true,
   OI: true,
   OIDelta: true,
+  OIDeltaDivideBy2: false,
   Delta: true,
   DeltaBars: true,
   CompressToCandles: 'Auto',
@@ -139,6 +141,7 @@ export class ChartSettingsService {
     const defaults = getVolumeHeightDefaults(!!settings.CandlesOnly);
     return {
       ...settings,
+      OIDeltaDivideBy2: settings.OIDeltaDivideBy2 ?? false,
       VolumesHeight: normalizeVolumeHeights(settings.VolumesHeight, defaults),
     };
   }
