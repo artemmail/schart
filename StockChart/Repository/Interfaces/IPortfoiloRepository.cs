@@ -8,6 +8,7 @@ namespace StockChart.Repository.Services
         public Task<List<Portfolio>> GetPortfolio(Guid UserId, byte portfolio);
         public Task<UserGameBallance?> GetBallance(Guid UserId, byte portfolio);
         public Task MakeOrder(Guid UserId, string ticker, int quantity, byte PortfolioNumber, decimal? money = null, decimal? price = null);
+        public Task DepositPortfolio(Guid UserId, byte portfolioNumber, decimal amount);
         public Task CleanUpPortfolio(Guid UserId, byte portfolio);
         public Task CopyPortfolio(Guid UserId, byte fromportfolio, byte toportfolio);
 

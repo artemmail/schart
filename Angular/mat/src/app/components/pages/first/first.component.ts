@@ -34,6 +34,10 @@ import {
   PortfolioCompareDialogComponent,
   PortfolioCompareDialogResult,
 } from '../../FootPrintParts/portfolio-compare/portfolio-compare-dialog.component';
+import {
+  PortfolioManipulationDialogComponent,
+  PortfolioManipulationDialogResult,
+} from '../../FootPrintParts/portfolio-manipulation-dialog/portfolio-manipulation-dialog.component';
 
 import { Title } from '@angular/platform-browser';
 
@@ -74,6 +78,8 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   orderBookDialog: NonModalDialogComponent;
   @ViewChild('virtualPortfolioDialog', { static: false })
   virtualPortfolioDialog: NonModalDialogComponent;
+  @ViewChild(FootprintVirtualPortfolioComponent)
+  virtualPortfolioComponent?: FootprintVirtualPortfolioComponent;
 
   // Reference to MatSidenav
   @ViewChild(MatSidenav, { static: false }) appDrawer: MatSidenav;
@@ -328,6 +334,59 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
         }
       });
     });
+  }
+
+  private openVirtualPortfolioTrade(action: 'buy' | 'sell'): void {
+    const openTradeDialog = () => {
+      if (this.virtualPortfolioComponent) {
+        this.virtualPortfolioComponent.openTradeDialog(action);
+      }
+    };
+
+    if (this.showVirtualPortfolioDialog) {
+      setTimeout(openTradeDialog);
+      return;
+    }
+
+    const wasOpen = this.showVirtualPortfolioDialog;
+    this.showVirtualPortfolioDialog = false;
+    setTimeout(() => {
+      this.showVirtualPortfolioDialog = true;
+      setTimeout(() => {
+        if (this.virtualPortfolioDialog) {
+          this.virtualPortfolioDialog.openDialog(undefined, undefined, wasOpen);
+        }
+        openTradeDialog();
+      });
+    });
+  }
+
+  openVirtualPortfolioBuy(): void {
+    this.openVirtualPortfolioTrade('buy');
+  }
+
+  openVirtualPortfolioSell(): void {
+    this.openVirtualPortfolioTrade('sell');
+  }
+
+  openPortfolioManipulationDialog(): void {
+    this.dialog
+      .open<
+        PortfolioManipulationDialogComponent,
+        unknown,
+        PortfolioManipulationDialogResult
+      >(PortfolioManipulationDialogComponent, {
+        width: '420px',
+        autoFocus: false,
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (!result) {
+          return;
+        }
+
+        this.virtualPortfolioComponent?.reloadPortfolio();
+      });
   }
 
   onCloseMarkUp() {

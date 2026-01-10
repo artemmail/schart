@@ -69,6 +69,15 @@ namespace StockChart.Controllers
             return Ok();
         }
 
+        [HttpGet("DepositPortfolio")]
+        public async Task<IActionResult> DepositPortfolio(decimal amount, int portfolioNumber)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var userId = (Guid)user.Id;
+            await _portfolioRepository.DepositPortfolio(userId, (byte)portfolioNumber, amount);
+            return Ok();
+        }
+
         public class PortfolioComparesResult
         {
             public string res1 { get; }

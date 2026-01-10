@@ -37,6 +37,13 @@ export class PortfolioService {
     });
   }
 
+  depositPortfolio(amount: number, portfolioNumber: number): Observable<void> {
+    return this.http.get<void>(`${this.apiUrl}/DepositPortfolio`, { params: new HttpParams()
+      .set('amount', amount.toString())
+      .set('portfolioNumber', portfolioNumber.toString())
+    });
+  }
+
   portfolioCompares(portfolio1: number, portfolio2: number): Observable<PortfolioComparesResult> {
     return this.http.get<PortfolioComparesResult>(`${this.apiUrl}/PortfolioCompares`, { params: new HttpParams()
       .set('portfolio1', portfolio1.toString())

@@ -114,13 +114,9 @@
         <mat-icon>view_list</mat-icon>
         Биржевой стакан
       </button>
-      <button mat-menu-item (click)="openNonModalVirtualPortfolio()">
-        <mat-icon>account_balance_wallet</mat-icon>
-        Виртуальный портфель
-      </button>
-      <button mat-menu-item (click)="openModalPortfolioCompare()">
-        <mat-icon>compare_arrows</mat-icon>
-        Сравнение портфелей
+      <button mat-menu-item [matMenuTriggerFor]="demoTradesMenu">
+        <mat-icon>trending_up</mat-icon>
+        Демо торги
       </button>
       <button mat-menu-item (click)="uploadImage()">
         <mat-icon>camera_alt</mat-icon>
@@ -133,6 +129,29 @@
       <button mat-menu-item (click)="openCurrentChartUrl()">
         <mat-icon>link</mat-icon>
         URL на текущий график
+      </button>
+    </mat-menu>
+
+    <mat-menu #demoTradesMenu="matMenu">
+      <button mat-menu-item (click)="openNonModalVirtualPortfolio()">
+        <mat-icon>account_balance_wallet</mat-icon>
+        Виртуальный портфель
+      </button>
+      <button mat-menu-item (click)="openModalPortfolioCompare()">
+        <mat-icon>compare_arrows</mat-icon>
+        Сравнение портфелей
+      </button>
+      <button mat-menu-item (click)="openPortfolioManipulationDialog()">
+        <mat-icon>tune</mat-icon>
+        Манипуляции портфелем
+      </button>
+      <button mat-menu-item (click)="openVirtualPortfolioBuy()">
+        <mat-icon>shopping_cart</mat-icon>
+        Купить
+      </button>
+      <button mat-menu-item (click)="openVirtualPortfolioSell()">
+        <mat-icon>sell</mat-icon>
+        Продать
       </button>
     </mat-menu>
   

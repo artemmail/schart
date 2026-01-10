@@ -65,6 +65,19 @@ namespace StockChart.Repository.Services
             return ballance;
         }
 
+        public async Task DepositPortfolio(Guid UserId, byte portfolioNumber, decimal amount)
+        {
+            if (amount <= 0)
+                return;
+
+            var ballance = await GetBallance(UserId, portfolioNumber);
+            if (ballance == null)
+                return;
+
+            ballance.Ballance += amount;
+            _dbContext.Update(ballance);
+            await _dbContext.SaveChangesAsync();
+        }
 
         public async Task CleanUpPortfolio(Guid UserId, byte portfolio)
         {
@@ -81,7 +94,7 @@ namespace StockChart.Repository.Services
 
             if (bal != null)
             {
-                bal.Ballance = 1000000;
+                bal.Ballance = 0;
                 _dbContext.Update(bal);
             }
 

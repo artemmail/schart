@@ -1,0 +1,14 @@
+.portfolio-manipulation {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.portfolio-manipulation__field {
+  width: 100%;
+}
+
+.portfolio-manipulation__hint {
+  font-size: 12px;
+  opacity: 0.7;
+}

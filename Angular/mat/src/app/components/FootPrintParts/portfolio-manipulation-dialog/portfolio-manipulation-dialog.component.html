@@ -1,0 +1,41 @@
+<h2 mat-dialog-title>Манипуляции над портфелем</h2>
+
+<div mat-dialog-content class="portfolio-manipulation">
+  <mat-form-field appearance="fill" class="portfolio-manipulation__field">
+    <mat-label>Портфель</mat-label>
+    <mat-select [(value)]="selectedPortfolioNumber">
+      <mat-option *ngFor="let portfolio of portfolios" [value]="portfolio.value">
+        {{ portfolio.text }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" class="portfolio-manipulation__field">
+    <mat-label>Сумма</mat-label>
+    <input matInput type="number" min="0" [(ngModel)]="amount" />
+  </mat-form-field>
+
+  <div class="portfolio-manipulation__hint">
+    Сброс полностью очищает портфель.
+  </div>
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="close()">Отмена</button>
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="deposit()"
+    [disabled]="isSubmitting"
+  >
+    Занести
+  </button>
+  <button
+    mat-raised-button
+    color="warn"
+    (click)="reset()"
+    [disabled]="isSubmitting"
+  >
+    Сбросить
+  </button>
+</div>

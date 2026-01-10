@@ -67,6 +67,10 @@ export class FootprintVirtualPortfolioComponent implements OnInit {
     }
   }
 
+  reloadPortfolio(): void {
+    this.portfolioTable?.loadPortfolio();
+  }
+
   openTradeDialog(action: 'buy' | 'sell'): void {
     const ticker = (this.ticker ?? '').trim();
     if (!ticker) {
@@ -87,12 +91,13 @@ export class FootprintVirtualPortfolioComponent implements OnInit {
       >(VirtualPortfolioTradeDialogComponent, {
         data,
         width: '360px',
-        autoFocus: true,
+        autoFocus: false,
       })
       .afterClosed()
       .subscribe((result) => {
         const quantity = result?.quantity;
-        if (!quantity || quantity <= 0) {
+        const ticker = (result?.ticker ?? '').trim();
+        if (!quantity || quantity <= 0 || !ticker) {
           return;
         }
 

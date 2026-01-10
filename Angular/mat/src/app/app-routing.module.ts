@@ -26,7 +26,7 @@ import { ResendEmailConfirmationComponent } from './components/Authentification/
 import { ResetPasswordComponent } from './components/Authentification/reset-password/reset-password.component';
 import { TotalVolumeComponent } from './components/Reports/total-volume/total-volume.component';
 import { CandlesStatComponent } from './components/Reports/candles-stat/candles-stat.component';
-import { PortfolioComponent } from './components/pages/portfolio/portfolio.component';
+
 import { PortfolioOptimizationComponent } from './components/pages/optimization/optimization.component';
 
 import { LeadersReportComponent } from './components/Reports/leaders-report/leaders-report.component';
@@ -116,7 +116,7 @@ const routes: Routes = [
   
   { path: 'ShareImage', component: ImageUploaderComponent },
   { path: 'Payment', component: SubscriptionPlansComponent },
-  { path: 'Portfolio', component: PortfolioComponent },
+  { path: 'Portfolio', redirectTo: 'ServiceNews/Content/Portfolio', pathMatch: 'full' },
   { path: 'Portfolio/Optimization', component: PortfolioOptimizationComponent },
   { path: 'MultiCandles', 
     component: MultiPageComponent,

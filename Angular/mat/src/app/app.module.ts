@@ -128,7 +128,7 @@ import { PresetSelectorComponent1 } from './components/Controls/FootPrintParams/
 import { PalettePickerComponent } from './components/Controls/color-picker/color-picker.component';
 import { PaymentInstructionsDialogComponent } from './components/Controls/payment-instructions-dialog/payment-instructions-dialog.component';
 import { PortfolioComponent } from './components/pages/portfolio/portfolio.component';
-import { PortfolioTableComponent } from './components/pages/portfolio copy/portfolio-table.component';
+
 import { PortfolioOptimizationComponent } from './components/pages/optimization/optimization.component';
 
 registerLocaleData(localeRu);
@@ -307,7 +307,7 @@ export class MaterialModule {}
     PresetSelectorComponent1,
     PalettePickerComponent,
     PaymentInstructionsDialogComponent ,
-    PortfolioComponent, PortfolioTableComponent,PortfolioOptimizationComponent
+    PortfolioComponent, PortfolioOptimizationComponent
   ],
 
   bootstrap: [AppComponent],
