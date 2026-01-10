@@ -72,8 +72,8 @@ namespace StockChart.Repository.Services
                 .Where(x => x.UserId == UserId && x.PortfolioNumber == portfolio)
                 .ToListAsync();
 
-            foreach (UserGameShare share in res)
-                _dbContext.Remove(share);
+            RemoveUserGameShares(res, logOrders: false);
+            await RemoveUserGameOrdersAsync(UserId, portfolio);
 
             UserGameBallance? bal = await _dbContext.UserGameBallances
                 .Where(x => x.UserId == UserId && x.PortfolioNumber == portfolio)
@@ -86,6 +86,93 @@ namespace StockChart.Repository.Services
             }
 
             await _dbContext.SaveChangesAsync();
+        }
+
+        private void LogUserGameOrder(Guid userId, byte portfolioNumber, int quantity, decimal price, DateTime? orderTime = null)
+        {
+            if (quantity == 0)
+                return;
+
+            var order = new UserGameOrder()
+            {
+                UserId = userId,
+                PortfolioNumber = portfolioNumber,
+                Quantity = quantity,
+                Price = price,
+                OrderTime = orderTime ?? DateTime.Now
+            };
+
+            _dbContext.UserGameOrders.Add(order);
+        }
+
+        private void RemoveUserGameShares(IReadOnlyCollection<UserGameShare> shares, bool logOrders)
+        {
+            if (shares.Count == 0)
+                return;
+
+            if (logOrders)
+            {
+                foreach (var share in shares)
+                {
+                    if (share.Quantity == 0)
+                        continue;
+
+                    LogUserGameOrder(share.UserId, share.PortfolioNumber, -share.Quantity, share.Price);
+                }
+            }
+
+            _dbContext.UserGameShares.RemoveRange(shares);
+        }
+
+        private void AddUserGameShare(UserGameShare share, bool logOrders)
+        {
+            _dbContext.UserGameShares.Add(share);
+
+            if (logOrders)
+                LogUserGameOrder(share.UserId, share.PortfolioNumber, share.Quantity, share.Price);
+        }
+
+        private void ApplyOrderToShare(UserGameShare? share, Guid userId, int tickerId, byte portfolioNumber, int quantity, decimal price)
+        {
+            if (share != null)
+            {
+                if (share.Quantity + quantity != 0)
+                    share.Price = (share.Price * share.Quantity + price * quantity) / (share.Quantity + quantity);
+
+                share.Quantity += quantity;
+
+                if (share.Quantity == 0)
+                    _dbContext.UserGameShares.Remove(share);
+                else
+                    _dbContext.UserGameShares.Update(share);
+            }
+            else
+            {
+                var newShare = new UserGameShare()
+                {
+                    DictionaryId = tickerId,
+                    UserId = userId,
+                    Price = price,
+                    Quantity = quantity,
+                    PortfolioNumber = portfolioNumber
+                };
+
+                _dbContext.UserGameShares.Add(newShare);
+            }
+
+            LogUserGameOrder(userId, portfolioNumber, quantity, price);
+        }
+
+        private async Task RemoveUserGameOrdersAsync(Guid userId, byte portfolioNumber)
+        {
+            var orders = await _dbContext.UserGameOrders
+                .Where(x => x.UserId == userId && x.PortfolioNumber == portfolioNumber)
+                .ToListAsync();
+
+            if (orders.Count == 0)
+                return;
+
+            _dbContext.UserGameOrders.RemoveRange(orders);
         }
 
         public async Task CopyPortfolio(Guid UserId, byte fromportfolio, byte toportfolio)
@@ -105,7 +192,7 @@ namespace StockChart.Repository.Services
                     Quantity = share.Quantity,
                     Price = share.Price
                 };
-                _dbContext.Add(copy);
+                AddUserGameShare(copy, logOrders: true);
             }
 
             await _dbContext.SaveChangesAsync();
@@ -256,7 +343,7 @@ namespace StockChart.Repository.Services
                 .Where(x => x.UserId == userId && x.PortfolioNumber == portfolio && missingIds.Contains(x.DictionaryId))
                 .ToListAsync();
 
-            _dbContext.RemoveRange(shareEntities);
+            RemoveUserGameShares(shareEntities, logOrders: true);
 
             var refund = missingShares.Sum(x => x.Price * x.Quantity);
             var ballance = await GetBallance(userId, portfolio);
@@ -345,34 +432,13 @@ namespace StockChart.Repository.Services
                 if (quantity == 0)
                     return;
             }
-            var share = _dbContext.UserGameShares.Where(x => x.UserId == UserId && x.PortfolioNumber == PortfolioNumber && x.DictionaryId == tickerid).FirstOrDefault();
-            if (share != null)
-            {
-                if (share.Quantity + quantity !=0)
-                share.Price = (share.Price * share.Quantity + price.Value * quantity) / (share.Quantity + quantity);
-                share.Quantity += quantity;
-                if (share.Quantity == 0)
-                {
-                    _dbContext.Remove(share);
-                }
-                else
-                    _dbContext.Update(share);
-            }
-            else
-            {
-                share = new UserGameShare()
-                {
-                    DictionaryId = tickerid,
-                    UserId = UserId,
-                    Price = price.Value,
-                    Quantity = quantity,
-                    PortfolioNumber = PortfolioNumber
-                };
-                _dbContext.Add(share);
-                await _dbContext.SaveChangesAsync();
-            }
 
             var ballance = await GetBallance(UserId, PortfolioNumber);
+            var share = await _dbContext.UserGameShares
+                .Where(x => x.UserId == UserId && x.PortfolioNumber == PortfolioNumber && x.DictionaryId == tickerid)
+                .FirstOrDefaultAsync();
+
+            ApplyOrderToShare(share, UserId, tickerid, PortfolioNumber, quantity, price.Value);
             ballance.Ballance -= price.Value * quantity;
             _dbContext.Update(ballance);
 
