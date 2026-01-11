@@ -1,0 +1,27 @@
+.csv-table-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.csv-table-hint {
+  font-size: 12px;
+  color: #666;
+}
+
+.table-wrapper {
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.custom-table {
+  width: 100%;
+  min-width: 720px;
+  background: transparent;
+}
+
+.empty-state {
+  padding: 12px 4px;
+  color: #777;
+}

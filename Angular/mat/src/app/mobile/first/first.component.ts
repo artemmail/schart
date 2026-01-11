@@ -29,18 +29,28 @@ import { SettingsService } from 'src/app/service/settings.service';
 import { SettingsDialogComponent } from '../settings-dialog/settings-dialog.component';
 import { Subject, takeUntil } from 'rxjs';
 import { MaterialModule } from 'src/app/material.module';
+import { NonModalDialogComponent } from 'src/app/components/FootPrintParts/NonModal/non-modal-dialog.component';
+import { FootprintCsvTableComponent } from 'src/app/components/FootPrintParts/csv-table/footprint-csv-table.component';
 
 
 @Component({
   standalone: true,
   selector: 'app-first1',
-  imports: [CommonModule, MaterialModule, FootprintWidgetComponent],
+  imports: [
+    CommonModule,
+    MaterialModule,
+    FootprintWidgetComponent,
+    NonModalDialogComponent,
+    FootprintCsvTableComponent,
+  ],
   templateUrl: './first.component.html',
   styleUrls: ['./first.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
 export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(FootprintWidgetComponent) footPrint: FootprintWidgetComponent;
+  @ViewChild('csvDialog', { static: false })
+  csvDialog: NonModalDialogComponent;
 
 
 
@@ -49,6 +59,8 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
   isExpanded = true;
   isInited = false;
   navData: any;
+  showCsvDialog: boolean = false;
+  csvDialogTitle = 'Список свечей';
   footprintPostInit = (component: FootPrintComponent) => {
     component.applyDefaultPostInit();
   };
@@ -285,7 +297,23 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
 
   getCsv()
   {
-    this.footPrint.getCsv();
+    this.openNonModalCsvDialog();
+  }
+
+  openNonModalCsvDialog() {
+    const period = this.footPrint?.params?.period ?? this.params?.period;
+    this.csvDialogTitle = period === 0 ? 'Список сделок' : 'Список свечей';
+
+    const wasOpen = this.showCsvDialog;
+    this.showCsvDialog = false;
+    setTimeout(() => {
+      this.showCsvDialog = true;
+      setTimeout(() => {
+        if (this.csvDialog) {
+          this.csvDialog.openDialog(undefined, undefined, wasOpen);
+        }
+      });
+    });
   }
 
 

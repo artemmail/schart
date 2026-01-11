@@ -124,6 +124,17 @@
       </app-non-modal-dialog>
     </ng-container>
 
+    <ng-container *ngIf="showCsvDialog">
+      <app-non-modal-dialog
+        #csvDialog
+        [title]="csvDialogTitle"
+        dialogKey="csvList"
+        [settings]="footPrint.renderer?.FPsettings"
+      >
+        <footprint-csv-table [NP]="footPrint.renderer"></footprint-csv-table>
+      </app-non-modal-dialog>
+    </ng-container>
+
     <ng-container *ngIf="showOrderBookDialog">
       <app-non-modal-dialog
         #orderBookDialog

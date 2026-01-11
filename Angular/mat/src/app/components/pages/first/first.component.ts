@@ -27,6 +27,7 @@ import { TopOrdersComponentFP } from '../../FootPrintParts/top-orders/top-orders
 import { VolumeSearchTableComponent } from '../../FootPrintParts/volume-search-table/volume-search-table.component';
 import { FootprintOrderBookComponent } from '../../FootPrintParts/order-book/order-book.component';
 import { FootprintVirtualPortfolioComponent } from '../../FootPrintParts/virtual-portfolio/virtual-portfolio.component';
+import { FootprintCsvTableComponent } from '../../FootPrintParts/csv-table/footprint-csv-table.component';
 import { MaterialModule } from 'src/app/material.module';
 import { PortfolioService } from 'src/app/service/portfolio.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -56,6 +57,7 @@ import { Title } from '@angular/platform-browser';
     VolumeSearchTableComponent,
     FootprintOrderBookComponent,
     FootprintVirtualPortfolioComponent,
+    FootprintCsvTableComponent,
   ],
   templateUrl: './first.component.html',
   styleUrls: ['./first.component.scss'],
@@ -78,6 +80,8 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   orderBookDialog: NonModalDialogComponent;
   @ViewChild('virtualPortfolioDialog', { static: false })
   virtualPortfolioDialog: NonModalDialogComponent;
+  @ViewChild('csvDialog', { static: false })
+  csvDialog: NonModalDialogComponent;
   @ViewChild(FootprintVirtualPortfolioComponent)
   virtualPortfolioComponent?: FootprintVirtualPortfolioComponent;
 
@@ -98,6 +102,8 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   showVolumeSearchDialog: boolean = false;
   showOrderBookDialog: boolean = false;
   showVirtualPortfolioDialog: boolean = false;
+  showCsvDialog: boolean = false;
+  csvDialogTitle = 'Список свечей';
 
   constructor(
     private commonService: CommonService,
@@ -255,6 +261,7 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
     this.showVolumeSearchDialog = false;
     this.showOrderBookDialog = false;
     this.showVirtualPortfolioDialog = false;
+    this.showCsvDialog = false;
   }
 
   openNonModalSettings() {
@@ -331,6 +338,22 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
       setTimeout(() => {
         if (this.virtualPortfolioDialog) {
           this.virtualPortfolioDialog.openDialog(undefined, undefined, wasOpen);
+        }
+      });
+    });
+  }
+
+  openNonModalCsvDialog() {
+    const period = this.footPrint?.params?.period ?? this.params?.period;
+    this.csvDialogTitle = period === 0 ? 'Таблица сделок' : 'Таблица свечей';
+
+    const wasOpen = this.showCsvDialog;
+    this.showCsvDialog = false;
+    setTimeout(() => {
+      this.showCsvDialog = true;
+      setTimeout(() => {
+        if (this.csvDialog) {
+          this.csvDialog.openDialog(undefined, undefined, wasOpen);
         }
       });
     });
@@ -423,7 +446,7 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   }
 
   getCsv() {
-    this.footPrint.getCsv();
+    this.openNonModalCsvDialog();
   }
 
   openCurrentChartUrl(): void {

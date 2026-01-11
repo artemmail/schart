@@ -1,0 +1,116 @@
+<div class="csv-table-actions">
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="downloadCsv()"
+    [disabled]="!hasData"
+  >
+    Скачать CSV
+  </button>
+  <span class="csv-table-hint">
+    {{ isTrades ? 'Сделки' : 'Свечи' }}
+  </span>
+</div>
+
+<div class="table-wrapper" *ngIf="hasData; else emptyState">
+  <table
+    mat-table
+    [dataSource]="pageRows"
+    matSort
+    (matSortChange)="onSortChange($event)"
+    class="custom-table"
+  >
+    <ng-container matColumnDef="number">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Номер</th>
+      <td mat-cell *matCellDef="let row">{{ row.Number }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="time">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Дата</th>
+      <td mat-cell *matCellDef="let row">
+        {{ row.x | date:'dd.MM.yyyy HH:mm:ss' }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="price">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Цена</th>
+      <td mat-cell *matCellDef="let row">{{ row.o }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="open">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Open</th>
+      <td mat-cell *matCellDef="let row">{{ row.o }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="high">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>High</th>
+      <td mat-cell *matCellDef="let row">{{ row.h }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="low">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Low</th>
+      <td mat-cell *matCellDef="let row">{{ row.l }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="close">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Close</th>
+      <td mat-cell *matCellDef="let row">{{ row.c }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="quantity">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Кол-во</th>
+      <td mat-cell *matCellDef="let row">{{ row.q }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="volume">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Объем</th>
+      <td mat-cell *matCellDef="let row">{{ row.v }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="bidVolume">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Bid vol</th>
+      <td mat-cell *matCellDef="let row">{{ row.bv }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="direction">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ directionByZero ? 'Направление' : 'Направление' }}
+      </th>
+      <td mat-cell *matCellDef="let row">
+        {{
+          directionByZero
+            ? row.bq === 0
+              ? 'Продажа'
+              : 'Покупка'
+            : row.bq > 0
+            ? 'Покупка'
+            : row.bq <= 0
+            ? 'Продажа'
+            : '—'
+        }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="openInterest">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>OI</th>
+      <td mat-cell *matCellDef="let row">{{ row.oi }}</td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+  </table>
+</div>
+
+<ng-template #emptyState>
+  <div class="empty-state">Нет данных для отображения</div>
+</ng-template>
+
+<mat-paginator
+  *ngIf="hasData"
+  [length]="totalItems"
+  [pageIndex]="pageIndex"
+  [pageSize]="pageSize"
+  [pageSizeOptions]="pageSizeOptions"
+  showFirstLastButtons
+  (page)="onPage($event)"
+></mat-paginator>
