@@ -27,8 +27,8 @@ export class FootprintCsvTableComponent
   pageRows: ColumnEx[] = [];
   totalItems = 0;
   pageIndex = 0;
-  pageSize = 50;
-  pageSizeOptions = [20, 50, 100];
+  pageSize = 15;
+  pageSizeOptions = [10, 15, 20, 50, 100];
   displayedColumns: string[] = [];
   isTrades = false;
   directionByZero = false;
