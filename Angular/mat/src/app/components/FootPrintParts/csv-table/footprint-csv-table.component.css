@@ -25,3 +25,13 @@
   padding: 12px 4px;
   color: #777;
 }
+
+.dir-buy {
+  color: #1b8f3a;
+  font-weight: 600;
+}
+
+.dir-sell {
+  color: #c62828;
+  font-weight: 600;
+}

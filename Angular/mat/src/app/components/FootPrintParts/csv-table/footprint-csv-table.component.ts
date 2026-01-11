@@ -32,6 +32,7 @@ export class FootprintCsvTableComponent
   displayedColumns: string[] = [];
   isTrades = false;
   directionByZero = false;
+  tradeListMode = false;
   hasData = false;
   private allRows: ColumnEx[] = [];
   private sortedRows: ColumnEx[] | null = null;
@@ -82,6 +83,7 @@ export class FootprintCsvTableComponent
     if (!params || !data.length) {
       this.isTrades = false;
       this.directionByZero = false;
+      this.tradeListMode = false;
       this.hasData = false;
       this.displayedColumns = [...this.candleColumns];
       this.allRows = [];
@@ -92,12 +94,13 @@ export class FootprintCsvTableComponent
       return;
     }
 
-    this.directionByZero = params.period === 3;
-    this.isTrades = params.period === 0 || this.directionByZero;
+    this.tradeListMode = params.period === 3;
+    this.directionByZero = params.period === 0 || this.tradeListMode;
+    this.isTrades = params.period === 0 || this.tradeListMode;
     const hasOpenInterest =
       (this.NP?.data?.maxOI ?? 0) !== 0 ||
       (this.NP?.data?.minOI ?? 0) !== 0;
-    const columns = this.directionByZero
+    const columns = this.tradeListMode
       ? this.tradeListColumns
       : this.isTrades
       ? this.tradeColumns
