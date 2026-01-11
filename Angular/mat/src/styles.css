@@ -223,6 +223,7 @@ mat-cell mat-table .mat-header-row {
 
 .custom-table {
   width: 100%;
+  background: transparent;
 }
 
 .custom-table mat-header-cell,
