@@ -7,14 +7,8 @@ import { drob } from 'src/app/service/FootPrint/utils';
 
 interface DeltaPoint {
   index: number;
-  value: number; // теперь это доходность в %, а не "дельта*100"
+  value: number;
 }
-
-type RawPoint = {
-  index: number;
-  p1: number;
-  p2: number;
-};
 
 export class viewDeltaRangeSet extends canvasPart {
   constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
@@ -22,41 +16,23 @@ export class viewDeltaRangeSet extends canvasPart {
   }
 
   private buildDeltaSeries(): DeltaPoint[] {
-  const rangeSetLines = this.parent.data?.rangeSetLines ?? [];
+    const rangeSetLines = this.parent.data?.rangeSetLines ?? [];
 
-  const raw = rangeSetLines
-    .map((line: any, idx: number) => {
-      // ВАЖНО: сначала берем "Price*" (там уже SBER*100 + ...),
-      // а normalized используем только как fallback.
-      const p1 = Number(line?.Price1 ?? line?.Price1normalized);
-      const p2 = Number(line?.Price2 ?? line?.Price2normalized);
+    return rangeSetLines
+      .map((line: any, idx: number) => {
+        const price1 = Number(line?.Price1normalized ?? line?.Price1);
+        const price2 = Number(line?.Price2normalized ?? line?.Price2);
 
-      if (!Number.isFinite(p1) || !Number.isFinite(p2)) return null;
+        if (!Number.isFinite(price1) || !Number.isFinite(price2)) {
+          return null;
+        }
 
-      return {
-        index: Number.isFinite(line?.columnIndex) ? Number(line.columnIndex) : idx,
-        p1,
-        p2,
-      };
-    })
-    .filter((x: any) => x !== null)
-    .sort((a: any, b: any) => a.index - b.index);
-
-  if (!raw.length) return [];
-
-  const e1 = raw[0].p1;
-  const e2 = raw[0].p2;
-
-  let base = Math.abs(e1) + Math.abs(e2);
-  if (!Number.isFinite(base) || base < 1e-12) base = 1;
-
-  return raw.map((pt: any) => {
-    const pnl = (pt.p1 - e1) + (e2 - pt.p2);
-    const retPct = (pnl / base) * 100;
-    return { index: pt.index, value: retPct } as DeltaPoint;
-  });
-}
-
+        const delta = (price1 - price2) * 100;
+        return { index: line?.columnIndex ?? idx, value: delta } as DeltaPoint;
+      })
+      .filter((point: DeltaPoint | null): point is DeltaPoint => point !== null)
+      .sort((a, b) => a.index - b.index);
+  }
 
   draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
     const ctx = this.parent.ctx;
@@ -74,12 +50,10 @@ export class viewDeltaRangeSet extends canvasPart {
     min -= padding;
 
     ctx.restore();
-
     const formatPercent = (value: number) => {
       const normalized = Math.abs(value) < 1e-9 ? 0 : value;
       return `${drob(normalized, 2)}%`;
     };
-
     this.DrawZebra(ctx, view.x, view.y, view.w, view.h, min, max, formatPercent);
     this.drawVertical();
 
@@ -89,13 +63,15 @@ export class viewDeltaRangeSet extends canvasPart {
     ctx.clip();
 
     const yMatrix = mtx.reassignY({ y1: min, y2: max }, { y1: view.y + view.h, y2: view.y });
-
     const drawLine = () => {
       ctx.beginPath();
       series.forEach((point, idx) => {
         const pos = yMatrix.applyToPoint(point.index + 0.5, point.value);
-        if (idx === 0) ctx.moveTo(pos.x, pos.y);
-        else ctx.lineTo(pos.x, pos.y);
+        if (idx === 0) {
+          ctx.moveTo(pos.x, pos.y);
+        } else {
+          ctx.lineTo(pos.x, pos.y);
+        }
       });
       ctx.stroke();
     };
