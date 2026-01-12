@@ -94,10 +94,43 @@
     </button>
   
     <mat-menu #footp="matMenu">
+
+      <button mat-menu-item [matMenuTriggerFor]="favoritesMenu">
+        <mat-icon>star</mat-icon>
+        Избранное
+      </button>
+
+      <button mat-menu-item [matMenuTriggerFor]="demoTradesMenu">
+        <mat-icon>trending_up</mat-icon>
+        Демо торги
+      </button>
+
+            <button mat-menu-item (click)="openCurrentChartUrl()">
+        <mat-icon>link</mat-icon>
+        URL на текущий график
+      </button>
+
+
       <button mat-menu-item (click)="openNonModalVolumeSearch()">
         <mat-icon>search</mat-icon>
         <p>Volume Search</p>
       </button>
+      <button mat-menu-item (click)="openNonModalTopOrders()">
+        <mat-icon>attach_money</mat-icon>
+        Крупнейшие сделки
+      </button>
+      <button mat-menu-item (click)="getCsv()">
+        <mat-icon>file_download</mat-icon>
+        Таблица сделок
+      </button>
+      <button mat-menu-item (click)="openNonModalOrderBook()">
+        <mat-icon>view_list</mat-icon>
+        Биржевой стакан
+      </button>
+
+
+
+
       <button mat-menu-item (click)="openNonModalSettings()">
         <mat-icon>visibility</mat-icon>
         <p>Визуальные настройки</p>
@@ -106,34 +139,15 @@
         <mat-icon>edit</mat-icon>
         Пометки на графике
       </button>
-      <button mat-menu-item (click)="openNonModalTopOrders()">
-        <mat-icon>attach_money</mat-icon>
-        Крупнейшие сделки
-      </button>
-      <button mat-menu-item (click)="openNonModalOrderBook()">
-        <mat-icon>view_list</mat-icon>
-        Биржевой стакан
-      </button>
-      <button mat-menu-item [matMenuTriggerFor]="demoTradesMenu">
-        <mat-icon>trending_up</mat-icon>
-        Демо торги
-      </button>
+  
+
       <button mat-menu-item (click)="uploadImage()">
         <mat-icon>camera_alt</mat-icon>
         Сделать скриншот
       </button>
-      <button mat-menu-item (click)="getCsv()">
-        <mat-icon>file_download</mat-icon>
-        Таблица сделок
-      </button>
-      <button mat-menu-item (click)="openCurrentChartUrl()">
-        <mat-icon>link</mat-icon>
-        URL на текущий график
-      </button>
-      <button mat-menu-item [matMenuTriggerFor]="favoritesMenu">
-        <mat-icon>star</mat-icon>
-        Избранное
-      </button>
+
+
+      
     </mat-menu>
 
     <mat-menu #favoritesMenu="matMenu" panelClass="favorites-menu-panel">
