@@ -31,6 +31,8 @@ import { FootprintCsvTableComponent } from '../../FootPrintParts/csv-table/footp
 import { MaterialModule } from 'src/app/material.module';
 import { PortfolioService } from 'src/app/service/portfolio.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { FootprintFavoritePayload } from 'src/app/service/FootPrint/Favorites/footprint-favorites.service';
+import { FootprintFavoritesHandlerService } from 'src/app/service/FootPrint/Favorites/footprint-favorites-handler.service';
 import {
   PortfolioCompareDialogComponent,
   PortfolioCompareDialogResult,
@@ -116,7 +118,8 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
     private cdr: ChangeDetectorRef,
     private titleService: Title,
     private portfolioService: PortfolioService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private favoritesHandler: FootprintFavoritesHandlerService
   ) {
     titleService.setTitle('Кластерный график');
   }
@@ -445,6 +448,27 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
     await this.dialogService.saveImage(this.footPrint.canvas);
   }
 
+  getFootprintFavoritePayload(): FootprintFavoritePayload | null {
+    return this.favoritesHandler.buildPayload(
+      this.footPrintParamsComponent,
+      this.footPrint
+    );
+  }
+
+  applyFootprintFavorite(payload: FootprintFavoritePayload): void {
+    const nextParams = this.favoritesHandler.applyFavorite(payload, {
+      params: this.params,
+      footPrintParamsComponent: this.footPrintParamsComponent,
+      footPrint: this.footPrint,
+    });
+    if (!nextParams) {
+      return;
+    }
+
+    this.params = nextParams;
+    this.load();
+  }
+
   getCsv() {
     this.openNonModalCsvDialog();
   }
@@ -494,6 +518,3 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
     window.open(url, '_blank');
   }
 }
-
-
-

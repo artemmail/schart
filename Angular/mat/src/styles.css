@@ -21,6 +21,22 @@ body {
   background: var(--mat-sys-surface-container, #fff);
 }
 
+/* FootPrint favorites menu alignment. */
+.favorites-menu-panel {
+  min-width: 240px;
+}
+
+.favorites-menu-panel .mat-mdc-menu-item.favorite-item {
+  width: 100%;
+  box-sizing: border-box;
+  justify-content: space-between;
+  padding-right: 4px;
+}
+
+.favorites-menu-panel .mat-mdc-menu-item.favorite-item .mat-icon {
+  margin-right: 0;
+}
+
 /* Restore dialog container styling (surface + elevation) after the token migration. */
 .mat-mdc-dialog-surface {
   box-shadow: var(--mat-sys-level3, 0 8px 16px rgba(0, 0, 0, 0.24));

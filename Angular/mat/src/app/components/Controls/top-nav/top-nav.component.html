@@ -130,6 +130,45 @@
         <mat-icon>link</mat-icon>
         URL на текущий график
       </button>
+      <button mat-menu-item [matMenuTriggerFor]="favoritesMenu">
+        <mat-icon>star</mat-icon>
+        Избранное
+      </button>
+    </mat-menu>
+
+    <mat-menu #favoritesMenu="matMenu" panelClass="favorites-menu-panel">
+      <button mat-menu-item (click)="addCurrentFavorite()">
+        <mat-icon>star_border</mat-icon>
+        Добавить текущее
+      </button>
+      <mat-divider></mat-divider>
+      <button mat-menu-item disabled *ngIf="favorites.length === 0">
+        Нет избранного
+      </button>
+      <div
+        mat-menu-item
+        class="favorite-item"
+        *ngFor="let favorite of favorites"
+        (click)="applyFavorite(favorite)"
+      >
+        <span class="favorite-name">{{ favorite.name }}</span>
+        <span class="favorite-actions">
+          <mat-icon
+            class="favorite-action"
+            (click)="renameFavorite(favorite, $event)"
+            aria-label="Переименовать"
+          >
+            edit
+          </mat-icon>
+          <mat-icon
+            class="favorite-action"
+            (click)="deleteFavorite(favorite, $event)"
+            aria-label="Удалить"
+          >
+            delete
+          </mat-icon>
+        </span>
+      </div>
     </mat-menu>
 
     <mat-menu #demoTradesMenu="matMenu">

@@ -9,6 +9,19 @@ import { NavService } from 'src/app/service/nav.service';
 import { MaterialModule } from 'src/app/material.module';
 import { RouterModule } from '@angular/router';
 import { OpenSupportDialogDirective } from 'src/app/directives/open-support-dialog.directive';
+import { MatDialog } from '@angular/material/dialog';
+import {
+  FootprintFavorite,
+  FootprintFavoritePayload,
+  FootprintFavoritesService,
+} from 'src/app/service/FootPrint/Favorites/footprint-favorites.service';
+import { FavoriteRenameDialogComponent } from 'src/app/components/Dialogs/favorite-rename-dialog/favorite-rename-dialog.component';
+import { FootPrintParameters } from 'src/app/models/Params';
+
+interface FootprintFavoritesHost {
+  getFootprintFavoritePayload: () => FootprintFavoritePayload | null;
+  applyFootprintFavorite: (payload: FootprintFavoritePayload) => void;
+}
 
 // Определяем тип, включающий только имена методов
 type FirstComponentMethods =
@@ -42,6 +55,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
   isFootPrintSelected = false;
   isDrawerOpened = true;
   isAdmin: boolean = false; // Добавлено свойство для проверки администратора
+  favorites: FootprintFavorite[] = [];
 
   private destroy$ = new Subject<void>();
 
@@ -50,7 +64,9 @@ export class TopNavComponent implements OnInit, OnDestroy {
     private authEventService: AuthEventService,
     public navService: NavService,
     private router: Router,
-    private activatedRoute: ActivatedRoute
+    private activatedRoute: ActivatedRoute,
+    private favoritesService: FootprintFavoritesService,
+    private dialog: MatDialog
   ) {
     this.setupRouterEvents();
   }
@@ -58,6 +74,12 @@ export class TopNavComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.initializeAuthState();
     this.subscribeToAuthStateChanges();
+    this.favoritesService.setUserKey(this.user?.Id);
+    this.favoritesService.favorites$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((favorites) => {
+        this.favorites = favorites;
+      });
 
     // Подписываемся на состояние панели навигации
     this.navService.isOpenedObs$
@@ -112,6 +134,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
         } else {
           this.user = null;
           this.isAdmin = false; // Сбрасываем флаг администратора при выходе
+          this.favoritesService.setUserKey(null);
         }
       });
   }
@@ -123,6 +146,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
       .subscribe((user) => {
         this.user = user;
         this.isAdmin = this.authService.isAdmin(); // Проверяем, является ли пользователь администратором
+        this.favoritesService.setUserKey(this.user?.Id);
       });
   }
 
@@ -198,5 +222,102 @@ export class TopNavComponent implements OnInit, OnDestroy {
 
   openCurrentChartUrl(): void {
     this.executeFirstComponentMethod('openCurrentChartUrl');
+  }
+
+  addCurrentFavorite(): void {
+    const payload = this.getFootprintFavoritePayload();
+    if (!payload) {
+      return;
+    }
+
+    const name = this.buildFavoriteName(payload.params);
+    this.favoritesService.addFavorite(name, payload);
+  }
+
+  applyFavorite(favorite: FootprintFavorite): void {
+    const host = this.getFootprintFavoritesHost();
+    if (!host) {
+      return;
+    }
+
+    host.applyFootprintFavorite({
+      params: favorite.params,
+      presetIndex: favorite.presetIndex ?? null,
+    });
+  }
+
+  renameFavorite(favorite: FootprintFavorite, event: MouseEvent): void {
+    event.stopPropagation();
+    event.preventDefault();
+
+    this.dialog
+      .open(FavoriteRenameDialogComponent, {
+        width: '360px',
+        data: {
+          name: favorite.name,
+          title: 'Переименовать избранное',
+        },
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (typeof result === 'string' && result.trim()) {
+          this.favoritesService.renameFavorite(favorite.id, result);
+        }
+      });
+  }
+
+  deleteFavorite(favorite: FootprintFavorite, event: MouseEvent): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.favoritesService.deleteFavorite(favorite.id);
+  }
+
+  private getFootprintFavoritePayload(): FootprintFavoritePayload | null {
+    const host = this.getFootprintFavoritesHost();
+    return host?.getFootprintFavoritePayload?.() ?? null;
+  }
+
+  private getFootprintFavoritesHost(): FootprintFavoritesHost | null {
+    if (!this.isFootPrintSelected || !this.outlet) {
+      return null;
+    }
+
+    const instance = this.outlet.component as Partial<FootprintFavoritesHost>;
+    if (
+      instance &&
+      typeof instance.getFootprintFavoritePayload === 'function' &&
+      typeof instance.applyFootprintFavorite === 'function'
+    ) {
+      return instance as FootprintFavoritesHost;
+    }
+
+    return null;
+  }
+
+  private buildFavoriteName(params: FootPrintParameters): string {
+    const parts: string[] = [];
+    if (params.type === 'arbitrage') {
+      const leg1 = params.ticker1 ?? '';
+      const leg2 = params.ticker2 ?? '';
+      const pair = [leg1, leg2].filter(Boolean).join(' / ');
+      if (pair) {
+        parts.push(pair);
+      }
+    } else if (params.ticker) {
+      parts.push(params.ticker);
+    }
+
+    if (params.rperiod) {
+      parts.push(params.rperiod);
+    } else if (params.period !== undefined && params.period !== null) {
+      parts.push(`P${params.period}`);
+    }
+
+    const base = parts.filter(Boolean).join(' - ');
+    if (base) {
+      return base;
+    }
+
+    return `Избранное ${this.favorites.length + 1}`;
   }
 }
