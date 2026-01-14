@@ -29,7 +29,8 @@ export class HeaderComponent {
   }
 
   updateSettingsButton(url: string) {
-    this.showSettingsButton = url.includes('FootPrint'); // Show settings button on FootPrint page
+    this.showSettingsButton =
+      url.includes('FootPrint') || url.includes('CandlestickChart');
   }
 
   openSettings() {

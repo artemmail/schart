@@ -103,7 +103,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$)
       )
       .subscribe(() => {
-        this.isFootPrintSelected = this.router.url.includes('/FootPrint');
+        this.isFootPrintSelected = this.isFootprintRoute(this.router.url);
 
         if (this.isFootPrintSelected) {
           // Если боковая панель не открыта, откроем её
@@ -301,6 +301,10 @@ export class TopNavComponent implements OnInit, OnDestroy {
     }
 
     return null;
+  }
+
+  private isFootprintRoute(url: string): boolean {
+    return url.includes('/FootPrint') || url.includes('/CandlestickChart');
   }
 
   private buildFavoriteName(params: FootPrintParameters): string {
