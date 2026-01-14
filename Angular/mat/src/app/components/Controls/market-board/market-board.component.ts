@@ -5,7 +5,11 @@ import {
   ElementRef,
   AfterViewInit,
   ChangeDetectorRef,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  ViewChild,
+  ViewContainerRef,
+  ComponentRef,
+  Injector
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReportsService, MarketMapItem, MarketMapParams, MarketMapSquare } from 'src/app/service/reports.service';
@@ -13,7 +17,8 @@ import { Subscription, interval } from 'rxjs';
 import { switchMap, startWith } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { MoneyToStrPipe } from 'src/app/pipes/money-to-str.pipe';
-import { drob } from 'src/app/service/FootPrint/utils';
+import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
+import { FootprintWidgetComponent } from 'src/app/components/footprint/components/footprint-widget/footprint-widget.component';
 
 @Component({
   standalone: true,
@@ -36,12 +41,35 @@ export class MarketBoardComponent implements OnDestroy, AfterViewInit {
   private intersectionObserver?: IntersectionObserver;
   private readonly upArrow = '\u25B2';
   private readonly downArrow = '\u25BC';
+  private readonly tooltipGap = 6;
+  private readonly tooltipLargeWidth = 500;
+  private readonly tooltipLargeHeight = 400;
+  private readonly tooltipSmallWidth = 220;
+  private readonly tooltipSmallHeight = 80;
+  private tooltipItem: MarketMapSquare | null = null;
+  private tooltipCmp?: ComponentRef<FootprintWidgetComponent>;
+  private showTimer: any = null;
+  private hideTimer: any = null;
+
+  tooltipVisible = false;
+  tooltipLeft = 0;
+  tooltipTop = 0;
+  tooltipWidth = this.tooltipLargeWidth;
+  tooltipHeight = this.tooltipLargeHeight;
+  tooltipTextHtml = '';
+
+  @ViewChild('tooltipHost', { read: ViewContainerRef })
+  tooltipHost?: ViewContainerRef;
+
+  @ViewChild('board', { static: true })
+  boardRef!: ElementRef<HTMLElement>;
 
   constructor(
     private reportsService: ReportsService,
     private router: Router,
     private el: ElementRef<HTMLElement>,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private injector: Injector
   ) {}
 
   ngAfterViewInit(): void {
@@ -64,6 +92,7 @@ export class MarketBoardComponent implements OnDestroy, AfterViewInit {
   ngOnDestroy(): void {
     this.stopDataSubscription();
     this.intersectionObserver?.disconnect();
+    this.hideTooltip();
   }
 
   public updateParams(params: MarketMapParams): void {
@@ -116,6 +145,43 @@ export class MarketBoardComponent implements OnDestroy, AfterViewInit {
     }
   }
 
+  onTickerEnter(event: MouseEvent, item: MarketMapSquare): void {
+    this.tooltipItem = item;
+    this.tooltipWidth = this.hasFootprint(item) ? this.tooltipLargeWidth : this.tooltipSmallWidth;
+    this.tooltipHeight = this.hasFootprint(item) ? this.tooltipLargeHeight : this.tooltipSmallHeight;
+
+    if (this.hideTimer) {
+      clearTimeout(this.hideTimer);
+      this.hideTimer = null;
+    }
+
+    if (this.showTimer) {
+      clearTimeout(this.showTimer);
+    }
+
+    const target = event.currentTarget as HTMLElement | null;
+    if (!target) return;
+
+    this.showTimer = setTimeout(() => {
+      this.showTooltipAt(target);
+    }, 200);
+  }
+
+  onTickerLeave(): void {
+    if (this.showTimer) {
+      clearTimeout(this.showTimer);
+      this.showTimer = null;
+    }
+    if (this.hideTimer) {
+      clearTimeout(this.hideTimer);
+    }
+    this.hideTimer = setTimeout(() => this.hideTooltip(), 100);
+  }
+
+  onBoardLeave(): void {
+    this.hideTooltip();
+  }
+
   getTickers(sector: MarketMapItem): string {
     if (!sector || !sector.items) return '';
     return sector.items.map((item) => item.ticker).filter(Boolean).join(',');
@@ -145,4 +211,109 @@ export class MarketBoardComponent implements OnDestroy, AfterViewInit {
   trackByTicker(index: number, item: MarketMapSquare): string | number {
     return item?.ticker ?? index;
   }
+
+  private showTooltipAt(target: HTMLElement): void {
+    const host = this.boardRef?.nativeElement ?? this.el.nativeElement;
+    const hostRect = host.getBoundingClientRect();
+    const tileRect = target.getBoundingClientRect();
+    const gap = this.tooltipGap;
+
+    const spaceRight = hostRect.right - tileRect.right;
+    const spaceLeft = tileRect.left - hostRect.left;
+    const rightLeft = tileRect.right - hostRect.left + gap;
+    const leftLeft = tileRect.left - hostRect.left - this.tooltipWidth - gap;
+
+    let left: number;
+    if (spaceRight >= this.tooltipWidth + gap) {
+      left = rightLeft;
+    } else if (spaceLeft >= this.tooltipWidth + gap) {
+      left = leftLeft;
+    } else {
+      left = spaceRight >= spaceLeft ? rightLeft : leftLeft;
+      left = Math.min(left, hostRect.width - this.tooltipWidth - gap);
+      left = Math.max(left, gap);
+    }
+
+    let top = tileRect.top - hostRect.top;
+    top = Math.min(top, hostRect.height - this.tooltipHeight - gap);
+    top = Math.max(top, gap);
+
+    this.tooltipLeft = left;
+    this.tooltipTop = top;
+
+    this.renderTooltipContent();
+    this.tooltipVisible = true;
+    this.cdr.markForCheck();
+  }
+
+  private renderTooltipContent(): void {
+    this.tooltipHost?.clear();
+    this.tooltipCmp?.destroy();
+    this.tooltipCmp = undefined;
+
+    const item = this.tooltipItem;
+    if (!item) {
+      this.tooltipTextHtml = '';
+      return;
+    }
+
+    if (this.hasFootprint(item)) {
+      const cmp = this.tooltipHost?.createComponent(FootprintWidgetComponent, {
+        injector: this.injector
+      });
+      if (cmp) {
+        cmp.instance.caption = item.name1 ?? item.name ?? item.ticker;
+        cmp.instance.minimode = true;
+        cmp.instance.presetIndex = 2326;
+        cmp.instance.params = {
+          ticker: item.ticker,
+          period: 60,
+          priceStep: 0.001,
+          candlesOnly: true
+        };
+        cmp.changeDetectorRef.detectChanges();
+        this.tooltipCmp = cmp;
+      }
+      this.tooltipTextHtml = '';
+      return;
+    }
+
+    const vol = MoneyToStr(item.value);
+    this.tooltipTextHtml =
+      `<p><b>${escapeHtml(item.name ?? item.ticker ?? '')}</b></p>` +
+      `<p><b>Объем:</b> ${escapeHtml(vol ?? '')}</p>`;
+  }
+
+  private hideTooltip(): void {
+    if (this.showTimer) {
+      clearTimeout(this.showTimer);
+      this.showTimer = null;
+    }
+    if (this.hideTimer) {
+      clearTimeout(this.hideTimer);
+      this.hideTimer = null;
+    }
+
+    this.tooltipVisible = false;
+    this.tooltipItem = null;
+    this.tooltipTextHtml = '';
+    this.tooltipHost?.clear();
+    this.tooltipCmp?.destroy();
+    this.tooltipCmp = undefined;
+    this.cdr.markForCheck();
+  }
+
+  private hasFootprint(item: MarketMapSquare | null): boolean {
+    if (!item) return false;
+    return item.cls !== null && item.cls !== undefined;
+  }
+}
+
+function escapeHtml(s: string): string {
+  return String(s)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
