@@ -74,6 +74,7 @@ builder.Services.AddScoped<IClusterRepository, ClusterRepository>();
 builder.Services.AddScoped<IPaymentsRepository, PaymentsRepository>();
 builder.Services.AddScoped<IUsersRepository, UsersRepository>();
 builder.Services.AddScoped<ISettingsRepository, SettingsRepository>();
+builder.Services.AddScoped<IFootprintFavoritesRepository, FootprintFavoritesRepository>();
 
 builder.Services.AddScoped<IReportsRepository, ReportsRepository>();
 builder.Services.AddScoped<IBillingRepository, BillingRepository>();
@@ -238,12 +239,12 @@ Func<HttpContext, bool> IsProxyActive = ctx =>
 // 2) Логика для SPA (Angular): только если прокси не активен и домен НЕ ru-ticker.com
 Func<HttpContext, bool> ShouldUseAngular = ctx =>
     !IsProxyActive(ctx) &&
-    !ctx.Request.Host.Host.Contains("stock-charts.ru");
+    !ctx.Request.Host.Host.Contains("1stock-charts.ru");
 
 // 3) Логика для Razor Pages: только если прокси не активен и домен ru-ticker.com
 Func<HttpContext, bool> ShouldUseRazor = ctx =>
      IsProxyActive(ctx) ||
-     ctx.Request.Host.Host.Contains("stock-charts.ru");
+     ctx.Request.Host.Host.Contains("1stock-charts.ru");
 
 //app.MapRazorPages();
 
