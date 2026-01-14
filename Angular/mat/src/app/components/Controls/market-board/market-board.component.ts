@@ -1,25 +1,29 @@
 import {
   Component,
-  OnInit,
   OnDestroy,
   Input,
   ElementRef,
   AfterViewInit,
   ChangeDetectorRef,
-  Injector
+  ChangeDetectionStrategy
 } from '@angular/core';
-import { ReportsService, MarketMapParams } from 'src/app/service/reports.service';
+import { CommonModule } from '@angular/common';
+import { ReportsService, MarketMapItem, MarketMapParams, MarketMapSquare } from 'src/app/service/reports.service';
 import { Subscription, interval } from 'rxjs';
 import { switchMap, startWith } from 'rxjs/operators';
 import { Router } from '@angular/router';
+import { MoneyToStrPipe } from 'src/app/pipes/money-to-str.pipe';
+import { drob } from 'src/app/service/FootPrint/utils';
 
 @Component({
   standalone: true,
   selector: 'app-market-board',
   templateUrl: './market-board.component.html',
-  styleUrls: ['./market-board.component.css']
+  styleUrls: ['./market-board.component.css'],
+  imports: [CommonModule, MoneyToStrPipe],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class MarketBoardComponent implements OnInit, OnDestroy, AfterViewInit {
+export class MarketBoardComponent implements OnDestroy, AfterViewInit {
   @Input() startDate?: Date;
   @Input() endDate?: Date;
   @Input() categories?: string;
@@ -27,50 +31,42 @@ export class MarketBoardComponent implements OnInit, OnDestroy, AfterViewInit {
   @Input() top: number = 50;
   @Input() market: number = 0;
 
-  boardData: any[] = [];
-  private refreshSubscription: Subscription;
-  private intersectionObserver: IntersectionObserver;
+  sectors: MarketMapItem[] = [];
+  private refreshSubscription?: Subscription;
+  private intersectionObserver?: IntersectionObserver;
+  private readonly upArrow = '\u25B2';
+  private readonly downArrow = '\u25BC';
 
   constructor(
     private reportsService: ReportsService,
     private router: Router,
-    private el: ElementRef,
-    private cdr: ChangeDetectorRef,
-    private injector: Injector
+    private el: ElementRef<HTMLElement>,
+    private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit(): void {
-    this.loadBoardData();
-  }
+  ngAfterViewInit(): void {
+    const host = this.el.nativeElement;
+    this.intersectionObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          this.startDataSubscription();
+        } else {
+          this.stopDataSubscription();
+        }
+      }
+    }, { threshold: 0.1 });
 
-  ngAfterViewInit() {
-    this.intersectionObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            this.startDataSubscription();
-          } else {
-            this.stopDataSubscription();
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
-
-    this.intersectionObserver.observe(this.el.nativeElement);
+    this.intersectionObserver.observe(host);
+    this.startDataSubscription();
     this.cdr.detectChanges();
   }
 
   ngOnDestroy(): void {
     this.stopDataSubscription();
-    if (this.intersectionObserver) {
-      this.intersectionObserver.disconnect();
-    }
+    this.intersectionObserver?.disconnect();
   }
 
-  // Новый метод для обновления параметров и принудительной перезагрузки данных
   public updateParams(params: MarketMapParams): void {
-    // Обновляем входные параметры
     this.startDate = params.startDate ?? this.startDate;
     this.endDate = params.endDate ?? this.endDate;
     this.categories = params.categories ?? this.categories;
@@ -78,108 +74,75 @@ export class MarketBoardComponent implements OnInit, OnDestroy, AfterViewInit {
     this.top = params.top ?? this.top;
     this.market = params.market ?? this.market;
 
-    // Останавливаем текущее автообновление
     this.stopDataSubscription();
-    // Перезагружаем данные сразу
-    this.loadBoardData();
-    // Если компонент видим, возобновим автообновление
-    if (this.isIntersecting()) {
-      this.startDataSubscription();
-    }
+    this.startDataSubscription();
   }
 
-  // Метод для проверки видимости компонента
-  private isIntersecting(): boolean {
-    // Так как IntersectionObserver уже используется, можно
-    // проверить напрямую, но для простоты вернем true.
-    // При необходимости можно хранить состояние visibility
-    // в обработчике IntersectionObserver.
-    return true;
-  }
-
-  private startDataSubscription() {
+  private startDataSubscription(): void {
     if (this.refreshSubscription && !this.refreshSubscription.closed) {
       return;
     }
 
-    this.refreshSubscription = interval(5000).pipe(
-      startWith(0),
-      switchMap(() => this.reportsService.callGetMarketMap({
-        startDate: this.startDate,
-        endDate: this.endDate,
-        categories: this.categories,
-        rperiod: this.rperiod,
-        top: this.top,
-        market: this.market
-      }))
-    ).subscribe(data => {
-      this.boardData = data || [];
-      this.cdr.detectChanges();
-    });
+    this.refreshSubscription = interval(5000)
+      .pipe(
+        startWith(0),
+        switchMap(() => this.reportsService.callGetMarketMap({
+          startDate: this.startDate,
+          endDate: this.endDate,
+          categories: this.categories,
+          rperiod: this.rperiod,
+          top: this.top,
+          market: this.market
+        }))
+      )
+      .subscribe((data) => {
+        this.sectors = data?.[0]?.items ?? [];
+        this.cdr.markForCheck();
+      });
   }
 
-  private stopDataSubscription() {
-    if (this.refreshSubscription) {
-      this.refreshSubscription.unsubscribe();
-    }
-  }
-
-  private loadBoardData() {
-    if (!this.categories || this.categories.trim() === '') {
-      // Если нет категорий, очищаем данные
-      this.boardData = [];
-      this.cdr.detectChanges();
-      return;
-    }
-
-    this.reportsService.callGetMarketMap({
-      startDate: this.startDate,
-      endDate: this.endDate,
-      categories: this.categories,
-      rperiod: this.rperiod,
-      top: this.top,
-      market: this.market
-    }).subscribe(data => {
-      this.boardData = data || [];
-      this.cdr.detectChanges();
-    }, error => {
-      console.error('Ошибка загрузки данных для доски:', error);
-      this.boardData = [];
-      this.cdr.detectChanges();
-    });
+  private stopDataSubscription(): void {
+    this.refreshSubscription?.unsubscribe();
+    this.refreshSubscription = undefined;
   }
 
   navigateToFootPrint(ticker: string): void {
     this.router.navigate(['/FootPrint'], { queryParams: { ticker } });
   }
 
-  navigateToMultiCandles(tickers: string): void {
-    this.router.navigate(['/MultiCandles'], { queryParams: { tickers: tickers, period: 15 } });
-  }
-
-  formatPercent(percent: number): string {
-    if (percent == null) return '';
-    const p = percent.toFixed(2);
-    if (percent < 0) return `▼${p}%`;
-    if (percent > 0) return `▲${p}%`;
-    return `${p}%`;
-  }
-
-  moneyToStr(val: number): string {
-    return val != null ? val.toLocaleString('ru-RU', { minimumFractionDigits: 0 }) : '';
-  }
-
-  onTickerClick(item: any) {
+  onTickerClick(item: MarketMapSquare): void {
     if (item && item.ticker) {
       this.navigateToFootPrint(item.ticker);
-    } else if (item && item.items && item.items.length > 0) {
-      const tickers = item.items.map((i: any) => i.ticker).join(',');
-      this.navigateToMultiCandles(tickers);
     }
   }
 
-  getTickers(sector: any): string {
+  getTickers(sector: MarketMapItem): string {
     if (!sector || !sector.items) return '';
-    return sector.items.map((i: any) => i.ticker).join(',');
+    return sector.items.map((item) => item.ticker).filter(Boolean).join(',');
+  }
+
+  getSectorLink(sector: MarketMapItem): string {
+    const tickers = this.getTickers(sector);
+    if (!tickers) return '';
+    const urlTree = this.router.createUrlTree(['/MultiCandles'], {
+      queryParams: { tickers, period: 15 }
+    });
+    return this.router.serializeUrl(urlTree);
+  }
+
+  formatPercent(percent: number | null | undefined): string {
+    if (percent === null || percent === undefined || Number.isNaN(percent)) return '';
+    const base = drob(percent, 2).toString();
+    if (percent > 0) return `${this.upArrow}${base}%`;
+    if (percent < 0) return `${this.downArrow}${base}%`;
+    return `${base}%`;
+  }
+
+  trackBySector(index: number, sector: MarketMapItem): string | number {
+    return sector?.name ?? index;
+  }
+
+  trackByTicker(index: number, item: MarketMapSquare): string | number {
+    return item?.ticker ?? index;
   }
 }
