@@ -13,6 +13,11 @@
         <mat-icon>align_horizontal_left</mat-icon> <!-- Лучше отображает горизонтальные объемы -->
         <span class="menu-text">Горизонт. объемы</span>
       </a>
+
+      <a mat-list-item [routerLink]="['/FootPrint']" [queryParams]="{ mode: 'arbitrage' }">
+        <mat-icon>compare_arrows</mat-icon>
+        <span class="menu-text">Парный трейдинг</span>
+      </a>
       
       <a mat-list-item [routerLink]="['/Portfolio']">
         <mat-icon>gamepad</mat-icon> <!-- Для торговли на демо лучше подходит иконка геймпада -->
