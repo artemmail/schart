@@ -10,6 +10,7 @@ import { MaterialModule } from 'src/app/material.module';
 import { RouterModule } from '@angular/router';
 import { OpenSupportDialogDirective } from 'src/app/directives/open-support-dialog.directive';
 import { MatDialog } from '@angular/material/dialog';
+import { DialogService } from 'src/app/service/DialogService.service';
 import {
   FootprintFavorite,
   FootprintFavoritePayload,
@@ -66,7 +67,8 @@ export class TopNavComponent implements OnInit, OnDestroy {
     private router: Router,
     private activatedRoute: ActivatedRoute,
     private favoritesService: FootprintFavoritesService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private dialogService: DialogService
   ) {
     this.setupRouterEvents();
   }
@@ -225,6 +227,13 @@ export class TopNavComponent implements OnInit, OnDestroy {
   }
 
   addCurrentFavorite(): void {
+    if (!this.isSignedIn) {
+      this.dialogService
+        .info('Для добавления в избранное нужно войти в аккаунт.')
+        .subscribe();
+      return;
+    }
+
     const payload = this.getFootprintFavoritePayload();
     if (!payload) {
       return;

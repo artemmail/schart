@@ -85,6 +85,8 @@ public class ApplicationDbContext2
 
     public virtual DbSet<OpenPosition> OpenPositions { get; set; }
 
+    public virtual DbSet<FootprintFavorite> FootprintFavorites { get; set; }
+
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { FootPrintParameters } from 'src/app/models/Params';
+import { environment } from 'src/app/environment';
 
 export interface FootprintFavoritePayload {
   params: FootPrintParameters;
@@ -12,128 +14,139 @@ export interface FootprintFavorite extends FootprintFavoritePayload {
   name: string;
 }
 
-interface StoredFootprintFavorite extends Omit<FootprintFavorite, 'params'> {
-  params: Omit<FootPrintParameters, 'startDate' | 'endDate'> & {
-    startDate?: string | null;
-    endDate?: string | null;
-  };
-}
-
 @Injectable({
   providedIn: 'root',
 })
 export class FootprintFavoritesService {
   private favoritesSubject = new BehaviorSubject<FootprintFavorite[]>([]);
-  private userKey = 'guest';
+  private userId: string | null = null;
+  private apiUrl = `${environment.apiUrl}/api/FootprintFavorites`;
 
-  constructor() {
-    this.load();
-  }
+  constructor(private http: HttpClient) {}
 
   get favorites$(): Observable<FootprintFavorite[]> {
     return this.favoritesSubject.asObservable();
   }
 
   setUserKey(userId?: string | null): void {
-    const nextKey = userId ? `user:${userId}` : 'guest';
-    if (this.userKey === nextKey) {
+    const nextUserId = userId ?? null;
+    if (this.userId === nextUserId) {
       return;
     }
-    this.userKey = nextKey;
-    this.load();
+
+    this.userId = nextUserId;
+    if (!this.userId) {
+      this.favoritesSubject.next([]);
+      return;
+    }
+
+    this.loadFavorites();
   }
 
   getFavorites(): FootprintFavorite[] {
     return this.favoritesSubject.value;
   }
 
-  addFavorite(name: string, payload: FootprintFavoritePayload): FootprintFavorite {
+  addFavorite(name: string, payload: FootprintFavoritePayload): void {
+    if (!this.userId) {
+      return;
+    }
+
     const trimmed = name.trim();
-    const favorite: FootprintFavorite = {
-      id: this.createId(),
+    const body = {
       name: trimmed || 'Избранное',
       params: this.normalizeParams(payload.params),
       presetIndex: payload.presetIndex ?? null,
     };
 
-    const next = [...this.favoritesSubject.value, favorite];
-    this.persist(next);
-    return favorite;
+    this.http
+      .post<FootprintFavorite>(this.apiUrl, body, { withCredentials: true })
+      .subscribe({
+        next: (favorite) => {
+          const normalized = this.normalizeFavorite(favorite);
+          this.favoritesSubject.next([
+            ...this.favoritesSubject.value,
+            normalized,
+          ]);
+        },
+        error: (err) => {
+          console.error('Failed to add footprint favorite', err);
+        },
+      });
   }
 
   renameFavorite(id: string, name: string): void {
+    if (!this.userId) {
+      return;
+    }
+
     const trimmed = name.trim();
     if (!trimmed) {
       return;
     }
 
-    const next = this.favoritesSubject.value.map((favorite) =>
-      favorite.id === id ? { ...favorite, name: trimmed } : favorite
-    );
-    this.persist(next);
+    this.http
+      .put<FootprintFavorite>(
+        `${this.apiUrl}/${id}`,
+        { name: trimmed },
+        { withCredentials: true }
+      )
+      .subscribe({
+        next: (favorite) => {
+          const normalized = this.normalizeFavorite(favorite);
+          const next = this.favoritesSubject.value.map((item) =>
+            item.id === normalized.id ? normalized : item
+          );
+          this.favoritesSubject.next(next);
+        },
+        error: (err) => {
+          console.error('Failed to rename footprint favorite', err);
+        },
+      });
   }
 
   deleteFavorite(id: string): void {
-    const next = this.favoritesSubject.value.filter(
-      (favorite) => favorite.id !== id
-    );
-    this.persist(next);
-  }
-
-  private storageKey(): string {
-    return `footprintFavorites:${this.userKey}`;
-  }
-
-  private load(): void {
-    const raw = window.localStorage.getItem(this.storageKey());
-    if (!raw) {
-      this.favoritesSubject.next([]);
+    if (!this.userId) {
       return;
     }
 
-    try {
-      const parsed = JSON.parse(raw) as StoredFootprintFavorite[];
-      const favorites = Array.isArray(parsed)
-        ? parsed.map((favorite) => this.fromStored(favorite))
-        : [];
-      this.favoritesSubject.next(favorites);
-    } catch (err) {
-      console.error('Failed to parse footprint favorites', err);
-      this.favoritesSubject.next([]);
-    }
+    this.http
+      .delete<void>(`${this.apiUrl}/${id}`, { withCredentials: true })
+      .subscribe({
+        next: () => {
+          const next = this.favoritesSubject.value.filter(
+            (favorite) => favorite.id !== id
+          );
+          this.favoritesSubject.next(next);
+        },
+        error: (err) => {
+          console.error('Failed to delete footprint favorite', err);
+        },
+      });
   }
 
-  private persist(favorites: FootprintFavorite[]): void {
-    this.favoritesSubject.next(favorites);
-    const serialized = favorites.map((favorite) =>
-      this.toStored(favorite)
-    );
-    window.localStorage.setItem(this.storageKey(), JSON.stringify(serialized));
+  private loadFavorites(): void {
+    this.http
+      .get<FootprintFavorite[]>(this.apiUrl, { withCredentials: true })
+      .subscribe({
+        next: (favorites) => {
+          const normalized = (favorites ?? []).map((favorite) =>
+            this.normalizeFavorite(favorite)
+          );
+          this.favoritesSubject.next(normalized);
+        },
+        error: (err) => {
+          console.error('Failed to load footprint favorites', err);
+          this.favoritesSubject.next([]);
+        },
+      });
   }
 
-  private toStored(favorite: FootprintFavorite): StoredFootprintFavorite {
+  private normalizeFavorite(favorite: FootprintFavorite): FootprintFavorite {
     return {
-      id: favorite.id,
-      name: favorite.name,
+      ...favorite,
+      params: this.normalizeParams(favorite.params),
       presetIndex: favorite.presetIndex ?? null,
-      params: {
-        ...favorite.params,
-        startDate: this.toIsoString(favorite.params.startDate),
-        endDate: this.toIsoString(favorite.params.endDate),
-      },
-    };
-  }
-
-  private fromStored(favorite: StoredFootprintFavorite): FootprintFavorite {
-    return {
-      id: favorite.id,
-      name: favorite.name,
-      presetIndex: favorite.presetIndex ?? null,
-      params: this.normalizeParams({
-        ...favorite.params,
-        startDate: this.parseDate(favorite.params.startDate),
-        endDate: this.parseDate(favorite.params.endDate),
-      }),
     };
   }
 
@@ -154,15 +167,5 @@ export class FootprintFavoritesService {
     }
     const parsed = new Date(value as any);
     return isNaN(parsed.getTime()) ? undefined : parsed;
-  }
-
-  private toIsoString(value: unknown): string | undefined {
-    const date = this.parseDate(value);
-    return date ? date.toISOString() : undefined;
-  }
-
-  private createId(): string {
-    const rand = Math.random().toString(36).slice(2, 8);
-    return `${Date.now().toString(36)}-${rand}`;
   }
 }
