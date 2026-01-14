@@ -23,15 +23,25 @@
 }
 
 .category-title h6 {
-  margin: 4px 6px;
+  margin: 0;
+  padding-left: 1em;
+  display: inline;
+  font-family: Arial, Helvetica, sans-serif;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 30px;
 }
 
 .category-title a.board-title-link {
   color: #dd412a;
   text-decoration: none;
-  position: relative;
+  display: inline;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 30px;
 }
 
 .category-title a.board-title-link:visited {
@@ -45,15 +55,9 @@
 }
 
 .category-title a.board-title-link::after {
-  content: "";
-  display: inline-block;
-  width: 0;
-  height: 0;
-  border-left: 6px solid currentColor;
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-  margin-left: 5px;
-  vertical-align: middle;
+  content: "\25B6";
+  margin-left: 1px;
+  color: inherit;
 }
 
 .tickers {
@@ -110,8 +114,11 @@ dd {
 }
 
 dd h2 {
-  font-size: 14px;
-  font-weight: bold;
+  display: inline;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: #333;
   margin: 0;
 }
 
