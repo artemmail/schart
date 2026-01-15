@@ -38,7 +38,8 @@ type FirstComponentMethods =
   | 'openPortfolioManipulationDialog'
   | 'uploadImage'
   | 'getCsv'
-  | 'openCurrentChartUrl';
+  | 'openCurrentChartUrl'
+  | 'clearFootprintMarks';
 
 @Component({
   standalone: true,
@@ -224,6 +225,10 @@ export class TopNavComponent implements OnInit, OnDestroy {
 
   openCurrentChartUrl(): void {
     this.executeFirstComponentMethod('openCurrentChartUrl');
+  }
+
+  clearFootprintMarks(): void {
+    this.executeFirstComponentMethod('clearFootprintMarks');
   }
 
   addCurrentFavorite(): void {

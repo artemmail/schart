@@ -300,6 +300,18 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
     this.openNonModalCsvDialog();
   }
 
+  clearFootprintMarks(): void {
+    const renderer = this.footPrint?.renderer;
+    if (!renderer) {
+      return;
+    }
+
+    const params = this.footPrint?.params ?? this.params;
+    renderer.markupManager?.clearAll(false);
+    renderer.levelMarksService?.clearStorageForTicker(params?.ticker);
+    renderer.drawClusterView();
+  }
+
   openNonModalCsvDialog() {
     const period = this.footPrint?.params?.period ?? this.params?.period;
     this.csvDialogTitle = period === 0 ? 'Список сделок' : 'Список свечей';

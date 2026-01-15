@@ -92,6 +92,17 @@ export class MarkUpManager {
     }
   }
 
+  clearAll(shouldRedraw: boolean = true): void {
+    this.shapeArray = [];
+    this.selectedShape = null;
+    this.mouseShape = null;
+    this.drawingShape = null;
+    this.resetEdit();
+    if (shouldRedraw) {
+      this.footprint.resize();
+    }
+  }
+
   onMouseDown(point: Point): void {
     this.selectedShape = this.mouseShape;
     if (this.selectedShape != null) {

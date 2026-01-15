@@ -517,4 +517,16 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
     const url = this.router.serializeUrl(urlTree);
     window.open(url, '_blank');
   }
+
+  clearFootprintMarks(): void {
+    const renderer = this.footPrint?.renderer;
+    if (!renderer) {
+      return;
+    }
+
+    const params = this.footPrint?.params ?? this.footPrintParamsComponent?.GetModel?.();
+    renderer.markupManager?.clearAll(false);
+    renderer.levelMarksService?.clearStorageForTicker(params?.ticker);
+    renderer.drawClusterView();
+  }
 }

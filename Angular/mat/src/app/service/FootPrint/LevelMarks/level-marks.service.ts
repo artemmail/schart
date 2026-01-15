@@ -103,6 +103,10 @@ export class LevelMarksService {
     return `levelsMark_${params.ticker}_${params.period}_${params.priceStep}`;
   }
 
+  public getStorageKeyForParams(params: FootPrintParameters): string {
+    return this.getStorageKey(params);
+  }
+
   public load(params: FootPrintParameters): void {
     this.currentParams = {...params};
     const key = this.getStorageKey(params);
@@ -112,6 +116,39 @@ export class LevelMarksService {
     } else {
       this.markParamsData = new MarkParamsData();
     }
+  }
+
+  public clear(): void {
+    if (!this.currentParams) {
+      return;
+    }
+    const key = this.getStorageKey(this.currentParams);
+    this.markParamsData = new MarkParamsData();
+    window.localStorage.removeItem(key);
+  }
+
+  public clearStorageForTicker(ticker: string | undefined): void {
+    this.clear();
+    if (!ticker) {
+      return;
+    }
+
+    const prefix = `levelsMark_${ticker}_`;
+    const exact = `levelsMark_${ticker}`;
+    const keysToRemove: string[] = [];
+
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+      if (!key) {
+        continue;
+      }
+
+      if (key === exact || key.startsWith(prefix)) {
+        keysToRemove.push(key);
+      }
+    }
+
+    keysToRemove.forEach((key) => window.localStorage.removeItem(key));
   }
 
   public save(): void {
