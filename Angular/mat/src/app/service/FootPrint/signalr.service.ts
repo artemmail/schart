@@ -29,6 +29,10 @@ export class SignalRService implements OnDestroy {
   private isStopping: boolean = false;
   private startPromise: Promise<void> | null = null;
   private stopPromise: Promise<void> | null = null;
+  private reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private reconnectAttempt = 0;
+  private readonly reconnectBaseDelayMs = 1000;
+  private readonly reconnectMaxDelayMs = 30000;
 
   private activeSubscriptions = new Map<string, FootprintSubscribeParams>();
 
@@ -83,16 +87,20 @@ export class SignalRService implements OnDestroy {
     }
 
     this.isConnecting = true;
+    this.clearReconnectTimer();
 
-    this.hubConnection = new signalR.HubConnectionBuilder()
+    const connection = new signalR.HubConnectionBuilder()
       .withUrl(`${environment.apiUrl}/CandlesHub`, {
         withCredentials: true,
       })
       .configureLogging(signalR.LogLevel.Information)
       .withAutomaticReconnect()
       .build();
+    this.hubConnection = connection;
 
-    this.hubConnection.onclose(async (error) => {
+    connection.onclose(async (error) => {
+      if (this.hubConnection !== connection) return;
+
       this.hubConnection = undefined;
       this.startPromise = null;
       console.log('SignalR connection closed');
@@ -101,38 +109,46 @@ export class SignalRService implements OnDestroy {
       if (this.isStopping || !hasSubscriptions) return;
 
       console.warn('SignalR connection closed unexpectedly', error);
-      try {
-        await this.startConnection();
-        await this.resubscribeAll();
-      } catch (err) {
-        console.warn('Failed to restart SignalR connection after close', err);
-      }
+      this.reconnectAttempt = 0;
+      this.scheduleReconnect('closed');
     });
 
-    this.hubConnection.onreconnecting(() => {
+    connection.onreconnecting(() => {
+      if (this.hubConnection !== connection) return;
       console.warn('SignalR connection reconnecting...');
     });
 
-    this.hubConnection.onreconnected(async () => {
+    connection.onreconnected(async () => {
+      if (this.hubConnection !== connection) return;
       console.log('SignalR connection reconnected');
-      await this.resubscribeAll();
+      this.reconnectAttempt = 0;
+      this.clearReconnectTimer();
+      if (!this.isStopping) {
+        await this.resubscribeAll();
+      }
     });
 
     this.registerOnServerEvents();
 
-    this.startPromise = this.hubConnection
+    this.startPromise = connection
       .start()
       .then(() => {
         if (this.isStopping) {
           return Promise.reject('Connection start cancelled due to stop request');
         }
         console.log('SignalR connection started');
+        this.reconnectAttempt = 0;
         return Promise.resolve();
       })
       .catch((err) => {
         console.warn('Error while starting SignalR connection: ' + err.toString());
-        this.hubConnection = undefined;
+        if (this.hubConnection === connection) {
+          this.hubConnection = undefined;
+        }
         this.startPromise = null;
+        if (!this.isStopping && this.activeSubscriptions.size) {
+          this.scheduleReconnect('start_failed');
+        }
         throw err;
       })
       .finally(() => {
@@ -316,12 +332,48 @@ export class SignalRService implements OnDestroy {
     );
   }
 
+  private scheduleReconnect(reason: string) {
+    if (this.isStopping || !this.activeSubscriptions.size) return;
+    if (this.reconnectTimeoutId !== null) return;
+
+    const delay = this.getReconnectDelay();
+    console.warn(`Scheduling SignalR reconnect in ${delay}ms (${reason})`);
+    this.reconnectTimeoutId = setTimeout(async () => {
+      this.reconnectTimeoutId = null;
+      try {
+        await this.startConnection();
+        await this.resubscribeAll();
+      } catch (err) {
+        console.warn('SignalR reconnect attempt failed', err);
+        this.reconnectAttempt += 1;
+        this.scheduleReconnect('retry');
+      }
+    }, delay);
+  }
+
+  private getReconnectDelay(): number {
+    const base = Math.min(
+      this.reconnectMaxDelayMs,
+      this.reconnectBaseDelayMs * Math.pow(2, this.reconnectAttempt)
+    );
+    const jitter = Math.round(base * 0.2 * Math.random());
+    return base + jitter;
+  }
+
+  private clearReconnectTimer() {
+    if (this.reconnectTimeoutId !== null) {
+      clearTimeout(this.reconnectTimeoutId);
+      this.reconnectTimeoutId = null;
+    }
+  }
+
   public async stopConnection() {
     if (this.isStopping && this.stopPromise) {
       return this.stopPromise;
     }
 
     this.isStopping = true;
+    this.clearReconnectTimer();
 
     this.stopPromise = (async () => {
       if (this.isConnecting && this.startPromise) {
@@ -348,6 +400,7 @@ export class SignalRService implements OnDestroy {
       this.startPromise = null;
       this.hubConnection = undefined;
       this.activeSubscriptions.clear();
+      this.reconnectAttempt = 0;
     })()
       .catch((err) => console.warn('Error while stopping SignalR connection: ' + err))
       .finally(() => {
