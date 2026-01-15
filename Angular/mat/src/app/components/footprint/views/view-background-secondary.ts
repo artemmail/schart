@@ -51,6 +51,9 @@ export class viewBackground1 extends canvasPart {
     ctx.restore();
     ctx.strokeStyle = '#aaa';
     ctx.beginPath();
+    const scaleFontSize = Math.round(10 * this.colorsService.sscale());
+    ctx.font = `${scaleFontSize}px Verdana`;
+    ctx.textBaseline = 'middle';
 
     for (let i = 0; i < maxx; i += step) {
       var p1 = mtx.applyToPoint(i, 0);

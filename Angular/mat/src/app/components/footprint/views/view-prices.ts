@@ -134,7 +134,7 @@ export class viewPrices extends canvasPart {
     this.loop(startPrice, finishPrice, step, (price) => {
       const pos = mtx.price2Height(price, 0);
       ctx.myLine(pos.x, pos.y, pos.x + 5, pos.y);
-      const idx = Math.round((price - startPrice) / step);
+      const idx = Math.round((finishPrice - price) / step);
       if (idx % skip === 0) ctx.fillText(drob(price, 4).toString(), pos.x + 8, pos.y);
     });
     ctx.stroke();

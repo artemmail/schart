@@ -185,7 +185,8 @@ export class ClusterColumnBase {
   clusterRectFontSize(rect: Rectangle, textLen: number) {
     var w = Math.abs(rect.w);
     var h = Math.abs(rect.h);
-    return Math.min(h - 1, w / textLen, this.colorsService.maxFontSize());
+    const rawSize = Math.min(h - 1, w / textLen, this.colorsService.maxFontSize());
+    return Math.max(0, Math.floor(rawSize));
   }
 
   drawColumnText(
@@ -209,6 +210,7 @@ export class ClusterColumnBase {
           column.cl[i].p <= this.finishPrice
         ) {
           var r = this.clusterRect(column.cl[i].p, number, mtx);
+          const textY = Math.round(r.y + r.h / 2);
 
           var mul = settings.Contracts
             ? 1
@@ -229,7 +231,7 @@ export class ClusterColumnBase {
           ctx.fillText(
             text,
             r.x + 1.5,
-            r.y + this.getBar(mtx).h / 2
+            textY
           );
         }
       }
@@ -256,6 +258,7 @@ export class ClusterColumnBase {
           column.cl[i].p <= this.finishPrice
         ) {
           var r = this.clusterRect(column.cl[i].p, number, mtx);
+          const textY = Math.round(r.y + r.h / 2);
 
           var mul = settings.Contracts
             ? 1
@@ -266,14 +269,14 @@ export class ClusterColumnBase {
             ctx.fillText(
               Math.round(mul * (column.cl[i].q - column.cl[i].bq)).toString(),
               r.w / 2 + r.x - 1.5,
-              r.y + this.getBar(mtx).h / 2
+              textY
             );
           ctx.textAlign = 'left';
           if (Math.round(column.cl[i].bq) != 0)
             ctx.fillText(
               Math.round(mul * column.cl[i].bq).toString(),
               r.w / 2 + r.x + 1.5,
-              r.y + this.getBar(mtx).h / 2
+              textY
             );
         }
       }
@@ -300,6 +303,7 @@ export class ClusterColumnBase {
           column.cl[i].p <= this.finishPrice
         ) {
           var r = this.clusterRect(column.cl[i].p, number, mtx);
+          const textY = Math.round(r.y + r.h / 2);
 
           var mul = settings.Contracts
             ? 1
@@ -311,7 +315,7 @@ export class ClusterColumnBase {
             ctx.fillText(
               t.toString(),
               r.w / 2 + r.x - 1.5,
-              r.y + this.getBar(mtx).h / 2
+              textY
             );
           t = Math.round(mul * (2 * column.cl[i].bq - column.cl[i].q));
           ctx.textAlign = 'left';
@@ -319,7 +323,7 @@ export class ClusterColumnBase {
             ctx.fillText(
               t.toString(),
               r.w / 2 + r.x + 1.5,
-              r.y + this.getBar(mtx).h / 2
+              textY
             );
         }
       }

@@ -93,24 +93,29 @@ export class viewDates extends canvasPart {
   draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
     var data = parent.data.clusterData;
     const ctx = this.parent.ctx;
+    const sscale = this.colorsService.sscale();
+    const barWidth = Math.abs(parent.getBar(mtx).w);
     var fontSize = Math.max(
-      9 * this.colorsService.sscale(),
-      Math.min(12 * this.colorsService.sscale(), parent.getBar(mtx).w / 8)
+      9 * sscale,
+      Math.min(12 * sscale, barWidth / 8)
     );
+    fontSize = Math.round(fontSize);
+    const lineHeight = fontSize + 2;
 
     var textDrawStride = Math.max(
       1,
-      Math.floor((12 * fontSize) / parent.getBar(mtx).w)
+      Math.floor((12 * fontSize) / barWidth)
     );
     var textDrawStride2 = Math.max(
       1,
       Math.floor(
-        ((parent.params.period >= 1 ? 7 : 12) * fontSize) / parent.getBar(mtx).w
+        ((parent.params.period >= 1 ? 7 : 12) * fontSize) / barWidth
       )
     );
     ctx.fillStyle = '#333';
     ctx.font = '' + fontSize + 'px Verdana';
     ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
     for (let i = parent.minIndex; i <= parent.maxIndex; i++) {
       var r = parent.clusterRect(0, i, mtx);
       var v = this.formatService.MoscowTimeShift(data[i].x);
@@ -121,13 +126,13 @@ export class viewDates extends canvasPart {
             ? this.formatService.TimeFormat(v)
             : this.formatService.TimeFormat2(v),
           r.x,
-          view.y + fontSize + 2
+          Math.round(view.y + lineHeight)
         );
       if (i % textDrawStride == 0)
         ctx.fillText(
           this.formatService.toStr(v),
           r.x,
-          view.y + (fontSize + 2) * (drawtime ? 2 : 1)
+          Math.round(view.y + lineHeight * (drawtime ? 2 : 1))
         );
     }
   }
