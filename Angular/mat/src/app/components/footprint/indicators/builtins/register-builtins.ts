@@ -3,10 +3,36 @@ import { SmaIndicator } from './sma.indicator';
 import { VolumeIndicator } from './volume.indicator';
 import { BollingerBandsIndicator } from './bollinger.indicator';
 import { MidPriceOiCumWeightedIndicator } from './midprice-oi-cumweighted.indicator';
+import { EmaIndicator } from './ema.indicator';
+import { WmaIndicator } from './wma.indicator';
+import { RmaIndicator } from './rma.indicator';
+import { VwapIndicator } from './vwap.indicator';
+import { DonchianIndicator } from './donchian.indicator';
+import { KeltnerIndicator } from './keltner.indicator';
+import { SuperTrendIndicator } from './supertrend.indicator';
+import { ParabolicSarIndicator } from './psar.indicator';
+import { PivotPointsIndicator } from './pivot-points.indicator';
+import { PrevDayLevelsIndicator } from './prev-day-levels.indicator';
+import { OpeningRangeIndicator } from './opening-range.indicator';
+import { FractalsIndicator } from './fractals.indicator';
+import { ZigZagIndicator } from './zigzag.indicator';
 
 export function registerFootprintBuiltInIndicators(registry: IndicatorRegistry): void {
   registry.register(SmaIndicator);
+  registry.register(EmaIndicator);
+  registry.register(WmaIndicator);
+  registry.register(RmaIndicator);
   registry.register(VolumeIndicator);
   registry.register(BollingerBandsIndicator);
+  registry.register(VwapIndicator);
+  registry.register(DonchianIndicator);
+  registry.register(KeltnerIndicator);
+  registry.register(SuperTrendIndicator);
+  registry.register(ParabolicSarIndicator);
+  registry.register(PivotPointsIndicator);
+  registry.register(PrevDayLevelsIndicator);
+  registry.register(OpeningRangeIndicator);
+  registry.register(FractalsIndicator);
+  registry.register(ZigZagIndicator);
   registry.register(MidPriceOiCumWeightedIndicator);
 }

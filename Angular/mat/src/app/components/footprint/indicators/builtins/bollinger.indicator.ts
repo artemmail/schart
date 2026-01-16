@@ -29,7 +29,7 @@ const bollingerParamsSchema: ParamSchema<BollingerParams> = {
       { value: 'low', label: 'Low' },
     ],
   },
-  period: { type: 'int', title: 'Period', default: 20, min: 1, max: 500, step: 1 },
+  period: { type: 'int', title: 'Period', default: 10, min: 1, max: 500, step: 1 },
   mult: { type: 'float', title: 'StdDev Mult', default: 2, min: 0.1, max: 10, step: 0.1 },
   middleColor: { type: 'color', title: 'Middle Color', default: '#f1c40f' },
   upperColor: { type: 'color', title: 'Upper Color', default: '#3498db' },

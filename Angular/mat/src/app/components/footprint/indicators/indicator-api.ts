@@ -22,7 +22,11 @@ export interface Candle {
   oi?: number;
 }
 
-export type VisualMode = 'Line' | 'Histogram';
+export type VisualMode = 'Line' | 'Histogram' | 'Points';
+
+export type LineStyle = 'solid' | 'dashed' | 'dotted';
+
+export type PointStyle = 'circle' | 'triangleUp' | 'triangleDown' | 'diamond';
 
 export type HistogramBaseline = 'bottom' | 'zero';
 
@@ -33,6 +37,9 @@ export interface DataSeries {
   values: Float64Array; // per bar index
   color?: string;
   width?: number;
+  lineStyle?: LineStyle;
+  pointStyle?: PointStyle;
+  pointSize?: number;
   visible?: boolean;
   histogramBaseline?: HistogramBaseline;
   histogramWidthRatio?: number; // 0..1

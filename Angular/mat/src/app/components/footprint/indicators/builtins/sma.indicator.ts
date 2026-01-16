@@ -26,7 +26,7 @@ const smaParamsSchema: ParamSchema<SmaParams> = {
       { value: 'low', label: 'Low' },
     ],
   },
-  period: { type: 'int', title: 'Period', default: 20, min: 1, max: 500, step: 1 },
+  period: { type: 'int', title: 'Period', default: 10, min: 1, max: 500, step: 1 },
   color: { type: 'color', title: 'Color', default: '#f1c40f' },
   width: { type: 'int', title: 'Width', default: 1, min: 1, max: 5, step: 1 },
 };
