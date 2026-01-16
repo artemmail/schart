@@ -7,7 +7,9 @@ export type SourceType =
   | 'hlc3'
   | 'ohlc4'
   | 'volume'
-  | 'oi';
+  | 'oi'
+  | 'askVolume'
+  | 'bidVolume';
 
 export interface Candle {
   t: number; // unix ms
@@ -16,6 +18,7 @@ export interface Candle {
   l: number;
   c: number;
   v?: number;
+  bv?: number;
   oi?: number;
 }
 
@@ -33,6 +36,7 @@ export interface DataSeries {
   visible?: boolean;
   histogramBaseline?: HistogramBaseline;
   histogramWidthRatio?: number; // 0..1
+  histogramStackId?: string;
 }
 
 export type PanelRef = 'chart' | { id: string };

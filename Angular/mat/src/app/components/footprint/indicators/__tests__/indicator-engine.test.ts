@@ -3,7 +3,11 @@ import { IndicatorRegistry } from '../indicator-registry';
 import { registerFootprintBuiltInIndicators } from '../builtins/register-builtins';
 import { ClusterData } from '../../models/cluster-data';
 
-function makeClusterData(closes: number[], volumes: number[] = closes.map(() => 0)) {
+function makeClusterData(
+  closes: number[],
+  volumes: number[] = closes.map(() => 0),
+  buyVolumes: number[] = volumes
+) {
   const start = new Date('2026-01-01T00:00:00.000Z').getTime();
   const cols = closes.map((c, i) => ({
     Number: i + 1,
@@ -15,7 +19,7 @@ function makeClusterData(closes: number[], volumes: number[] = closes.map(() => 
     q: 1,
     bq: 1,
     v: volumes[i] ?? 0,
-    bv: volumes[i] ?? 0,
+    bv: buyVolumes[i] ?? 0,
     oi: 0,
   }));
 
@@ -140,12 +144,12 @@ describe('FootprintIndicatorEngine', () => {
   });
 
   test('routes Volume to a subpanel', () => {
-    const data = makeClusterData([1, 2, 3], [10, 20, 15]);
+    const data = makeClusterData([1, 2, 3], [10, 20, 15], [4, 12, 5]);
     const engine = makeEngine();
 
     engine.setData(data);
     engine.setSettings({
-      Indicators: [{ id: 'v1', type: 'volume', params: { color: '#0af', widthRatio: 1, useUpDownColor: false, upColor: '#0f0', downColor: '#f00' }, panel: { id: 'vol' }, visible: true }],
+      Indicators: [{ id: 'v1', type: 'volume', params: { widthRatio: 1, askColor: '#0f0', bidColor: '#f00' }, panel: { id: 'vol' }, visible: true }],
       IndicatorPanels: { vol: { height: 100 } },
     } as any);
 
@@ -154,10 +158,15 @@ describe('FootprintIndicatorEngine', () => {
     expect(engine.getPanels().map((p) => p.id)).toEqual(['vol']);
 
     const series = engine.getPanelSeries('vol');
-    const mono = series.find((s) => s.id === 'VOL');
-    expect(mono).toBeTruthy();
-    expect(mono!.values[0]).toBeCloseTo(10);
-    expect(mono!.values[1]).toBeCloseTo(20);
-    expect(mono!.values[2]).toBeCloseTo(15);
+    const ask = series.find((s) => s.id === 'VOL_ASK');
+    const bid = series.find((s) => s.id === 'VOL_BID');
+    expect(ask).toBeTruthy();
+    expect(bid).toBeTruthy();
+    expect(ask!.values[0]).toBeCloseTo(4);
+    expect(ask!.values[1]).toBeCloseTo(12);
+    expect(ask!.values[2]).toBeCloseTo(5);
+    expect(bid!.values[0]).toBeCloseTo(6);
+    expect(bid!.values[1]).toBeCloseTo(8);
+    expect(bid!.values[2]).toBeCloseTo(10);
   });
 });

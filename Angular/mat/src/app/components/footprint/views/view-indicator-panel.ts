@@ -42,9 +42,32 @@ export class viewIndicatorPanel extends canvasPart {
       { y1: view.y + view.h, y2: view.y }
     );
 
+    const barsCount = Math.max(
+      parent.data?.clusterData.length ?? 0,
+      ...series.map((s) => s.values.length)
+    );
+    const stackBases = new Map<string, Float64Array>();
+    for (const s of series) {
+      if (s.visual === 'Histogram' && s.histogramStackId) {
+        if (!stackBases.has(s.histogramStackId)) {
+          stackBases.set(s.histogramStackId, new Float64Array(barsCount));
+        }
+      }
+    }
+
     for (const s of series) {
       if (s.visual === 'Histogram') {
-        this.drawHistogram(ctx, parent, panelMtx, view, s, range);
+        if (s.histogramStackId) {
+          const base = stackBases.get(s.histogramStackId);
+          if (base) {
+            this.drawHistogramStacked(ctx, parent, panelMtx, view, s, range, base);
+            this.accumulateStackBase(parent, s, base);
+          } else {
+            this.drawHistogram(ctx, parent, panelMtx, view, s, range);
+          }
+        } else {
+          this.drawHistogram(ctx, parent, panelMtx, view, s, range);
+        }
       } else if (s.visual === 'Line') {
         this.drawLine(ctx, parent, panelMtx, s);
       }
@@ -65,8 +88,36 @@ export class viewIndicatorPanel extends canvasPart {
       series.length > 0 &&
       series.every((s) => s.visual === 'Histogram' && (s.histogramBaseline ?? 'bottom') === 'bottom');
 
+    const stackGroups = new Map<string, DataSeries[]>();
+    const stackedSeries = new Set<DataSeries>();
     for (const s of series) {
-      for (let i = from; i <= to; i++) {
+      if (s.visual === 'Histogram' && s.histogramStackId) {
+        const list = stackGroups.get(s.histogramStackId) ?? [];
+        list.push(s);
+        stackGroups.set(s.histogramStackId, list);
+        stackedSeries.add(s);
+      }
+    }
+
+    for (let i = from; i <= to; i++) {
+      for (const group of stackGroups.values()) {
+        let sum = 0;
+        let anyGroup = false;
+        for (const s of group) {
+          const v = s.values[i];
+          if (!isFinite(v)) continue;
+          sum += v;
+          anyGroup = true;
+        }
+        if (anyGroup) {
+          any = true;
+          min = Math.min(min, sum);
+          max = Math.max(max, sum);
+        }
+      }
+
+      for (const s of series) {
+        if (stackedSeries.has(s)) continue;
         const v = s.values[i];
         if (!isFinite(v)) continue;
         any = true;
@@ -175,5 +226,67 @@ export class viewIndicatorPanel extends canvasPart {
     }
 
     ctx.restore();
+  }
+
+  private drawHistogramStacked(
+    ctx: CanvasRenderingContext2D,
+    parent: FootPrintComponent,
+    mtx: Matrix,
+    view: Rectangle,
+    s: DataSeries,
+    range: { min: number; max: number },
+    stackBase: Float64Array
+  ): void {
+    const from = parent.minIndex ?? 0;
+    const to = parent.maxIndex ?? Math.max(0, parent.data?.clusterData.length ?? 0);
+
+    const widthRatio = Math.max(0.05, Math.min(1, s.histogramWidthRatio ?? 1));
+    const baselineMode = s.histogramBaseline ?? 'bottom';
+    const baseOffset = baselineMode === 'zero' ? 0 : range.min;
+
+    ctx.save();
+    ctx.fillStyle = s.color ?? '#3498db';
+    ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+
+    for (let i = from; i <= to; i++) {
+      const v = s.values[i];
+      if (!isFinite(v)) continue;
+
+      const base = baseOffset + (stackBase[i] ?? 0);
+      const topValue = base + v;
+
+      const p0 = mtx.applyToPoint(i, base);
+      const p1 = mtx.applyToPoint(i + 1, base);
+      const barLeft = Math.min(p0.x, p1.x);
+      const barRight = Math.max(p0.x, p1.x);
+      const barW = barRight - barLeft;
+      if (barW <= 0.25) continue;
+
+      const w = barW * widthRatio;
+      const x = barLeft + (barW - w) / 2;
+
+      const y0 = mtx.applyToPoint(i, base).y;
+      const y1 = mtx.applyToPoint(i, topValue).y;
+      const top = Math.min(y0, y1);
+      const h = Math.abs(y1 - y0);
+      if (h < 0.5) continue;
+
+      if (top > view.y + view.h || top + h < view.y) continue;
+
+      ctx.myFillRect({ x, y: top, w, h } as Rectangle);
+    }
+
+    ctx.restore();
+  }
+
+  private accumulateStackBase(parent: FootPrintComponent, s: DataSeries, stackBase: Float64Array): void {
+    const from = parent.minIndex ?? 0;
+    const to = parent.maxIndex ?? Math.max(0, parent.data?.clusterData.length ?? 0);
+
+    for (let i = from; i <= to; i++) {
+      const v = s.values[i];
+      if (!isFinite(v)) continue;
+      stackBase[i] = (stackBase[i] ?? 0) + v;
+    }
   }
 }

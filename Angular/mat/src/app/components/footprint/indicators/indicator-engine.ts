@@ -352,6 +352,19 @@ export class FootprintIndicatorEngine {
         return c.v ?? 0;
       case 'oi':
         return c.oi ?? 0;
+      case 'askVolume': {
+        const total = c.v ?? 0;
+        const ask = c.bv ?? 0;
+        if (!isFinite(total) || !isFinite(ask)) return NaN;
+        return Math.max(0, Math.min(total, ask));
+      }
+      case 'bidVolume': {
+        const total = c.v ?? 0;
+        const ask = c.bv ?? 0;
+        if (!isFinite(total) || !isFinite(ask)) return NaN;
+        const clampedAsk = Math.max(0, Math.min(total, ask));
+        return Math.max(0, total - clampedAsk);
+      }
       default:
         return NaN;
     }
@@ -368,6 +381,7 @@ export class FootprintIndicatorEngine {
         l: c.l,
         c: c.c,
         v: c.v ?? 0,
+        bv: c.bv ?? 0,
         oi: c.oi ?? 0,
       }));
     }
