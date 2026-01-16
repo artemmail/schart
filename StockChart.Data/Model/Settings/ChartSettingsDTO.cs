@@ -1,7 +1,12 @@
-﻿
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StockChart.Model;
+using System.Text.Json;
+using NewtonsoftJsonException = Newtonsoft.Json.JsonException;
+using SystemTextJsonException = System.Text.Json.JsonException;
+using NewtonsoftJsonSerializer = Newtonsoft.Json.JsonSerializer;
+using SystemTextJsonSerializer = System.Text.Json.JsonSerializer;
 
 public class ChartSettingsDTO
 {
@@ -38,6 +43,10 @@ public class ChartSettingsDTO
     [JsonConverter(typeof(VolumeHeightMapConverter))]
     public Dictionary<string, int>? VolumesHeight { get; set; }
     public Dictionary<string, DialogPositionDTO>? DialogPositions { get; set; }
+    [JsonConverter(typeof(JsonElementNewtonsoftConverter))]
+    public JsonElement? Indicators { get; set; }
+    [JsonConverter(typeof(JsonElementNewtonsoftConverter))]
+    public JsonElement? IndicatorPanels { get; set; }
 
     public ChartSettingsDTO()
     {
@@ -83,6 +92,8 @@ public class ChartSettingsDTO
         var normalizedVolumes = VolumeHeightDefaults.Normalize(VolumesHeight, CandlesOnly);
         chartSettings.VolumesHeight = SerializeVolumesHeight(normalizedVolumes);
         chartSettings.DialogPositions = SerializeDialogPositions(DialogPositions);
+        chartSettings.Indicators = SerializeJsonElement(Indicators);
+        chartSettings.IndicatorPanels = SerializeJsonElement(IndicatorPanels);
     }
 
     public void CopyToSettingsDTO(ChartSettings chartSettings)
@@ -117,6 +128,8 @@ public class ChartSettingsDTO
         Default = chartSettings.Default;
         VolumesHeight = DeserializeVolumesHeight(chartSettings.VolumesHeight, chartSettings.CandlesOnly);
         DialogPositions = DeserializeDialogPositions(chartSettings.DialogPositions);
+        Indicators = DeserializeJsonElement(chartSettings.Indicators);
+        IndicatorPanels = DeserializeJsonElement(chartSettings.IndicatorPanels);
     }
 
     private static string? SerializeVolumesHeight(Dictionary<string, int>? volumesHeight)
@@ -141,7 +154,7 @@ public class ChartSettingsDTO
             var parsed = JsonConvert.DeserializeObject<Dictionary<string, int>>(json);
             return VolumeHeightDefaults.Normalize(parsed, candlesOnly);
         }
-        catch (JsonException)
+        catch (NewtonsoftJsonException)
         {
             return VolumeHeightDefaults.Normalize(null, candlesOnly);
         }
@@ -168,11 +181,43 @@ public class ChartSettingsDTO
         {
             return JsonConvert.DeserializeObject<Dictionary<string, DialogPositionDTO>>(json);
         }
-        catch (JsonException)
+        catch (NewtonsoftJsonException)
         {
             return null;
         }
     }
+    private static string? SerializeJsonElement(JsonElement? element)
+    {
+        if (element == null)
+        {
+            return null;
+        }
+
+        if (element.Value.ValueKind == JsonValueKind.Undefined || element.Value.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        return element.Value.GetRawText();
+    }
+
+    private static JsonElement? DeserializeJsonElement(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            return SystemTextJsonSerializer.Deserialize<JsonElement>(json);
+        }
+        catch (SystemTextJsonException)
+        {
+            return null;
+        }
+    }
+
 }
 
 public class DialogPositionDTO
@@ -270,7 +315,7 @@ public sealed class VolumeHeightMapConverter : JsonConverter<Dictionary<string, 
         Type objectType,
         Dictionary<string, int>? existingValue,
         bool hasExistingValue,
-        JsonSerializer serializer)
+        NewtonsoftJsonSerializer serializer)
     {
         if (reader.TokenType == JsonToken.Null)
         {
@@ -295,7 +340,7 @@ public sealed class VolumeHeightMapConverter : JsonConverter<Dictionary<string, 
     public override void WriteJson(
         JsonWriter writer,
         Dictionary<string, int>? value,
-        JsonSerializer serializer)
+        NewtonsoftJsonSerializer serializer)
     {
         if (value == null)
         {
@@ -316,3 +361,47 @@ public sealed class VolumeHeightMapConverter : JsonConverter<Dictionary<string, 
         serializer.Serialize(writer, output);
     }
 }
+
+public sealed class JsonElementNewtonsoftConverter : JsonConverter<JsonElement?>
+{
+    public override JsonElement? ReadJson(
+        JsonReader reader,
+        Type objectType,
+        JsonElement? existingValue,
+        bool hasExistingValue,
+        NewtonsoftJsonSerializer serializer)
+    {
+        if (reader.TokenType == JsonToken.Null)
+        {
+            return null;
+        }
+
+        var token = JToken.Load(reader);
+        if (token.Type == JTokenType.Null || token.Type == JTokenType.Undefined)
+        {
+            return null;
+        }
+
+        using var document = JsonDocument.Parse(token.ToString(Formatting.None));
+        return document.RootElement.Clone();
+    }
+
+    public override void WriteJson(
+        JsonWriter writer,
+        JsonElement? value,
+        NewtonsoftJsonSerializer serializer)
+    {
+        if (value == null || value.Value.ValueKind == JsonValueKind.Null || value.Value.ValueKind == JsonValueKind.Undefined)
+        {
+            writer.WriteNull();
+            return;
+        }
+
+        var token = JToken.Parse(value.Value.GetRawText());
+        token.WriteTo(writer);
+    }
+}
+
+
+
+

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 namespace StockChart.Model;
 
@@ -50,6 +50,8 @@ public partial class ChartSettings
 
     public string? VolumesHeight { get; set; }
     public string? DialogPositions { get; set; }
+    public string? Indicators { get; set; }
+    public string? IndicatorPanels { get; set; }
 
 
 
@@ -57,4 +59,6 @@ public partial class ChartSettings
 
 
 }
+
+
 
