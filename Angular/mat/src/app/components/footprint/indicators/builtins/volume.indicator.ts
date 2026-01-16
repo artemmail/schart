@@ -27,6 +27,7 @@ export const VolumeIndicator: IndicatorDefinition<VolumeParams> = {
   displayName: 'Volume',
   category: 'Volume',
   defaultPanel: 'newPanel',
+  panelBehavior: 'fixed',
   paramsSchema: volumeParamsSchema,
 
   create(ctx: IndicatorContext, params: VolumeParams): IndicatorInstance<VolumeParams> {

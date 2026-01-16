@@ -158,6 +158,41 @@ export class FootprintIndicatorEngine {
 
   private syncFromSettings(settings: ChartSettings, barsCount: number): void {
     const configs = settings.Indicators ?? [];
+    const resolvePanel = (
+      def: IndicatorDefinition<any>,
+      config: IndicatorConfig,
+      currentPanel?: PanelRef
+    ): PanelRef => {
+      const panelBehavior = def.panelBehavior ?? 'configurable';
+      const isFixed = panelBehavior === 'fixed';
+
+      if (isFixed) {
+        if (def.defaultPanel === 'chart') {
+          return 'chart';
+        }
+
+        const cfgPanel = config.panel;
+        if (cfgPanel && cfgPanel !== 'chart') {
+          return cfgPanel;
+        }
+
+        if (currentPanel && currentPanel !== 'chart') {
+          return currentPanel;
+        }
+
+        return this.panelsApi.ensurePanel('new', `${def.type}-${config.id}`);
+      }
+
+      if (config.panel) {
+        return config.panel;
+      }
+
+      if (def.defaultPanel === 'newPanel') {
+        return this.panelsApi.ensurePanel('new', `${def.type}-${config.id}`);
+      }
+
+      return 'chart';
+    };
 
     const seenIds = new Set<string>();
     for (const config of configs) {
@@ -174,14 +209,8 @@ export class FootprintIndicatorEngine {
       const instance = def.create(ctx, params);
       instance.onInit?.();
 
-      // panel selection: prefer config.panel, fallback to definition default
-      if (config.panel) {
-        instance.panel = config.panel;
-      } else if (def.defaultPanel === 'newPanel') {
-        instance.panel = ctx.ensurePanel('new', `${def.type}-${config.id}`);
-      } else {
-        instance.panel = 'chart';
-      }
+      // panel selection: keep configurable indicators flexible, lock fixed indicators to default panel kind
+      instance.panel = resolvePanel(def, config);
 
       instance.series.forEach((s) => {
         if (!s.values || s.values.length !== barsCount) {
@@ -212,7 +241,7 @@ export class FootprintIndicatorEngine {
       const rt = this.runtimes.get(config.id);
       if (!rt) continue;
 
-      const nextPanel = config.panel ?? rt.instance.panel;
+      const nextPanel = resolvePanel(rt.def, config, rt.instance.panel);
       if (JSON.stringify(nextPanel) !== JSON.stringify(rt.instance.panel)) {
         rt.instance.panel = nextPanel;
         this.needsFullRecalc = true;
@@ -321,6 +350,8 @@ export class FootprintIndicatorEngine {
         return (c.o + c.h + c.l + c.c) / 4;
       case 'volume':
         return c.v ?? 0;
+      case 'oi':
+        return c.oi ?? 0;
       default:
         return NaN;
     }
@@ -337,6 +368,7 @@ export class FootprintIndicatorEngine {
         l: c.l,
         c: c.c,
         v: c.v ?? 0,
+        oi: c.oi ?? 0,
       }));
     }
   }

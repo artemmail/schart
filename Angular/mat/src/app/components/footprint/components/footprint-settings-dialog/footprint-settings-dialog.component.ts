@@ -102,14 +102,23 @@ export class FootPrintSettingsDialogComponent {
     return this.fp?.FPsettings.Indicators ?? [];
   }
 
+  private findIndicatorDefinition(type: string) {
+    return this.indicatorDefinitions.find((d) => d.type === type);
+  }
+
   getIndicatorDisplayName(type: string): string {
-    const def = this.indicatorDefinitions.find((d) => d.type === type);
+    const def = this.findIndicatorDefinition(type);
     return def?.displayName ?? type;
   }
 
   getIndicatorSchema(type: string): any {
-    const def = this.indicatorDefinitions.find((d) => d.type === type);
+    const def = this.findIndicatorDefinition(type);
     return def?.paramsSchema ?? null;
+  }
+
+  isPanelFixed(type: string): boolean {
+    const def = this.findIndicatorDefinition(type);
+    return def?.panelBehavior === 'fixed';
   }
 
   addIndicator(): void {
@@ -135,7 +144,8 @@ export class FootPrintSettingsDialogComponent {
       panel = { id: panelId };
     }
 
-    this.fp.FPsettings.Indicators!.push({ id, type, params, visible: true, panel });
+    const nextIndicators = [...(this.fp.FPsettings.Indicators ?? []), { id, type, params, visible: true, panel }];
+    this.applyIndicators(nextIndicators);
     this.newIndicatorType = null;
     this.onChange(null);
   }
@@ -143,7 +153,8 @@ export class FootPrintSettingsDialogComponent {
   removeIndicator(id: string): void {
     if (!this.fp) return;
     this.ensureIndicatorsStorage();
-    this.fp.FPsettings.Indicators = (this.fp.FPsettings.Indicators ?? []).filter((x) => x.id !== id);
+    const nextIndicators = (this.fp.FPsettings.Indicators ?? []).filter((x) => x.id !== id);
+    this.applyIndicators(nextIndicators);
     this.onChange(null);
   }
 
@@ -154,6 +165,9 @@ export class FootPrintSettingsDialogComponent {
 
   setPanelValue(ind: any, value: string): void {
     if (!this.fp) return;
+    if (this.isPanelFixed(ind?.type)) {
+      return;
+    }
     this.ensureIndicatorsStorage();
     if (value === 'chart') {
       ind.panel = 'chart';
@@ -170,6 +184,9 @@ export class FootPrintSettingsDialogComponent {
 
   addNewPanelFor(ind: any): void {
     if (!this.fp) return;
+    if (this.isPanelFixed(ind?.type)) {
+      return;
+    }
     this.ensureIndicatorsStorage();
     const idBase = `${ind?.type ?? 'panel'}-${Date.now()}`;
     this.fp.FPsettings.IndicatorPanels![idBase] =
@@ -182,6 +199,13 @@ export class FootPrintSettingsDialogComponent {
     this.fp.applyOideltaDivider();
     this.save();
     this.fp.resize();
+  }
+
+  private applyIndicators(nextIndicators: ChartSettings['Indicators']): void {
+    if (!this.fp) return;
+    const settings = this.fp.FPsettings;
+    this.fp.FPsettings = { ...settings, Indicators: nextIndicators };
+    this.fp.indicatorEngine?.requestFullRecalc?.();
   }
 
   onOideltaDivideChange(value: boolean) {

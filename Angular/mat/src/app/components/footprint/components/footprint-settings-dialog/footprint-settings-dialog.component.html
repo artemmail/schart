@@ -172,20 +172,42 @@
               </mat-option>
             </mat-select>
           </mat-form-field>
-          <button mat-raised-button color="primary" (click)="addIndicator()" [disabled]="!newIndicatorType">Добавить</button>
+          <button
+            mat-icon-button
+            color="primary"
+            (click)="addIndicator()"
+            [disabled]="!newIndicatorType"
+            aria-label="Добавить"
+            matTooltip="Добавить"
+          >
+            <mat-icon>add</mat-icon>
+          </button>
         </div>
 
         <mat-accordion>
           <mat-expansion-panel *ngFor="let ind of indicators">
             <mat-expansion-panel-header>
               <mat-panel-title>{{ getIndicatorDisplayName(ind.type) }}</mat-panel-title>
-              <mat-panel-description>{{ ind.panel ? (getPanelValue(ind) === 'chart' ? 'chart' : getPanelValue(ind)) : '' }}</mat-panel-description>
+              <mat-panel-description class="indicator-panel-description">
+                <span class="indicator-panel-ref">
+                  {{ ind.panel ? (getPanelValue(ind) === 'chart' ? 'chart' : getPanelValue(ind)) : '' }}
+                </span>
+                <button
+                  mat-icon-button
+                  color="warn"
+                  (click)="removeIndicator(ind.id); $event.stopPropagation()"
+                  aria-label="Удалить"
+                  matTooltip="Удалить"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </mat-panel-description>
             </mat-expansion-panel-header>
 
             <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
               <mat-checkbox [(ngModel)]="ind.visible" (change)="onChange($event)">Visible</mat-checkbox>
 
-              <mat-form-field appearance="fill" style="min-width: 240px;">
+              <mat-form-field *ngIf="!isPanelFixed(ind.type)" appearance="fill" style="min-width: 240px;">
                 <mat-label>Panel</mat-label>
                 <mat-select
                   [ngModel]="getPanelValue(ind)"
@@ -198,8 +220,7 @@
                 </mat-select>
               </mat-form-field>
 
-              <button mat-button (click)="addNewPanelFor(ind)">New panel</button>
-              <button mat-button color="warn" (click)="removeIndicator(ind.id)">Remove</button>
+              <button *ngIf="!isPanelFixed(ind.type)" mat-button (click)="addNewPanelFor(ind)">New panel</button>
             </div>
 
             <div *ngIf="getIndicatorSchema(ind.type) as schema" style="margin-top: 8px">

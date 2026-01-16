@@ -6,7 +6,8 @@ export type SourceType =
   | 'hl2'
   | 'hlc3'
   | 'ohlc4'
-  | 'volume';
+  | 'volume'
+  | 'oi';
 
 export interface Candle {
   t: number; // unix ms
@@ -15,6 +16,7 @@ export interface Candle {
   l: number;
   c: number;
   v?: number;
+  oi?: number;
 }
 
 export type VisualMode = 'Line' | 'Histogram';
@@ -70,6 +72,7 @@ export interface IndicatorDefinition<P extends object = any> {
   category?: string;
 
   defaultPanel: 'chart' | 'newPanel';
+  panelBehavior?: 'fixed' | 'configurable';
   paramsSchema: ParamSchema<P>;
 
   create: (ctx: IndicatorContext, params: P) => IndicatorInstance<P>;
@@ -95,4 +98,3 @@ export interface IndicatorInstance<P extends object = any> {
 
   dispose?: () => void;
 }
-

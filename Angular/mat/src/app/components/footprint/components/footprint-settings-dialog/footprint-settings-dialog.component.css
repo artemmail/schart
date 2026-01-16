@@ -33,3 +33,13 @@ mat-button-toggle {
   
   padding: 2px 4px; /* Уменьшает отступы в выбранных кнопках */
 }
+
+.indicator-panel-description {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.indicator-panel-ref {
+  opacity: 0.75;
+}

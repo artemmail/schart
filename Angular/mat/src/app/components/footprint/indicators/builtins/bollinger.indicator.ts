@@ -42,6 +42,7 @@ export const BollingerBandsIndicator: IndicatorDefinition<BollingerParams> = {
   displayName: 'Bollinger Bands',
   category: 'Volatility',
   defaultPanel: 'chart',
+  panelBehavior: 'fixed',
   paramsSchema: bollingerParamsSchema,
 
   create(ctx: IndicatorContext, params: BollingerParams): IndicatorInstance<BollingerParams> {
@@ -122,4 +123,3 @@ export const BollingerBandsIndicator: IndicatorDefinition<BollingerParams> = {
     };
   },
 };
-

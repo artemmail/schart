@@ -36,6 +36,7 @@ export const SmaIndicator: IndicatorDefinition<SmaParams> = {
   displayName: 'SMA',
   category: 'Trend',
   defaultPanel: 'chart',
+  panelBehavior: 'fixed',
   paramsSchema: smaParamsSchema,
 
   create(ctx: IndicatorContext, params: SmaParams): IndicatorInstance<SmaParams> {
@@ -87,4 +88,3 @@ export const SmaIndicator: IndicatorDefinition<SmaParams> = {
     };
   },
 };
-
