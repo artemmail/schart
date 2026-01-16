@@ -197,6 +197,7 @@ namespace StockChart.Repository
             ClusterColumnBase? col = null;
             List<Candle> res;// = await GetCandles(ticker, (int)period, Dates.Start, Dates.End, 10000);
 
+            /*
             if (Dates.Start.Date == DateTime.Now.Date)
             {
                 res = await GetCandlesQuick(ticker, (double)period, Dates.Start, Dates.End, 10000);
@@ -206,6 +207,7 @@ namespace StockChart.Repository
                 }
             }
             else
+            */
                 res = await GetCandles(ticker, (double)period, Dates.Start, Dates.End, 10000);
 
             var list = res.Select(row => new ClusterColumnBase()
@@ -227,6 +229,7 @@ namespace StockChart.Repository
 
         public async Task<List<Candle>> GetCandles(string ticker, double period, DateTime startDate, DateTime endDate, int top)
         {
+            /*
             try
             {
                 if (startDate.Date == DateTime.Now.Date)
@@ -240,7 +243,7 @@ namespace StockChart.Repository
             }
             catch (Exception ex)
             {
-            }
+            }*/
             return await _dbContext.GetCandlesAsync(ticker, period, startDate, endDate, top);
         }
 
