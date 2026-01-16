@@ -223,17 +223,6 @@ export class ViewsManager {
       ))
     );
 
-    const overlayView =
-      FPsettings.SeparateVolume
-        ? this.clusterView
-        : new Rectangle(
-            this.clusterView.x,
-            this.clusterView.y,
-            this.clusterView.w,
-            Math.max(0, this.clusterVolumesView.y - this.clusterView.y)
-          );
-    this.views.push(new viewIndicatorsOverlay(this.footprint, overlayView, this.mtxMain));
-
     if (FPsettings.SeparateVolume)
       this.views.push(
         (this.viewVolumesSeparated = new viewVolumesSeparated(
@@ -259,6 +248,10 @@ export class ViewsManager {
     );
     if (FPsettings.totalMode != 'Hidden' && this.data.ableCluster())
       this.views.push(this.viewTotal);
+
+    // Draw overlay indicators AFTER volumes so they remain visible on top.
+    this.views.push(new viewIndicatorsOverlay(this.footprint, this.clusterView, this.mtxMain));
+
     this.views.push(
       (this.viewScrollBars = new viewScrollBars(
         this.footprint,
@@ -357,9 +350,6 @@ export class ViewsManager {
       ))
     );
 
-      const overlayView = this.clusterView;
-      this.views.push(new viewIndicatorsOverlay(this.footprint, overlayView, this.mtxMain));
-
       this.views.push(
         (this.viewDates = new viewDates(
           this.footprint,
@@ -384,6 +374,9 @@ export class ViewsManager {
           this.clusterDeltaView,
           this.mtxMain
         )));
+
+    // Draw overlay indicators last (above range set visuals too).
+    this.views.push(new viewIndicatorsOverlay(this.footprint, this.clusterView, this.mtxMain));
 
     this.indicatorPanels = [];
     for (const panel of this.layout.indicatorPanels) {

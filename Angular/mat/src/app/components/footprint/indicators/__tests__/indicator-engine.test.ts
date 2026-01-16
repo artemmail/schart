@@ -59,6 +59,50 @@ describe('FootprintIndicatorEngine', () => {
     expect(sma!.values[4]).toBeCloseTo(4);
   });
 
+  test('calculates Bollinger Bands correctly', () => {
+    const data = makeClusterData([1, 2, 3, 4, 5]);
+    const engine = makeEngine();
+
+    engine.setData(data);
+    engine.setSettings({
+      Indicators: [
+        {
+          id: 'b1',
+          type: 'bb',
+          params: {
+            source: 'close',
+            period: 5,
+            mult: 2,
+            middleColor: '#fff',
+            upperColor: '#0af',
+            lowerColor: '#0af',
+            width: 1,
+          },
+          panel: 'chart',
+          visible: true,
+        },
+      ],
+      IndicatorPanels: {},
+    } as any);
+
+    engine.prepare();
+
+    const mid = engine.getChartSeries().find((s) => s.id === 'BB_MID');
+    const up = engine.getChartSeries().find((s) => s.id === 'BB_UP');
+    const low = engine.getChartSeries().find((s) => s.id === 'BB_LOW');
+
+    expect(mid).toBeTruthy();
+    expect(up).toBeTruthy();
+    expect(low).toBeTruthy();
+
+    expect(Number.isNaN(mid!.values[3])).toBe(true);
+    expect(mid!.values[4]).toBeCloseTo(3);
+
+    // population stddev for [1..5] is sqrt(2)
+    expect(up!.values[4]).toBeCloseTo(3 + 2 * Math.sqrt(2));
+    expect(low!.values[4]).toBeCloseTo(3 - 2 * Math.sqrt(2));
+  });
+
   test('incrementally updates on append', () => {
     const data = makeClusterData([1, 2, 3, 4, 5]);
     const engine = makeEngine();
@@ -117,4 +161,3 @@ describe('FootprintIndicatorEngine', () => {
     expect(mono!.values[2]).toBeCloseTo(15);
   });
 });
-
