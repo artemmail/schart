@@ -32,5 +32,21 @@ export interface ChartSettings {
   VolumesHeight?: VolumeHeightMap;
   DeltaGraph: boolean;
   DialogPositions?: Record<string, { x: number; y: number }>;
-}
 
+  /**
+   * FootPrint indicators (ATAS-like). Stored in settings for preset persistence.
+   * v1: UI edits params via schema, engine handles calc & rendering.
+   */
+  Indicators?: Array<{
+    id: string;
+    type: string;
+    params: any;
+    panel?: 'chart' | { id: string };
+    visible?: boolean;
+  }>;
+
+  /**
+   * Per-panel UI preferences (height/title) for indicator subpanels.
+   */
+  IndicatorPanels?: Record<string, { height?: number; title?: string }>;
+}

@@ -96,7 +96,9 @@ export class ChartSettingsService {
       Name: 'Свечи мини',
       VolumesHeight: { ...MINI_VOLUME_HEIGHTS },
       DeltaGraph: false,
-      DialogPositions: {}
+      DialogPositions: {},
+      Indicators: [],
+      IndicatorPanels: {}
     };
   }
 
@@ -133,7 +135,9 @@ export class ChartSettingsService {
   Name: '',
 
   DeltaGraph: false,
-  DialogPositions: {}
+  DialogPositions: {},
+  Indicators: [],
+  IndicatorPanels: {}
 };
   }
 
@@ -143,6 +147,8 @@ export class ChartSettingsService {
       ...settings,
       OIDeltaDivideBy2: settings.OIDeltaDivideBy2 ?? false,
       VolumesHeight: normalizeVolumeHeights(settings.VolumesHeight, defaults),
+      Indicators: settings.Indicators ?? [],
+      IndicatorPanels: settings.IndicatorPanels ?? {},
     };
   }
 }

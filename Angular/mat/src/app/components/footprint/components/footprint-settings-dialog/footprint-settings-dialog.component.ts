@@ -34,6 +34,8 @@ export class FootPrintSettingsDialogComponent {
   settingsDeltaVisible = true;
   markup: ProfileModel;
 
+  newIndicatorType: string | null = null;
+
   // Добавляем поле fp
   @Input() fp: FootPrintComponent;
   @Input() reloadData?: () => Promise<void> | void;
@@ -81,7 +83,99 @@ export class FootPrintSettingsDialogComponent {
       this.settings.volume1 = this.fp.levelMarksService.getFilters().volume1;
       this.settings.volume2 = this.fp.levelMarksService.getFilters().volume2;
       this.markup = this.fp.viewModel;
+      this.ensureIndicatorsStorage();
     }
+  }
+
+  ensureIndicatorsStorage(): void {
+    if (!this.fp) return;
+    if (!this.fp.FPsettings.Indicators) this.fp.FPsettings.Indicators = [];
+    if (!this.fp.FPsettings.IndicatorPanels) this.fp.FPsettings.IndicatorPanels = {};
+  }
+
+  get indicatorDefinitions() {
+    return this.fp?.indicatorEngine?.listDefinitions?.() ?? [];
+  }
+
+  get indicators() {
+    this.ensureIndicatorsStorage();
+    return this.fp?.FPsettings.Indicators ?? [];
+  }
+
+  getIndicatorDisplayName(type: string): string {
+    const def = this.indicatorDefinitions.find((d) => d.type === type);
+    return def?.displayName ?? type;
+  }
+
+  getIndicatorSchema(type: string): any {
+    const def = this.indicatorDefinitions.find((d) => d.type === type);
+    return def?.paramsSchema ?? null;
+  }
+
+  addIndicator(): void {
+    if (!this.fp) return;
+    this.ensureIndicatorsStorage();
+    const type = this.newIndicatorType;
+    if (!type) return;
+
+    const def = this.indicatorDefinitions.find((d) => d.type === type);
+    if (!def) return;
+
+    const id = `${type}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const params: any = {};
+    for (const key of Object.keys(def.paramsSchema ?? {})) {
+      params[key] = (def.paramsSchema as any)[key]?.default;
+    }
+
+    let panel: any = 'chart';
+    if (def.defaultPanel === 'newPanel') {
+      const panelId = `${type}-panel-${Date.now()}`;
+      this.fp.FPsettings.IndicatorPanels![panelId] =
+        this.fp.FPsettings.IndicatorPanels![panelId] ?? { height: Math.round(90 * this.fp.colorsService.sscale()) };
+      panel = { id: panelId };
+    }
+
+    this.fp.FPsettings.Indicators!.push({ id, type, params, visible: true, panel });
+    this.newIndicatorType = null;
+    this.onChange(null);
+  }
+
+  removeIndicator(id: string): void {
+    if (!this.fp) return;
+    this.ensureIndicatorsStorage();
+    this.fp.FPsettings.Indicators = (this.fp.FPsettings.Indicators ?? []).filter((x) => x.id !== id);
+    this.onChange(null);
+  }
+
+  getPanelValue(ind: any): string {
+    if (!ind?.panel || ind.panel === 'chart') return 'chart';
+    return `panel:${ind.panel.id}`;
+  }
+
+  setPanelValue(ind: any, value: string): void {
+    if (!this.fp) return;
+    this.ensureIndicatorsStorage();
+    if (value === 'chart') {
+      ind.panel = 'chart';
+      return;
+    }
+    if (value.startsWith('panel:')) {
+      const id = value.slice('panel:'.length);
+      ind.panel = { id };
+      if (!this.fp.FPsettings.IndicatorPanels![id]) {
+        this.fp.FPsettings.IndicatorPanels![id] = { height: Math.round(90 * this.fp.colorsService.sscale()) };
+      }
+    }
+  }
+
+  addNewPanelFor(ind: any): void {
+    if (!this.fp) return;
+    this.ensureIndicatorsStorage();
+    const idBase = `${ind?.type ?? 'panel'}-${Date.now()}`;
+    this.fp.FPsettings.IndicatorPanels![idBase] =
+      this.fp.FPsettings.IndicatorPanels![idBase] ?? { height: Math.round(90 * this.fp.colorsService.sscale()) };
+    ind.panel = { id: idBase };
+    this.onChange(null);
   }
 
   onChange(event: any) {

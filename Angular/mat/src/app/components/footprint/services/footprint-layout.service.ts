@@ -21,6 +21,7 @@ export interface FootprintLayoutDto {
   clusterDeltaBarsView: Rectangle;
   clusterTotalView: Rectangle;
   clusterTotalViewFill: Rectangle;
+  indicatorPanels: Array<{ id: string; view: Rectangle }>;
 }
 
 export interface FootprintMatricesDto {
@@ -39,6 +40,7 @@ interface LayoutOptions {
   topLinesCount: number;
   settings: ChartSettings;
   data: ClusterData;
+  indicatorPanels?: ReadonlyArray<{ id: string; height: number }>;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -48,6 +50,7 @@ export class FootprintLayoutService {
   calculateLayout(options: LayoutOptions): FootprintLayoutDto {
     const { canvasWidth, canvasHeight, deltaVolumes, minimode, settings, data } = options;
     let { topLinesCount } = options;
+    const indicatorPanels = options.indicatorPanels ?? [];
 
     const newTotal = settings.totalMode === 'Under' || !data.ableCluster();
     const hiddenTotal = settings.totalMode === 'Hidden' && data.ableCluster();
@@ -96,6 +99,8 @@ export class FootprintLayoutService {
 
     const totalVerticalHeight =
       volumesHeight[0] + volumesHeight[1] + volumesHeight[2] + volumesHeight[3] + volumesHeight[4];
+    const indicatorPanelsHeight = indicatorPanels.reduce((sum, p) => sum + (p?.height ?? 0), 0);
+    const totalBottomHeight = totalVerticalHeight + indicatorPanelsHeight;
 
     const clusterView: Rectangle = new Rectangle(
       totalLen + deltaVolumes[4],
@@ -104,7 +109,7 @@ export class FootprintLayoutService {
       canvasHeight -
         this.colorsService.LegendDateHeight(minimode) -
         graphTopSpace -
-        totalVerticalHeight
+        totalBottomHeight
     );
 
     if (newTotal) {
@@ -166,7 +171,7 @@ export class FootprintLayoutService {
       x: clusterView.x,
       w: clusterView.w,
       y: clusterView.y + clusterView.h,
-      h: canvasHeight - (clusterView.y + clusterView.h) - totalVerticalHeight,
+      h: canvasHeight - (clusterView.y + clusterView.h) - totalBottomHeight,
     };
 
     if (minimode) clusterDatesView.h = 0;
@@ -226,6 +231,18 @@ export class FootprintLayoutService {
       h: volumesHeight[3],
     };
 
+    yCursor += volumesHeight[3];
+    const indicatorPanelViews: Array<{ id: string; view: Rectangle }> = [];
+    for (const panel of indicatorPanels) {
+      const h = panel?.height ?? 0;
+      if (h <= 0) continue;
+      indicatorPanelViews.push({
+        id: panel.id,
+        view: { x: clusterView.x, y: yCursor, w: clusterView.w, h },
+      });
+      yCursor += h;
+    }
+
     return {
       clusterPricesView,
       clusterView,
@@ -240,6 +257,7 @@ export class FootprintLayoutService {
       clusterDeltaBarsView,
       clusterTotalView,
       clusterTotalViewFill,
+      indicatorPanels: indicatorPanelViews,
     };
   }
 

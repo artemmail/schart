@@ -161,6 +161,99 @@
       
     </mat-tab>
 
+    <mat-tab label="Индикаторы">
+      <div style="padding: 8px">
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <mat-form-field appearance="fill" style="flex: 1;">
+            <mat-label>Добавить индикатор</mat-label>
+            <mat-select [(ngModel)]="newIndicatorType">
+              <mat-option *ngFor="let def of indicatorDefinitions" [value]="def.type">
+                {{ def.displayName }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          <button mat-raised-button color="primary" (click)="addIndicator()" [disabled]="!newIndicatorType">Добавить</button>
+        </div>
+
+        <mat-accordion>
+          <mat-expansion-panel *ngFor="let ind of indicators">
+            <mat-expansion-panel-header>
+              <mat-panel-title>{{ getIndicatorDisplayName(ind.type) }}</mat-panel-title>
+              <mat-panel-description>{{ ind.panel ? (getPanelValue(ind) === 'chart' ? 'chart' : getPanelValue(ind)) : '' }}</mat-panel-description>
+            </mat-expansion-panel-header>
+
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <mat-checkbox [(ngModel)]="ind.visible" (change)="onChange($event)">Visible</mat-checkbox>
+
+              <mat-form-field appearance="fill" style="min-width: 240px;">
+                <mat-label>Panel</mat-label>
+                <mat-select
+                  [ngModel]="getPanelValue(ind)"
+                  (ngModelChange)="setPanelValue(ind, $event); onChange($event)"
+                >
+                  <mat-option value="chart">Chart</mat-option>
+                  <mat-option *ngFor="let p of fp.FPsettings.IndicatorPanels | keyvalue" [value]="'panel:' + p.key">
+                    {{ p.key }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <button mat-button (click)="addNewPanelFor(ind)">New panel</button>
+              <button mat-button color="warn" (click)="removeIndicator(ind.id)">Remove</button>
+            </div>
+
+            <div *ngIf="getIndicatorSchema(ind.type) as schema" style="margin-top: 8px">
+              <ng-container *ngFor="let kv of schema | keyvalue">
+                <ng-container [ngSwitch]="kv.value.type">
+                  <mat-form-field *ngSwitchCase="'int'" appearance="fill" style="width: 240px; margin-right: 8px;">
+                    <mat-label>{{ kv.value.title }}</mat-label>
+                    <input
+                      matInput
+                      type="number"
+                      [min]="kv.value.min"
+                      [max]="kv.value.max"
+                      [step]="kv.value.step"
+                      [(ngModel)]="ind.params[kv.key]"
+                      (change)="onChange($event)"
+                    />
+                  </mat-form-field>
+
+                  <mat-form-field *ngSwitchCase="'float'" appearance="fill" style="width: 240px; margin-right: 8px;">
+                    <mat-label>{{ kv.value.title }}</mat-label>
+                    <input
+                      matInput
+                      type="number"
+                      [min]="kv.value.min"
+                      [max]="kv.value.max"
+                      [step]="kv.value.step"
+                      [(ngModel)]="ind.params[kv.key]"
+                      (change)="onChange($event)"
+                    />
+                  </mat-form-field>
+
+                  <mat-checkbox *ngSwitchCase="'bool'" [(ngModel)]="ind.params[kv.key]" (change)="onChange($event)" style="margin-right: 12px;">
+                    {{ kv.value.title }}
+                  </mat-checkbox>
+
+                  <mat-form-field *ngSwitchCase="'color'" appearance="fill" style="width: 240px; margin-right: 8px;">
+                    <mat-label>{{ kv.value.title }}</mat-label>
+                    <input matInput type="color" [(ngModel)]="ind.params[kv.key]" (change)="onChange($event)" />
+                  </mat-form-field>
+
+                  <mat-form-field *ngSwitchCase="'enum'" appearance="fill" style="width: 240px; margin-right: 8px;">
+                    <mat-label>{{ kv.value.title }}</mat-label>
+                    <mat-select [(ngModel)]="ind.params[kv.key]" (selectionChange)="onChange($event)">
+                      <mat-option *ngFor="let opt of kv.value.options" [value]="opt.value">{{ opt.label }}</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </ng-container>
+              </ng-container>
+            </div>
+          </mat-expansion-panel>
+        </mat-accordion>
+      </div>
+    </mat-tab>
+
 
 
     <mat-tab label="Пресет">

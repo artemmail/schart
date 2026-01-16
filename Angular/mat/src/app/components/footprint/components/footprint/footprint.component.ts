@@ -31,6 +31,9 @@ import { FootprintRealtimeUpdaterService } from '../../services/footprint-realti
 import { FootprintUpdateEvent } from '../../models/footprint-data.types';
 import { FootprintStateService } from '../../services/footprint-state.service';
 import { HintContainerService } from '../../services/hint-container.service';
+import { FootprintIndicatorEngine } from '../../indicators/indicator-engine';
+import { IndicatorRegistry } from '../../indicators/indicator-registry';
+import { registerFootprintBuiltInIndicators } from '../../indicators/builtins/register-builtins';
 
 @Component({
   standalone: true,
@@ -63,12 +66,16 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
 
   views: Array<canvasPart> = new Array();
 
+  readonly indicatorRegistry = new IndicatorRegistry();
+  readonly indicatorEngine: FootprintIndicatorEngine;
+
   get data(): ClusterData | null {
     return this.state.snapshot.data;
   }
 
   private set data(value: ClusterData | null) {
     this.state.setData(value);
+    this.indicatorEngine?.setData(value);
   }
 
   get hiddenHint(): boolean {
@@ -141,6 +148,19 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     // this.FPsettings = FPsettings;
     this.translateMatrix = null;
     this.markupEnabled = false;
+
+    registerFootprintBuiltInIndicators(this.indicatorRegistry);
+    this.indicatorEngine = new FootprintIndicatorEngine(
+      this.indicatorRegistry,
+      {
+        requestRender: () => this.drawClusterView(),
+        requestRecalc: () => this.drawClusterView(),
+      },
+      {
+        ensurePanel: (kind: 'chart' | 'new', preferredId?: string) => this.ensureIndicatorPanel(kind, preferredId),
+        getPanelHeight: (panelId: string) => this.getIndicatorPanelHeight(panelId),
+      }
+    );
   }
 
   get canvas(): HTMLCanvasElement | null {
@@ -192,6 +212,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
 
   set FPsettings(settings: ChartSettings) {
     this.state.setSettings(settings);
+    this.indicatorEngine?.setSettings(settings);
   }
 
   applyOideltaDivider(): void {
@@ -461,6 +482,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   applySettings(settings: ChartSettings) {
     this.FPsettings = settings;
     this.applyOideltaDivider();
+    this.indicatorEngine.setSettings(this.FPsettings);
     if (!this.viewInitialized || !this.data || !this.params) {
       return;
     }
@@ -477,6 +499,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     const isNewDataInstance = this.data !== clusterData;
     this.data = clusterData;
     this.applyOideltaDivider();
+    this.indicatorEngine.setData(this.data);
     this.hintContainer.ensureHintElement();
     if (!this.viewInitialized || !this.params || !isNewDataInstance) {
       return;
@@ -492,6 +515,8 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
+    this.indicatorEngine.setData(this.data);
+    this.indicatorEngine.setSettings(this.FPsettings);
     this.initSize();
     this.resize();
     this.viewsManager.drawClusterView();
@@ -508,6 +533,31 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     }
 
     this.viewsManager.drawClusterView();
+  }
+
+  private ensureIndicatorPanel(kind: 'chart' | 'new', preferredId?: string) {
+    if (kind === 'chart') return 'chart';
+
+    const idBase = (preferredId ?? 'panel').trim().replace(/\s+/g, '-');
+    const settings = this.FPsettings;
+    if (!settings.IndicatorPanels) settings.IndicatorPanels = {};
+    let id = idBase;
+    let i = 1;
+    while (settings.IndicatorPanels[id] && i < 1000) {
+      id = `${idBase}-${i++}`;
+    }
+
+    if (!settings.IndicatorPanels[id]) {
+      settings.IndicatorPanels[id] = { height: Math.round(90 * this.colorsService.sscale()) };
+    }
+
+    return { id };
+  }
+
+  private getIndicatorPanelHeight(panelId: string): number {
+    const h = this.FPsettings.IndicatorPanels?.[panelId]?.height;
+    const normalized = typeof h === 'number' && isFinite(h) ? h : Math.round(90 * this.colorsService.sscale());
+    return Math.max(30, Math.floor(normalized));
   }
 
   ngOnDestroy(): void {

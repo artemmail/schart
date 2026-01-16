@@ -10,6 +10,7 @@ import {
   getVolumeHeightDefaults,
   normalizeVolumeHeights,
 } from 'src/app/models/volume-heights';
+import { viewIndicatorPanel } from '../views/view-indicator-panel';
 
 export class MouseAndTouchManager {
   footprint: FootPrintComponent;
@@ -17,6 +18,8 @@ export class MouseAndTouchManager {
   selectedPoint: any;
   pressd: Point = { x: 0, y: 0 };
   private hammer: HammerManager;
+  private dragIndicatorPanelId: string | null = null;
+  private dragIndicatorStartHeight: number | null = null;
 
   constructor(footprint_: FootPrintComponent) {
     this.footprint = footprint_;
@@ -60,6 +63,15 @@ export class MouseAndTouchManager {
   onMouseUp = (): void => {
     const FPsettings = this.footprint.FPsettings;
     if (this.footprint.dragMode != null) {
+      const resizable = this.footprint.viewsManager.resizeable[this.footprint.dragMode];
+      if (resizable instanceof viewIndicatorPanel) {
+        this.footprint.saveSettings();
+        this.footprint.dragMode = null;
+        this.dragIndicatorPanelId = null;
+        this.dragIndicatorStartHeight = null;
+        return;
+      }
+
       const dragModeIndex = this.footprint.dragMode;
       const deltaVolume = this.footprint.consumeDeltaVolume(dragModeIndex);
       if (deltaVolume !== 0) {
@@ -238,11 +250,34 @@ export class MouseAndTouchManager {
     this.footprint.hideHint();
 
     if (this.footprint.dragMode != null) {
-      const part = this.footprint.viewsManager.resizeable[this.footprint.dragMode]?.draggable;
+      const resizable = this.footprint.viewsManager.resizeable[this.footprint.dragMode];
+      const part = resizable?.draggable;
 
       const Delta = (part === DraggableEnum.Left || part === DraggableEnum.Right)
         ? point.x - this.pressd.x
         : this.pressd.y - point.y;
+
+      if (resizable instanceof viewIndicatorPanel) {
+        const panelId = resizable.panelId;
+        if (this.dragIndicatorPanelId !== panelId) {
+          this.dragIndicatorPanelId = panelId;
+          this.dragIndicatorStartHeight =
+            this.footprint.FPsettings.IndicatorPanels?.[panelId]?.height ??
+            Math.max(30, Math.floor(resizable.view?.h ?? 90));
+        }
+
+        const startH = this.dragIndicatorStartHeight ?? Math.max(30, Math.floor(resizable.view?.h ?? 90));
+        const nextH = Math.max(30, Math.floor(startH + Delta));
+
+        const settings = this.footprint.FPsettings;
+        const panels = { ...(settings.IndicatorPanels ?? {}) };
+        panels[panelId] = { ...(panels[panelId] ?? {}), height: nextH };
+        this.footprint.FPsettings = { ...settings, IndicatorPanels: panels };
+
+        this.footprint.translateMatrix = null;
+        this.footprint.viewsManager.drawClusterView();
+        return;
+      }
 
       const dragKey = VolumeHeightKeyOrder[this.footprint.dragMode];
       if (dragKey) {
@@ -290,6 +325,17 @@ export class MouseAndTouchManager {
         for (let x = 0; x < this.footprint.viewsManager.resizeable.length; x++)
           if (this.footprint.views[view] === this.footprint.viewsManager.resizeable[x])
             this.footprint.dragMode = x;
+
+        const dragged = this.footprint.views[view];
+        if (dragged instanceof viewIndicatorPanel) {
+          this.dragIndicatorPanelId = dragged.panelId;
+          this.dragIndicatorStartHeight =
+            this.footprint.FPsettings.IndicatorPanels?.[dragged.panelId]?.height ??
+            Math.max(30, Math.floor(dragged.view?.h ?? 90));
+        } else {
+          this.dragIndicatorPanelId = null;
+          this.dragIndicatorStartHeight = null;
+        }
         return;
       }
     for (const view in this.footprint.views)

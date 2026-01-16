@@ -31,6 +31,8 @@ import {
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { viewBackgroundRange } from '../views/view-background-range';
+import { viewIndicatorsOverlay } from '../views/view-indicators-overlay';
+import { viewIndicatorPanel } from '../views/view-indicator-panel';
 
 export class ViewsManager {
   footprint: FootPrintComponent;
@@ -47,6 +49,7 @@ export class ViewsManager {
 
   views: Array<canvasPart> = new Array();
   resizeable: Array<canvasPart | null> = [];
+  indicatorPanels: viewIndicatorPanel[] = [];
   viewMiniHead: viewMiniHead | null = null;
   viewMain: viewMain | null = null;
   viewBackground1: viewBackground1 | null = null;
@@ -98,6 +101,7 @@ export class ViewsManager {
       return;
     }
 
+    const indicatorPanels = this.footprint.indicatorEngine?.getPanels?.() ?? [];
     const layout = this.layoutService.calculateLayout({
       canvasWidth: canvas.width,
       canvasHeight: canvas.height,
@@ -106,6 +110,7 @@ export class ViewsManager {
       settings: this.getSettings(),
       data,
       topLinesCount: this.footprint.topLinesCount(),
+      indicatorPanels,
     });
 
     this.layout = layout;
@@ -218,6 +223,17 @@ export class ViewsManager {
       ))
     );
 
+    const overlayView =
+      FPsettings.SeparateVolume
+        ? this.clusterView
+        : new Rectangle(
+            this.clusterView.x,
+            this.clusterView.y,
+            this.clusterView.w,
+            Math.max(0, this.clusterVolumesView.y - this.clusterView.y)
+          );
+    this.views.push(new viewIndicatorsOverlay(this.footprint, overlayView, this.mtxMain));
+
     if (FPsettings.SeparateVolume)
       this.views.push(
         (this.viewVolumesSeparated = new viewVolumesSeparated(
@@ -293,6 +309,13 @@ export class ViewsManager {
       );
     }
 
+    this.indicatorPanels = [];
+    for (const panel of this.layout.indicatorPanels) {
+      const v = new viewIndicatorPanel(this.footprint, panel.view, this.mtxMain, panel.id);
+      this.indicatorPanels.push(v);
+      this.views.push(v);
+    }
+
     // 
     this.resizeable = [
       this.viewVolumesSeparated,
@@ -302,6 +325,9 @@ export class ViewsManager {
       this.viewTotal,
       this.viewDeltaBars,
     ];
+
+    // allow resizing indicator panels too (handled separately in MouseAndTouchManager)
+    this.resizeable.push(...this.indicatorPanels);
   }
 
 
@@ -323,13 +349,16 @@ export class ViewsManager {
     );
 
 
-            this.views.push(
+    this.views.push(
       (this.viewRangeSet = new viewRangeSet(
         this.footprint,
         this.clusterView,
         this.mtxMain
       ))
     );
+
+      const overlayView = this.clusterView;
+      this.views.push(new viewIndicatorsOverlay(this.footprint, overlayView, this.mtxMain));
 
       this.views.push(
         (this.viewDates = new viewDates(
@@ -349,12 +378,19 @@ export class ViewsManager {
       );
 
 
-        this.views.push(
+      this.views.push(
         (this.viewDeltaRangeSet = new viewDeltaRangeSet(
           this.footprint,
           this.clusterDeltaView,
           this.mtxMain
         )));
+
+    this.indicatorPanels = [];
+    for (const panel of this.layout.indicatorPanels) {
+      const v = new viewIndicatorPanel(this.footprint, panel.view, this.mtxMain, panel.id);
+      this.indicatorPanels.push(v);
+      this.views.push(v);
+    }
 
     this.resizeable = [
       null,
@@ -364,6 +400,8 @@ export class ViewsManager {
       null,
       null,
     ];
+
+    this.resizeable.push(...this.indicatorPanels);
   }
 
   drawClusterView() {
@@ -374,6 +412,8 @@ export class ViewsManager {
 
     if (!this.data || !canvas || !ctx) return;
     if (canvas.width <= 1 || canvas.height <= 1) return;
+
+    this.footprint.indicatorEngine?.prepare?.();
 
     if (!this.layout) {
       this.updateLayout();
