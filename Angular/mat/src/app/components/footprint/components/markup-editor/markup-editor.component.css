@@ -15,6 +15,17 @@
   margin-bottom: 10px;
 }
 
+.markup-editor-desc {
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.markup-editor-label {
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
 
 fieldset {
   display: block;

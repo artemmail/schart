@@ -8,7 +8,6 @@ import {
   totalModesPreset,
 } from 'src/app/models/preserts';
 import { FootPrintComponent } from '../footprint/footprint.component';
-import { ProfileModel } from 'src/app/models/profileModel';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { MaterialModule } from 'src/app/material.module';
 
@@ -32,8 +31,6 @@ export class FootPrintSettingsDialogComponent {
   settingsVolumeVisible = true;
   settingsRutickerVisible = true;
   settingsDeltaVisible = true;
-  markup: ProfileModel;
-
   newIndicatorType: string | null = null;
 
   // Добавляем поле fp
@@ -82,9 +79,12 @@ export class FootPrintSettingsDialogComponent {
       this.settings = this.fp.FPsettings;
       this.settings.volume1 = this.fp.levelMarksService.getFilters().volume1;
       this.settings.volume2 = this.fp.levelMarksService.getFilters().volume2;
-      this.markup = this.fp.viewModel;
       this.ensureIndicatorsStorage();
     }
+  }
+
+  get profileParams() {
+    return this.fp?.markupManager?.getToolParams?.('Profile') ?? null;
   }
 
   ensureIndicatorsStorage(): void {
@@ -199,6 +199,10 @@ export class FootPrintSettingsDialogComponent {
     this.fp.applyOideltaDivider();
     this.save();
     this.fp.resize();
+  }
+
+  onMarkupChange(event: any) {
+    this.onChange(event);
   }
 
   private applyIndicators(nextIndicators: ChartSettings['Indicators']): void {

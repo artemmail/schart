@@ -1,58 +1,70 @@
 import { Component, Input, HostListener } from '@angular/core';
-import { ProfileModel } from 'src/app/models/profileModel';
-import { MarkUpManager } from '../../markup/markup-manager';
 import { FootPrintComponent } from '../footprint/footprint.component';
 import { MarkupMode } from '../../markup/shape-type';
 import { MaterialModule } from 'src/app/material.module';
-import { ComboBoxComponent } from '../../../Controls/ComboBox/combobox.component';
 import { PalettePickerComponent } from 'src/lib/palette-picker.component';
-import {
-  fontsPreset,
-  profilePeriodsPreset,
-  widthsPreset,
-} from 'src/app/models/preserts';
 
 @Component({
   standalone: true,
   selector: 'app-markup-editor',
-  imports: [MaterialModule, ComboBoxComponent, PalettePickerComponent],
+  imports: [MaterialModule, PalettePickerComponent],
   templateUrl: './markup-editor.component.html',
   styleUrls: ['./markup-editor.component.css'],
 })
 export class MarkupEditorComponent {
   @Input() NP: FootPrintComponent;
-  markup: ProfileModel;
-  widths = widthsPreset;
-  fonts = fontsPreset;
-  profilePeriods = profilePeriodsPreset;
 
   constructor() {}
 
-  ngOnChanges() {
-    if (this.NP) {
-      this.markup = this.NP.viewModel;
-    }
+  get toolbarDefinitions() {
+    return this.NP?.markupManager?.listToolbarDefinitions?.() ?? [];
   }
 
-  onClick(event: MarkupMode) {
-    this.NP.markupManager.changeMode(event);
+  get activeTool(): MarkupMode {
+    return this.NP?.markupManager?.activeToolType ?? 'Edit';
+  }
+
+  get activeDefinition() {
+    return this.NP?.markupManager?.activeDefinition ?? null;
+  }
+
+  get activeParams() {
+    return this.NP?.markupManager?.activeParams ?? null;
+  }
+
+  get activeToolParams() {
+    const type = this.activeDefinition?.type;
+    if (!type) return null;
+    return this.NP?.markupManager?.getToolParams?.(type) ?? null;
+  }
+
+  get canDelete(): boolean {
+    return this.NP?.markupManager?.hasSelection?.() ?? false;
+  }
+
+  getFieldTarget(field: any) {
+    if (field?.scope === 'tool') {
+      return this.activeToolParams ?? this.activeParams;
+    }
+    return this.activeParams ?? this.activeToolParams;
+  }
+
+  onToolChange(event: MarkupMode) {
+    this.NP?.markupManager?.changeMode(event);
   }
 
   onDelete(event: any) {
-    this.NP.markupManager.deleteCurrent();
+    this.NP?.markupManager?.deleteCurrent();
   }
 
-  markupchangecolor(event: any) {
-    this.NP.markupManager.updateShapeFromModel();
-  }
-
-  onChange(event: any) {
-    console.log('Profile period changed:', event);
+  onParamsChanged(field?: any) {
+    const syncDefaults = field?.scope !== 'tool';
+    this.NP?.markupManager?.onParamsChanged?.(syncDefaults);
   }
 
   @HostListener('document:keydown.delete', ['$event'])
   handleDeleteKey(event: KeyboardEvent) {
-    if (this.markup.visible.toolbar) {
+    if (this.canDelete) {
       this.onDelete(event);
     }
   }

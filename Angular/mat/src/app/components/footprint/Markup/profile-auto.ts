@@ -4,16 +4,8 @@ import { Profile } from './profile';
 import { MarkUpManager } from './markup-manager';
 
 export class ProfileAuto extends Profile {
-  constructor(manager: MarkUpManager) {
-    super(manager);
-  }
-  override getFromModel() {
-    this.total = this.model.total;
-    this.dockable = this.model.dockable;
-  }
-  override setToModel() {
-    this.total = this.model.total;
-    this.model.dockable = this.dockable;
+  constructor(manager: MarkUpManager, params: Record<string, any>) {
+    super(manager, params);
   }
   override onMouseUp(point: Point): void {}
   getProfiles(period: number): Array<Point[]> {
@@ -58,13 +50,11 @@ export class ProfileAuto extends Profile {
     return res;
   }
   override drawShape() {
-    let period = this.model.profilePeriod;
+    let period = typeof this.params?.profilePeriod === 'number' ? this.params.profilePeriod : -1;
     if (period == -1) return;
     let arr = this.getProfiles(period);
     for (let i = 0; i < arr.length; i++) {
       this.pointArray = arr[i];
-      this.getFromModel();
-
       this.dock();
 
       super.drawShape();

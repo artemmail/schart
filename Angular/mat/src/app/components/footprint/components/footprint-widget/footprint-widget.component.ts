@@ -75,10 +75,6 @@ export class FootprintWidgetComponent
     return this.renderer?.levelMarksService;
   }
 
-  get viewModel() {
-    return this.renderer?.viewModel;
-  }
-
   get canvas() {
     return this.renderer?.canvas;
   }

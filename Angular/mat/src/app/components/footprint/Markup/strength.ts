@@ -5,31 +5,9 @@ import { Point } from '../models/matrix';
 
 
 export class Strength extends Rect {
-  total: any;
-  dockable: any;
-
-  constructor(manager: MarkUpManager) {
-    super(manager);
+  constructor(manager: MarkUpManager, params: Record<string, any>) {
+    super(manager, params);
     this.type = 'Strength';
-    this.controlMap = {
-      color: false,
-      width: false,
-      font: false,
-      id: false,
-      text: false,
-      arrow: false,
-      toolbar: false,
-      profile: true,
-    };
-    this.getFromModel();
-  }
-  override getFromModel() {
-    this.total = this.model.total;
-    this.dockable = this.model.dockable;
-  }
-  override setToModel() {
-    this.total = this.model.total;
-    this.model.dockable  = this.dockable;
   }
 
   dock() {
@@ -44,7 +22,8 @@ export class Strength extends Rect {
       this.pointArray[1].y = this.pointArray[0].y + ps;
   }
   override onMouseUp(point: Point) {
-    if (this.dockable && this.pointArray.length == 2) {
+    const dockable = !!this.params?.dockable;
+    if (dockable && this.pointArray.length == 2) {
       this.dock();
 
       let pt1 = this.baseToScreen(this.vPoints[0]);

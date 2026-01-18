@@ -127,7 +127,11 @@
           <h3>Второй слой кластеров</h3>
           <mat-form-field appearance="fill">
             <mat-label>Второй слой кластеров</mat-label>
-            <mat-select [(ngModel)]="markup.profilePeriod" (selectionChange)="onChange($event)">
+            <mat-select
+              *ngIf="profileParams as params"
+              [(ngModel)]="params.profilePeriod"
+              (selectionChange)="onMarkupChange($event)"
+            >
               <mat-option *ngFor="let period of profilePeriods" [value]="period.Value">{{ period.Text }}</mat-option>
             </mat-select>
           </mat-form-field>

@@ -18,7 +18,8 @@ import { canvasPart } from '../../views/canvas-part';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { ColumnEx } from 'src/app/models/Column';
 import { MarkUpManager } from '../../markup/markup-manager';
-import { ProfileModel } from 'src/app/models/profileModel';
+import { MarkupRegistry } from '../../markup/markup-registry';
+import { registerFootprintBuiltInMarkups } from '../../markup/builtins/register-builtins';
 import { MouseAndTouchManager } from '../../managers/mouse-touch-manager';
 import { ViewsManager } from '../../managers/views-manager';
 import { SelectListItemNumber } from 'src/app/models/preserts';
@@ -68,6 +69,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
 
   readonly indicatorRegistry = new IndicatorRegistry();
   readonly indicatorEngine: FootprintIndicatorEngine;
+  readonly markupRegistry = new MarkupRegistry();
 
   get data(): ClusterData | null {
     return this.state.snapshot.data;
@@ -107,28 +109,6 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   finishPrice: number = 0;
   startPrice: number = 0;
 
-  viewModel: ProfileModel = {
-    profilePeriod: -1,
-    color: '#F08080',
-    width: 3,
-    font: 36,
-    elementid: '',
-    text: 'Some comment',
-    arrow: false,
-    total: true,
-    dockable: true,
-    mode: 'Edit',
-    visible: {
-      toolbar: true,
-      color: false,
-      width: false,
-      font: false,
-      id: false,
-      text: false,
-      arrow: false,
-      profile: false,
-    },
-  };
   viewsManager: ViewsManager;
   mouseAndTouchManager: MouseAndTouchManager;
   manager: MarkUpManager;
@@ -149,6 +129,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.translateMatrix = null;
     this.markupEnabled = false;
 
+    registerFootprintBuiltInMarkups(this.markupRegistry);
     registerFootprintBuiltInIndicators(this.indicatorRegistry);
     this.indicatorEngine = new FootprintIndicatorEngine(
       this.indicatorRegistry,
@@ -445,7 +426,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.viewsManager = new ViewsManager(this, this.footprintLayoutService);
 
     try {
-      this.markupManager = new MarkUpManager(this.viewModel, this);
+      this.markupManager = new MarkUpManager(this.markupRegistry, this);
       this.markupEnabled = true;
     } catch (e) {
       console.log('markup error');

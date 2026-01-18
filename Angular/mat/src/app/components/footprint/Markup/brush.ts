@@ -4,30 +4,9 @@ import { MarkUpManager } from './markup-manager';
 import { Shape } from './shape';
 
 export class Brush extends Shape {
-  public width: number;
-
-  constructor(manager: MarkUpManager) {
-    super(manager);
+  constructor(manager: MarkUpManager, params: Record<string, any>) {
+    super(manager, params);
     this.type = 'Brush';
-    this.controlMap = {
-      color: true,
-      width: true,
-      font: false,
-      id: false,
-      text: false,
-      arrow: false,
-      toolbar: false,
-      profile: false,
-    };
-    this.getFromModel();
-  }
-  override getFromModel() {
-    this.color = this.model.color;
-    this.width = this.model.width;
-  }
-  override setToModel() {
-    this.model.color= this.color;
-    this.model.width= this.width;
   }
   override onMouseDownMove(point: Point) {
     this.pointArray.push(this.screenToBase(point));
@@ -35,8 +14,10 @@ export class Brush extends Shape {
 
   override onMouseUp(point: Point): void {}
   override drawShape() {
-    this.footprint.ctx.lineWidth = this.width;
-    this.footprint.ctx.strokeStyle = this.color;
+    const width = typeof this.params?.width === 'number' ? this.params.width : 1;
+    const color = typeof this.params?.color === 'string' ? this.params.color : this.getSelectionColor();
+    this.footprint.ctx.lineWidth = width;
+    this.footprint.ctx.strokeStyle = color;
     this.footprint.ctx.beginPath();
     for (let i = 0; i < this.pointArray.length; i++) {
       let p = this.baseToScreen(this.pointArray[i]);

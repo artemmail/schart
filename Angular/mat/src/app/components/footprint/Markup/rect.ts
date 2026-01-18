@@ -7,28 +7,9 @@ export class Rect extends Line {
   vPoints: { x: number; y: number }[];
   selPointX: Point;
   selPointY: Point;
-  constructor(manager: MarkUpManager) {
-    super(manager);
+  constructor(manager: MarkUpManager, params: Record<string, any>) {
+    super(manager, params);
     this.type = 'Rect';
-    this.controlMap = {
-      color: true,
-      width: true,
-      font: false,
-      id: false,
-      text: false,
-      arrow: false,
-      toolbar: false,
-      profile: false,
-    };
-    this.getFromModel();
-  }
-  override getFromModel() {
-    this.color = this.model.color;
-    this.width = this.model.width;
-  }
-  override setToModel() {
-    this.model.color= this.color;
-    this.model.width= this.width;
   }
   override sortPoints() {
     let ps = this.pointArray;
@@ -63,15 +44,17 @@ export class Rect extends Line {
       });
     }
   }
-  override drawShape() {
+ override drawShape() {
     if (this.sortPoints()) {
-      this.footprint.ctx.lineWidth = this.width;
-      this.footprint.ctx.strokeStyle = this.color;
+      const width = typeof this.params?.width === 'number' ? this.params.width : 1;
+      const color = typeof this.params?.color === 'string' ? this.params.color : this.getSelectionColor();
+      this.footprint.ctx.lineWidth = width;
+      this.footprint.ctx.strokeStyle = color;
       this.strokeRect();
     }
   }
   override drawSelection() {
-    this.footprint.ctx.fillStyle = this.color;
+    this.footprint.ctx.fillStyle = this.getSelectionColor();
     for (let px of this.vPoints) {
       let p = this.baseToScreen(px);
       this.footprint.ctx.fillRect(p.x - 4, p.y - 4, 8, 8);

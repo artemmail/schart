@@ -1,4 +1,3 @@
-import { ProfileModel, ProfileModelParts } from 'src/app/models/profileModel';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { Point } from '../models/matrix';
 import { MarkUpManager } from './markup-manager';
@@ -14,48 +13,25 @@ export abstract class Shape {
   public type: string;
   public pointArray: Array<Point>;
   public screenPointArray: Array<Point>;
-  public model: ProfileModel;
-
-  public controlMap: ProfileModelParts;
-  public color: string;
+  public params: Record<string, any>;
   public selPoint: Point | null;
   public mouseDown: Point | null;
+  private selectionFallbackColor: string;
 
-  constructor(manager: MarkUpManager) {
+  constructor(manager: MarkUpManager, params: Record<string, any>) {
     this.manager = manager;
     this.type = 'Base';
-    this.model = manager.model;
     this.footprint = manager.footprint;
     this.pointArray = [];
     this.screenPointArray = [];
-    this.controlMap = {
-      color: false,
-      width: false,
-      font: false,
-      id: false,
-      text: false,
-      arrow: false,
-      toolbar: false,
-      profile: false,
-    };
     this.selPoint = null;
     this.mouseDown = null;
-    this.color = this.model.color;
+    this.params = params;
+    this.selectionFallbackColor = manager.defaultSelectionColor;
   }
 
   sortPoints(): boolean {
     return this.pointArray.length > 1;
-  }
-
-  selectControls(): void {
-    this.model.mode = 'Edit';
-    this.model.visible = { ...this.controlMap, toolbar: true } as ProfileModelParts;
-    this.setToModel();
-  }
-
-  setupControls(): void {
-    this.model.mode = this.type;
-    this.model.visible = { ...this.controlMap } as ProfileModelParts;
   }
 
   baseToScreen(point: Point): Point {
@@ -133,8 +109,6 @@ export abstract class Shape {
 
   abstract onMouseDownMove(point: Point): void;
   abstract onMouseUp(point: Point): void;
-  abstract setToModel(): void;
-  abstract getFromModel(): void;
 
   onStartMovePoint(point: Point): void {
     const sp: ShapePoint | null = this.selectedPoint(point);
@@ -152,11 +126,16 @@ export abstract class Shape {
   onFinishMovePoint(point: Point): void {}
 
   drawSelection(): void {
-    this.footprint.ctx.fillStyle = this.color;
+    this.footprint.ctx.fillStyle = this.getSelectionColor();
     for (let px of this.pointArray) {
       const p = this.baseToScreen(px);
       this.footprint.ctx.fillRect(p.x - 4, p.y - 4, 8, 8);
     }
+  }
+
+  protected getSelectionColor(): string {
+    const color = this.params?.color;
+    return typeof color === 'string' && color.length ? color : this.selectionFallbackColor;
   }
 
   abstract drawShape(): void;

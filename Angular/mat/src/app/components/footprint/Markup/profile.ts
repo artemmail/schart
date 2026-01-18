@@ -6,30 +6,9 @@ import { Point } from '../models/matrix';
 
 
 export class Profile extends Rect {
-  total: any;
-  dockable: any;
-  constructor(manager: MarkUpManager) {
-    super(manager);
+  constructor(manager: MarkUpManager, params: Record<string, any>) {
+    super(manager, params);
     this.type = 'Profile';
-    this.controlMap = {
-      color: false,
-      width: false,
-      font: false,
-      id: false,
-      text: false,
-      arrow: false,
-      toolbar: false,
-      profile: true,
-    };
-    this.getFromModel();
-  }
-  override getFromModel() {
-    this.total = this.model.total;
-    this.dockable = this.model.dockable;
-  }
-  override setToModel() {
-    this.total = this.model.total;
-    this.model.dockable= this.dockable;
   }
   getTotalColumn(data: ClusterData , c1: number, c2: number, p1: number, p2: number): any {
     c1 = Math.max(c1, 0);
@@ -94,7 +73,8 @@ export class Profile extends Rect {
       this.pointArray[1].y = this.pointArray[0].y + ps;
   }
   override onMouseUp(point: Point) {
-    if (this.dockable && this.pointArray.length == 2) {
+    const dockable = !!this.params?.dockable;
+    if (dockable && this.pointArray.length == 2) {
       this.dock();
     }
   }
@@ -169,7 +149,8 @@ export class Profile extends Rect {
         w: pt2.x - pt1.x,
         h: pt2.y - pt1.y,
       });
-      if (this.total && totalvolume > 0) {
+      const total = !!this.params?.total;
+      if (total && totalvolume > 0) {
         ctx.font = '12px Verdana';
         ctx.textBaseline = 'top';
         ctx.fillText(/*"Total=" +*/ drob(totalvolume, 4).toString(), pt1.x + 3, pt1.y + 2);

@@ -1,18 +1,3 @@
-export type MarkupMode =
-  | 'Line'
-  | 'Brush'
-  | 'Rect'
-  | 'Text'
-  | 'Profile'
-  | 'Strength'
-  | 'Edit';
+export type MarkupMode = string;
 
-export const DRAWING_MODES: MarkupMode[] = [
-  'Line',
-  'Brush',
-  'Rect',
-  'Text',
-  'Profile',
-  'Strength',
-  'Edit',
-];
+export const EDIT_MARKUP_MODE: MarkupMode = 'Edit';
