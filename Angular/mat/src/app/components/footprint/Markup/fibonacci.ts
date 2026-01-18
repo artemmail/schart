@@ -179,23 +179,24 @@ export class Fibonacci extends Shape {
     if (!this.sortPoints()) return;
 
     const pts = this.getParallelogramPoints();
-    if (!pts) return;
+    const norm = this.getNormalizedPoints(pts);
+    if (!norm) return;
 
-    const { p0, p1, p2 } = pts;
-    const side = { x: p0.x - p1.x, y: p0.y - p1.y };
+    const { leftTop, leftBottom, rightBottom, rightTop } = norm;
+    const side = { x: leftTop.x - leftBottom.x, y: leftTop.y - leftBottom.y };
     const sideLen = Math.hypot(side.x, side.y);
     if (sideLen < 1e-6) return;
 
-    const top = { x: p2.x - p1.x, y: p2.y - p1.y };
+    const top = { x: rightTop.x - leftTop.x, y: rightTop.y - leftTop.y };
     const topLen = Math.hypot(top.x, top.y);
     if (topLen < 1e-6) return;
 
-    const s0 = this.baseToScreen(p0);
-    const s1 = this.baseToScreen(p1);
-    const s2 = this.baseToScreen(p2);
-    const angle = Math.atan2(s2.y - s1.y, s2.x - s1.x);
-    const sn = this.screenNormal(s1, s2);
-    const sideScreen = { x: s0.x - s1.x, y: s0.y - s1.y };
+    const sLeftTop = this.baseToScreen(leftTop);
+    const sLeftBottom = this.baseToScreen(leftBottom);
+    const sRightTop = this.baseToScreen(rightTop);
+    const angle = Math.atan2(sRightTop.y - sLeftTop.y, sRightTop.x - sLeftTop.x);
+    const sn = this.screenNormal(sLeftTop, sRightTop);
+    const sideScreen = { x: sLeftTop.x - sLeftBottom.x, y: sLeftTop.y - sLeftBottom.y };
     const labelSide = sideScreen.x * sn.x + sideScreen.y * sn.y >= 0 ? 1 : -1;
     const labelOffset = 10 * labelSide;
 
@@ -203,8 +204,8 @@ export class Fibonacci extends Shape {
     ctx.font = '12px Verdana';
 
     for (const level of FIB_LEVELS) {
-      const start = { x: p1.x + side.x * level, y: p1.y + side.y * level };
-      const end = { x: p2.x + side.x * level, y: p2.y + side.y * level };
+      const start = { x: leftBottom.x + side.x * level, y: leftBottom.y + side.y * level };
+      const end = { x: rightBottom.x + side.x * level, y: rightBottom.y + side.y * level };
       const from = this.baseToScreen(start as Point);
       const to = this.baseToScreen(end as Point);
 
@@ -249,6 +250,16 @@ export class Fibonacci extends Shape {
     if (!p0 || !p1 || !p2) return null;
     const p3 = this.getP3(p0, p1, p2);
     return { p0, p1, p2, p3 };
+  }
+
+  private getNormalizedPoints(
+    pts: { p0: Point; p1: Point; p2: Point; p3: Point } | null
+  ): { leftTop: Point; leftBottom: Point; rightBottom: Point; rightTop: Point } | null {
+    if (!pts) return null;
+    if (pts.p1.x <= pts.p2.x) {
+      return { leftTop: pts.p0, leftBottom: pts.p1, rightBottom: pts.p2, rightTop: pts.p3 };
+    }
+    return { leftTop: pts.p3, leftBottom: pts.p2, rightBottom: pts.p1, rightTop: pts.p0 };
   }
 
   private getP3(p0: Point, p1: Point, p2: Point): Point {
