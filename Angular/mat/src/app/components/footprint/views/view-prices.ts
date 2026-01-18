@@ -5,6 +5,7 @@ import { DraggableEnum } from 'src/app/models/Draggable';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { drob } from 'src/app/service/FootPrint/utils';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
+import { MarkLineLevel } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
 
 export class viewPrices extends canvasPart {
   constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
@@ -35,8 +36,15 @@ export class viewPrices extends canvasPart {
     if (this.parent.FPsettings.DeltaGraph) return;
     const price = this.getPrice(e);
     const level = this.parent.levelMarksService.getPriceMark(price);
-    if (level)
-      this.parent.dialogService.openLevelSettings(level).subscribe();
+    if (level) {
+      const draft = new MarkLineLevel(level.comment, level.color);
+      this.parent.dialogService.openLevelSettings(draft).subscribe((result) => {
+        if (result) {
+          this.parent.levelMarksService.updatePriceMark(price, result);
+          this.parent.drawClusterView();
+        }
+      });
+    }
   }
   onMouseMove(_: Point) {
     if (this.parent.canvas) this.parent.canvas.style.cursor = 'pointer';

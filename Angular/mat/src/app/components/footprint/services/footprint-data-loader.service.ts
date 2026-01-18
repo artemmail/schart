@@ -105,7 +105,7 @@ export class FootprintDataLoaderService implements OnDestroy {
       params.candlesOnly ?? settings.CandlesOnly ?? false;
     this.paramsSubject.next(params);
     this.settingsSubject.next(settings);
-    this.levelMarksService.load(params);
+    await this.levelMarksService.load(params);
     return this.requestRange(params);
   }
 

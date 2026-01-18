@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -86,6 +86,7 @@ public class ApplicationDbContext2
     public virtual DbSet<OpenPosition> OpenPositions { get; set; }
 
     public virtual DbSet<FootprintFavorite> FootprintFavorites { get; set; }
+    public virtual DbSet<FootprintLevelMark> FootprintLevelMarks { get; set; }
 
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -754,3 +755,4 @@ public partial class ApplicationDbContext : ApplicationDbContext2
     }
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }
+

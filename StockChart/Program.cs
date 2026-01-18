@@ -1,4 +1,4 @@
-﻿
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.Identity;
@@ -75,6 +75,7 @@ builder.Services.AddScoped<IPaymentsRepository, PaymentsRepository>();
 builder.Services.AddScoped<IUsersRepository, UsersRepository>();
 builder.Services.AddScoped<ISettingsRepository, SettingsRepository>();
 builder.Services.AddScoped<IFootprintFavoritesRepository, FootprintFavoritesRepository>();
+builder.Services.AddScoped<IFootprintLevelMarksRepository, FootprintLevelMarksRepository>();
 
 builder.Services.AddScoped<IReportsRepository, ReportsRepository>();
 builder.Services.AddScoped<IBillingRepository, BillingRepository>();
@@ -295,3 +296,4 @@ app.UseCors("AllowSpecificOrigin");
 
 
 app.Run();
+
