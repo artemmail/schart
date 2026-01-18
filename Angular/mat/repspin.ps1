@@ -1,6 +1,6 @@
 ng build
 
-$indexFilePath = "C:\Stock\8.0\Angular\mat\dist\angular-material-login-template\index.html"
+$indexFilePath = ".\dist\angular-material-login-template\index.html"
 
 # Путь к файлу, содержащему новую строку
 $newContentFilePath = "spinner.html"
