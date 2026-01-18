@@ -5,89 +5,113 @@ import { Shape, ShapePoint } from './shape';
 const FIB_LEVELS: number[] = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
 
 export class Fibonacci extends Shape {
-  private dragMode: 'p0' | 'p1' | 'offset' | 'move' | null = null;
-  private dragOffsetPx: number = 0;
+  private dragMode: 'p0' | 'p1' | 'p2' | 'p3' | 'move' | null = null;
+  private drawPhase: 'diagonal' | 'height' | null = null;
 
   constructor(manager: MarkUpManager, params: Record<string, any>) {
     super(manager, params);
     this.type = 'Fibonacci';
   }
 
-  override sortPoints(): boolean {
-    if (this.pointArray.length < 2) return false;
-    if (this.pointArray.length === 2) {
-      const p0 = this.pointArray[0];
-      const p1 = this.pointArray[1];
-
-      const s0 = this.baseToScreen(p0);
-      const s1 = this.baseToScreen(p1);
-      const offset = 30;
-      const s2 = this.buildScreenOffsetPoint(s0, s1, offset);
-      const b2 = this.screenToBase(s2);
-      this.pointArray.push(b2);
-    }
+  override supportsMultiPointDraw(): boolean {
     return true;
+  }
+
+  override isComplete(): boolean {
+    return this.pointArray.length >= 3 && this.drawPhase === null;
+  }
+
+  override sortPoints(): boolean {
+    if (this.pointArray.length < 3) return false;
+    this.enforceVerticalSide();
+    return true;
+  }
+
+  override onStartDraw(point: Point): void {
+    super.onStartDraw(point);
+    this.drawPhase = 'diagonal';
+  }
+
+  override onStartNextPoint(point: Point): void {
+    if (this.drawPhase === 'height') {
+      const next = this.screenToBase(point);
+      const p0 = this.pointArray[0];
+      if (!p0) return;
+      const p1 = this.pointArray[1] ?? { x: p0.x, y: next.y };
+      p1.x = p0.x;
+      p1.y = next.y;
+      this.pointArray[1] = p1;
+      this.drawPhase = null;
+      return;
+    }
+
+    super.onStartNextPoint(point);
   }
 
   override selectedPoint(point: Point): ShapePoint | null {
     const hit = this.hitTest(point);
     if (!hit) return null;
 
-    if (hit === 'p0' && this.pointArray[0]) return { shape: this, point: this.pointArray[0] };
-    if (hit === 'p1' && this.pointArray[1]) return { shape: this, point: this.pointArray[1] };
-    if (hit === 'offset' && this.pointArray[2]) return { shape: this, point: this.pointArray[2] };
+    const pts = this.getParallelogramPoints();
+    if (!pts) return null;
+
+    if (hit === 'p0') return { shape: this, point: pts.p0 };
+    if (hit === 'p1') return { shape: this, point: pts.p1 };
+    if (hit === 'p2') return { shape: this, point: pts.p2 };
+    if (hit === 'p3') return { shape: this, point: pts.p3 };
 
     return { shape: this, point: null };
   }
 
   override onMouseDownMove(point: Point) {
-    let p = this.screenToBase(point);
-    if (this.pointArray.length < 2) {
-      this.pointArray.push(p);
-    } else {
-      this.pointArray[1] = p;
-      if (this.pointArray.length >= 3) {
-        const p0 = this.pointArray[0];
-        const p2 = this.pointArray[2];
-        const s0 = this.baseToScreen(p0);
-        const s1 = this.baseToScreen(p);
-        const s2 = this.baseToScreen(p2);
-        const offsetPx = this.getScreenOffsetPx(s0, s1, s2) || 30;
-        const nextS2 = this.buildScreenOffsetPoint(s0, s1, offsetPx);
-        this.pointArray[2] = this.screenToBase(nextS2);
+    const p = this.screenToBase(point);
+    if (this.drawPhase === 'diagonal') {
+      if (this.pointArray.length === 0) {
+        this.pointArray.push(p);
+        return;
       }
+      if (this.pointArray.length === 1) {
+        this.pointArray.push(p);
+        return;
+      }
+      this.pointArray[1] = p;
+      return;
+    }
+
+    if (this.drawPhase === 'height') {
+      this.updateHeightPoint(p);
+      return;
     }
   }
 
   override onMouseUp(point: Point): void {
     this.dragMode = null;
+    if (this.drawPhase === 'diagonal' && this.pointArray.length >= 2) {
+      const p0 = this.pointArray[0];
+      const p2 = this.pointArray[1];
+      if (!p0 || !p2) return;
+      this.pointArray = [p0, { x: p0.x, y: p0.y }, p2];
+      this.drawPhase = 'height';
+    }
   }
 
   override onStartMovePoint(point: Point): void {
     this.mouseDown = point;
     this.sortPoints();
     this.dragMode = this.hitTest(point) ?? 'move';
-
-    if (this.pointArray.length >= 3) {
-      const s0 = this.baseToScreen(this.pointArray[0]);
-      const s1 = this.baseToScreen(this.pointArray[1]);
-      const s2 = this.baseToScreen(this.pointArray[2]);
-      this.dragOffsetPx = this.getScreenOffsetPx(s0, s1, s2);
-    } else {
-      this.dragOffsetPx = 0;
-    }
   }
 
   override onMovePoint(point: Point): void {
-    if (!this.mouseDown || this.pointArray.length < 2) {
+    if (!this.mouseDown || this.pointArray.length < 3) {
       this.mouseDown = point;
       return;
     }
 
     const p0 = this.pointArray[0];
     const p1 = this.pointArray[1];
+    const p2 = this.pointArray[2];
 
-    if (!p0 || !p1) return;
+    if (!p0 || !p1 || !p2) return;
 
     if (this.dragMode === 'move') {
       const delta = this.screenToBaseDelta(this.mouseDown, point);
@@ -99,69 +123,87 @@ export class Fibonacci extends Shape {
       return;
     }
 
-    if (this.dragMode === 'p0') {
-      this.pointArray[0] = this.screenToBase(point);
-    } else if (this.dragMode === 'p1') {
-      this.pointArray[1] = this.screenToBase(point);
-    } else if (this.dragMode === 'offset') {
-      const s0 = this.baseToScreen(this.pointArray[0]);
-      const s1 = this.baseToScreen(this.pointArray[1]);
-      const normal = this.screenNormal(s0, s1);
-      const offsetPx = (point.x - s0.x) * normal.x + (point.y - s0.y) * normal.y;
-      const s2 = { x: s0.x + normal.x * offsetPx, y: s0.y + normal.y * offsetPx };
-      this.pointArray[2] = this.screenToBase(s2);
-      this.dragOffsetPx = offsetPx;
-      this.mouseDown = point;
-      return;
-    }
+    const next = this.screenToBase(point);
 
-    const s0 = this.baseToScreen(this.pointArray[0]);
-    const s1 = this.baseToScreen(this.pointArray[1]);
-    const s2 = this.buildScreenOffsetPoint(s0, s1, this.dragOffsetPx || 30);
-    this.pointArray[2] = this.screenToBase(s2);
+    if (this.dragMode === 'p0') {
+      p0.x = next.x;
+      p0.y = next.y;
+      p1.x = p0.x;
+    } else if (this.dragMode === 'p1') {
+      p1.x = next.x;
+      p1.y = next.y;
+      p0.x = p1.x;
+    } else if (this.dragMode === 'p2') {
+      p2.x = next.x;
+      p2.y = next.y;
+    } else if (this.dragMode === 'p3') {
+      const side = { x: p0.x - p1.x, y: p0.y - p1.y };
+      p2.x = next.x - side.x;
+      p2.y = next.y - side.y;
+    }
     this.mouseDown = point;
   }
 
-  override drawShape() {
-    if (this.pointArray.length < 2) return;
-    if (!this.sortPoints()) return;
+  override onMouseMove(point: Point): void {
+    if (this.drawPhase === 'height') {
+      this.updateHeightPoint(this.screenToBase(point));
+    }
+  }
 
+  override drawShape() {
     const ctx = this.footprint.ctx;
     const width = typeof this.params?.width === 'number' ? this.params.width : 1;
     const color = typeof this.params?.color === 'string' ? this.params.color : this.getSelectionColor();
     const showLabels = this.params?.showLabels !== false;
 
-    const p0 = this.pointArray[0];
-    const p1 = this.pointArray[1];
-    const p2 = this.pointArray[2];
-
-    if (!p0 || !p1 || !p2) return;
-
-    const dir = { x: p1.x - p0.x, y: p1.y - p0.y };
-    const dirLen = Math.hypot(dir.x, dir.y);
-    if (dirLen < 1e-6) return;
-
-    const normal = { x: -dir.y / dirLen, y: dir.x / dirLen };
-    const offset = this.getOffsetVector(p0, p1, p2);
-    const offsetLen = offset.x * normal.x + offset.y * normal.y;
-
-    const s0 = this.baseToScreen(p0);
-    const s1 = this.baseToScreen(p1);
-    const angle = Math.atan2(s1.y - s0.y, s1.x - s0.x);
-    const sn = this.screenNormal(s0, s1);
-    const labelSide = offsetLen >= 0 ? 1 : -1;
-    const labelOffset = 10 * labelSide;
-
     ctx.lineWidth = width;
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
+
+    if (this.pointArray.length < 2) return;
+
+    if (this.pointArray.length < 3) {
+      const p0 = this.pointArray[0];
+      const p2 = this.pointArray[1];
+      if (!p0 || !p2) return;
+      const s0 = this.baseToScreen(p0);
+      const s2 = this.baseToScreen(p2);
+      ctx.beginPath();
+      ctx.moveTo(s0.x, s0.y);
+      ctx.lineTo(s2.x, s2.y);
+      ctx.stroke();
+      return;
+    }
+
+    if (!this.sortPoints()) return;
+
+    const pts = this.getParallelogramPoints();
+    if (!pts) return;
+
+    const { p0, p1, p2 } = pts;
+    const side = { x: p0.x - p1.x, y: p0.y - p1.y };
+    const sideLen = Math.hypot(side.x, side.y);
+    if (sideLen < 1e-6) return;
+
+    const top = { x: p2.x - p1.x, y: p2.y - p1.y };
+    const topLen = Math.hypot(top.x, top.y);
+    if (topLen < 1e-6) return;
+
+    const s0 = this.baseToScreen(p0);
+    const s1 = this.baseToScreen(p1);
+    const s2 = this.baseToScreen(p2);
+    const angle = Math.atan2(s2.y - s1.y, s2.x - s1.x);
+    const sn = this.screenNormal(s1, s2);
+    const sideScreen = { x: s0.x - s1.x, y: s0.y - s1.y };
+    const labelSide = sideScreen.x * sn.x + sideScreen.y * sn.y >= 0 ? 1 : -1;
+    const labelOffset = 10 * labelSide;
+
     ctx.textBaseline = 'middle';
     ctx.font = '12px Verdana';
 
     for (const level of FIB_LEVELS) {
-      const k = offsetLen * level;
-      const start = { x: p0.x + normal.x * k, y: p0.y + normal.y * k };
-      const end = { x: p1.x + normal.x * k, y: p1.y + normal.y * k };
+      const start = { x: p1.x + side.x * level, y: p1.y + side.y * level };
+      const end = { x: p2.x + side.x * level, y: p2.y + side.y * level };
       const from = this.baseToScreen(start as Point);
       const to = this.baseToScreen(end as Point);
 
@@ -182,29 +224,35 @@ export class Fibonacci extends Shape {
     }
   }
 
-  private getOffsetVector(p0: Point, p1: Point, p2: Point): { x: number; y: number } {
-    return { x: p2.x - p0.x, y: p2.y - p0.y };
+  private enforceVerticalSide(): void {
+    if (this.pointArray.length >= 2) {
+      this.pointArray[1].x = this.pointArray[0].x;
+    }
   }
 
-  private buildScreenOffsetPoint(p0: Point, p1: Point, offsetPx: number): Point {
-    const dx = p1.x - p0.x;
-    const dy = p1.y - p0.y;
-    const len = Math.hypot(dx, dy);
-    const nx = len > 0 ? -dy / len : 0;
-    const ny = len > 0 ? dx / len : -1;
-    return { x: p0.x + nx * offsetPx, y: p0.y + ny * offsetPx };
+  private updateHeightPoint(p: Point): void {
+    if (this.pointArray.length < 2) return;
+    const p0 = this.pointArray[0];
+    if (!p0) return;
+    const p1 = this.pointArray[1] ?? { x: p0.x, y: p.y };
+    p1.x = p0.x;
+    p1.y = p.y;
+    this.pointArray[1] = p1;
   }
 
-  private getScreenOffsetPx(p0: Point, p1: Point, p2: Point): number {
-    const dx = p1.x - p0.x;
-    const dy = p1.y - p0.y;
-    const len = Math.hypot(dx, dy);
-    if (len < 1e-6) return 0;
-    const nx = -dy / len;
-    const ny = dx / len;
-    const vx = p2.x - p0.x;
-    const vy = p2.y - p0.y;
-    return vx * nx + vy * ny;
+  private getParallelogramPoints(): { p0: Point; p1: Point; p2: Point; p3: Point } | null {
+    if (this.pointArray.length < 3) return null;
+    this.enforceVerticalSide();
+    const p0 = this.pointArray[0];
+    const p1 = this.pointArray[1];
+    const p2 = this.pointArray[2];
+    if (!p0 || !p1 || !p2) return null;
+    const p3 = this.getP3(p0, p1, p2);
+    return { p0, p1, p2, p3 };
+  }
+
+  private getP3(p0: Point, p1: Point, p2: Point): Point {
+    return { x: p2.x + (p0.x - p1.x), y: p2.y + (p0.y - p1.y) };
   }
 
   private screenNormal(p0: Point, p1: Point): { x: number; y: number } {
@@ -216,7 +264,8 @@ export class Fibonacci extends Shape {
   }
 
   override drawSelection(): void {
-    if (this.pointArray.length < 2) {
+    const pts = this.getParallelogramPoints();
+    if (!pts) {
       super.drawSelection();
       return;
     }
@@ -226,52 +275,35 @@ export class Fibonacci extends Shape {
     const size = 10;
     const half = size / 2;
 
-    for (const px of this.pointArray) {
+    const vertices = [pts.p0, pts.p1, pts.p2, pts.p3];
+    for (const px of vertices) {
       const p = this.baseToScreen(px);
       ctx.fillRect(p.x - half, p.y - half, size, size);
     }
-
-    if (this.pointArray.length >= 3) {
-      const s0 = this.baseToScreen(this.pointArray[0]);
-      const s1 = this.baseToScreen(this.pointArray[1]);
-      const s2 = this.baseToScreen(this.pointArray[2]);
-      const normal = this.screenNormal(s0, s1);
-      const offsetPx = this.getScreenOffsetPx(s0, s1, s2);
-      const handle = { x: s1.x + normal.x * offsetPx, y: s1.y + normal.y * offsetPx };
-      ctx.fillRect(handle.x - half, handle.y - half, size, size);
-    }
   }
 
-  private hitTest(point: Point): 'p0' | 'p1' | 'offset' | 'move' | null {
-    if (!this.sortPoints()) return null;
-    if (this.pointArray.length < 2) return null;
+  private hitTest(point: Point): 'p0' | 'p1' | 'p2' | 'p3' | 'move' | null {
+    const pts = this.getParallelogramPoints();
+    if (!pts) return null;
 
     const radius = 6;
-    const p0 = this.pointArray[0];
-    const p1 = this.pointArray[1];
-    const p2 = this.pointArray[2];
-
-    const s0 = this.baseToScreen(p0);
-    const s1 = this.baseToScreen(p1);
+    const s0 = this.baseToScreen(pts.p0);
+    const s1 = this.baseToScreen(pts.p1);
+    const s2 = this.baseToScreen(pts.p2);
+    const s3 = this.baseToScreen(pts.p3);
 
     if (this.isHit(point, s0, radius)) return 'p0';
     if (this.isHit(point, s1, radius)) return 'p1';
+    if (this.isHit(point, s2, radius)) return 'p2';
+    if (this.isHit(point, s3, radius)) return 'p3';
 
-    if (p2) {
-      const s2 = this.baseToScreen(p2);
-      if (this.isHit(point, s2, radius + 2)) return 'offset';
-
-      const normal = this.screenNormal(s0, s1);
-      const offsetPx = this.getScreenOffsetPx(s0, s1, s2);
-      const handle = { x: s1.x + normal.x * offsetPx, y: s1.y + normal.y * offsetPx };
-      if (this.isHit(point, handle, radius + 2)) return 'offset';
-
-      const s0o = { x: s0.x + normal.x * offsetPx, y: s0.y + normal.y * offsetPx };
-      const s1o = { x: s1.x + normal.x * offsetPx, y: s1.y + normal.y * offsetPx };
-      if (this.commonSectionCircle(s0o, s1o, point, 4)) return 'offset';
-    }
-
-    if (this.commonSectionCircle(s0, s1, point, 4)) return 'move';
+    if (
+      this.commonSectionCircle(s0, s1, point, 4) ||
+      this.commonSectionCircle(s1, s2, point, 4) ||
+      this.commonSectionCircle(s2, s3, point, 4) ||
+      this.commonSectionCircle(s3, s0, point, 4)
+    )
+      return 'move';
 
     return null;
   }

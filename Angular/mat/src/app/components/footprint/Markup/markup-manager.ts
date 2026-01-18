@@ -108,6 +108,13 @@ export class MarkUpManager {
   }
 
   onMouseDown(point: Point): void {
+    if (this.drawingShape != null && !this.drawingShape.isComplete()) {
+      if (this.drawingShape.supportsMultiPointDraw()) {
+        this.drawingShape.onStartNextPoint(point);
+        return;
+      }
+    }
+
     this.selectedShape = this.mouseShape;
     if (this.selectedShape != null) {
       this.activateSelection(this.selectedShape.shape);
@@ -141,17 +148,27 @@ export class MarkUpManager {
   }
 
   onMouseMove(point: Point): void {
+    if (this.drawingShape != null && !this.drawingShape.isComplete()) {
+      if (this.drawingShape.supportsMultiPointDraw()) {
+        this.drawingShape.onMouseMove(point);
+        this.footprint.resize();
+      }
+    }
     this.mouseShape = this.selectShape(point);
     this.footprint.canvas.style.cursor = this.resolveCursor(this.mouseShape);
   }
 
   onMouseUp(point: Point): void {
-    if (this.drawingShape != null && this.drawingShape.pointArray.length > 1) {
-      if (this.drawingShape.sortPoints()) {
-        this.shapeArray.push(this.drawingShape);
+    if (this.drawingShape != null) {
+      if (!this.drawingShape.isComplete()) {
         this.drawingShape.onMouseUp(point);
+      } else {
+        if (this.drawingShape.sortPoints()) {
+          this.shapeArray.push(this.drawingShape);
+          this.drawingShape.onMouseUp(point);
+        }
+        this.drawingShape = null;
       }
-      this.drawingShape = null;
     }
     if (this.selectedShape != null) {
       this.selectedShape.shape.onMouseUp(point);

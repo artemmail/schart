@@ -107,6 +107,20 @@ export abstract class Shape {
     this.pointArray.push(this.screenToBase(point));
   }
 
+  supportsMultiPointDraw(): boolean {
+    return false;
+  }
+
+  isComplete(): boolean {
+    return this.pointArray.length > 1;
+  }
+
+  onStartNextPoint(point: Point): void {
+    this.pointArray.push(this.screenToBase(point));
+  }
+
+  onMouseMove(point: Point): void {}
+
   abstract onMouseDownMove(point: Point): void;
   abstract onMouseUp(point: Point): void;
 
