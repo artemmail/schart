@@ -6,7 +6,7 @@ const FIB_LEVELS: number[] = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
 
 export class Fibonacci extends Shape {
   private dragMode: 'p0' | 'p1' | 'p2' | 'p3' | 'move' | null = null;
-  private drawPhase: 'diagonal' | 'height' | null = null;
+  private drawPhase: 'base' | 'height' | null = null;
 
   constructor(manager: MarkUpManager, params: Record<string, any>) {
     super(manager, params);
@@ -29,18 +29,13 @@ export class Fibonacci extends Shape {
 
   override onStartDraw(point: Point): void {
     super.onStartDraw(point);
-    this.drawPhase = 'diagonal';
+    this.drawPhase = 'base';
   }
 
   override onStartNextPoint(point: Point): void {
     if (this.drawPhase === 'height') {
-      const next = this.screenToBase(point);
-      const p0 = this.pointArray[0];
-      if (!p0) return;
-      const p1 = this.pointArray[1] ?? { x: p0.x, y: next.y };
-      p1.x = p0.x;
-      p1.y = next.y;
-      this.pointArray[1] = p1;
+      this.updateHeightPoint(this.screenToBase(point));
+      this.enforceVerticalSide();
       this.drawPhase = null;
       return;
     }
@@ -65,7 +60,7 @@ export class Fibonacci extends Shape {
 
   override onMouseDownMove(point: Point) {
     const p = this.screenToBase(point);
-    if (this.drawPhase === 'diagonal') {
+    if (this.drawPhase === 'base') {
       if (this.pointArray.length === 0) {
         this.pointArray.push(p);
         return;
@@ -86,11 +81,17 @@ export class Fibonacci extends Shape {
 
   override onMouseUp(point: Point): void {
     this.dragMode = null;
-    if (this.drawPhase === 'diagonal' && this.pointArray.length >= 2) {
-      const p0 = this.pointArray[0];
-      const p2 = this.pointArray[1];
-      if (!p0 || !p2) return;
-      this.pointArray = [p0, { x: p0.x, y: p0.y }, p2];
+    if (this.drawPhase === 'base' && this.pointArray.length >= 2) {
+      const bottomLeft = this.pointArray[0];
+      const bottomRight = this.pointArray[1];
+      if (!bottomLeft || !bottomRight) return;
+      if (bottomLeft.x > bottomRight.x) {
+        this.pointArray[0] = bottomRight;
+        this.pointArray[1] = bottomLeft;
+      }
+      const bl = this.pointArray[0];
+      const br = this.pointArray[1];
+      this.pointArray = [{ x: bl.x, y: bl.y }, bl, br];
       this.drawPhase = 'height';
     }
   }
@@ -231,13 +232,12 @@ export class Fibonacci extends Shape {
   }
 
   private updateHeightPoint(p: Point): void {
-    if (this.pointArray.length < 2) return;
-    const p0 = this.pointArray[0];
-    if (!p0) return;
-    const p1 = this.pointArray[1] ?? { x: p0.x, y: p.y };
-    p1.x = p0.x;
-    p1.y = p.y;
-    this.pointArray[1] = p1;
+    if (this.pointArray.length < 3) return;
+    const bottomLeft = this.pointArray[1];
+    const topLeft = this.pointArray[0];
+    if (!bottomLeft || !topLeft) return;
+    topLeft.x = bottomLeft.x;
+    topLeft.y = p.y;
   }
 
   private getParallelogramPoints(): { p0: Point; p1: Point; p2: Point; p3: Point } | null {
