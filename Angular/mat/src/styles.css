@@ -111,14 +111,15 @@ button.mat-mdc-icon-button .mat-icon {
   left: -10000px;
   box-sizing: content-box;
   border-style: solid;
-  border-color: #909090;
+  border-color: var(--mat-sys-outline-variant, #909090);
   padding: 4px;
   display: block;
   font-family: Arial;
   font-size: 12px;
   border-width: 1px;
   border-radius: 5px;
-  background: rgba(240,240,240,.75);
+  background: color-mix(in srgb, var(--mat-sys-surface-container, #f0f0f0) 85%, transparent);
+  color: var(--mat-sys-on-surface, #1a1b1f);
   position: absolute;
 
 
@@ -228,7 +229,7 @@ mat-cell mat-table .mat-header-row {
   margin-top: 8px;
   display: inline-block;
   border-width: 1px;
-  background: var(--mat-sys-surface, #fff);
+  background: var(--mat-sys-surface-container, #fff);
   padding: 10px;
   width: calc(100% - 22px);
 }
