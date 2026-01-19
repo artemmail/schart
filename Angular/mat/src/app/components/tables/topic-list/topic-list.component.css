@@ -5,10 +5,11 @@
 }
 
 .blogblock {
-  border: 1px solid #ceced2;
+  border: 1px solid var(--mat-sys-outline-variant, #ceced2);
   margin-bottom: 12px;
   padding: 10px;
-  background: #fff;
+  background: var(--mat-sys-surface-container, #fff);
+  color: var(--mat-sys-on-surface, #1f1f1f);
 }
 
 .blogblock img {

@@ -4,13 +4,10 @@ body {
   margin: 0;
   font-family: Roboto, "Helvetica Neue", sans-serif;
   min-height: 100vh;
-  background: var(--mat-sys-background, #EDEEF0);
+  background: var(--mat-sys-background, Canvas);
   color: var(--mat-sys-on-background, #1a1b1f);
 }
 
-body:not(.mat-dark-theme) {
-  background: #EDEEF0;
-}
 
 /* Material 20 убрал legacy‑токен --mdc-protected-button-label-text-color.
    Подменяем его на новый системный primary, чтобы старые правила не
