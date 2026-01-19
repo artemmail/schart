@@ -5,10 +5,13 @@
     height: 100vh;
   }
   
-  mat-card {
-    width: 400px;
-    margin: 20px;
-  }
+mat-card {
+  width: 400px;
+  margin: 20px;
+  background: var(--mat-sys-surface-container, #fff);
+  color: var(--mat-sys-on-surface, #1f1f1f);
+  border: 1px solid var(--mat-sys-outline-variant, #ceced2);
+}
   
   mat-card-content {
     display: flex;

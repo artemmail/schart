@@ -13,8 +13,8 @@ body:not(.mat-dark-theme) {
   --mat-sys-background: #EDEEF0;
  /* --mat-sys-surface: #1ff;*/
   --mat-sys-surface-container: #fff;
-  --mat-sys-surface-container-low: #ff1;
-  /* --mat-sys-surface-container-high: #11f;*/
+  /*--mat-sys-surface-container-low: #ff1;
+   --mat-sys-surface-container-high: #11f;*/
   --mat-sys-surface-container-highest: #f11;
 }
 
