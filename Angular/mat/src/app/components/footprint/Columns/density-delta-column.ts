@@ -2,7 +2,6 @@ import { ColumnEx } from 'src/app/models/Column';
 import { Matrix, Rectangle } from '../models/matrix';
 
 import { ClusterColumnContext, ClusterColumnBase } from './cluster-column-base';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { drob } from 'src/app/service/FootPrint/utils';
 
 export class DensityDeltaColumn extends ClusterColumnBase {
@@ -29,14 +28,14 @@ export class DensityDeltaColumn extends ClusterColumnBase {
         ds = Math.min(ds, this.data.maxDens);
         ds = Math.max(ds, this.data.minDens);
         if (this.data.maxDens - this.data.minDens < 0.1)
-          ctx.fillStyle = '#6495ed';
+          ctx.fillStyle = this.palette.accentSoft;
         else
           ctx.fillStyle = this.colorsService.getGradientColor(
-            '#ffffff',
-            '#6495ed',
+            this.palette.bg,
+            this.palette.accentSoft,
             (ds - this.data.minDens) / (this.data.maxDens - this.data.minDens)
           );
-        ctx.strokeStyle = '#c0c0c0';
+        ctx.strokeStyle = this.palette.gridSoft;
         if (drawBorder) {
           ctx.myFillRect(r);
           ctx.myStrokeRect(r);
@@ -48,7 +47,7 @@ export class DensityDeltaColumn extends ClusterColumnBase {
     if (fontSize > 7) {
       ctx.font = '' + fontSize + 'px Verdana';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = ColorsService.WhiteText;
+      ctx.fillStyle = this.palette.text;
       for (let i = 0; i < column.cl.length; i++) {
         var r = this.clusterRect(column.cl[i].p, number, mtx);
         var w = (column.cl[i].q * r.w) / this.data.maxClusterQnt;

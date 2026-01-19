@@ -1,6 +1,5 @@
 import { canvasPart } from './canvas-part';
 import { Matrix, Rectangle } from '../models/matrix';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { ClassicColumnTotal } from '../columns/classic-column-total';
 import { VolumeColumnTotal } from '../columns/volume-column-total';
 import { DraggableEnum } from 'src/app/models/Draggable';
@@ -28,7 +27,7 @@ export class viewTotal extends canvasPart {
     }
 
     ColumnBuilder.draw(parent.data.totalColumn, 0, mtx, true);
-    ctx.strokeStyle = ColorsService.lineColor;
+    ctx.strokeStyle = this.palette.grid;
     
     if (
 

@@ -1,6 +1,5 @@
 import { canvasPart } from './canvas-part';
 import { Matrix, Rectangle} from '../models/matrix';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
@@ -38,10 +37,10 @@ export class viewHead extends canvasPart {
       if (this.fontSize < 8) {
         var p1 = mtx.applyToPoint(0, 0);
         var p2 = mtx.applyToPoint(1, im);
-        ctx.fillStyle = 'Linen'; //Color1;
+        ctx.fillStyle = this.palette.panel;
         ctx.myFillRectXY(p1, p2);
         ctx.myStrokeRectXY(p1, p2);
-        ctx.fillStyle = ColorsService.WhiteText;
+        ctx.fillStyle = this.palette.text;
         ctx.fillText('Накопл. Дельта', (p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
       } else {
         var labels = ['Накопл. Дельта', 'Дельта(ASK-BID)'];
@@ -54,10 +53,10 @@ export class viewHead extends canvasPart {
         for (let i: number = 0; i < im; i++) {
           var p1 = mtx.applyToPoint(0, i);
           var p2 = mtx.applyToPoint(1, i + 1);
-          ctx.fillStyle = 'Linen'; //Color1;
+          ctx.fillStyle = this.palette.panel;
           ctx.myFillRectXY(p1, p2);
           ctx.myStrokeRectXY(p1, p2);
-          ctx.fillStyle = ColorsService.WhiteText;
+          ctx.fillStyle = this.palette.text;
           ctx.fillText(labels[i], (p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
         }
       }
@@ -82,20 +81,20 @@ export class viewHead extends canvasPart {
     }
     var p1 = m.applyToPoint(parent.minIndex + 0.5, 0);
     var p2 = m.applyToPoint(parent.maxIndex + 0.5, 0);
-    ctx.strokeStyle = '#ddd';
+    ctx.strokeStyle = this.palette.gridZero;
     ctx.beginPath();
     ctx.myLine(p1.x, p1.y, p2.x, p2.y);
     ctx.stroke();
     ctx.restore();
     ctx.save();
-    ctx.strokeStyle = ColorsService.greencandle;
+    ctx.strokeStyle = this.palette.up;
     ctx.beginPath();
     ctx.myRectXY({ x: view.x, y: view.y }, { x: view.x + view.w, y: p1.y });
     ctx.clip();
     dr();
     ctx.restore();
     ctx.save();
-    ctx.strokeStyle = ColorsService.redcandle;
+    ctx.strokeStyle = this.palette.down;
     ctx.beginPath();
     ctx.myRectXY(
       { x: view.x, y: p1.y },
@@ -107,7 +106,7 @@ export class viewHead extends canvasPart {
   }
   drawText(r: Rectangle, text: string) {
     if (this.fontSize > 7) {
-      this.ctx.fillStyle =  ColorsService.WhiteText;
+      this.ctx.fillStyle = this.palette.text;
       this.ctx.fillText(text, r.x + r.w / 2, r.y + r.h / 2);
     }
     r.y += r.h;
@@ -136,9 +135,9 @@ export class viewHead extends canvasPart {
     ctx.font = this.fontSize + 'px Verdana';
     
     let col:string = this.colorsService.getGradientColorEx(
-      '#d61800',
-      '#ffffff',
-      '#04a344',
+      this.palette.downStrong,
+      this.palette.bg,
+      this.palette.upStrong,
       Math.max(
         Math.abs(parent.data.maxCumDelta),
         Math.abs(parent.data.minCumDelta)
@@ -153,16 +152,16 @@ export class viewHead extends canvasPart {
 
     
     
-    ctx.strokeStyle = ColorsService.lineColor;
+    ctx.strokeStyle = this.palette.grid;
     ctx.myFillRect(r);
     ctx.stroke();
    // ctx.fill();
     ctx.myStrokeRect(r);
     this.drawTextS(r, column.cumDelta);
     ctx.fillStyle = this.colorsService.getGradientColorEx(
-      '#d61800',
-      '#ffffff',
-      '#04a344',
+      this.palette.downStrong,
+      this.palette.bg,
+      this.palette.upStrong,
       Math.max(
         Math.abs(parent.data.maxColumnDelta),
         Math.abs(parent.data.minColumnDelta)
@@ -170,7 +169,7 @@ export class viewHead extends canvasPart {
       column.deltaTotal
     );
     
-    ctx.strokeStyle = ColorsService.lineColor;
+    ctx.strokeStyle = this.palette.grid;
     ctx.myFillRect(r);
     ctx.stroke();
     ctx.myStrokeRect(r);
@@ -182,16 +181,16 @@ export class viewHead extends canvasPart {
     if (this.parent.oiEnable()) {
       // ctx.myStrokeRect(r);
       ctx.fillStyle = this.colorsService.getGradientColorEx(
-        '#d61800',
-        '#ffffff',
-        '#04a344',
+        this.palette.downStrong,
+        this.palette.bg,
+        this.palette.upStrong,
         parent.data.maxAbsOIDelta,
         column.oiDelta
       );
       
     //  ctx.myFillRect(r);
   //     ctx.fill();
-      ctx.strokeStyle = ColorsService.lineColor;
+      ctx.strokeStyle = this.palette.grid;
       ctx.myStrokeRect(r);
       this.drawText(r, column.oiDelta + '');
     }

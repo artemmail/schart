@@ -1,6 +1,5 @@
 import { canvasPart } from './canvas-part';
 import { Matrix, Rectangle } from '../models/matrix';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { hexToRgb } from 'src/app/service/FootPrint/utils';
@@ -18,12 +17,12 @@ export class viewBackgroundRange extends canvasPart {
     const data       = parent.data.clusterData;
     const CanvasW    = parent.canvas?.width ?? 0;
 
-    ctx.fillStyle = ColorsService.Gray2;
+    ctx.fillStyle = this.palette.bg;
     ctx.myFillRect(view);
     ctx.setLineDash([5, 3, 5]);
     const prevStrokeStyle = ctx.strokeStyle;
     const prevLineWidth = ctx.lineWidth;
-    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.strokeStyle = this.palette.gridMinor;
     ctx.lineWidth = 1;
     ctx.beginPath();
 
@@ -81,7 +80,7 @@ export class viewBackgroundRange extends canvasPart {
 
     // ───── выделение выбранной цены ─────
     if (!FP.DeltaGraph && !FP.ToolTip && parent.translateMatrix == null && parent.selectedPrice != null) {
-      const rgb = hexToRgb('#80c4de');
+      const rgb = hexToRgb(this.palette.selection);
       const grad = ctx.createLinearGradient(0, 0, CanvasW, 0);
       grad.addColorStop(0, `rgba(${rgb.r},${rgb.g},${rgb.b},0.3)`);
       grad.addColorStop(1, `rgba(${rgb.r},${rgb.g},${rgb.b},0.3)`);
@@ -97,7 +96,7 @@ export class viewBackgroundRange extends canvasPart {
       const inY = p.y >= view.y && p.y <= view.y + view.h;
       const inX = p.x >= view.x && p.x <= view.x + view.w;
       if (inY || inX) {
-        ctx.strokeStyle = 'rgba(200,200,200,.7)';
+        ctx.strokeStyle = this.palette.crosshair;
         ctx.beginPath();
         if (inY) {
           parent.selectedPrice1 = this.mtx.inverse().applyToPoint(p.x, p.y).y;
@@ -120,10 +119,6 @@ export class viewBackgroundRange extends canvasPart {
   private drawPriceLevels(parent: FootPrintComponent, mtx: Matrix, CanvasW: number) {
     const ctx = parent.ctx;
     const prices   = parent.levelMarksService.getPrices();
-    const fontSize = Math.min(this.colorsService.maxFontSize(), Math.abs(parent.getBar(mtx).h));
-    ctx.font = `${fontSize}px Verdana`;
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
 
     for (const k in prices) {
       const price = parseFloat(k);
@@ -136,9 +131,6 @@ export class viewBackgroundRange extends canvasPart {
       const r = parent.clusterRect(price, 0, mtx);
       r.x = 0; r.w = CanvasW;
       ctx.myFillRect(r);
-
-      if (fontSize > 7 && line.comment)
-        ctx.fillText(line.comment, r.w - this.colorsService.LegendPriceWidth() - 5, r.y + r.h / 2);
     }
   }
 

@@ -17,8 +17,8 @@ export class VolumeColumnTotal extends ClusterColumnBase {
     for (let j = 0; j < column.cl.length; j++) {
       var i = z[j];
       var isMaxVol = column.cl[i].q == column.qntMax;
-      ctx.strokeStyle = isMaxVol ? '#e45200' : 'DodgerBlue';
-      ctx.fillStyle = isMaxVol ? 'Coral' : 'CornflowerBlue';
+      ctx.strokeStyle = isMaxVol ? this.palette.ask : this.palette.accent;
+      ctx.fillStyle = isMaxVol ? this.palette.ask : this.palette.accentSoft;
       var r = this.clusterRect(column.cl[i].p, number, mtx);
 
       var mul = settings.Contracts

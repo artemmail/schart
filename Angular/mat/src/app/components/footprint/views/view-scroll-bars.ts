@@ -24,7 +24,7 @@ export class viewScrollBars extends canvasPart {
         view.x + ColorsService.GradientWidth,
         0
       );
-      grd.addColorStop(0, ColorsService.WhiteGradient);
+      grd.addColorStop(0, this.palette.scrollGradient);
       grd.addColorStop(1, 'transparent');
       this.ctx.fillStyle = grd;
       this.ctx.fillRect(
@@ -41,7 +41,7 @@ export class viewScrollBars extends canvasPart {
         view.x + view.w + ColorsService.GradientWidth,
         0
       );
-      grd2.addColorStop(1, ColorsService.WhiteGradient);
+      grd2.addColorStop(1, this.palette.scrollGradient);
       grd2.addColorStop(0, 'transparent');
       this.ctx.fillStyle = grd2;
       this.ctx.fillRect(
@@ -52,7 +52,7 @@ export class viewScrollBars extends canvasPart {
       );
     }
     if (this.parent.translateMatrix != null) {
-      ctx.fillStyle = ColorsService.Gray4;
+      ctx.fillStyle = this.palette.scroll;
       var p1 = this.parent.viewsManager.mtxMain.inverse().applyToPoint(view.x, view.y);
       var p2 = this.parent.viewsManager.mtxMain
         .inverse()
@@ -78,7 +78,7 @@ export class viewScrollBars extends canvasPart {
     }
     if (this.parent.markupEnabled) this.parent.markupManager.drawAll();
 
-    ctx.strokeStyle = ColorsService.lineColor;
+    ctx.strokeStyle = this.palette.grid;
     ctx.myStrokeRect(this.view);
   }
 }

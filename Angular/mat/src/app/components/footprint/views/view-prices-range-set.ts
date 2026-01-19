@@ -1,6 +1,5 @@
 import { canvasPart } from './canvas-part';
 import { Matrix, Rectangle } from '../models/matrix';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { drob } from 'src/app/service/FootPrint/utils';
@@ -82,15 +81,15 @@ export class viewPricesRangeSet extends canvasPart {
       h: 18 * sscale,
     } as Rectangle;
 
-    ctx.strokeStyle = ColorsService.lineColor;
+    ctx.strokeStyle = this.palette.grid;
     ctx.beginPath();
     ctx.myLine(pos.x, pos.y, pos.x + 10, pos.y);
     ctx.stroke();
 
-    ctx.fillStyle = 'Linen';
+    ctx.fillStyle = this.palette.panel;
     ctx.myFillRect(rect);
     ctx.myStrokeRect(rect);
-    ctx.fillStyle = '#333';
+    ctx.fillStyle = this.palette.textMuted;
     ctx.font = `${Math.round(12 * sscale)}px Verdana`;
     ctx.fillText(text, rect.x + 3 * sscale, pos.y);
   }
@@ -112,10 +111,10 @@ export class viewPricesRangeSet extends canvasPart {
     const start = Math.floor(startPrice / step) * step;
     const end = Math.ceil(finishPrice / step) * step;
 
-    ctx.strokeStyle = ColorsService.lineColor;
+    ctx.strokeStyle = this.palette.grid;
     ctx.textBaseline = 'middle';
     ctx.font = `${fontSize}px Verdana`;
-    ctx.fillStyle = '#333';
+    ctx.fillStyle = this.palette.textMuted;
     ctx.beginPath();
 
     let idx = 0;

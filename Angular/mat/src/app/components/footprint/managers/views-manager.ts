@@ -415,11 +415,11 @@ export class ViewsManager {
     if (!this.layout) return;
     if (this.clusterView.w <= 1 || this.clusterView.h <= 1) return;
 
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = this.footprint.palette.bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (this.data.clusterLength() < 1) {
       ctx.font = 'bold 16px Verdana';
-      ctx.fillStyle = 'Black';
+      ctx.fillStyle = this.footprint.palette.text;
       ctx.fillText('НЕТ ДАННЫХ', canvas.width * 0.5, 30);
       return;
     }

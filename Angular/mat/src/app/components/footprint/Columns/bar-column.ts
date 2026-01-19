@@ -1,6 +1,5 @@
 import { Matrix, Rectangle } from '../models/matrix';
 import { ClusterColumnContext, ClusterColumnBase, ColumnEx } from './cluster-column-base';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 
 export class BarColumn extends ClusterColumnBase {
   constructor(context: ClusterColumnContext, view: Rectangle, mtx: Matrix) {
@@ -13,7 +12,7 @@ export class BarColumn extends ClusterColumnBase {
     var r2 = mtx.price2Height(column.l, number);
     let w = this.getBar(mtx).w;
     ctx.strokeStyle =
-      column.o > column.c ? ColorsService.redcandle : ColorsService.greencandle;
+      column.o > column.c ? this.palette.down : this.palette.up;
     let ww = Math.max(1, Math.min(5, 1 + (w - 5) / 10.0));
     if (ww > 3 || ww < 1.4) ww = Math.round(ww);
     ctx.lineWidth = ww;

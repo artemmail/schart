@@ -1,6 +1,5 @@
 import { canvasPart } from './canvas-part';
 import { Matrix, Point, Rectangle } from '../models/matrix';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { drob } from 'src/app/service/FootPrint/utils';
@@ -55,7 +54,7 @@ export class viewPrices extends canvasPart {
     const ctx    = parent.ctx;
     const FP     = parent.FPsettings;
     const sscale = this.colorsService.sscale();
-    ctx.strokeStyle = ColorsService.lineColor;
+    ctx.strokeStyle = this.palette.grid;
     ctx.textBaseline = 'middle';
 
     // ===== режим DeltaGraph =====
@@ -77,7 +76,7 @@ export class viewPrices extends canvasPart {
 
       // 3. отрисовка шкалы
       ctx.font = `${Math.round(12 * sscale)}px Verdana`;
-      ctx.fillStyle = '#333';
+      ctx.fillStyle = this.palette.textMuted;
       ctx.beginPath();
 
       this.loop(min, max, step, (val) => {
@@ -106,7 +105,7 @@ export class viewPrices extends canvasPart {
           const y = view.y + view.h - ((lastDelta - min) / (max - min)) * view.h;
 
           // линия
-          ctx.strokeStyle = ColorsService.lineColor;
+          ctx.strokeStyle = this.palette.grid;
           ctx.beginPath();
           ctx.myLine(view.x, y, view.x + view.w, y);
           ctx.stroke();
@@ -120,10 +119,10 @@ export class viewPrices extends canvasPart {
             h: 18 * sscale,
           } as Rectangle;
 
-          ctx.fillStyle = '#000';
+          ctx.fillStyle = this.palette.labelBg;
           ctx.myFillRect(lpRect);
           ctx.myStrokeRect(lpRect);
-          ctx.fillStyle = '#eee';
+          ctx.fillStyle = this.palette.labelText;
           ctx.fillText(txt, view.x + 8, y);
         }
       }
@@ -136,7 +135,7 @@ export class viewPrices extends canvasPart {
           this.calculatePriceRange(view, mtx);
 
     ctx.font = `${fontSize}px Verdana`;
-    ctx.fillStyle = '#333';
+    ctx.fillStyle = this.palette.textMuted;
     ctx.beginPath();
 
     this.loop(startPrice, finishPrice, step, (price) => {
@@ -166,8 +165,8 @@ export class viewPrices extends canvasPart {
       } as Rectangle;
       ctx.beginPath();
       ctx.myLine(pos.x, pos.y, pos.x + 10, pos.y); ctx.stroke();
-      ctx.fillStyle = '#000'; ctx.myFillRect(lpRect); ctx.myStrokeRect(lpRect);
-      ctx.fillStyle = '#eee';
+      ctx.fillStyle = this.palette.labelBg; ctx.myFillRect(lpRect); ctx.myStrokeRect(lpRect);
+      ctx.fillStyle = this.palette.labelText;
       ctx.font = `${Math.round(12 * sscale)}px Verdana`;
       ctx.fillText(pp, pos.x + 8, pos.y);
     }
@@ -190,8 +189,8 @@ export class viewPrices extends canvasPart {
         w: -40 * Math.abs(vol / maxV),
         y: r.y, h: r.h,
       } as Rectangle;
-      ctx.fillStyle   = vol > 0 ? 'rgba(4,163,68,.5)' : 'rgba(214,24,0,.5)';
-      ctx.strokeStyle = vol > 0 ? 'rgba(4,163,68,.3)' : 'rgba(214,24,0,.3)';
+      ctx.fillStyle = vol > 0 ? this.palette.upStrongSoft : this.palette.downStrongSoft;
+      ctx.strokeStyle = vol > 0 ? this.palette.upFaint : this.palette.downFaint;
       ctx.myFillRect(bar); ctx.myStrokeRect(bar);
     }
   }

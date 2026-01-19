@@ -2,7 +2,6 @@ import { ChartSettings } from 'src/app/models/ChartSettings';
 import { Matrix, Rectangle } from '../models/matrix';
 
 import { ClusterColumnContext, ClusterColumnBase, ColumnEx } from './cluster-column-base';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { drob } from 'src/app/service/FootPrint/utils';
 
 export class VolumeDeltaColumn extends ClusterColumnBase {
@@ -26,9 +25,9 @@ export class VolumeDeltaColumn extends ClusterColumnBase {
       ) {
         var delta = 2 * column.cl[i].bq - column.cl[i].q;
         ctx.fillStyle = this.colorsService.getGradientColorEx(
-          '#d61800',
-          '#ffffff',
-          '#04a344',
+          this.palette.downStrong,
+          this.palette.bg,
+          this.palette.upStrong,
           this.data.maxDelta,
           delta
         );
@@ -41,25 +40,25 @@ export class VolumeDeltaColumn extends ClusterColumnBase {
         ww = r.w;
         ctx.myFillRect(r);
         ctx.fillStyle = this.colorsService.getGradientColorEx(
-          '#d61800',
-          '#ffffff',
-          '#6495ED',
+          this.palette.downStrong,
+          this.palette.bg,
+          this.palette.accentSoft,
           this.data.maxClusterQnt,
           column.cl[i].q
         );
         r.x -= r.w;
         ctx.myFillRect(r);
         r.w--;
-        ctx.strokeStyle = '#c0c0c0';
+        ctx.strokeStyle = this.palette.gridSoft;
         ctx.myStrokeRect(r);
         r.w++;
         r.x += r.w;
         if (column.maxDelta == Math.abs(delta))
           ctx.strokeStyle =
             delta > 0
-              ? ColorsService.greencandlesat
-              : ColorsService.redcandlesat;
-        else ctx.strokeStyle = '#c0c0c0';
+              ? this.palette.upStrong
+              : this.palette.downStrong;
+        else ctx.strokeStyle = this.palette.gridSoft;
         ctx.myStrokeRect(r);
         this.drawMaxVolumeRect(
           this.clusterRect(column.cl[i].p, number, mtx),
@@ -73,14 +72,14 @@ export class VolumeDeltaColumn extends ClusterColumnBase {
     var r = this.clusterRect(column.cl[zz].p, number, mtx);
     r.x += shift;
     r.w = ww - 1;
-    ctx.strokeStyle = 'DodgerBlue';
+    ctx.strokeStyle = this.palette.accent;
     ctx.myStrokeRect(r);
     var bar = this.getBar(mtx);
     var fontSize = this.clusterFontSize(mtx, 9);
     if (fontSize > 7) {
       ctx.font = '' + fontSize + 'px Verdana';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = ColorsService.WhiteText;
+      ctx.fillStyle = this.palette.text;
       for (let i = 0; i < column.cl.length; i++) {
         var r = this.clusterRect(column.cl[i].p, number, mtx);
         var w = (column.cl[i].q * r.w) / this.data.maxClusterQnt;

@@ -1,6 +1,5 @@
 import { canvasPart } from './canvas-part';
 import { Matrix, Rectangle} from '../models/matrix';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
@@ -29,13 +28,13 @@ export class viewBackground1 extends canvasPart {
     );
     var parts = view.w / 25;
     var step = rounder(maxx / parts);
-    ctx.fillStyle = ColorsService.Gray2;
+    ctx.fillStyle = this.palette.bg;
     ctx.myFillRect({ x: view.x, y: view.y, w: view.w, h: view.h });
     const prevStrokeStyle = ctx.strokeStyle;
     const prevLineWidth = ctx.lineWidth;
     const prevLineDash = ctx.getLineDash ? ctx.getLineDash() : null;
     ctx.setLineDash([5, 3, 5]);
-    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.strokeStyle = this.palette.gridMinor;
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (let i = 0; i <= maxx; i += step) {
@@ -49,7 +48,7 @@ export class viewBackground1 extends canvasPart {
     ctx.lineWidth = prevLineWidth;
     ctx.clip();
     ctx.restore();
-    ctx.strokeStyle = '#aaa';
+    ctx.strokeStyle = this.palette.gridSoft;
     ctx.beginPath();
     const scaleFontSize = Math.round(10 * this.colorsService.sscale());
     ctx.font = `${scaleFontSize}px Verdana`;
@@ -64,7 +63,7 @@ export class viewBackground1 extends canvasPart {
       ctx.translate(p1.x, view.y + view.h + 5);
       ctx.rotate(-Math.PI / 3.5);
       ctx.textAlign = 'right';
-      ctx.fillStyle = '#222';
+      ctx.fillStyle = this.palette.textMuted;
       ctx.fillText(MoneyToStr(i), -10, 0);
       ctx.restore();
     }

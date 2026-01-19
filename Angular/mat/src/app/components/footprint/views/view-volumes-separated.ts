@@ -1,6 +1,5 @@
 import { canvasPart } from './canvas-part';
 import { Matrix, Point, Rectangle} from '../models/matrix';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ColumnEx } from '../columns/cluster-column-base';
 import { ChartSettings } from 'src/app/models/ChartSettings';
@@ -159,13 +158,13 @@ export class viewVolumesSeparated extends canvasPart {
     var ctx = this.ctx;
     ctx.fillStyle =
       column == this.parent.selectedColumn
-        ? ColorsService.greencandlesat
-        : ColorsService.greencandle;
+        ? this.palette.upStrong
+        : this.palette.up;
     ctx.mFillRectangle(number + 0.1, 0, 0.8, this.bq);
     ctx.fillStyle =
       column == this.parent.selectedColumn
-        ? ColorsService.redcandlesat
-        : ColorsService.redcandle;
+        ? this.palette.downStrong
+        : this.palette.down;
     ctx.mFillRectangle(number + 0.1, this.bq, 0.8, this.q - this.bq);
   }
 
@@ -174,8 +173,8 @@ export class viewVolumesSeparated extends canvasPart {
     var r = this.parent.clusterRect(0, number, mtx);
     this.ctx.fillStyle =
       column == this.parent.selectedColumn
-        ? ColorsService.greencandlesat
-        : ColorsService.greencandle;
+        ? this.palette.upStrong
+        : this.palette.up;
     this.ctx.mFillRectangle(number + 0.1, 0, 0.8, this.bq);
     var p1 = mtx.applyToPoint(0, this.bq);
   }
@@ -184,8 +183,8 @@ export class viewVolumesSeparated extends canvasPart {
     var r = this.parent.clusterRect(0, number, mtx);
     this.ctx.fillStyle =
       column == this.parent.selectedColumn
-        ? ColorsService.redcandlesat
-        : ColorsService.redcandle;
+        ? this.palette.downStrong
+        : this.palette.down;
     this.ctx.mFillRectangle(number + 0.1, 0, 0.8, this.q - this.bq);
   }
 
@@ -194,13 +193,13 @@ export class viewVolumesSeparated extends canvasPart {
     var r = this.parent.clusterRect(0, number, mtx);
     this.ctx.fillStyle =
       column == this.parent.selectedColumn
-        ? ColorsService.greencandlesat
-        : ColorsService.greencandle;
+        ? this.palette.upStrong
+        : this.palette.up;
     this.ctx.mFillRectangle(number, 0, 0.5, this.bq);
     this.ctx.fillStyle =
       column == this.parent.selectedColumn
-        ? ColorsService.redcandlesat
-        : ColorsService.redcandle;
+        ? this.palette.downStrong
+        : this.palette.down;
     this.ctx.mFillRectangle(number + 0.5, 0, 0.5, this.q - this.bq);
 
     var d = mtx.applyToPoint(0, this.bq).x - mtx.applyToPoint(0.5, this.bq).x;

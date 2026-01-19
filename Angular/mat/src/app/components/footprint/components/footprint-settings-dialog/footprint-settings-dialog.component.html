@@ -58,6 +58,17 @@
         </div>
       </div>
     </mat-tab>
+    <mat-tab label="Оформление">
+      <div style="padding: 2px">
+        <h3>Цветовая схема</h3>
+        <mat-form-field appearance="fill">
+          <mat-label>Тема</mat-label>
+          <mat-select [(ngModel)]="fp.FPsettings.ThemePreset" (selectionChange)="onThemePresetChange($event.value)">
+            <mat-option *ngFor="let preset of themePresets" [value]="preset.Value">{{ preset.Text }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </mat-tab>
     <mat-tab label="Кластера" style="width: 500px;">
       <div  style="width: 500px; overflow: hidden;">
       <div  style="width: 500px;">

@@ -1,7 +1,6 @@
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ColumnEx } from '../columns/cluster-column-base';
 import { Matrix, Rectangle } from '../models/matrix';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { viewVolumesSeparated } from './view-volumes-separated';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
@@ -69,13 +68,13 @@ export class viewDeltaBars extends viewVolumesSeparated {
     if (2 * column.bq - column.q > 0)
       ctx.fillStyle =
         column == this.parent.selectedColumn
-          ? ColorsService.greencandlesat
-          : ColorsService.greencandle;
+          ? this.palette.upStrong
+          : this.palette.up;
     else
       ctx.fillStyle =
         column == this.parent.selectedColumn
-          ? ColorsService.redcandlesat
-          : ColorsService.redcandle;
+          ? this.palette.downStrong
+          : this.palette.down;
 
     ctx.mFillRectangle(number + 0.1, 0, 0.8, 2 * column.bq - column.q);
   }

@@ -7,11 +7,13 @@ import { ClusterData } from '../models/cluster-data';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { FormattingService } from 'src/app/service/FootPrint/Formating/formatting.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
+import { StockChartPalette } from 'src/app/services/theme/theme.model';
 
 export interface ClusterColumnContext {
   data: ClusterData;
   colorsService: ColorsService;
   formatService: FormattingService;
+  palette: StockChartPalette;
   ctx: CanvasRenderingContext2D;
   startPrice: number;
   finishPrice: number;
@@ -30,6 +32,7 @@ export function createClusterColumnContext(
     data: parent.data,
     colorsService: parent.colorsService,
     formatService: parent.formatService,
+    palette: parent.palette,
     ctx: parent.ctx,
     startPrice: parent.startPrice,
     finishPrice: parent.finishPrice,
@@ -53,6 +56,10 @@ export class ClusterColumnBase {
 
   protected get colorsService(): ColorsService {
     return this.context.colorsService;
+  }
+
+  protected get palette(): StockChartPalette {
+    return this.context.palette;
   }
 
   protected get formatService(): FormattingService {
@@ -87,12 +94,12 @@ export class ClusterColumnBase {
       if (Math.abs(column.cl[i].mx) > this.data.maxt2) {
         this.ctx.fillStyle =
           column.cl[i].mx > 0
-            ? ColorsService.greencandlesat
-            : ColorsService.redcandlesat;
+            ? this.palette.upStrong
+            : this.palette.downStrong;
         this.ctx.strokeStyle =
           column.cl[i].mx > 0
-            ? ColorsService.greenCandleBorder
-            : ColorsService.redCandleBorder;
+            ? this.palette.upBorder
+            : this.palette.downBorder;
         const rh = Math.max(10, Math.abs(r.h));
         const hh = Math.abs(
           Math.sqrt(Math.abs(column.cl[i].mx) / this.data.maxt1) * rh
@@ -145,13 +152,13 @@ export class ClusterColumnBase {
       if (wide)
         ctx.fillStyle =
           column.o > column.c
-            ? ColorsService.redcandleAA
-            : ColorsService.greencandleAA;
+            ? this.palette.downFaint
+            : this.palette.upFaint;
       else
         ctx.fillStyle =
           column.o > column.c
-            ? ColorsService.redcandle
-            : ColorsService.greencandle;
+            ? this.palette.down
+            : this.palette.up;
       var r1 = mtx.price2Height(column.o, number);
       var r2 = mtx.price2Height(column.c, number);
       ctx.fillRect(r1.x, r1.y, !wide ? 2 : this.getBar(mtx).w, r2.y - r1.y);
@@ -203,7 +210,7 @@ export class ClusterColumnBase {
     if (fontSize > 8) {
       ctx.font = '' + fontSize + 'px Verdana';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = ColorsService.WhiteText;
+      ctx.fillStyle = this.palette.text;
       for (let i = 0; i < column.cl.length; i++) {
         if (
           column.cl[i].p >= this.startPrice &&
@@ -251,7 +258,7 @@ export class ClusterColumnBase {
     if (fontSize > 8) {
       ctx.font = '' + fontSize + 'px Verdana';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = ColorsService.WhiteText;
+      ctx.fillStyle = this.palette.text;
       for (let i = 0; i < column.cl.length; i++) {
         if (
           column.cl[i].p >= this.startPrice &&
@@ -296,7 +303,7 @@ export class ClusterColumnBase {
     if (fontSize > 8) {
       ctx.font = '' + fontSize + 'px Verdana';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = ColorsService.WhiteText;
+      ctx.fillStyle = this.palette.text;
       for (let i = 0; i < column.cl.length; i++) {
         if (
           column.cl[i].p >= this.startPrice &&
@@ -369,16 +376,16 @@ export class ClusterColumnBase {
         if (settings.classic == 'ASK+BID') {
           r.w = (mul * column.cl[i].q * bar.w) / maxVol;
           r.w *= this.clusterWidthScale;
-          ctx.strokeStyle = ColorsService.redCandleBorder;
-          ctx.fillStyle = ColorsService.redcandle;
+          ctx.strokeStyle = this.palette.downBorder;
+          ctx.fillStyle = this.palette.down;
           if (drawBorder) {
             ctx.myFillRect(r);
             ctx.myStrokeRect(r);
           } else ctx.myFillRectSmoothX(r);
           r.w = (mul * column.cl[i].bq * bar.w) / maxVol;
           r.w *= this.clusterWidthScale;
-          ctx.strokeStyle = ColorsService.greenCandleBorder;
-          ctx.fillStyle = ColorsService.greencandle;
+          ctx.strokeStyle = this.palette.upBorder;
+          ctx.fillStyle = this.palette.up;
           if (drawBorder) {
             ctx.myFillRect(r);
             ctx.myStrokeRect(r);
@@ -389,40 +396,40 @@ export class ClusterColumnBase {
           let absqbq = Math.abs(mul * qbq);
           r.w = (absqbq * bar.w) / Math.abs(maxDelta);
           r.w *= this.clusterWidthScale;
-          ctx.strokeStyle = ColorsService.redCandleBorder;
+          ctx.strokeStyle = this.palette.downBorder;
           ctx.fillStyle =
-            qbq < 0 ? ColorsService.redcandle : ColorsService.greencandle;
+            qbq < 0 ? this.palette.down : this.palette.up;
           if (drawBorder) {
             ctx.myFillRect(r);
             ctx.myStrokeRect(r);
           } else ctx.myFillRectSmoothX(r);
         }
         if (settings.classic == 'ASK/BID') {
-          ctx.strokeStyle = ColorsService.redCandleBorder;
-          ctx.fillStyle = ColorsService.redcandle;
+          ctx.strokeStyle = this.palette.downBorder;
+          ctx.fillStyle = this.palette.down;
           var w = ((column.cl[i].q - column.cl[i].bq) * bar.w) / maxVolAskBid;
           w *= mul * this.clusterWidthScale;
           ctx.myFillRect({ x: r.x, y: r.y + r.h / 2, w: w, h: r.h / 2 });
           var w2 = (mul * column.cl[i].bq * bar.w) / maxVolAskBid;
           w2 *= this.clusterWidthScale;
-          ctx.fillStyle = ColorsService.greencandle;
+          ctx.fillStyle = this.palette.up;
           ctx.myFillRect({ x: r.x, y: r.y, w: w2, h: r.h / 2 });
-          ctx.strokeStyle = '#aaa';
+          ctx.strokeStyle = this.palette.gridSoft;
           if (drawBorder)
             ctx.myStrokeRect({ x: r.x, y: r.y, w: Math.max(w, w2), h: r.h });
         }
         if (settings.classic == 'Tree') {
-          ctx.strokeStyle = ColorsService.redCandleBorder;
-          ctx.fillStyle = ColorsService.redcandle;
+          ctx.strokeStyle = this.palette.downBorder;
+          ctx.fillStyle = this.palette.down;
           var w =
             (mul * (column.cl[i].q - column.cl[i].bq) * bar.w) / maxVolAskBid;
           w *= this.clusterWidthScale;
           ctx.myFillRect({ x: r.x + bar.w / 2, y: r.y, w: -w / 2, h: r.h });
           var w2 = (mul * column.cl[i].bq * bar.w) / maxVolAskBid;
           w2 *= this.clusterWidthScale;
-          ctx.fillStyle = ColorsService.greencandle;
+          ctx.fillStyle = this.palette.up;
           ctx.myFillRect({ x: r.x + bar.w / 2, y: r.y, w: w2 / 2, h: r.h });
-          ctx.strokeStyle = '#aaa';
+          ctx.strokeStyle = this.palette.gridSoft;
           if (drawBorder)
             ctx.myStrokeRect({
               x: r.x + bar.w / 2 - w / 2,
@@ -434,8 +441,8 @@ export class ClusterColumnBase {
         if (settings.classic == 'ASK') {
           r.w = (mul * column.cl[i].bq * bar.w) / maxVolAsk;
           r.w *= this.clusterWidthScale;
-          ctx.strokeStyle = ColorsService.greenCandleBorder;
-          ctx.fillStyle = ColorsService.greencandle;
+          ctx.strokeStyle = this.palette.upBorder;
+          ctx.fillStyle = this.palette.up;
           if (drawBorder) {
             ctx.myFillRect(r);
             ctx.myStrokeRect(r);
@@ -444,8 +451,8 @@ export class ClusterColumnBase {
         if (settings.classic == 'BID') {
           r.w = (mul * (column.cl[i].q - column.cl[i].bq) * bar.w) / maxVolBid;
           r.w *= this.clusterWidthScale;
-          ctx.strokeStyle = ColorsService.redCandleBorder;
-          ctx.fillStyle = ColorsService.redcandle;
+          ctx.strokeStyle = this.palette.downBorder;
+          ctx.fillStyle = this.palette.down;
           ctx.myFillRect(r);
           if (drawBorder) {
             ctx.myFillRect(r);

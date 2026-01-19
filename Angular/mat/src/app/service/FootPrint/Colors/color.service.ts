@@ -33,48 +33,53 @@ export class ColorsService {
 
   public mode = 'Edit';
 
+  private parseColor(color: string): { r: number; g: number; b: number } {
+    const rgbMatch = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/i.exec(color);
+    if (rgbMatch) {
+      return {
+        r: parseInt(rgbMatch[1], 10),
+        g: parseInt(rgbMatch[2], 10),
+        b: parseInt(rgbMatch[3], 10),
+      };
+    }
 
-getGradientColor = function (start_color, end_color, percent):string {
-  // strip the leading # if it's there
-  start_color = start_color.replace(/^\s*#|\s*$/g, '');
-  end_color = end_color.replace(/^\s*#|\s*$/g, '');
-  // convert 3 char codes --> 6, e.g. `E0F` --> `EE00FF`
-  if (start_color.length == 3) {
-      start_color = start_color.replace(/(.)/g, '$1$1');
-  }
-  if (end_color.length == 3) {
-      end_color = end_color.replace(/(.)/g, '$1$1');
-  }
-  // get colors
-  var start_red = parseInt(start_color.substr(0, 2), 16),
-      start_green = parseInt(start_color.substr(2, 2), 16),
-      start_blue = parseInt(start_color.substr(4, 2), 16);
-  var end_red = parseInt(end_color.substr(0, 2), 16),
-      end_green = parseInt(end_color.substr(2, 2), 16),
-      end_blue = parseInt(end_color.substr(4, 2), 16);
-  // calculate new color
-  var diff_red:any = end_red - start_red;
-  var diff_green:any = end_green - start_green;
-  var diff_blue:any = end_blue - start_blue;
-  diff_red = ((diff_red * percent) + start_red).toString(16).split('.')[0];
-  diff_green = ((diff_green * percent) + start_green).toString(16).split('.')[0];
-  diff_blue = ((diff_blue * percent) + start_blue).toString(16).split('.')[0];
-  // ensure 2 digits by color
-  if (diff_red.length == 1)
-      diff_red = '0' + diff_red
-  if (diff_green.length == 1)
-      diff_green = '0' + diff_green
-  if (diff_blue.length == 1)
-      diff_blue = '0' + diff_blue
-  return '#' + diff_red + diff_green + diff_blue;
-};
+    let hex = color.trim().replace(/^\s*#|\s*$/g, '');
+    if (hex.length === 3) {
+      hex = hex.replace(/(.)/g, '$1$1');
+    }
+    if (hex.length < 6) {
+      return { r: 0, g: 0, b: 0 };
+    }
 
-getGradientColorEx(start_color, mid_color, end_color, maxvalue, value):string {
-  if (value < 0)
+    return {
+      r: parseInt(hex.substr(0, 2), 16),
+      g: parseInt(hex.substr(2, 2), 16),
+      b: parseInt(hex.substr(4, 2), 16),
+    };
+  }
+
+  getGradientColor(start_color: string, end_color: string, percent: number): string {
+    const start = this.parseColor(start_color);
+    const end = this.parseColor(end_color);
+
+    const diff_red: any = end.r - start.r;
+    const diff_green: any = end.g - start.g;
+    const diff_blue: any = end.b - start.b;
+    let next_red = ((diff_red * percent) + start.r).toString(16).split('.')[0];
+    let next_green = ((diff_green * percent) + start.g).toString(16).split('.')[0];
+    let next_blue = ((diff_blue * percent) + start.b).toString(16).split('.')[0];
+    if (next_red.length == 1) next_red = '0' + next_red;
+    if (next_green.length == 1) next_green = '0' + next_green;
+    if (next_blue.length == 1) next_blue = '0' + next_blue;
+    return '#' + next_red + next_green + next_blue;
+  }
+
+  getGradientColorEx(start_color: string, mid_color: string, end_color: string, maxvalue: number, value: number): string {
+    if (value < 0)
       return this.getGradientColor(mid_color, start_color, -value / maxvalue);
-  else
+    else
       return this.getGradientColor(mid_color, end_color, value / maxvalue);
-}
+  }
 
 
 

@@ -56,7 +56,7 @@ export class viewOI extends viewVolumesSeparated {
   drawVolumeColumnOI(column: ColumnEx, number: number, mtx: Matrix) {
     var ctx = this.ctx;
     const baseOi = this.data.minOI ?? 0;
-    ctx.fillStyle = column == this.parent.selectedColumn ? '#0A2D6D' : '#2050A8';
+    ctx.fillStyle = column == this.parent.selectedColumn ? this.palette.accent : this.palette.accentSoft;
     ctx.mFillRectangle(number + 0.1, baseOi, 0.8, column.oi - baseOi);
   }
 }

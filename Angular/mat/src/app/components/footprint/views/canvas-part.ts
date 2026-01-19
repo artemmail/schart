@@ -7,6 +7,7 @@ import { FormattingService, rounder, rrounder } from 'src/app/service/FootPrint/
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
+import { StockChartPalette } from 'src/app/services/theme/theme.model';
 
 export abstract class canvasPart {
   public ctx: any;
@@ -31,6 +32,10 @@ export abstract class canvasPart {
     this.draggable = draggable;
     this.colorsService = this.parent.colorsService;
     this.formatService = this.parent.formatService;
+  }
+
+  protected get palette(): StockChartPalette {
+    return this.parent.palette;
   }
 
   protected calculatePriceRange(view: Rectangle, mtx: Matrix): { startPrice: number; finishPrice: number; step: number; fontSize: number; skip: number } {
@@ -89,6 +94,7 @@ export abstract class canvasPart {
     const position = mtx.price2Height(price, 0);
     ctx.moveTo(position.x, position.y);
     ctx.lineTo(position.x + 10, position.y);
+    ctx.strokeStyle = this.palette.crosshair;
     ctx.stroke();
 
     const sscale = this.colorsService.sscale();
@@ -100,11 +106,11 @@ export abstract class canvasPart {
       h: 18 * sscale,
     };
 
-    ctx.fillStyle = 'Linen';
+    ctx.fillStyle = this.palette.panel;
     ctx.myFillRect(textRect);
     ctx.myStrokeRect(textRect);
     ctx.font = `${Math.round(12 * sscale)}px Verdana`;
-    ctx.fillStyle = '#333';
+    ctx.fillStyle = this.palette.textMuted;
     ctx.fillText(priceText, position.x + 8, position.y);
   }
 
@@ -123,7 +129,7 @@ export abstract class canvasPart {
     ) {
       var e = parent.mouseAndTouchManager.selectedPoint;
       this.ctx.beginPath();
-      this.ctx.strokeStyle = 'rgba(200, 200, 200, 0.7)';
+      this.ctx.strokeStyle = this.palette.crosshair;
       this.ctx.myLine(e.x, this.view.y, e.x, this.view.y + this.view.h);
       this.ctx.stroke();
     }
@@ -198,11 +204,11 @@ export abstract class canvasPart {
     var y = 0;
     ctx.font = '12px sans-serif';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = ColorsService.Gray2;
+    ctx.fillStyle = this.palette.bg;
     ctx.fillRect(Left, Top, Width, Height);
     const prevLineDash = ctx.getLineDash ? ctx.getLineDash() : null;
     ctx.setLineDash([5, 3, 5]);
-    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.strokeStyle = this.palette.gridMinor;
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (let y = s + r; y < maxPrice + r; y += r) {
@@ -213,9 +219,9 @@ export abstract class canvasPart {
     }
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.strokeStyle = ColorsService.lineColor;
+    ctx.strokeStyle = this.palette.grid;
     ctx.lineWidth = 1;
-    ctx.fillStyle = '#333';
+    ctx.fillStyle = this.palette.textMuted;
     ctx.beginPath();
     for (let y = s + r; y < maxPrice; y += r) {
       var yy = Math.floor(y * d + f) + 0.5;
@@ -224,9 +230,9 @@ export abstract class canvasPart {
       ctx.fillText(labelFormatter(y), Width + Left + 10, yy);
       ctx.stroke();
     }
-    ctx.strokeStyle = '#ddd';
+    ctx.strokeStyle = this.palette.gridZero;
     ctx.myStrokeRect({ x: Left, y: Top, w: Width, h: Height });
-    ctx.strokeStyle = ColorsService.lineColor;
+    ctx.strokeStyle = this.palette.grid;
     if (prevLineDash) ctx.setLineDash(prevLineDash);
   }
 }

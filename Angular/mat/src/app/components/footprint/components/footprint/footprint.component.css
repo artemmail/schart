@@ -3,6 +3,42 @@
   width: 100%;
   height: 100%;
   min-height: 0;
+
+  --sc-bg: #ffffff;
+  --sc-grid: #888888;
+  --sc-grid-minor: rgba(0, 0, 0, 0.08);
+  --sc-grid-faint: rgba(0, 0, 0, 0.04);
+  --sc-grid-soft: #c0c0c0;
+  --sc-grid-zero: #dddddd;
+  --sc-text: #000000;
+  --sc-text-muted: #333333;
+  --sc-axis: #888888;
+  --sc-up: #6ba583;
+  --sc-up-strong: #04a344;
+  --sc-up-soft: rgba(107, 165, 131, 0.6);
+  --sc-up-strong-soft: rgba(4, 163, 68, 0.6);
+  --sc-up-faint: rgba(107, 165, 131, 0.25);
+  --sc-up-border: #225437;
+  --sc-down: #d75442;
+  --sc-down-strong: #d61800;
+  --sc-down-soft: rgba(215, 84, 66, 0.6);
+  --sc-down-strong-soft: rgba(214, 24, 0, 0.6);
+  --sc-down-faint: rgba(215, 84, 66, 0.15);
+  --sc-down-border: #5b1a13;
+  --sc-bid: #3b82f6;
+  --sc-ask: #f97316;
+  --sc-accent: #1e90ff;
+  --sc-accent-soft: #6495ed;
+  --sc-selection: #80c4de;
+  --sc-crosshair: rgba(200, 200, 200, 0.7);
+  --sc-label-bg: #000000;
+  --sc-label-text: #eeeeee;
+  --sc-scroll: #404040;
+  --sc-scroll-gradient: rgba(255, 255, 255, 0.65);
+  --sc-panel: Linen;
+  --sc-heat-low: rgba(59, 130, 246, 0.1);
+  --sc-heat-mid: rgba(168, 85, 247, 0.2);
+  --sc-heat-high: rgba(249, 115, 22, 0.3);
 }
 
 canvas {

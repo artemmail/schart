@@ -53,7 +53,7 @@ export class viewIndicatorsOverlay extends canvasPart {
     const to = parent.maxIndex ?? Math.max(0, parent.data?.clusterData.length ?? 0);
 
     ctx.save();
-    ctx.strokeStyle = s.color ?? '#f1c40f';
+    ctx.strokeStyle = s.color ?? this.palette.accent;
     ctx.lineWidth = Math.max(1, s.width ?? 1);
     this.applyLineStyle(ctx, s.lineStyle);
     ctx.beginPath();
@@ -91,7 +91,7 @@ export class viewIndicatorsOverlay extends canvasPart {
     const size = Math.max(2, s.pointSize ?? 4);
 
     ctx.save();
-    ctx.fillStyle = s.color ?? '#f1c40f';
+    ctx.fillStyle = s.color ?? this.palette.accent;
 
     for (let i = from; i <= to; i++) {
       const v = s.values[i];

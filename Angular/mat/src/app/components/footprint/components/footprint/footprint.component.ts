@@ -8,6 +8,7 @@ import {
   OnDestroy,
 } from '@angular/core';
 import { Matrix, Rectangle } from '../../models/matrix';
+import { Subscription } from 'rxjs';
 
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
@@ -35,6 +36,11 @@ import { HintContainerService } from '../../services/hint-container.service';
 import { FootprintIndicatorEngine } from '../../indicators/indicator-engine';
 import { IndicatorRegistry } from '../../indicators/indicator-registry';
 import { registerFootprintBuiltInIndicators } from '../../indicators/builtins/register-builtins';
+import { ColorSchemeService } from 'src/app/services/theme/color-scheme.service';
+import {
+  StockChartPalette,
+  STOCK_CHART_DEFAULT_PALETTE,
+} from 'src/app/services/theme/theme.model';
 
 @Component({
   standalone: true,
@@ -60,6 +66,10 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
 
   private _canvas: HTMLCanvasElement | null = this.canvasRef?.nativeElement;
   private _ctx: CanvasRenderingContext2D | null = null;
+  private themeSubscription?: Subscription;
+  private themePreset: string = 'Light';
+
+  palette: StockChartPalette = { ...STOCK_CHART_DEFAULT_PALETTE };
 
   markupEnabled: boolean;
   markupManager: MarkUpManager;
@@ -116,6 +126,8 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   constructor(
     public colorsService: ColorsService,
     public formatService: FormattingService,
+    private colorSchemeService: ColorSchemeService,
+    private hostRef: ElementRef<HTMLElement>,
     private footprintUtilities: FootprintUtilitiesService,
     public levelMarksService: LevelMarksService,
     public dialogService: DialogService,
@@ -194,6 +206,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   set FPsettings(settings: ChartSettings) {
     this.state.setSettings(settings);
     this.indicatorEngine?.setSettings(settings);
+    this.applyThemePreset(settings.ThemePreset);
   }
 
   applyOideltaDivider(): void {
@@ -202,6 +215,22 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     }
 
     this.data.setOiDeltaDivideBy2(!!this.FPsettings.OIDeltaDivideBy2);
+  }
+
+  applyThemePreset(presetName?: string | null): void {
+    const hostEl = this.hostRef?.nativeElement;
+    if (!hostEl) {
+      return;
+    }
+    const preset =
+      typeof presetName === 'string' && presetName.trim()
+        ? presetName.trim()
+        : 'Light';
+    if (this.themePreset === preset) {
+      return;
+    }
+    this.themePreset = preset;
+    this.palette = this.colorSchemeService.setPreset(hostEl, preset);
   }
 
   get deltaVolumes(): readonly number[] {
@@ -416,6 +445,17 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   // ... остальной код компонента
 
   ngAfterViewInit() {
+    this.palette = this.colorSchemeService.readPalette(this.hostRef.nativeElement);
+    this.themeSubscription = this.colorSchemeService.themeChanged$.subscribe((event) => {
+      if (event.hostEl !== this.hostRef.nativeElement) {
+        return;
+      }
+      this.palette = event.palette;
+      if (this.viewInitialized && this.viewsManager) {
+        this.viewsManager.drawClusterView();
+      }
+    });
+
     // Инициализация canvas и менеджеров
     ColorsService.CanvasExt();
     const canvas: HTMLCanvasElement | null = this.canvasRef?.nativeElement;
@@ -542,6 +582,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.themeSubscription?.unsubscribe();
     this.hintContainer.destroy();
   }
 }

@@ -26,6 +26,10 @@ export class FootPrintSettingsDialogComponent {
   candleModes = candleModesPreset;
   totalModes = totalModesPreset;
   profilePeriods = profilePeriodsPreset;
+  themePresets: SelectListItemText[] = [
+    { Value: 'Light', Text: 'Светлая' },
+    { Value: 'Dark', Text: 'Темная' },
+  ];
 
   profileId: number;
   settingsVolumeVisible = true;
@@ -199,6 +203,12 @@ export class FootPrintSettingsDialogComponent {
     this.fp.applyOideltaDivider();
     this.save();
     this.fp.resize();
+  }
+
+  onThemePresetChange(preset: string) {
+    if (!this.fp) return;
+    this.fp.applyThemePreset(preset);
+    this.save();
   }
 
   onMarkupChange(event: any) {

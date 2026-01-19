@@ -1,5 +1,4 @@
 import { Matrix, Rectangle } from '../models/matrix';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { viewVolumesSeparated } from './view-volumes-separated';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ChartSettings } from 'src/app/models/ChartSettings';
@@ -62,15 +61,15 @@ export class viewMiniHead extends viewVolumesSeparated {
     /*
       if (this.hintMode)
           perc = this.exParams.percent;*/
-    ctx.fillStyle = '#333';
+    ctx.fillStyle = this.palette.textMuted;
     ctx.textAlign = 'left';
     ctx.fillText(text, 1, 16);
     ctx.fillStyle =
-      perc < 0 ? ColorsService.redcandlesat : ColorsService.greencandlesat;
+      perc < 0 ? this.palette.downStrong : this.palette.upStrong;
     ctx.textAlign = 'right';
     ctx.fillText(`${lastprice}(${perc}%)`, view.w, 16);
     ctx.font = '12px Arial';
-    ctx.fillStyle = '#333';
+    ctx.fillStyle = this.palette.textMuted;
     ctx.textAlign = 'center';
     ctx.fillText(this.toShortStr(date), view.w / 2, 16);
     ctx.closePath();

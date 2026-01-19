@@ -15,7 +15,7 @@ import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 import { removeUTC } from 'src/app/service/FootPrint/Formating/formatting.service';
-import { drob } from 'src/app/service/FootPrint/utils';
+import { drob, hexToRgb } from 'src/app/service/FootPrint/utils';
 import * as Hammer from 'hammerjs';
 
 export class viewMain extends canvasPart {
@@ -341,7 +341,7 @@ interruptSwipe() {
   const pRight = m.applyToPoint(parent.maxIndex + 0.5, 0);
 
   ctx.save();
-  ctx.strokeStyle = '#ddd';
+  ctx.strokeStyle = this.palette.gridZero;
   ctx.beginPath();
   ctx.myLine(pLeft.x, pLeft.y, pRight.x, pRight.y);
   ctx.stroke();
@@ -362,7 +362,7 @@ interruptSwipe() {
 
   // Зелёный участок >0
   ctx.save();
-  ctx.strokeStyle = ColorsService.greencandle;
+  ctx.strokeStyle = this.palette.up;
   ctx.beginPath();
   ctx.myRectXY({ x: view.x, y: view.y }, { x: view.x + view.w, y: pLeft.y });
   ctx.clip();
@@ -371,7 +371,7 @@ interruptSwipe() {
 
   // Красный участок <0
   ctx.save();
-  ctx.strokeStyle = ColorsService.redcandle;
+  ctx.strokeStyle = this.palette.down;
   ctx.beginPath();
   ctx.myRectXY({ x: view.x, y: pLeft.y }, { x: view.x + view.w, y: view.y + view.h });
   ctx.clip();
@@ -470,8 +470,8 @@ override draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
         if (i == s) ctx.moveTo(p.x, p.y);
         else ctx.lineTo(p.x, p.y);
 
-        if (data[i].q === data[i].bq) this.ctx.fillStyle = 'green';
-        else this.ctx.fillStyle = 'red';
+        if (data[i].q === data[i].bq) this.ctx.fillStyle = this.palette.upStrong;
+        else this.ctx.fillStyle = this.palette.downStrong;
 
         ctx.myFillRectSmooth({ x: p.x - 3, y: p.y - 3, w: 6, h: 6 });
       }
@@ -482,12 +482,102 @@ override draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
     if (ColumnBuilder != null)
       for (let i = parent.minIndex; i <= parent.maxIndex; i++)
         ColumnBuilder.draw(data[i], i, mtx, false);
+
+    this.drawPriceLevelComments(parent, view, mtx);
   }
 
 
+  private drawPriceLevelComments(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
+    const ctx = parent.ctx;
+    if (!ctx || !parent.levelMarksService) {
+      return;
+    }
+
+    const prices = parent.levelMarksService.getPrices();
+    if (!prices || Object.keys(prices).length === 0) {
+      return;
+    }
+
+    const sscale = this.colorsService.sscale();
+    const padding = 6 * sscale;
+    const maxWidth = Math.max(0, view.w - padding * 2);
+    if (maxWidth <= 0) {
+      return;
+    }
+
+    const baseFontSize = Math.min(this.colorsService.maxFontSize(), Math.abs(parent.getBar(mtx).h));
+    const minFontSize = Math.max(7, 7 * sscale);
+    const anchorX = view.x + view.w - padding;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(view.x, view.y, view.w, view.h);
+    ctx.clip();
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+
+    for (const k in prices) {
+      const price = parseFloat(k);
+      const line = prices[k];
+      const comment = (line?.comment ?? '').trim();
+      if (!comment || baseFontSize <= 7) {
+        continue;
+      }
+
+      const fitted = this.fitCommentText(ctx, comment, baseFontSize, maxWidth, minFontSize);
+      if (!fitted.text || fitted.fontSize < minFontSize) {
+        continue;
+      }
+
+      ctx.font = `${fitted.fontSize}px Verdana`;
+      ctx.fillStyle = this.getCommentTextColor(line?.color ?? '');
+
+      const r = parent.clusterRect(price, 0, mtx);
+      const y = r.y + r.h / 2;
+      ctx.fillText(fitted.text, anchorX, y);
+    }
+
+    ctx.restore();
+  }
+
+  private getCommentTextColor(hexColor: string): string {
+    const rgb = hexToRgb(hexColor ?? '');
+    const luminance = 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b;
+    return luminance > 160 ? this.palette.text : this.palette.labelText;
+  }
+
+  private fitCommentText(
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    baseFontSize: number,
+    maxWidth: number,
+    minFontSize: number
+  ): { text: string; fontSize: number } {
+    let fontSize = baseFontSize;
+    ctx.font = `${fontSize}px Verdana`;
+    let width = ctx.measureText(text).width;
+
+    if (width > maxWidth && maxWidth > 0) {
+      const scale = maxWidth / width;
+      fontSize = Math.max(minFontSize, Math.floor(fontSize * scale));
+      ctx.font = `${fontSize}px Verdana`;
+      width = ctx.measureText(text).width;
+    }
+
+    if (width > maxWidth && maxWidth > 0) {
+      let trimmed = text;
+      const suffix = '...';
+      while (trimmed.length > 0 && ctx.measureText(trimmed + suffix).width > maxWidth) {
+        trimmed = trimmed.slice(0, -1);
+      }
+      text = trimmed ? trimmed + suffix : '';
+    }
+
+    return { text, fontSize };
+  }
+
+
+
 }
-
-
-
 
 

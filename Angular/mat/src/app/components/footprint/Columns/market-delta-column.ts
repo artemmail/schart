@@ -3,7 +3,6 @@ import { Matrix, Rectangle } from '../models/matrix';
 
 import { ClusterColumnContext, ClusterColumnBase } from './cluster-column-base';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { drob } from 'src/app/service/FootPrint/utils';
 
 export class MarketDeltaColumn extends ClusterColumnBase {
@@ -25,9 +24,9 @@ export class MarketDeltaColumn extends ClusterColumnBase {
       ) {
         var delta = 2 * column.cl[i].bq - column.cl[i].q;
         ctx.fillStyle = this.colorsService.getGradientColorEx(
-          '#d61800',
-          '#ffffff',
-          '#04a344',
+          this.palette.downStrong,
+          this.palette.bg,
+          this.palette.upStrong,
           this.data.maxDelta,
           delta
         );
@@ -40,9 +39,9 @@ export class MarketDeltaColumn extends ClusterColumnBase {
         if (column.maxDelta == Math.abs(delta))
           ctx.strokeStyle =
             delta > 0
-              ? ColorsService.greencandlesat
-              : ColorsService.redcandlesat;
-        else ctx.strokeStyle = '#c0c0c0';
+              ? this.palette.upStrong
+              : this.palette.downStrong;
+        else ctx.strokeStyle = this.palette.gridSoft;
         ctx.myStrokeRect(r);
         this.drawMaxVolumeRect(r, column, i);
       }
@@ -53,7 +52,7 @@ export class MarketDeltaColumn extends ClusterColumnBase {
       ctx.font = '' + fontSize + 'px Verdana';
       ctx.textBaseline = 'middle';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = ColorsService.WhiteText;
+      ctx.fillStyle = this.palette.text;
       for (let i = 0; i < column.cl.length; i++) {
         var r = this.clusterRect(column.cl[i].p, number, mtx);
         var w = (column.cl[i].q * r.w) / this.data.maxClusterQnt;

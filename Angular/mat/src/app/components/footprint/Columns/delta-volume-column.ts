@@ -2,7 +2,6 @@ import { ColumnEx } from 'src/app/models/Column';
 import { Matrix, Rectangle } from '../models/matrix';
 
 import { ClusterColumnContext, ClusterColumnBase } from './cluster-column-base';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 
 export class DeltaVolumeColumn extends ClusterColumnBase {
   constructor(context: ClusterColumnContext, view: Rectangle, mtx: Matrix) {
@@ -25,16 +24,15 @@ export class DeltaVolumeColumn extends ClusterColumnBase {
         var r = this.clusterRect(column.cl[i].p, number, mtx);
         var w = (column.cl[i].q * bar.w) / maxVol;
         w *= this.clusterWidthScale;
-        ctx.fillStyle = 'DodgerBlue';
+        ctx.fillStyle = this.palette.accent;
         ctx.myFillRect({ x: r.x + bar.w / 2, y: r.y, w: -w / 2, h: r.h });
         let qbq = 2 * column.cl[i].bq - column.cl[i].q;
         let absqbq = Math.abs(qbq);
         var w2 = (absqbq * bar.w) / Math.abs(maxDelta);
         w2 *= this.clusterWidthScale;
-        ctx.fillStyle =
-          qbq < 0 ? ColorsService.redcandle : ColorsService.greencandle;
+        ctx.fillStyle = qbq < 0 ? this.palette.down : this.palette.up;
         ctx.myFillRect({ x: r.x + bar.w / 2, y: r.y, w: w2 / 2, h: r.h });
-        ctx.strokeStyle = '#aaa';
+        ctx.strokeStyle = this.palette.gridSoft;
         if (drawBorder)
           ctx.myStrokeRect({
             x: r.x + bar.w / 2 - w / 2,

@@ -1,5 +1,4 @@
 import { Matrix, Rectangle } from '../models/matrix';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { canvasPart } from './canvas-part';
 import { DraggableEnum } from 'src/app/models/Draggable';
@@ -79,7 +78,7 @@ export class viewDeltaRangeSet extends canvasPart {
     const zeroLeft = yMatrix.applyToPoint(series[0].index + 0.5, 0);
     const zeroRight = yMatrix.applyToPoint(series[series.length - 1].index + 0.5, 0);
 
-    ctx.strokeStyle = '#ddd';
+    ctx.strokeStyle = this.palette.gridZero;
     ctx.beginPath();
     ctx.myLine(zeroLeft.x, zeroLeft.y, zeroRight.x, zeroRight.y);
     ctx.stroke();
@@ -87,7 +86,7 @@ export class viewDeltaRangeSet extends canvasPart {
     ctx.restore();
 
     ctx.save();
-    ctx.strokeStyle = ColorsService.greencandle;
+    ctx.strokeStyle = this.palette.up;
     ctx.beginPath();
     ctx.myRectXY({ x: view.x, y: view.y }, { x: view.x + view.w, y: zeroLeft.y });
     ctx.clip();
@@ -95,7 +94,7 @@ export class viewDeltaRangeSet extends canvasPart {
     ctx.restore();
 
     ctx.save();
-    ctx.strokeStyle = ColorsService.redcandle;
+    ctx.strokeStyle = this.palette.down;
     ctx.beginPath();
     ctx.myRectXY({ x: view.x, y: zeroLeft.y }, { x: view.x + view.w, y: view.y + view.h });
     ctx.clip();

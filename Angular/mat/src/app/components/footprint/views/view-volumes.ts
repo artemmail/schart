@@ -1,6 +1,5 @@
 import { canvasPart } from './canvas-part';
 import { Matrix, Point, Rectangle } from '../models/matrix';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ColumnEx } from '../columns/cluster-column-base';
 import { ChartSettings } from 'src/app/models/ChartSettings';
@@ -104,7 +103,7 @@ export class viewVolumes extends canvasPart {
     if (fontSize > 7) {
       this.ctx.font = '' + fontSize + 'px Verdana';
       this.ctx.textBaseline = 'alphabetic';
-      this.ctx.fillStyle = ColorsService.WhiteText;
+      this.ctx.fillStyle = this.palette.text;
       this.ctx.fillText(drob(text).toString(), p.x, p.y - 1);
     }
   }
@@ -112,9 +111,9 @@ export class viewVolumes extends canvasPart {
   drawVolumeColumnTotal(column: ColumnEx, number: number, mtx: Matrix) {
     this.setQ(column);
     var ctx = this.ctx;
-    ctx.fillStyle = ColorsService.greencandleA;
+    ctx.fillStyle = this.palette.upSoft;
     ctx.mFillRectangle(number, 0, 1, this.bq);
-    ctx.fillStyle = ColorsService.redcandleA;
+    ctx.fillStyle = this.palette.downSoft;
     ctx.mFillRectangle(number, this.bq, 1, this.q - this.bq);
     this.drawVolumeColumnText(
       column,
@@ -129,7 +128,7 @@ export class viewVolumes extends canvasPart {
   drawVolumeColumnAsk(column: ColumnEx, number: number, mtx: Matrix) {
     this.setQ(column);
     var r = this.parent.clusterRect(0, number, mtx);
-    this.ctx.fillStyle = ColorsService.greencandleA;
+    this.ctx.fillStyle = this.palette.upSoft;
     this.ctx.mFillRectangle(number, 0, 1, this.bq);
     var p1 = mtx.applyToPoint(0, this.bq);
     this.drawVolumeColumnText(
@@ -143,7 +142,7 @@ export class viewVolumes extends canvasPart {
   }
   drawVolumeColumnBid(column: ColumnEx, number: number, mtx: Matrix) {
     this.setQ(column);
-    this.ctx.fillStyle = ColorsService.redcandleA;
+    this.ctx.fillStyle = this.palette.downSoft;
     this.ctx.mFillRectangle(number, 0, 1, this.q - this.bq);
     this.drawVolumeColumnText(
       column,
@@ -158,9 +157,9 @@ export class viewVolumes extends canvasPart {
   drawVolumeColumnAskBid(column: ColumnEx, number: number, mtx: Matrix) {
     this.setQ(column);
     var r = this.parent.clusterRect(0, number, mtx);
-    this.ctx.fillStyle = ColorsService.greencandleA;
+    this.ctx.fillStyle = this.palette.upSoft;
     this.ctx.mFillRectangle(number, 0, 0.5, this.bq);
-    this.ctx.fillStyle = ColorsService.redcandleA;
+    this.ctx.fillStyle = this.palette.downSoft;
     this.ctx.mFillRectangle(number + 0.5, 0, 0.5, this.q - this.bq);
     this.drawVolumeColumnText(
       column,

@@ -43,30 +43,30 @@ export class VolumeColumn extends ClusterColumnBase {
           const { volume1, volume2 } = this.filters;
           const volumeQ = column.cl[i].q;
 
-          ctx.strokeStyle = 'DodgerBlue';
-          ctx.fillStyle = 'CornflowerBlue';
+          ctx.strokeStyle = this.palette.accent;
+          ctx.fillStyle = this.palette.accentSoft;
 
           if (volume2 > volume1) {
             if (volumeQ >= volume2) {
-              ctx.strokeStyle = 'GoldenRod';
-              ctx.fillStyle = 'Gold';
+              ctx.strokeStyle = this.palette.downStrong;
+              ctx.fillStyle = this.palette.downStrongSoft;
             } else if (volume1 > 0 && volumeQ >= volume1) {
-              ctx.strokeStyle = '#e45200';
-              ctx.fillStyle = 'Coral';
+              ctx.strokeStyle = this.palette.ask;
+              ctx.fillStyle = this.palette.ask;
             }
           } else {
             if (volumeQ >= volume1) {
-              ctx.strokeStyle = '#e45200';
-              ctx.fillStyle = 'Coral';
+              ctx.strokeStyle = this.palette.ask;
+              ctx.fillStyle = this.palette.ask;
             } else if (volume2 > 0 && volumeQ >= volume2) {
-              ctx.strokeStyle = 'GoldenRod';
-              ctx.fillStyle = 'Gold';
+              ctx.strokeStyle = this.palette.downStrong;
+              ctx.fillStyle = this.palette.downStrongSoft;
             }
           }
         } else {
           var isMaxVol = column.cl[i].q == column.qntMax;
-          ctx.strokeStyle = isMaxVol ? '#e45200' : 'DodgerBlue';
-          ctx.fillStyle = isMaxVol ? 'Coral' : 'CornflowerBlue';
+          ctx.strokeStyle = isMaxVol ? this.palette.ask : this.palette.accent;
+          ctx.fillStyle = isMaxVol ? this.palette.ask : this.palette.accentSoft;
         }
         var r = this.clusterRect(column.cl[i].p, number, mtx);
 

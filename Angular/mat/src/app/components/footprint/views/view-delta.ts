@@ -1,5 +1,4 @@
 import { Matrix, Rectangle} from '../models/matrix';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { viewVolumesSeparated } from './view-volumes-separated';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ChartSettings } from 'src/app/models/ChartSettings';
@@ -31,20 +30,20 @@ export class viewDelta extends viewVolumesSeparated {
     }
     var p1 = m.applyToPoint(parent.minIndex + 0.5, 0);
     var p2 = m.applyToPoint(parent.maxIndex + 0.5, 0);
-    ctx.strokeStyle = '#ddd';
+    ctx.strokeStyle = this.palette.gridZero;
     ctx.beginPath();
     ctx.myLine(p1.x, p1.y, p2.x, p2.y);
     ctx.stroke();
     ctx.restore();
     ctx.save();
-    ctx.strokeStyle = ColorsService.greencandle;
+    ctx.strokeStyle = this.palette.up;
     ctx.beginPath();
     ctx.myRectXY({ x: view.x, y: view.y }, { x: view.x + view.w, y: p1.y });
     ctx.clip();
     dr();
     ctx.restore();
     ctx.save();
-    ctx.strokeStyle = ColorsService.redcandle;
+    ctx.strokeStyle = this.palette.down;
     ctx.beginPath();
     ctx.myRectXY(
       { x: view.x, y: p1.y },
@@ -103,20 +102,20 @@ export class viewDelta extends viewVolumesSeparated {
     }
     var p1 = m.applyToPoint(parent.minIndex + 0.5, 0);
     var p2 = m.applyToPoint(parent.maxIndex + 0.5, 0);
-    ctx.strokeStyle = '#ddd';
+    ctx.strokeStyle = this.palette.gridZero;
     ctx.beginPath();
     ctx.myLine(p1.x, p1.y, p2.x, p2.y);
     ctx.stroke();
     ctx.restore();
     ctx.save();
-    ctx.strokeStyle = ColorsService.greencandle;
+    ctx.strokeStyle = this.palette.up;
     ctx.beginPath();
     ctx.myRectXY({ x: view.x, y: view.y }, { x: view.x + view.w, y: p1.y });
     ctx.clip();
     dr();
     ctx.restore();
     ctx.save();
-    ctx.strokeStyle = ColorsService.redcandle;
+    ctx.strokeStyle = this.palette.down;
     ctx.beginPath();
     ctx.myRectXY(
       { x: view.x, y: p1.y },

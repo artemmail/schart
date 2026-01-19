@@ -29,6 +29,7 @@ export interface ChartSettings {
   MaxTrades: boolean;
   Default: boolean;
   Name: string;
+  ThemePreset?: string;
   VolumesHeight?: VolumeHeightMap;
   DeltaGraph: boolean;
   DialogPositions?: Record<string, { x: number; y: number }>;

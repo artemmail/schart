@@ -94,6 +94,7 @@ export class ChartSettingsService {
       MaxTrades: false,
       Default: false,
       Name: 'Свечи мини',
+      ThemePreset: 'Light',
       VolumesHeight: { ...MINI_VOLUME_HEIGHTS },
       DeltaGraph: false,
       DialogPositions: {},
@@ -133,6 +134,7 @@ export class ChartSettingsService {
   volume2: 0,
   MaxTrades: false,
   Name: '',
+  ThemePreset: 'Light',
 
   DeltaGraph: false,
   DialogPositions: {},
@@ -145,6 +147,7 @@ export class ChartSettingsService {
     const defaults = getVolumeHeightDefaults(!!settings.CandlesOnly);
     return {
       ...settings,
+      ThemePreset: settings.ThemePreset ?? 'Light',
       OIDeltaDivideBy2: settings.OIDeltaDivideBy2 ?? false,
       VolumesHeight: normalizeVolumeHeights(settings.VolumesHeight, defaults),
       Indicators: settings.Indicators ?? [],

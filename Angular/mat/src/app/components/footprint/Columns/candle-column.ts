@@ -1,7 +1,6 @@
 import { Matrix, Rectangle } from '../models/matrix';
 
 import { ClusterColumnContext, ClusterColumnBase, ColumnEx } from './cluster-column-base';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 
 export class CandleColumn extends ClusterColumnBase {
   constructor(
@@ -18,11 +17,11 @@ export class CandleColumn extends ClusterColumnBase {
     ctx.fillStyle =
       column.o > column.c
         ? column === this.getSelectedColumn()
-          ? ColorsService.redcandlesat
-          : ColorsService.redcandle
+          ? this.palette.downStrong
+          : this.palette.down
         : column === this.getSelectedColumn()
-        ? ColorsService.greencandlesat
-        : ColorsService.greencandle;
+        ? this.palette.upStrong
+        : this.palette.up;
     ctx.beginPath();
     var r1 = mtx.price2Height(column.h, number);
     var r2 = mtx.price2Height(column.l, number);
@@ -34,8 +33,8 @@ export class CandleColumn extends ClusterColumnBase {
     var r2 = mtx.price2Height(column.c, number);
     ctx.strokeStyle =
       column.o > column.c
-        ? ColorsService.redCandleBorder
-        : ColorsService.greenCandleBorder;
+        ? this.palette.downBorder
+        : this.palette.upBorder;
     var nr = { x: r1.x + w * 0.15, w: w * 0.7, y: r2.y, h: r1.y - r2.y };
     ctx.myFillRect(nr);
     ctx.myStrokeRect(nr);

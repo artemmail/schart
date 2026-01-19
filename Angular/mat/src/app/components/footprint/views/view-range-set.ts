@@ -7,11 +7,6 @@ import * as Hammer from 'hammerjs';
 import { drob } from 'src/app/service/FootPrint/utils';
 
 
-const SERIES_COLORS = {
-  price1: '#f2d53c',
-  price2: '#2b6cb0',
-};
-
 export class viewRangeSet extends canvasPart {
   private frame: number;
   private startTime: number;
@@ -170,7 +165,9 @@ export class viewRangeSet extends canvasPart {
 
     const formatPercent = (value: number) => `${drob(value, 2)}%`;
     const signedColor = (value: number) =>
-      value > 0 ? 'green' : value < 0 ? 'red' : 'black';
+      value > 0 ? this.palette.upStrong : value < 0 ? this.palette.downStrong : this.palette.text;
+    const price1Color = this.palette.bid;
+    const price2Color = this.palette.ask;
 
     const item = (label: string, value: string, color?: string) => {
       const colorStyle = color ? ` style="color:${color}"` : '';
@@ -178,8 +175,8 @@ export class viewRangeSet extends canvasPart {
     };
 
     const content = [
-      item('Портф1', price1.toString(), SERIES_COLORS.price1),
-      item('Портф2', price2.toString(), SERIES_COLORS.price2),
+      item('Портф1', price1.toString(), price1Color),
+      item('Портф2', price2.toString(), price2Color),
       item('Доход 1', formatPercent(income1), signedColor(income1)),
       item('Доход 2', formatPercent(income2), signedColor(income2)),
       item('Дельта', formatPercent(delta), signedColor(delta)),
@@ -269,8 +266,8 @@ export class viewRangeSet extends canvasPart {
     );
 /*
     if (hasRawPrices) {
-      this.drawSeries(rangeSetLines, mtx, (p) => p.Price1, SERIES_COLORS.price1);
-      this.drawSeries(rangeSetLines, mtx, (p) => p.Price2, SERIES_COLORS.price2);
+      this.drawSeries(rangeSetLines, mtx, (p) => p.Price1, this.palette.bid);
+      this.drawSeries(rangeSetLines, mtx, (p) => p.Price2, this.palette.ask);
       return;
     }
 */
@@ -298,8 +295,8 @@ export class viewRangeSet extends canvasPart {
     );
 
     this.drawZeroLine(percentMatrix, view);
-    this.drawSeries(rangeSetLines, percentMatrix, (p) => p.Price1normalized, SERIES_COLORS.price1);
-    this.drawSeries(rangeSetLines, percentMatrix, (p) => p.Price2normalized, SERIES_COLORS.price2);
+      this.drawSeries(rangeSetLines, percentMatrix, (p) => p.Price1normalized, this.palette.bid);
+    this.drawSeries(rangeSetLines, percentMatrix, (p) => p.Price2normalized, this.palette.ask);
   }
 
   private drawZeroLine(mtx: Matrix, view: Rectangle) {
@@ -307,7 +304,7 @@ export class viewRangeSet extends canvasPart {
     const zero = mtx.applyToPoint(0, 0);
 
     ctx.save();
-    ctx.strokeStyle = '#bcbcbc';
+    ctx.strokeStyle = this.palette.gridSoft;
     ctx.beginPath();
     ctx.myLine(view.x, zero.y, view.x + view.w, zero.y);
     ctx.stroke();

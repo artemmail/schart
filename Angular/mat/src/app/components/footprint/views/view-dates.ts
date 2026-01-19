@@ -112,7 +112,7 @@ export class viewDates extends canvasPart {
         ((parent.params.period >= 1 ? 7 : 12) * fontSize) / barWidth
       )
     );
-    ctx.fillStyle = '#333';
+    ctx.fillStyle = this.palette.textMuted;
     ctx.font = '' + fontSize + 'px Verdana';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
