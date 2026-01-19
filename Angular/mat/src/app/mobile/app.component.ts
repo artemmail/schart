@@ -10,6 +10,7 @@ import { AuthEventService } from '../service/AuthEventService';
 import { ApplicationUser } from '../models/UserTopic';
 import { MaterialModule } from 'src/app/material.module';
 import { HeaderComponent } from './header/header.component';
+import { MaterialThemeService } from 'src/app/services/theme/material-theme.service';
 
 import * as Hammer from 'hammerjs';
 
@@ -43,7 +44,8 @@ export class AppMobileComponent implements AfterViewInit, OnInit {
     private http: HttpClient,
     private router: Router,
     private location: Location,
-    @Inject(PLATFORM_ID) private platformId: Object
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private materialThemeService: MaterialThemeService
   ) {
     // SSR: на сервере метрику/роутер-ивенты не трогаем
     if (isPlatformServer(this.platformId)) {
@@ -88,6 +90,9 @@ export class AppMobileComponent implements AfterViewInit, OnInit {
   }
 
   ngOnInit(): void {
+    if (!isPlatformServer(this.platformId)) {
+      this.materialThemeService.initializeFromStorage();
+    }
     this.isSignedIn = this.authService.isAuthenticated();
 
     if (this.isSignedIn) {

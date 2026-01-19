@@ -4,7 +4,8 @@ body {
   margin: 0;
   font-family: Roboto, "Helvetica Neue", sans-serif;
   min-height: 100vh;
-  background: #EDEEF0;
+  background: var(--mat-sys-background, #EDEEF0);
+  color: var(--mat-sys-on-background, #1a1b1f);
 }
 
 /* Material 20 убрал legacy‑токен --mdc-protected-button-label-text-color.
@@ -139,7 +140,7 @@ button.mat-mdc-icon-button .mat-icon {
   float: left;
   padding: 60px 50px 40px 50px;
   width: 100%;
-  background: #fff;
+  background: var(--mat-sys-surface, #fff);
   border-radius: 10px;
   transform: scale(1);
   -webkit-transform: scale(1);
@@ -164,7 +165,7 @@ button.mat-mdc-icon-button .mat-icon {
   border-radius: 10px;
   position: absolute;
   top: -10px;
-  background: rgba(255, 255, 255, .6);
+  background: color-mix(in srgb, var(--mat-sys-surface, #fff) 60%, transparent);
   left: 0;
   transform: scale(.95);
   -webkit-transform: scale(.95);
@@ -223,11 +224,11 @@ mat-cell mat-table .mat-header-row {
 
 .wblogblock {
   border-style: solid;
-  border-color: #ceced2;
+  border-color: var(--mat-sys-outline-variant, #ceced2);
   margin-top: 8px;
   display: inline-block;
   border-width: 1px;
-  background: #fff;
+  background: var(--mat-sys-surface, #fff);
   padding: 10px;
   width: calc(100% - 22px);
 }

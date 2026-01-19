@@ -65,6 +65,7 @@ export class ChartSettingsService {
   }
 
   static miniSettings(): ChartSettings {
+    const storedTheme = ChartSettingsService.getStoredThemePreset();
     return {
       CandlesOnly: true,
       Head: false,
@@ -94,7 +95,7 @@ export class ChartSettingsService {
       MaxTrades: false,
       Default: false,
       Name: 'Свечи мини',
-      ThemePreset: 'Light',
+      ThemePreset: storedTheme ?? 'Light',
       VolumesHeight: { ...MINI_VOLUME_HEIGHTS },
       DeltaGraph: false,
       DialogPositions: {},
@@ -104,6 +105,7 @@ export class ChartSettingsService {
   }
 
   static DefaultSettings(): ChartSettings {
+    const storedTheme = ChartSettingsService.getStoredThemePreset();
     return {
   VolumesHeight: { ...DEFAULT_VOLUME_HEIGHTS },
   Default: false,
@@ -134,7 +136,7 @@ export class ChartSettingsService {
   volume2: 0,
   MaxTrades: false,
   Name: '',
-  ThemePreset: 'Light',
+  ThemePreset: storedTheme ?? 'Light',
 
   DeltaGraph: false,
   DialogPositions: {},
@@ -145,13 +147,31 @@ export class ChartSettingsService {
 
   static normalizeSettings(settings: ChartSettings): ChartSettings {
     const defaults = getVolumeHeightDefaults(!!settings.CandlesOnly);
+    const storedTheme = ChartSettingsService.getStoredThemePreset();
+    const settingsTheme =
+      settings.ThemePreset === 'Dark' || settings.ThemePreset === 'Light'
+        ? settings.ThemePreset
+        : null;
     return {
       ...settings,
-      ThemePreset: settings.ThemePreset ?? 'Light',
+      ThemePreset: storedTheme ?? settingsTheme ?? 'Light',
       OIDeltaDivideBy2: settings.OIDeltaDivideBy2 ?? false,
       VolumesHeight: normalizeVolumeHeights(settings.VolumesHeight, defaults),
       Indicators: settings.Indicators ?? [],
       IndicatorPanels: settings.IndicatorPanels ?? {},
     };
+  }
+
+  private static getStoredThemePreset(): 'Light' | 'Dark' | null {
+    try {
+      const storage = typeof window !== 'undefined' ? window.localStorage : null;
+      const value = storage?.getItem('uiThemePreset');
+      if (value === 'Dark' || value === 'Light') {
+        return value;
+      }
+    } catch {
+      return null;
+    }
+    return null;
   }
 }

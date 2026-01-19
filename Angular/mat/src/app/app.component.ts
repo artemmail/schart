@@ -19,6 +19,7 @@ import { filter } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { PLATFORM_ID } from '@angular/core';
 import { TopNavComponent } from './components/Controls/top-nav/top-nav.component';
+import { MaterialThemeService } from './services/theme/material-theme.service';
 
 // --- добавляем один раз — вне класса ---
 declare global {
@@ -43,7 +44,8 @@ export class AppComponent implements OnInit {
     private http: HttpClient,
     private router: Router,
     private location: Location,
-    @Inject(PLATFORM_ID) private platformId: Object
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private materialThemeService: MaterialThemeService
   ) {
 
     // SSR – пропускаем
@@ -69,5 +71,10 @@ export class AppComponent implements OnInit {
       });
   }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    if (isPlatformServer(this.platformId)) {
+      return;
+    }
+    this.materialThemeService.initializeFromStorage();
+  }
 }

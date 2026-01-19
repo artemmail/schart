@@ -37,6 +37,7 @@ import { FootprintIndicatorEngine } from '../../indicators/indicator-engine';
 import { IndicatorRegistry } from '../../indicators/indicator-registry';
 import { registerFootprintBuiltInIndicators } from '../../indicators/builtins/register-builtins';
 import { ColorSchemeService } from 'src/app/services/theme/color-scheme.service';
+import { MaterialThemeService } from 'src/app/services/theme/material-theme.service';
 import {
   StockChartPalette,
   STOCK_CHART_DEFAULT_PALETTE,
@@ -127,6 +128,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     public colorsService: ColorsService,
     public formatService: FormattingService,
     private colorSchemeService: ColorSchemeService,
+    private materialThemeService: MaterialThemeService,
     private hostRef: ElementRef<HTMLElement>,
     private footprintUtilities: FootprintUtilitiesService,
     public levelMarksService: LevelMarksService,
@@ -218,18 +220,19 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   applyThemePreset(presetName?: string | null): void {
-    const hostEl = this.hostRef?.nativeElement;
-    if (!hostEl) {
-      return;
-    }
     const preset =
       typeof presetName === 'string' && presetName.trim()
         ? presetName.trim()
         : 'Light';
+    this.materialThemeService.applyPreset(preset);
     if (this.themePreset === preset) {
       return;
     }
     this.themePreset = preset;
+    const hostEl = this.hostRef?.nativeElement;
+    if (!hostEl) {
+      return;
+    }
     this.palette = this.colorSchemeService.setPreset(hostEl, preset);
   }
 
