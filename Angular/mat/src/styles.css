@@ -8,6 +8,16 @@ body {
   color: var(--mat-sys-on-background, #1a1b1f);
 }
 
+html:not(.mat-dark-theme),
+body:not(.mat-dark-theme) {
+  --mat-sys-background: #EDEEF0;
+ /* --mat-sys-surface: #1ff;*/
+  --mat-sys-surface-container: #fff;
+  --mat-sys-surface-container-low: #ff1;
+  /* --mat-sys-surface-container-high: #11f;*/
+  --mat-sys-surface-container-highest: #f11;
+}
+
 
 /* Material 20 убрал legacy‑токен --mdc-protected-button-label-text-color.
    Подменяем его на новый системный primary, чтобы старые правила не
