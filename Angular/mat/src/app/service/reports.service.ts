@@ -36,6 +36,7 @@ export interface MarketMapParams {
 
 export interface MarketMapSquare {
   color: string;
+  colorRgba?: string;
   ticker: string;
   name: string;
   name1: string;

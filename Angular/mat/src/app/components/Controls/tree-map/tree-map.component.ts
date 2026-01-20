@@ -19,6 +19,7 @@ import { Observable, Subscription, defer, from, isObservable, of, timer } from '
 import { switchMap } from 'rxjs/operators';
 import { Coord, Layout, TreeMapEvent, TreeMapOptions, TreeMapTileContext, TreeNode } from './tree-map.models';
 import { SliceAndDiceLayout, SquarifiedLayout } from './tree-map.layouts';
+import { blendOverlayWithBase, resolvePanelBackgroundColor } from 'src/app/utils/color-utils';
 import { colorBrightness, colorsByLength, defined, getField, projectColorByValue, roundN, toNumber } from './tree-map.utils';
 
 @Component({
@@ -60,6 +61,7 @@ export class TreeMapComponent<T = any> implements AfterViewInit, OnChanges, OnDe
 
   private uidSeq = 0;
   private colorIdx = 0;
+  private basePanelColor = '#ffffff';
 
   private sourceSub: Subscription | null = null;
 
@@ -224,6 +226,8 @@ this.queueRebuild();
     const height = Math.max(0, rect.height);
     if (width === 0 || height === 0) return;
 
+    this.basePanelColor = resolvePanelBackgroundColor(el);
+
     this.uidSeq = 0;
     this.colorIdx = 0;
 
@@ -244,6 +248,7 @@ this.queueRebuild();
     }
 
     this.applyColors(root);
+    this.applyOverlayColors(root);
 
     const layout: Layout =
       this.cfg.type === 'vertical' ? new SliceAndDiceLayout(true) :
@@ -373,6 +378,21 @@ this.cdr.markForCheck();   // <-- важно
   private applyFallbackColors(nodes: TreeNode<T>[]): void {
     for (const n of nodes) {
       if (!defined(n.color)) n.color = '#B0B0B0';
+    }
+  }
+
+  private applyOverlayColors(node: TreeNode<T>): void {
+    if (node.dataItem) {
+      const item = node.dataItem as { colorRgba?: string } | null;
+      const overlay = typeof item?.colorRgba === 'string' && item.colorRgba.trim()
+        ? item.colorRgba
+        : node.color;
+      if (typeof overlay === 'string' && overlay.trim()) {
+        node.color = blendOverlayWithBase(this.basePanelColor, overlay);
+      }
+    }
+    if (node.children?.length) {
+      for (const child of node.children) this.applyOverlayColors(child);
     }
   }
 

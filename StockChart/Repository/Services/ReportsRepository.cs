@@ -332,6 +332,7 @@ namespace StockChart.Repository
                               g.Sum(x => x.volume),
                               g.Select(t => new MarketMapSquare(
                                   t.color,
+                                  t.colorRgba,
                                   t.ticker,
                                   $"{t.name} {t.percent}%",
                                   t.name,
@@ -345,6 +346,7 @@ namespace StockChart.Repository
         public class MarketMapSquare
         {
             public string color { get; }
+            public string colorRgba { get; }
             public string ticker { get; }
             public string name { get; }
             public string name1 { get; }
@@ -353,9 +355,10 @@ namespace StockChart.Repository
             public decimal cls { get; }
             public decimal percent { get; }
 
-            public MarketMapSquare(string color, string ticker, string name, string name1, decimal value, decimal bid, decimal cls, decimal percent)
+            public MarketMapSquare(string color, string colorRgba, string ticker, string name, string name1, decimal value, decimal bid, decimal cls, decimal percent)
             {
                 this.color = color;
+                this.colorRgba = colorRgba;
                 this.ticker = ticker;
                 this.name = name;
                 this.name1 = name1;

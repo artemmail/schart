@@ -17,6 +17,6 @@
 .mini-title {
   font-size: 12px;
   font-weight: 600;
-  color: #1f1f1f;
+  color: inherit;
   line-height: 1.2;
 }

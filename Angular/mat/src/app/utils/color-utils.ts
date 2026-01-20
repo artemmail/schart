@@ -15,23 +15,54 @@ export function blendOverlayWithBase(
   baseColor: string,
   overlayColor?: string | null
 ): string {
-  if (!overlayColor) return baseColor;
+  if (!overlayColor) return toHexOrRaw(baseColor);
 
   const overlay = parseCssColor(overlayColor);
-  if (!overlay) return overlayColor;
+  if (!overlay) return toHexOrRaw(overlayColor);
 
   const base = parseCssColor(baseColor);
-  if (!base) return overlayColor;
+  if (!base) return toHexString(overlay);
 
   const alpha = clamp01(overlay.a);
-  if (alpha <= 0) return toRgbString(base);
-  if (alpha >= 1) return toRgbString(overlay);
+  if (alpha <= 0) return toHexString(base);
+  if (alpha >= 1) return toHexString(overlay);
 
   const r = mixChannel(base.r, overlay.r, alpha);
   const g = mixChannel(base.g, overlay.g, alpha);
   const b = mixChannel(base.b, overlay.b, alpha);
 
-  return `rgb(${r}, ${g}, ${b})`;
+  return toHexString({ r, g, b, a: 1 });
+}
+
+export function resolvePanelBackgroundColor(element: HTMLElement | null): string {
+  const fallback = '#ffffff';
+  if (!element?.ownerDocument?.defaultView) return fallback;
+
+  const view = element.ownerDocument.defaultView;
+  let current: HTMLElement | null = element;
+
+  while (current) {
+    const bg = view.getComputedStyle(current).backgroundColor;
+    if (bg && !isTransparentColor(bg)) {
+      return bg;
+    }
+    current = current.parentElement;
+  }
+
+  const doc = element.ownerDocument;
+  if (doc.body) {
+    const bodyBg = view.getComputedStyle(doc.body).backgroundColor;
+    if (bodyBg && !isTransparentColor(bodyBg)) return bodyBg;
+  }
+
+  const rootStyles = view.getComputedStyle(doc.documentElement);
+  const surface =
+    rootStyles.getPropertyValue('--mat-sys-surface').trim() ||
+    rootStyles.getPropertyValue('--mat-sys-surface-container').trim() ||
+    rootStyles.getPropertyValue('--mat-sys-surface-container-low').trim();
+  if (surface) return surface;
+
+  return fallback;
 }
 
 function parseCssColor(value?: string | null): RgbaColor | null {
@@ -75,12 +106,28 @@ function parseCssColor(value?: string | null): RgbaColor | null {
   return null;
 }
 
+function isTransparentColor(value: string): boolean {
+  const parsed = parseCssColor(value);
+  if (!parsed) return false;
+  return parsed.a <= 0;
+}
+
 function mixChannel(base: number, overlay: number, alpha: number): number {
   return clampByte(Math.round(base + (overlay - base) * alpha));
 }
 
-function toRgbString(color: RgbaColor): string {
-  return `rgb(${color.r}, ${color.g}, ${color.b})`;
+function toHexOrRaw(value: string): string {
+  const parsed = parseCssColor(value);
+  return parsed ? toHexString(parsed) : value;
+}
+
+function toHexString(color: RgbaColor): string {
+  return `#${toHex(color.r)}${toHex(color.g)}${toHex(color.b)}`;
+}
+
+function toHex(value: number): string {
+  const hex = clampByte(Math.round(value)).toString(16).toUpperCase();
+  return hex.length === 1 ? `0${hex}` : hex;
 }
 
 function clamp01(value: number): number {
