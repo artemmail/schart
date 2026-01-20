@@ -20,6 +20,7 @@ export class MouseAndTouchManager {
   private hammer: HammerManager;
   private dragIndicatorPanelId: string | null = null;
   private dragIndicatorStartHeight: number | null = null;
+  private hoverView: any | null = null;
 
   constructor(footprint_: FootPrintComponent) {
     this.footprint = footprint_;
@@ -55,12 +56,43 @@ export class MouseAndTouchManager {
     this.panStartInfo = null;
   }
 
-  onMouseOut = (): void => {
+  onMouseOut = (event?: MouseEvent): void => {
+    if (event) {
+      this.updateHover(null);
+    }
     this.footprint.viewsManager.drawClusterView();
     this.footprint.hideHint();
   };
 
-  onMouseUp = (): void => {
+  private resolveHoverView(point: Point): any | null {
+    for (let i = this.footprint.views.length - 1; i >= 0; i--) {
+      const view = this.footprint.views[i];
+      if (!view || !view.checkPoint) continue;
+      if (
+        view.checkPoint(point) &&
+        ('onMouseEnter' in view || 'onMouseLeave' in view)
+      ) {
+        return view;
+      }
+    }
+    return null;
+  }
+
+  private updateHover(point: Point | null): void {
+    const next = point ? this.resolveHoverView(point) : null;
+    if (next === this.hoverView) return;
+
+    if (this.hoverView && 'onMouseLeave' in this.hoverView) {
+      (this.hoverView as any).onMouseLeave();
+    }
+    if (next && 'onMouseEnter' in next) {
+      (next as any).onMouseEnter();
+    }
+
+    this.hoverView = next;
+  }
+
+  onMouseUp = (event?: MouseEvent): void => {
     const FPsettings = this.footprint.FPsettings;
     if (this.footprint.dragMode != null) {
       const resizable = this.footprint.viewsManager.resizeable[this.footprint.dragMode];
@@ -91,6 +123,14 @@ export class MouseAndTouchManager {
     if (this.footprint.movedView !== null) {
       (this.footprint.movedView as any).onMouseUp();
       this.footprint.viewsManager.drawClusterView();
+      return;
+    }
+
+    if (!event) return;
+    const point = this.eventToPoint(event);
+    this.updateHover(point);
+    if (this.hoverView && 'onMouseUp' in this.hoverView) {
+      (this.hoverView as any).onMouseUp(point);
     }
   };
 
@@ -216,6 +256,9 @@ export class MouseAndTouchManager {
     const point = this.eventToPoint(event);
 
     if (event.buttons === 1) {
+      if (this.footprint.dragMode === null) {
+        this.updateHover(point);
+      }
       this.onMouseMovePressed(point);
       return;
     }
@@ -237,6 +280,8 @@ export class MouseAndTouchManager {
         return;
       }
     }
+
+    this.updateHover(point);
 
     for (const view in this.footprint.views)
       if ('onMouseMove' in this.footprint.views[view] && this.footprint.views[view].checkPoint(point)) {

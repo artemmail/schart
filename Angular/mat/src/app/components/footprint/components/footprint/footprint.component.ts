@@ -71,6 +71,13 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   private themePreset: string = 'Light';
 
   palette: StockChartPalette = { ...STOCK_CHART_DEFAULT_PALETTE };
+  animButtonState = {
+    hover: false,
+    pressed: false,
+    hoverT: 0,
+    pressT: 0,
+    rafId: 0,
+  };
 
   markupEnabled: boolean;
   markupManager: MarkUpManager;
