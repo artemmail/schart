@@ -28,6 +28,7 @@ export class viewHead extends canvasPart {
       parent.data.ableCluster()
     ) {
       ctx.save();
+      ctx.strokeStyle = this.palette.gridMinor;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.font =
@@ -129,6 +130,7 @@ export class viewHead extends canvasPart {
     var r1 = mtx.applyToPoint(number, 0);
     var r2 = mtx.applyToPoint(number + 1, 1);
     var r: Rectangle = { x: r1.x, y: r1.y, w: r2.x - r1.x, h: r2.y - r1.y };
+    const borderColor = this.palette.gridMinor;
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -152,9 +154,8 @@ export class viewHead extends canvasPart {
 
     
     
-    ctx.strokeStyle = this.palette.grid;
+    ctx.strokeStyle = borderColor;
     ctx.myFillRect(r);
-    ctx.stroke();
    // ctx.fill();
     ctx.myStrokeRect(r);
     this.drawTextS(r, column.cumDelta);
@@ -169,9 +170,8 @@ export class viewHead extends canvasPart {
       column.deltaTotal
     );
     
-    ctx.strokeStyle = this.palette.grid;
+    ctx.strokeStyle = borderColor;
     ctx.myFillRect(r);
-    ctx.stroke();
     ctx.myStrokeRect(r);
     this.drawTextS(r, column.deltaTotal);
     if (this.parent.topVolumes()) {
@@ -190,7 +190,7 @@ export class viewHead extends canvasPart {
       
     //  ctx.myFillRect(r);
   //     ctx.fill();
-      ctx.strokeStyle = this.palette.grid;
+      ctx.strokeStyle = borderColor;
       ctx.myStrokeRect(r);
       this.drawText(r, column.oiDelta + '');
     }

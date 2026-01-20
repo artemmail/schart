@@ -33,6 +33,10 @@
         {
             var v = vec(min, max, val);
             var alpha = Math.Round(v, 4);
+            if (alpha <= 0d)
+                alpha = 0d;
+            else if (alpha >= 1d)
+                alpha = 1d;
             return string.Format(System.Globalization.CultureInfo.InvariantCulture, "rgba({0}, {1}, {2}, {3})", R, G, B, alpha);
         }
         public static string GradientColorY(decimal max, decimal val, int colorModel)
