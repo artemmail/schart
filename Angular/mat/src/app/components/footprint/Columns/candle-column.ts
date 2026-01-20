@@ -14,14 +14,17 @@ export class CandleColumn extends ClusterColumnBase {
 
   draw(column: ColumnEx, number: number, mtx: Matrix) {
     var ctx = this.ctx;
-    ctx.fillStyle =
-      column.o > column.c
-        ? column === this.getSelectedColumn()
-          ? this.palette.downStrong
-          : this.palette.down
-        : column === this.getSelectedColumn()
-        ? this.palette.upStrong
-        : this.palette.up;
+    const isDown = column.o > column.c;
+    const isSelected = column === this.getSelectedColumn();
+    const candleColor = isDown
+      ? isSelected
+        ? this.palette.downStrong
+        : this.palette.down
+      : isSelected
+      ? this.palette.upStrong
+      : this.palette.up;
+    ctx.fillStyle = candleColor;
+    ctx.strokeStyle = candleColor;
     ctx.beginPath();
     var r1 = mtx.price2Height(column.h, number);
     var r2 = mtx.price2Height(column.l, number);

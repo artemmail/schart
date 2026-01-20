@@ -20,8 +20,6 @@ export class viewBackgroundRange extends canvasPart {
     ctx.fillStyle = this.palette.bg;
     ctx.myFillRect(view);
     ctx.setLineDash([5, 3, 5]);
-    const prevStrokeStyle = ctx.strokeStyle;
-    const prevLineWidth = ctx.lineWidth;
     ctx.strokeStyle = this.palette.gridMinor;
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -65,8 +63,8 @@ export class viewBackgroundRange extends canvasPart {
     }
 
     ctx.stroke();
-    ctx.strokeStyle = prevStrokeStyle;
-    ctx.lineWidth = prevLineWidth;
+    ctx.strokeStyle = this.palette.textMuted;
+    ctx.lineWidth = 1;
     ctx.beginPath();
     for (const x of dateDelimiterXs)
       ctx.myLine(x, view.y, x, view.y + view.h);
