@@ -298,7 +298,8 @@ namespace StockChart.Repository
                           percent = Math.Round(10000 * (t.Cls / t.Opn - 1)) / 100,
                           volume = t.Volume,
                           bid = Math.Round(10000 * (t.BuyVolume / t.Volume)) / 100,
-                          color = Gradient.GradientColorY((decimal)maxAbs, t.Opn > 0 ? (decimal)Math.Log((double)t.Cls / (double)t.Opn) : 1, colorModel)
+                          color = Gradient.GradientColorY((decimal)maxAbs, t.Opn > 0 ? (decimal)Math.Log((double)t.Cls / (double)t.Opn) : 1, colorModel),
+                          colorRgba = Gradient.GradientColorYRgba((decimal)maxAbs, t.Opn > 0 ? (decimal)Math.Log((double)t.Cls / (double)t.Opn) : 1, colorModel)
                       })
                       .ToList();
         }

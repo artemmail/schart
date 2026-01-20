@@ -34,6 +34,7 @@ export interface Barometer {
     volume: number;
     bid: number;
     color: string;
+    colorRgba?: string;
   }
   
   export interface MicexVolYearResult {

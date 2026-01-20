@@ -1,4 +1,5 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, Inject, OnInit, ViewChild } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { FormBuilder } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator } from '@angular/material/paginator';
@@ -15,6 +16,7 @@ import { MarketSelectorComponent } from '../../Controls/MarketSelector/market-se
 import { ComboBoxComponent } from '../../Controls/ComboBox/combobox.component';
 import { PresetSelectorComponent1 } from '../../DateRangeSelector/date-range-selector.component';
 import { MoneyToStrPipe } from 'src/app/pipes/money-to-str.pipe';
+import { blendOverlayWithBase, resolveBaseTextColor } from 'src/app/utils/color-utils';
 
 @Component({
   standalone: true,
@@ -43,6 +45,7 @@ export class LeadersReportComponent implements OnInit {
 
   top: number = 2000;
   topPreset = TopPreset;
+  private baseTextColor = '#000000';
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -51,7 +54,8 @@ export class LeadersReportComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private leaderService: ReportsService,
-    private titleService: Title
+    private titleService: Title,
+    @Inject(DOCUMENT) private document: Document
   ) {
     titleService.setTitle("Лидеры рынка акций");
   }
@@ -91,9 +95,17 @@ export class LeadersReportComponent implements OnInit {
         this.selectedMarket
       )
       .subscribe((data) => {
-        this.leaders = data;
+        this.refreshBaseTextColor();
+        this.leaders = (data ?? []).map((leader) => ({
+          ...leader,
+          color: blendOverlayWithBase(this.baseTextColor, leader.colorRgba ?? leader.color),
+        }));
         this.dataSource.data = this.leaders;
       });
+  }
+
+  private refreshBaseTextColor(): void {
+    this.baseTextColor = resolveBaseTextColor(this.document);
   }
 
   // Method to dynamically adjust displayed columns based on selectedMarket value

@@ -10,5 +10,6 @@
         public decimal volume { get; set; }
         public decimal bid { get; set; }
         public string color { get; set; }
+        public string colorRgba { get; set; }
     }
 }

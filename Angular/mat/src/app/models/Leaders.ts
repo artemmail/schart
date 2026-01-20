@@ -5,4 +5,5 @@ export interface Leader {
   volume: number;
   percent: number;
   color: string;
+  colorRgba?: string;
 }

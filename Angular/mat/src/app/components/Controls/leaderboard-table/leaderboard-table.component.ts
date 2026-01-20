@@ -8,8 +8,10 @@ import {
   ViewChild,
   AfterViewInit,
   DestroyRef,
-  inject
+  inject,
+  Inject
 } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatTable, MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -21,6 +23,7 @@ import { environment } from 'src/app/environment';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MoneyToStrPipe } from 'src/app/pipes/money-to-str.pipe';
 import { CostToStrPipe } from 'src/app/pipes/cost-to-str.pipe copy';
+import { blendOverlayWithBase, resolveBaseTextColor } from 'src/app/utils/color-utils';
 
 @Component({
   standalone: true,
@@ -37,6 +40,7 @@ export class LeaderboardTableComponent implements OnInit, OnDestroy, AfterViewIn
   displayedColumns: string[] = ['ticker', 'cls', 'volume', 'percent'];
   dataSource: MatTableDataSource<Leader> = new MatTableDataSource<Leader>([]);
   isLoading = true;
+  private baseTextColor = '#000000';
 
   private intersectionObserver: IntersectionObserver;
   private readonly visibility$ = new BehaviorSubject<boolean>(false);
@@ -46,7 +50,11 @@ export class LeaderboardTableComponent implements OnInit, OnDestroy, AfterViewIn
   @ViewChild(MatSort) sort: MatSort;
   @ViewChild('leaderboardTable', { static: true }) leaderboardTable: ElementRef;
 
-  constructor(private cdr: ChangeDetectorRef, private el: ElementRef) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private el: ElementRef,
+    @Inject(DOCUMENT) private document: Document
+  ) {}
 
   ngOnInit() {
     // nothing yet
@@ -130,10 +138,20 @@ export class LeaderboardTableComponent implements OnInit, OnDestroy, AfterViewIn
     const response = await fetch(
       `${environment.apiUrl}/api/reports/Leaders?market=${this.market}&dir=${this.type}`
     );
-    return await response.json();
+    const data = await response.json();
+    this.refreshBaseTextColor();
+    const rows = Array.isArray(data) ? data : [];
+    return rows.map((leader) => ({
+      ...leader,
+      color: blendOverlayWithBase(this.baseTextColor, leader.colorRgba ?? leader.color),
+    }));
   }
 
   trackByTicker(index: number, leader: Leader): string {
     return `${this.instanceId}-${this.market}-${this.type}-${leader?.ticker ?? 'row'}-${index}`;
+  }
+
+  private refreshBaseTextColor(): void {
+    this.baseTextColor = resolveBaseTextColor(this.document);
   }
 }
