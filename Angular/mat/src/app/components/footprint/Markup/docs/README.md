@@ -47,11 +47,20 @@ See `markup/builtins/register-builtins.ts` for the authoritative list. Current t
 - Edit
 - Brush
 - Line
+- Ray
+- Horizontal line
+- Vertical line
+- Ruler
 - Rect
+- Parallel channel
 - Text
 - Profile (manual profile box)
 - Strength
 - Fibonacci (angled channel with levels)
+- Fibonacci fan
+
+### Notes and specs
+- `markup/docs/markups.md` (gap analysis + specs for missing tools)
 
 ## Adding a new markup
 1. Create a `Shape` subclass (e.g., `MyShape`):

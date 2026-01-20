@@ -53,21 +53,37 @@ export function hexToRgb(hex: string) {
 }
 
 export function wrapText(context, text, x, y, maxWidth, lineHeight) {
-  var words = text.split(' ');
-  var line = '';
-  for (var n = 0; n < words.length; n++) {
-    var testLine = line + words[n] + ' ';
-    var metrics = context.measureText(testLine);
-    var testWidth = metrics.width;
-    if (testWidth > maxWidth && n > 0) {
-      context.fillText(line, x, y);
-      line = words[n] + ' ';
-      y += lineHeight;
-    } else {
-      line = testLine;
+  const lines = String(text ?? '').split(/\r?\n/);
+  let cursorY = y;
+
+  for (let i = 0; i < lines.length; i++) {
+    const lineText = lines[i];
+    if (lineText === '') {
+      cursorY += lineHeight;
+      continue;
+    }
+
+    const words = lineText.split(' ');
+    let line = '';
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line + words[n] + ' ';
+      const metrics = context.measureText(testLine);
+      const testWidth = metrics.width;
+      if (testWidth > maxWidth && line.length > 0) {
+        context.fillText(line, x, cursorY);
+        line = words[n] + ' ';
+        cursorY += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    if (line.length > 0) {
+      context.fillText(line, x, cursorY);
+    }
+    if (i < lines.length - 1) {
+      cursorY += lineHeight;
     }
   }
-  context.fillText(line, x, y);
 }
 
 export function MoscowTimeShift(date) {

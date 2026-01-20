@@ -1,12 +1,18 @@
 import { DEFAULT_MARKUP_COLOR, MarkupDefinition } from '../markup-api';
 import { MarkupRegistry } from '../markup-registry';
 import { Brush } from '../brush';
+import { FibonacciFan } from '../fibonacci-fan';
 import { Fibonacci } from '../fibonacci';
+import { HorizontalLine } from '../horizontal-line';
 import { Line } from '../line';
+import { ParallelChannel } from '../parallel-channel';
 import { Profile } from '../profile';
+import { Ray } from '../ray';
 import { Rect } from '../rect';
+import { Ruler } from '../ruler';
 import { Strength } from '../strength';
 import { TextShape } from '../text';
+import { VerticalLine } from '../vertical-line';
 import { fontsPreset, profilePeriodsPreset, widthsPreset } from 'src/app/models/preserts';
 
 const palette = [
@@ -77,6 +83,178 @@ const lineDefinition: MarkupDefinition = {
     },
   },
   create: (manager, params) => new Line(manager, params),
+};
+
+const rayDefinition: MarkupDefinition = {
+  type: 'Ray',
+  displayName: 'Луч',
+  description: 'Линия от точки с продолжением в направлении',
+  icon: 'trending_up',
+  paramsSchema: {
+    color: {
+      type: 'color',
+      title: 'Цвет',
+      default: DEFAULT_MARKUP_COLOR,
+      palette,
+    },
+    width: {
+      type: 'enum',
+      title: 'Толщина',
+      default: 3,
+      options: numberOptions(widthsPreset),
+    },
+    arrow: {
+      type: 'bool',
+      title: 'Стрелка',
+      default: true,
+    },
+    dockable: {
+      type: 'bool',
+      title: 'Dockable',
+      default: true,
+    },
+  },
+  create: (manager, params) => new Ray(manager, params),
+};
+
+const horizontalLineDefinition: MarkupDefinition = {
+  type: 'HorizontalLine',
+  displayName: 'Горизонтальная линия',
+  description: 'Уровень цены по всей ширине графика',
+  icon: 'horizontal_rule',
+  paramsSchema: {
+    color: {
+      type: 'color',
+      title: 'Цвет',
+      default: DEFAULT_MARKUP_COLOR,
+      palette,
+    },
+    width: {
+      type: 'enum',
+      title: 'Толщина',
+      default: 2,
+      options: numberOptions(widthsPreset),
+    },
+    dockable: {
+      type: 'bool',
+      title: 'Dockable',
+      default: true,
+    },
+  },
+  create: (manager, params) => new HorizontalLine(manager, params),
+};
+
+const verticalLineDefinition: MarkupDefinition = {
+  type: 'VerticalLine',
+  displayName: 'Вертикальная линия',
+  description: 'Метка времени по всей высоте графика',
+  icon: 'vertical_align_center',
+  paramsSchema: {
+    color: {
+      type: 'color',
+      title: 'Цвет',
+      default: DEFAULT_MARKUP_COLOR,
+      palette,
+    },
+    width: {
+      type: 'enum',
+      title: 'Толщина',
+      default: 2,
+      options: numberOptions(widthsPreset),
+    },
+    dockable: {
+      type: 'bool',
+      title: 'Dockable',
+      default: true,
+    },
+  },
+  create: (manager, params) => new VerticalLine(manager, params),
+};
+
+const rulerDefinition: MarkupDefinition = {
+  type: 'Ruler',
+  displayName: 'Рулетка',
+  description: 'Измерение цены и времени между двумя точками',
+  icon: 'straighten',
+  paramsSchema: {
+    color: {
+      type: 'color',
+      title: 'Цвет',
+      default: DEFAULT_MARKUP_COLOR,
+      palette,
+    },
+    width: {
+      type: 'enum',
+      title: 'Толщина',
+      default: 2,
+      options: numberOptions(widthsPreset),
+    },
+    dockable: {
+      type: 'bool',
+      title: 'Dockable',
+      default: true,
+    },
+  },
+  create: (manager, params) => new Ruler(manager, params),
+};
+
+const parallelChannelDefinition: MarkupDefinition = {
+  type: 'ParallelChannel',
+  displayName: 'Параллельный канал',
+  description: 'Две параллельные линии по трем точкам',
+  icon: 'view_week',
+  paramsSchema: {
+    color: {
+      type: 'color',
+      title: 'Цвет',
+      default: DEFAULT_MARKUP_COLOR,
+      palette,
+    },
+    width: {
+      type: 'enum',
+      title: 'Толщина',
+      default: 2,
+      options: numberOptions(widthsPreset),
+    },
+    fill: {
+      type: 'bool',
+      title: 'Заливка',
+      default: true,
+    },
+  },
+  create: (manager, params) => new ParallelChannel(manager, params),
+};
+
+const fanDefinition: MarkupDefinition = {
+  type: 'FibonacciFan',
+  displayName: 'Веер Фибо',
+  description: 'Фан по уровням 38.2/50/61.8/100%',
+  icon: 'flare',
+  paramsSchema: {
+    color: {
+      type: 'color',
+      title: 'Цвет',
+      default: DEFAULT_MARKUP_COLOR,
+      palette,
+    },
+    width: {
+      type: 'enum',
+      title: 'Толщина',
+      default: 2,
+      options: numberOptions(widthsPreset),
+    },
+    showLabels: {
+      type: 'bool',
+      title: 'Показывать подписи',
+      default: true,
+    },
+    dockable: {
+      type: 'bool',
+      title: 'Dockable',
+      default: true,
+    },
+  },
+  create: (manager, params) => new FibonacciFan(manager, params),
 };
 
 const rectDefinition: MarkupDefinition = {
@@ -194,6 +372,12 @@ const strengthDefinition: MarkupDefinition = {
       title: 'Dockable',
       default: true,
     },
+    text: {
+      type: 'text',
+      title: 'Note',
+      default: '',
+      rows: 3,
+    },
   },
   create: (manager, params) => new Strength(manager, params),
 };
@@ -202,8 +386,14 @@ export const BUILTIN_MARKUP_DEFINITIONS: MarkupDefinition[] = [
   editDefinition,
   brushDefinition,
   lineDefinition,
+  rayDefinition,
+  horizontalLineDefinition,
+  verticalLineDefinition,
+  rulerDefinition,
   rectDefinition,
+  parallelChannelDefinition,
   fibonacciDefinition,
+  fanDefinition,
   textDefinition,
   profileDefinition,
   strengthDefinition,

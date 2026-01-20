@@ -299,6 +299,20 @@ interruptSwipe() {
 
     }
 
+    if (this.parent.markupEnabled && this.parent.markupManager) {
+      const hit = this.parent.markupManager.selectShape(point);
+      if (hit?.shape?.type === 'Strength') {
+        const current =
+          typeof hit.shape.params?.text === 'string' ? hit.shape.params.text : '';
+        const next = window.prompt('Strength note', current);
+        if (next !== null) {
+          hit.shape.params.text = next;
+          this.parent.drawClusterView();
+        }
+        return;
+      }
+    }
+
     let params = this.parent.params;    
     var p = Math.floor(this.mtx.inverse().applyToPoint1(point).x);
     var v = this.formatService.MoscowTimeShift(
