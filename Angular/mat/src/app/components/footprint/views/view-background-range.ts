@@ -79,7 +79,26 @@ export class viewBackgroundRange extends canvasPart {
     ctx.clip();
 
     // ───── выделение выбранной цены ─────
-    if (!FP.DeltaGraph && !FP.ToolTip && parent.translateMatrix == null && parent.selectedPrice != null) {
+    const pointer = parent.mouseAndTouchManager?.selectedPoint;
+    const totalView = parent.viewsManager.clusterTotalViewFill;
+    const overTotal =
+      !!pointer &&
+      pointer.x >= totalView.x &&
+      pointer.x <= totalView.x + totalView.w &&
+      pointer.y >= totalView.y &&
+      pointer.y <= totalView.y + totalView.h;
+    const isArbitrage =
+      parent.params?.type === 'arbitrage' || (parent.data?.rangeSetLines ?? null) != null;
+    const allowSelection =
+      !isArbitrage &&
+      (!FP.ToolTip || (FP.totalMode === 'Left' && parent.hiddenHint && overTotal));
+
+    if (
+      !FP.DeltaGraph &&
+      parent.translateMatrix == null &&
+      parent.selectedPrice != null &&
+      allowSelection
+    ) {
       const rgb = hexToRgb(this.palette.selection);
       const grad = ctx.createLinearGradient(0, 0, CanvasW, 0);
       grad.addColorStop(0, `rgba(${rgb.r},${rgb.g},${rgb.b},0.3)`);

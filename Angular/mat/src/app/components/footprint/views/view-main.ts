@@ -236,14 +236,19 @@ interruptSwipe() {
     const n = Math.floor(point.x);
     const clusterData = this.parent.data.clusterData;
 
+    // Always track selected price so the highlight can render even without a tooltip.
+    this.parent.selectedPrice = pp;
+
     if (!clusterData || n < 0 || n >= clusterData.length) {
-      this.parent.hideHint();
+      this.parent.selectedColumn = null;
+      this.parent.hiddenHint = true;
+      this.parent.hintService.hide();
+      this.parent.drawClusterView();
       return;
     }
 
     const col = clusterData[n];
 
-    this.parent.selectedPrice = pp;
     this.parent.selectedColumn = col;
 
     this.drawHint(e);

@@ -130,7 +130,19 @@ export class viewRangeSet extends canvasPart {
   }
 
   onMouseMove(e: MyMouseEvent) {
+    if (!this.parent.data) {
+      this.hideHintKeepSelection();
+      return;
+    }
+
+    const point = this.mtx.inverse().applyToPoint1(e.position);
+    const p =
+      Math.round(point.y / this.parent.data.priceScale) *
+      this.parent.data.priceScale;
+    this.parent.selectedPrice = drob(p, 4);
+
     this.drawHint(e);
+    this.parent.drawClusterView();
   }
 
   drawHint(event: MyMouseEvent) {
@@ -138,7 +150,7 @@ export class viewRangeSet extends canvasPart {
     const isScrolling = this.parent.translateMatrix !== null;
 
     if (!rangeSetLines?.length) {
-      this.parent.hideHint();
+      this.hideHintKeepSelection();
       return;
     }
 
@@ -146,7 +158,7 @@ export class viewRangeSet extends canvasPart {
     const index = Math.floor(point.x);
 
     if (index < 0 || index >= rangeSetLines.length) {
-      if (!isScrolling) this.parent.hideHint();
+      if (!isScrolling) this.hideHintKeepSelection();
       return;
     }
 
@@ -159,7 +171,7 @@ export class viewRangeSet extends canvasPart {
     const delta = income1 - income2;
 
     if (!Number.isFinite(price1) || !Number.isFinite(price2)) {
-      if (!isScrolling) this.parent.hideHint();
+      if (!isScrolling) this.hideHintKeepSelection();
       return;
     }
 
@@ -192,6 +204,11 @@ export class viewRangeSet extends canvasPart {
     };
 
     this.parent.showHint(hintContent, position);
+  }
+
+  private hideHintKeepSelection(): void {
+    this.parent.hiddenHint = true;
+    this.parent.hintService.hide();
   }
 
   onMouseUp(e: Point) {

@@ -375,8 +375,11 @@ export class ViewsManager {
           this.mtxMain
         )));
 
-    // Draw overlay indicators last (above range set visuals too).
-    this.views.push(new viewIndicatorsOverlay(this.footprint, this.clusterView, this.mtxMain));
+    const isArbitrage = this.footprint.params?.type === 'arbitrage';
+    if (!isArbitrage) {
+      // Draw overlay indicators last (above range set visuals too).
+      this.views.push(new viewIndicatorsOverlay(this.footprint, this.clusterView, this.mtxMain));
+    }
 
     this.indicatorPanels = [];
     for (const panel of this.layout.indicatorPanels) {
