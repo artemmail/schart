@@ -36,13 +36,20 @@ export class viewPrices extends canvasPart {
     const price = this.getPrice(e);
     const level = this.parent.levelMarksService.getPriceMark(price);
     if (level) {
-      const draft = new MarkLineLevel(level.comment, level.color);
-      this.parent.dialogService.openLevelSettings(draft).subscribe((result) => {
-        if (result) {
-          this.parent.levelMarksService.updatePriceMark(price, result);
+      const original = new MarkLineLevel(level.comment, level.color);
+      this.parent.dialogService
+        .openLevelSettings(level, () => {
           this.parent.drawClusterView();
-        }
-      });
+        })
+        .subscribe((result) => {
+          if (result) {
+            this.parent.levelMarksService.updatePriceMark(price, level);
+          } else {
+            level.comment = original.comment;
+            level.color = original.color;
+          }
+          this.parent.drawClusterView();
+        });
     }
   }
   onMouseMove(_: Point) {

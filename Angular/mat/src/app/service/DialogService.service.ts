@@ -61,11 +61,19 @@ export class DialogService {
     return dialogRef.afterClosed();
   }
 
-  openLevelSettings(level: MarkLineLevel): Observable<MarkLineLevel> {
+  openLevelSettings(
+    level: MarkLineLevel,
+    onChange?: (level: MarkLineLevel) => void
+  ): Observable<MarkLineLevel> {
     const dialogRef = this.dialog.open(LevelSettingsDialogComponent, {
       width: '300px',
       data: level ,
     });
+
+    if (onChange) {
+      const sub = dialogRef.componentInstance.levelChange.subscribe(onChange);
+      dialogRef.afterClosed().subscribe(() => sub.unsubscribe());
+    }
     return dialogRef.afterClosed();
   }
 }

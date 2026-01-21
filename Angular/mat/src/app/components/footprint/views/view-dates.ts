@@ -73,11 +73,20 @@ export class viewDates extends canvasPart {
     const level = this.parent.levelMarksService.getDateMark( date);
 
     if(level)
-     this.parent.dialogService.openLevelSettings(level).subscribe((result: MarkLineLevel) => {
-      if (result) {
-        
-      }
-    });
+     {
+      const original = new MarkLineLevel(level.comment, level.color);
+      this.parent.dialogService
+        .openLevelSettings(level, () => {
+          this.parent.drawClusterView();
+        })
+        .subscribe((result: MarkLineLevel) => {
+          if (!result) {
+            level.comment = original.comment;
+            level.color = original.color;
+          }
+          this.parent.drawClusterView();
+        });
+     }
 
 
 

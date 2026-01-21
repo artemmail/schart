@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Inject } from '@angular/core';
+import { Component, EventEmitter, Inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -22,10 +22,16 @@ import { MarkLineLevel } from 'src/app/service/FootPrint/LevelMarks/level-marks.
   ],
 })
 export class LevelSettingsDialogComponent {
+  readonly levelChange = new EventEmitter<MarkLineLevel>();
+
   constructor(
     public dialogRef: MatDialogRef<LevelSettingsDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: MarkLineLevel
   ) {}
+
+  onLevelChange(): void {
+    this.levelChange.emit(this.data);
+  }
 
   onSaveClick(): void {
     this.dialogRef.close(this.data);

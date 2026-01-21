@@ -9,7 +9,7 @@
   </mat-form-field>
   <mat-form-field appearance="fill" style="width: 100%;">
     <mat-label>Цвет</mat-label>
-    <input matInput type="color" [(ngModel)]="data.color" />
+    <input matInput type="color" [(ngModel)]="data.color" (ngModelChange)="onLevelChange()" />
   </mat-form-field>
   
 </div>
