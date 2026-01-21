@@ -12,7 +12,7 @@
         <div
           *ngFor="let n of sector.items; trackBy: trackByTicker"
           class="ticker"
-          [style.backgroundColor]="n.color"
+          [style.backgroundColor]="resolveTickerColor(n)"
           (click)="onTickerClick(n)"
           (mouseenter)="onTickerEnter($event, n)"
           (mouseleave)="onTickerLeave()"

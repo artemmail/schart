@@ -18,8 +18,9 @@
   margin: 3px;
   display: inline-block;
   vertical-align: top;
-  border: 1px solid #ceced2;
-  background-color: #ffffff;
+  border: 1px solid var(--sc-grid-soft, #ceced2);
+  background-color: var(--sc-panel, #ffffff);
+  color: var(--sc-text, #000000);
 }
 
 .category-title h6 {
@@ -65,7 +66,7 @@
 }
 
 .ticker {
-  border: 1px solid #ceced2;
+  border: 1px solid var(--sc-grid-soft, #ceced2);
   width: 91px;
   height: 90px;
   display: inline-block;
@@ -91,7 +92,7 @@ dt {
   margin: 0;
   font-size: 19px;
   line-height: 18px;
-  background-color: rgba(128, 128, 128, 0.3);
+  background-color: var(--sc-grid-faint, rgba(128, 128, 128, 0.3));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -118,7 +119,7 @@ dd h2 {
   font-family: Arial, Helvetica, sans-serif;
   font-size: 18px;
   font-weight: 400;
-  color: #333;
+  color: var(--sc-text, #333);
   margin: 0;
 }
 
@@ -129,7 +130,7 @@ dd h2 {
 
 .no-data {
   padding: 12px;
-  color: #666;
+  color: var(--sc-text-muted, #666);
 }
 
 .board-tooltip {

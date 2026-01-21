@@ -19,6 +19,8 @@ import { Router } from '@angular/router';
 import { MoneyToStrPipe } from 'src/app/pipes/money-to-str.pipe';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
 import { FootprintWidgetComponent } from 'src/app/components/footprint/components/footprint-widget/footprint-widget.component';
+import { ColorSchemeService } from 'src/app/services/theme/color-scheme.service';
+import { blendOverlayWithBase, resolvePanelBackgroundColor } from 'src/app/utils/color-utils';
 
 @Component({
   standalone: true,
@@ -50,6 +52,9 @@ export class MarketBoardComponent implements OnDestroy, AfterViewInit {
   private tooltipCmp?: ComponentRef<FootprintWidgetComponent>;
   private showTimer: any = null;
   private hideTimer: any = null;
+  private themePreset: 'Light' | 'Dark' = 'Light';
+  private themeObserver?: MutationObserver;
+  private basePanelColor = '#ffffff';
 
   tooltipVisible = false;
   tooltipLeft = 0;
@@ -69,10 +74,13 @@ export class MarketBoardComponent implements OnDestroy, AfterViewInit {
     private router: Router,
     private el: ElementRef<HTMLElement>,
     private cdr: ChangeDetectorRef,
-    private injector: Injector
+    private injector: Injector,
+    private colorSchemeService: ColorSchemeService
   ) {}
 
   ngAfterViewInit(): void {
+    this.applyThemePreset();
+    this.watchThemePreset();
     const host = this.el.nativeElement;
     this.intersectionObserver = new IntersectionObserver((entries) => {
       for (const entry of entries) {
@@ -93,6 +101,7 @@ export class MarketBoardComponent implements OnDestroy, AfterViewInit {
     this.stopDataSubscription();
     this.intersectionObserver?.disconnect();
     this.hideTooltip();
+    this.themeObserver?.disconnect();
   }
 
   public updateParams(params: MarketMapParams): void {
@@ -306,6 +315,56 @@ export class MarketBoardComponent implements OnDestroy, AfterViewInit {
   private hasFootprint(item: MarketMapSquare | null): boolean {
     if (!item) return false;
     return item.cls !== null && item.cls !== undefined;
+  }
+
+  resolveTickerColor(item: MarketMapSquare | null): string {
+    if (!item) {
+      return this.basePanelColor;
+    }
+    const overlay =
+      typeof item.colorRgba === 'string' && item.colorRgba.trim()
+        ? item.colorRgba
+        : item.color;
+    return blendOverlayWithBase(this.basePanelColor, overlay);
+  }
+
+  private applyThemePreset(): void {
+    const preset = this.readThemePreset();
+    this.themePreset = preset;
+    this.colorSchemeService.setPreset(this.el.nativeElement, preset);
+    this.basePanelColor = resolvePanelBackgroundColor(this.el.nativeElement);
+    this.cdr.markForCheck();
+  }
+
+  private watchThemePreset(): void {
+    const docEl = this.el.nativeElement.ownerDocument?.documentElement;
+    if (!docEl || typeof MutationObserver === 'undefined') {
+      return;
+    }
+    this.themeObserver = new MutationObserver(() => {
+      const preset = this.readThemePreset();
+      if (preset === this.themePreset) {
+        return;
+      }
+      this.applyThemePreset();
+    });
+    this.themeObserver.observe(docEl, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  private readThemePreset(): 'Light' | 'Dark' {
+    try {
+      const stored = window.localStorage.getItem('uiThemePreset');
+      if (stored === 'Dark' || stored === 'Light') {
+        return stored;
+      }
+    } catch {
+      // ignore storage failures
+    }
+    const doc = this.el.nativeElement.ownerDocument;
+    if (doc?.documentElement?.classList.contains('mat-dark-theme') || doc?.body?.classList.contains('mat-dark-theme')) {
+      return 'Dark';
+    }
+    return 'Light';
   }
 }
 
