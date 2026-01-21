@@ -1,4 +1,5 @@
 import { Component, Inject, Input, ViewChild, ViewEncapsulation } from '@angular/core';
+import { firstValueFrom, tap } from 'rxjs';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import {
@@ -244,8 +245,7 @@ export class FootPrintSettingsDialogComponent {
   }
 
   onChangeReload(event: any) {
-    this.save();
-    void this.reloadData?.();
+    void this.saveAndReload();
   }
 
   onProfileSelect(event: any) {
@@ -254,9 +254,12 @@ export class FootPrintSettingsDialogComponent {
 
   save() {
     //const old = this.preset.getSelectedpreset();
-    this.chartSettingsService
-      .updateSettings(this.fp.FPsettings)
-      .subscribe((x) => {
+    this.saveSettings().subscribe();
+  }
+
+  private saveSettings() {
+    return this.chartSettingsService.updateSettings(this.fp.FPsettings).pipe(
+      tap((x) => {
         this.settings = this.fp.FPsettings;
 
         const index = this.fp.presetItems.findIndex(
@@ -267,7 +270,17 @@ export class FootPrintSettingsDialogComponent {
           void this.reloadPresets?.();
           this.fp.presetIndex = x;
         }
-      });
+      })
+    );
+  }
+
+  private async saveAndReload(): Promise<void> {
+    try {
+      await firstValueFrom(this.saveSettings());
+      await this.reloadData?.();
+    } catch (err) {
+      console.error('Failed to save settings before reload', err);
+    }
   }
 
   delete() {
