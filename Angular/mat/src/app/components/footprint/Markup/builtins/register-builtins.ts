@@ -10,6 +10,8 @@ import { Profile } from '../profile';
 import { Ray } from '../ray';
 import { Rect } from '../rect';
 import { Ruler } from '../ruler';
+import { ArrowDownMarker, ArrowUpMarker } from '../arrow-marker';
+import { PriceLeftMarker, PriceRightMarker } from '../price-marker';
 import { Strength } from '../strength';
 import { TextShape } from '../text';
 import { VerticalLine } from '../vertical-line';
@@ -23,6 +25,7 @@ const palette = [
   '#87CEFA',
   '#1E90FF',
   '#FF90FF',
+  '#808080',
   '#000000',
 ];
 
@@ -196,6 +199,70 @@ const rulerDefinition: MarkupDefinition = {
     },
   },
   create: (manager, params) => new Ruler(manager, params),
+};
+
+const arrowUpDefinition: MarkupDefinition = {
+  type: 'ArrowUp',
+  displayName: 'Стрелка вверх',
+  description: 'Маркер со стрелкой вверх',
+  icon: 'arrow_upward',
+  paramsSchema: {
+    color: {
+      type: 'color',
+      title: 'Цвет',
+      default: '#808080',
+      palette,
+    },
+  },
+  create: (manager, params) => new ArrowUpMarker(manager, params),
+};
+
+const arrowDownDefinition: MarkupDefinition = {
+  type: 'ArrowDown',
+  displayName: 'Стрелка вниз',
+  description: 'Маркер со стрелкой вниз',
+  icon: 'arrow_downward',
+  paramsSchema: {
+    color: {
+      type: 'color',
+      title: 'Цвет',
+      default: '#808080',
+      palette,
+    },
+  },
+  create: (manager, params) => new ArrowDownMarker(manager, params),
+};
+
+const priceLeftDefinition: MarkupDefinition = {
+  type: 'PriceLeft',
+  displayName: 'Цена слева',
+  description: 'Ценовая метка у левого края',
+  icon: 'format_align_left',
+  paramsSchema: {
+    color: {
+      type: 'color',
+      title: 'Цвет',
+      default: DEFAULT_MARKUP_COLOR,
+      palette,
+    },
+  },
+  create: (manager, params) => new PriceLeftMarker(manager, params),
+};
+
+const priceRightDefinition: MarkupDefinition = {
+  type: 'PriceRight',
+  displayName: 'Цена справа',
+  description: 'Ценовая метка у правого края',
+  icon: 'format_align_right',
+  paramsSchema: {
+    color: {
+      type: 'color',
+      title: 'Цвет',
+      default: DEFAULT_MARKUP_COLOR,
+      palette,
+    },
+  },
+  create: (manager, params) => new PriceRightMarker(manager, params),
 };
 
 const parallelChannelDefinition: MarkupDefinition = {
@@ -390,6 +457,10 @@ export const BUILTIN_MARKUP_DEFINITIONS: MarkupDefinition[] = [
   horizontalLineDefinition,
   verticalLineDefinition,
   rulerDefinition,
+  arrowUpDefinition,
+  arrowDownDefinition,
+  priceLeftDefinition,
+  priceRightDefinition,
   rectDefinition,
   parallelChannelDefinition,
   fibonacciDefinition,

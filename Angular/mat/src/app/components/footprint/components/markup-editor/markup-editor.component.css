@@ -26,6 +26,22 @@
   margin-bottom: 6px;
 }
 
+.markup-toolbar {
+  min-height: 32px;
+  height: 32px;
+  padding: 0 6px;
+}
+
+.markup-toggle-group {
+  gap: 0;
+}
+
+.markup-toggle-icon {
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+  line-height: 14px;
+}
 
 fieldset {
   display: block;
@@ -42,16 +58,37 @@ fieldset {
   border-image: initial;
 }
 
-
-mat-button-toggle {
-  font-size: 16px; /* Или другой желаемый размер */
-  padding: 2px 4px; /* Минимальные отступы */
-  line-height: 1; /* Уменьшает высоту строки */
+:host ::ng-deep .markup-toggle-group .mat-button-toggle {
+  min-width: 24px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  margin: 0;
+  box-shadow: none;
 }
 
-.mat-button-toggle-checked {
-  
-  padding: 2px 4px; /* Уменьшает отступы в выбранных кнопках */
+:host ::ng-deep .markup-toggle-group .mat-button-toggle-button {
+  width: 24px;
+  height: 24px;
+  padding: 0 !important;
+  line-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:host ::ng-deep .markup-toggle-group .mat-button-toggle-label-content {
+  padding: 0 !important;
+  font-size: 12px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:host ::ng-deep .markup-toggle-group .mat-button-toggle-checked {
+  border: none;
+  box-shadow: none;
 }
 
 

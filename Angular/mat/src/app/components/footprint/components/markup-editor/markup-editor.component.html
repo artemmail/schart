@@ -1,6 +1,7 @@
 <mat-dialog-content class="dense-space">
-  <mat-toolbar>
+  <mat-toolbar class="markup-toolbar">
     <mat-button-toggle-group
+      class="markup-toggle-group"
       [multiple]="false"
       [value]="activeTool"
       (change)="onToolChange($event.value)"
@@ -9,10 +10,16 @@
       <mat-button-toggle
         *ngFor="let def of toolbarDefinitions"
         [value]="def.type"
-        style="padding: 1px;"
+        class="markup-toggle"
         [matTooltip]="def.displayName"
       >
-        <mat-icon *ngIf="def.icon" [class.rotate-icon]="def.type === 'Profile'">{{ def.icon }}</mat-icon>
+        <mat-icon
+          *ngIf="def.icon"
+          class="markup-toggle-icon"
+          [class.rotate-icon]="def.type === 'Profile'"
+        >
+          {{ def.icon }}
+        </mat-icon>
         <span *ngIf="!def.icon">{{ def.displayName }}</span>
       </mat-button-toggle>
     </mat-button-toggle-group>
