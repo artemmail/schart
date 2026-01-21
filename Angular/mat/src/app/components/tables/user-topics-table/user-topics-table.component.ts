@@ -15,9 +15,10 @@ import { MaterialModule } from 'src/app/material.module';
 })
 export class UserTopicsTableComponent implements OnInit {
   dataSource: MatTableDataSource<UserTopic> = new MatTableDataSource<UserTopic>();
-  displayedColumns: string[] = ['Header'];//, 'Date', 'Author'];
+  displayedColumns: string[] = ['Date', 'Header', 'Author'];
   totalItems: number = 0; // Общее количество элементов
-  pageSize: number = 10; // Размер страницы по умолчанию
+  pageSize: number = 20; // Размер страницы по умолчанию
+  pageSizeOptions: number[] = [10, 20, 50, 100];
   pageIndex: number = 0; // Индекс текущей страницы
 
   @ViewChild(MatPaginator) paginator: MatPaginator;

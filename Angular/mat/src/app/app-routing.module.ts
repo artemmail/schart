@@ -79,6 +79,10 @@ const routes: Routes = [
   { path: 'futures/:ticker', component: FuturesDetailsComponent },
 
   { path: 'blogs', component: UserTopicsTableComponent },
+  { path: 'ServiceNews', component: UserTopicsTableComponent, pathMatch: 'full' },
+  { path: 'ServiceNews/Index', component: UserTopicsTableComponent },
+  { path: 'ServiceNews/List', component: UserTopicsTableComponent },
+  { path: 'ServiceNews/Blogs', component: UserTopicsTableComponent },
   { path: 'Seasonality', component: SeasonalityComponent },
   
   { path: 'FootPrint', component: FirstComponent },

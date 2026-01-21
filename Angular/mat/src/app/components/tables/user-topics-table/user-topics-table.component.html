@@ -1,46 +1,56 @@
-<table mat-table [dataSource]="dataSource" matSort class="custom-table">
-  <!-- Столбец Date -->
-  <!--ng-container matColumnDef="Date">
-    <th mat-header-cell *matHeaderCellDef mat-sort-header>Дата</th>
-    <td style="font-size: 12px; color: #4c4c4c; padding-right: 6px; width: 50px" mat-cell *matCellDef="let topic">
-      <b>{{ topic.Date }}</b>
-    </td>
-  </ng-container-->
+<div class="service-news-container">
+  <mat-card class="table-card">
+    <mat-card-header>
+      <mat-card-title>Лента блогов</mat-card-title>
+    </mat-card-header>
 
-  <!-- Столбец Header -->
-  <ng-container matColumnDef="Header">
-    <th mat-header-cell *matHeaderCellDef mat-sort-header>Тема</th>
-    <td style="text-align: left" mat-cell *matCellDef="let topic">
-      <a [routerLink]="['/ServiceNews/Content/', topic.Slug]">{{ topic.Header }}</a>
-      <i>{{ topic.CommentCount > 0 ? "(" + topic.CommentCount.toString() + " отв" + ")" : "" }}</i>
-    </td>
-  </ng-container>
+    <mat-card-content>
+      <div class="table-toolbar">
+        <button mat-stroked-button color="primary" routerLink="/ServiceNews/Create">
+          Создать тему
+        </button>
+      </div>
 
-  <!-- Столбец Author -->
-  <!--ng-container matColumnDef="Author">
-    <th mat-header-cell *matHeaderCellDef mat-sort-header>Автор</th>
-    <td mat-cell *matCellDef="let topic">{{ topic.Author }}</td>
-  </ng-container-->
+      <table mat-table [dataSource]="dataSource" matSort class="custom-table">
+        <!-- Столбец Date -->
+        <ng-container matColumnDef="Date">
+          <th mat-header-cell *matHeaderCellDef>Дата</th>
+          <td mat-cell *matCellDef="let topic" class="date-cell">
+            <b>{{ topic.Date }}</b>
+          </td>
+        </ng-container>
 
-  <!-- Строка заголовка -->
-  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <!-- Столбец Header -->
+        <ng-container matColumnDef="Header">
+          <th mat-header-cell *matHeaderCellDef>Тема</th>
+          <td style="text-align: left" mat-cell *matCellDef="let topic">
+            <a [routerLink]="['/ServiceNews/Content/', topic.Slug]">{{ topic.Header }}</a>
+            <i>{{ topic.CommentCount > 0 ? "(" + topic.CommentCount.toString() + " отв" + ")" : "" }}</i>
+          </td>
+        </ng-container>
 
-  <!-- Строка данных -->
-  <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-</table>
+        <!-- Столбец Author -->
+        <ng-container matColumnDef="Author">
+          <th mat-header-cell *matHeaderCellDef>Автор</th>
+          <td mat-cell *matCellDef="let topic" class="author-cell">{{ topic.Author }}</td>
+        </ng-container>
 
-<div style="background: var(--mat-full-pseudo-checkbox-disabled-selected-checkmark-color); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-right: 10px;">
-  <div></div> <!-- Пустой div для заполнения пространства слева -->
-  <div>
-    <a routerLink="/ServiceNews/Create" style="text-align: right;">Создать тему</a>
-  </div>
+        <!-- Строка заголовка -->
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+
+        <!-- Строка данных -->
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+
+      <!-- Постраничная навигация -->
+      <mat-paginator
+        [length]="totalItems"
+        [pageSize]="pageSize"
+        [pageIndex]="pageIndex"
+        [pageSizeOptions]="pageSizeOptions"
+        showFirstLastButtons
+        (page)="onPageChange($event)">
+      </mat-paginator>
+    </mat-card-content>
+  </mat-card>
 </div>
-
-<!-- Постраничная навигация -->
-<mat-paginator
-  [length]="totalItems"
-  [pageSize]="pageSize"
-  [pageIndex]="pageIndex"
-  showFirstLastButtons
-  (page)="onPageChange($event)">
-</mat-paginator>
