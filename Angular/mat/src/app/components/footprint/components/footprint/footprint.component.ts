@@ -553,14 +553,57 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.viewsManager.drawClusterView();
   }
 
+  private adjustViewportOnRealtime(): void {
+    if (!this.data || !this.viewsManager || !this.FPsettings.ShrinkY) {
+      return;
+    }
+    if (this.translateMatrix) {
+      return;
+    }
+
+    const view = this.viewsManager.clusterView;
+    if (!view || view.w <= 0 || view.h <= 0) {
+      return;
+    }
+
+    const matrix = this.viewsManager.mtx;
+    this.getMinMaxIndex(matrix);
+
+    const local = this.data.local;
+    if (!local || !Number.isFinite(local.maxPrice) || !Number.isFinite(local.minPrice)) {
+      return;
+    }
+
+    const top = matrix.Height2Price(view.y);
+    const bottom = matrix.Height2Price(view.y + view.h);
+    if (!Number.isFinite(top) || !Number.isFinite(bottom)) {
+      return;
+    }
+
+    const visibleMin = Math.min(top, bottom);
+    const visibleMax = Math.max(top, bottom);
+    const delta = (local.maxPrice - local.minPrice) / 10;
+    const paddedMin = local.minPrice - delta;
+    const paddedMax = local.maxPrice + delta;
+
+    if (paddedMin < visibleMin || paddedMax > visibleMax) {
+      this.viewsManager.mtx = matrix.reassignY(
+        { y1: local.maxPrice + delta, y2: local.minPrice - delta },
+        { y1: view.y, y2: view.y + view.h }
+      );
+    }
+  }
+
   handleRealtimeUpdate(update: FootprintUpdateEvent) {
     if (!this.data || !this.viewsManager) {
       return;
     }
 
     const isVisible = this.isPriceVisible();
-    if (update.type !== 'ladder' && isVisible && update.merged) {
+    const shouldMerge = update.type !== 'ladder' && isVisible && !!update.merged;
+    if (shouldMerge) {
       this.mergeMatrix();
+      this.adjustViewportOnRealtime();
     }
 
     this.viewsManager.drawClusterView();
