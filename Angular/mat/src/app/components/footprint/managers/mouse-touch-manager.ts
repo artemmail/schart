@@ -21,6 +21,17 @@ export class MouseAndTouchManager {
   private dragIndicatorPanelId: string | null = null;
   private dragIndicatorStartHeight: number | null = null;
   private hoverView: any | null = null;
+  private isMouseDown: boolean = false;
+
+  private onWindowMouseMove = (event: MouseEvent): void => {
+    if (!this.isMouseDown) return;
+    this.onMouseMove(event);
+  };
+
+  private onWindowMouseUp = (event: MouseEvent): void => {
+    if (!this.isMouseDown) return;
+    this.onMouseUp(event);
+  };
 
   constructor(footprint_: FootPrintComponent) {
     this.footprint = footprint_;
@@ -93,6 +104,7 @@ export class MouseAndTouchManager {
   }
 
   onMouseUp = (event?: MouseEvent): void => {
+    this.releaseGlobalMouse();
     const FPsettings = this.footprint.FPsettings;
     if (this.footprint.dragMode != null) {
       const resizable = this.footprint.viewsManager.resizeable[this.footprint.dragMode];
@@ -122,6 +134,7 @@ export class MouseAndTouchManager {
 
     if (this.footprint.movedView !== null) {
       (this.footprint.movedView as any).onMouseUp();
+      this.footprint.movedView = null;
       this.footprint.viewsManager.drawClusterView();
       return;
     }
@@ -341,11 +354,21 @@ export class MouseAndTouchManager {
       return;
     }
 
-    for (const view in this.footprint.views)
-      if ('onMouseMovePressed' in this.footprint.views[view] && this.footprint.views[view].checkPoint(point)) {
+    if (this.footprint.movedView && 'onMouseMovePressed' in this.footprint.movedView) {
+      (this.footprint.movedView as any).onMouseMovePressed(point);
+      return;
+    }
+
+    for (const view in this.footprint.views) {
+      if (
+        'onMouseMovePressed' in this.footprint.views[view] &&
+        this.footprint.views[view].checkPoint(point)
+      ) {
         this.footprint.movedView = this.footprint.views[view];
         (this.footprint.views[view] as any).onMouseMovePressed(point);
+        return;
       }
+    }
   }
 
   onMouseWheel = (event: WheelEvent): void => {
@@ -363,6 +386,7 @@ export class MouseAndTouchManager {
 
   onMouseDown = (event: MouseEvent): void => {
     this.footprint.hideHint();
+    this.startGlobalMouse();
     const point = this.eventToPoint(event);
     this.pressd = point;
     for (const view in this.footprint.views)
@@ -384,9 +408,27 @@ export class MouseAndTouchManager {
         return;
       }
     for (const view in this.footprint.views)
-      if ('onMouseDown' in this.footprint.views[view] && this.footprint.views[view].checkPoint(point))
+      if ('onMouseDown' in this.footprint.views[view] && this.footprint.views[view].checkPoint(point)) {
+        if ('onMouseMovePressed' in this.footprint.views[view]) {
+          this.footprint.movedView = this.footprint.views[view];
+        }
         (this.footprint.views[view] as any).onMouseDown(point);
+      }
   };
+
+  private startGlobalMouse(): void {
+    if (this.isMouseDown) return;
+    this.isMouseDown = true;
+    window.addEventListener('mousemove', this.onWindowMouseMove);
+    window.addEventListener('mouseup', this.onWindowMouseUp);
+  }
+
+  private releaseGlobalMouse(): void {
+    if (!this.isMouseDown) return;
+    this.isMouseDown = false;
+    window.removeEventListener('mousemove', this.onWindowMouseMove);
+    window.removeEventListener('mouseup', this.onWindowMouseUp);
+  }
 
   onTap = (event: MouseEvent): void => {
     //alert('tap');
