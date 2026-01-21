@@ -1,5 +1,5 @@
-<mat-dialog-content class="dense-space">
-  <mat-tab-group style="width: 520px;">
+<mat-dialog-content class="dense-space footprint-settings-dialog">
+  <mat-tab-group class="footprint-settings-dialog__tabs">
     <mat-tab label="Блоки">
       <div style="padding: 2px">
         <h3>Общий объем</h3>
@@ -39,8 +39,9 @@
         </div>
       </div>
     </mat-tab>
-    <mat-tab label="Поведение">
-      <div>
+    <mat-tab label="Тема и Поведение">
+      <div style="padding: 2px">
+        <h3>Поведение</h3>
         <div>
           <mat-checkbox [(ngModel)]="fp.FPsettings.Contracts" (change)="onChange($event)">Объем в контрактах</mat-checkbox>
         </div>
@@ -56,11 +57,7 @@
         <div>
           <mat-checkbox [(ngModel)]="fp.FPsettings.ExtendedToolTip" (change)="onChange($event)">Buy/Sell в Тултип</mat-checkbox>
         </div>
-      </div>
-    </mat-tab>
-    <mat-tab label="Оформление">
-      <div style="padding: 2px">
-        <h3>Цветовая схема</h3>
+        <h3>Оформление</h3>
         <mat-form-field appearance="fill">
           <mat-label>Тема</mat-label>
           <mat-select [(ngModel)]="fp.FPsettings.ThemePreset" (selectionChange)="onThemePresetChange($event.value)">
@@ -69,7 +66,7 @@
         </mat-form-field>
       </div>
     </mat-tab>
-    <mat-tab label="Кластера" style="width: 500px;">
+    <mat-tab label="Кластера и свечи" style="width: 500px;">
       <div  style="width: 500px; overflow: hidden;">
       <div  style="width: 500px;">
         <h3>Режим отображения кластеров</h3>
@@ -155,25 +152,22 @@
           <div>
             <mat-checkbox [(ngModel)]="fp.FPsettings.OpenClose" (change)="onChange($event)">Open/Close</mat-checkbox>
           </div>
+              
+          <div>
+            <mat-checkbox [(ngModel)]="fp.FPsettings.Bars" (change)="onChange($event)">Отображать свечи как бары</mat-checkbox>
+          </div>
+          <div>
+            <mat-checkbox [(ngModel)]="fp.FPsettings.CandlesOnly" (change)="onChangeReload($event)">Скачивать только свечи</mat-checkbox>
+          </div>
+          <mat-form-field appearance="fill">
+            <mat-label>Сжимать кластера в свечи</mat-label>
+            <mat-select [(ngModel)]="fp.FPsettings.CompressToCandles" (selectionChange)="onChangeReload($event)">
+              <mat-option *ngFor="let mode of candleModes" [value]="mode.Value">{{ mode.Text }}</mat-option>
+            </mat-select>
+          </mat-form-field>
         </div>
       </div>
     </div>
-    </mat-tab>
-    <mat-tab label="Свечи">
-      
-        <div>
-          <mat-checkbox [(ngModel)]="fp.FPsettings.Bars" (change)="onChange($event)">Отображать свечи как бары</mat-checkbox>
-        </div>
-        <div>
-          <mat-checkbox [(ngModel)]="fp.FPsettings.CandlesOnly" (change)="onChangeReload($event)">Скачивать только свечи</mat-checkbox>
-        </div>
-        <mat-form-field appearance="fill">
-          <mat-label>Сжимать кластера в свечи</mat-label>
-          <mat-select [(ngModel)]="fp.FPsettings.CompressToCandles" (selectionChange)="onChangeReload($event)">
-            <mat-option *ngFor="let mode of candleModes" [value]="mode.Value">{{ mode.Text }}</mat-option>
-          </mat-select>
-        </mat-form-field>
-      
     </mat-tab>
 
     <mat-tab label="Индикаторы">

@@ -43,3 +43,11 @@ mat-button-toggle {
 .indicator-panel-ref {
   opacity: 0.75;
 }
+
+.footprint-settings-dialog__tabs {
+  width: 580px;
+}
+
+.footprint-settings-dialog .mat-mdc-tab {
+  padding: 0 12px;
+}
