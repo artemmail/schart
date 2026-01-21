@@ -7,24 +7,10 @@
     <mat-label>Комментарий</mat-label>
     <input matInput [(ngModel)]="data.comment" />
   </mat-form-field>
-  <div style="width: 100%;">
+  <mat-form-field appearance="fill" style="width: 100%;">
     <mat-label>Цвет</mat-label>
-    <palette-picker
-      [(ngModel)]="data.color"
-      [colors]="[
-        '#F08080',
-        '#FFA500',
-        '#F0E68C',
-        '#90EE90',
-        '#87CEFA',
-        '#1E90FF',
-        '#FF90FF',
-        '#9370DB',
-        '#40E0D0'
-      ]"
-      [squareSize]="26"   
-    ></palette-picker>
-  </div>
+    <input matInput type="color" [(ngModel)]="data.color" />
+  </mat-form-field>
   
 </div>
 <div mat-dialog-actions> 

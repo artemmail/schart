@@ -47,26 +47,15 @@
             <li>
               <ng-container [ngSwitch]="kv.value.type">
                 <ng-container *ngSwitchCase="'color'">
-                  <ng-container *ngIf="kv.value.palette?.length; else colorInput">
-                    <div class="markup-editor-label">{{ kv.value.title }}</div>
-                    <palette-picker
+                  <mat-form-field appearance="fill">
+                    <mat-label>{{ kv.value.title }}</mat-label>
+                    <input
+                      matInput
+                      type="color"
                       [(ngModel)]="getFieldTarget(kv.value)[kv.key]"
-                      [colors]="kv.value.palette"
-                      [squareSize]="25"
-                      (colorChange)="onParamsChanged(kv.value)"
-                    ></palette-picker>
-                  </ng-container>
-                  <ng-template #colorInput>
-                    <mat-form-field appearance="fill">
-                      <mat-label>{{ kv.value.title }}</mat-label>
-                      <input
-                        matInput
-                        type="color"
-                        [(ngModel)]="getFieldTarget(kv.value)[kv.key]"
-                        (change)="onParamsChanged(kv.value)"
-                      />
-                    </mat-form-field>
-                  </ng-template>
+                      (change)="onParamsChanged(kv.value)"
+                    />
+                  </mat-form-field>
                 </ng-container>
 
                 <mat-form-field *ngSwitchCase="'int'" appearance="fill">
