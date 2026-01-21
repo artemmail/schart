@@ -274,6 +274,10 @@ export class SeasonalityComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    if (this.tooltipVisible && this.tooltipKey && this.tooltipKey !== meta.key) {
+      this.hideTooltip();
+    }
+
     if (this.pendingTooltipKey === meta.key) {
       return;
     }
