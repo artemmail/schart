@@ -1,6 +1,6 @@
 import { Component, ViewChild, AfterViewInit, OnInit, Inject, ElementRef } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
-import { isPlatformServer, Location } from '@angular/common';
+import { isPlatformServer } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { PLATFORM_ID } from '@angular/core';
@@ -43,7 +43,6 @@ export class AppMobileComponent implements AfterViewInit, OnInit {
     private authEventService: AuthEventService,
     private http: HttpClient,
     private router: Router,
-    private location: Location,
     @Inject(PLATFORM_ID) private platformId: Object,
     private materialThemeService: MaterialThemeService
   ) {
@@ -53,21 +52,22 @@ export class AppMobileComponent implements AfterViewInit, OnInit {
     }
 
     // ✅ Метрика: отправка hit на каждую навигацию (NavigationEnd)
-    let prevPath = this.location.path(true);
+    let prevUrl = this.router.url || '/';
 
     this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
-      .subscribe(() => {
-        const newPath = this.location.path(true);
+      .subscribe((event) => {
+        const newUrl = (event.urlAfterRedirects || event.url || this.router.url || '/');
 
         // защита от дублей/пустого пути
-        if (!newPath || newPath === prevPath) return;
+        if (!newUrl || newUrl === prevUrl) return;
 
-        window.ym?.(METRIKA_ID, 'hit', newPath, {
-          referer: prevPath,
+        window.ym?.(METRIKA_ID, 'hit', newUrl, {
+          referer: prevUrl,
+          title: document.title,
         });
 
-        prevPath = newPath;
+        prevUrl = newUrl;
       });
   }
 

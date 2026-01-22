@@ -12,7 +12,6 @@ import {
 
 import {
   isPlatformServer,
-  Location,
 } from '@angular/common';
 
 import { filter } from 'rxjs/operators';
@@ -43,7 +42,6 @@ export class AppComponent implements OnInit {
   constructor(
     private http: HttpClient,
     private router: Router,
-    private location: Location,
     @Inject(PLATFORM_ID) private platformId: Object,
     private materialThemeService: MaterialThemeService
   ) {
@@ -51,23 +49,24 @@ export class AppComponent implements OnInit {
     // SSR – пропускаем
     if (isPlatformServer(platformId)) return;
 
-    // начальный путь
-    let prevPath = this.location.path(true);
+    // начальный урл (важно: даже если URL в адресной строке не меняется из-за skipLocationChange)
+    let prevUrl = this.router.url || '/';
 
     this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
-      .subscribe(() => {
-        const newPath = this.location.path(true);
+      .subscribe((event) => {
+        const newUrl = (event.urlAfterRedirects || event.url || this.router.url || '/');
 
         // защита от дублей
-        if (!newPath || newPath === prevPath) return;
+        if (!newUrl || newUrl === prevUrl) return;
 
         // прямой вызов Метрики
-        window.ym?.(METRIKA_ID, 'hit', newPath, {
-          referer: prevPath,
+        window.ym?.(METRIKA_ID, 'hit', newUrl, {
+          referer: prevUrl,
+          title: document.title,
         });
 
-        prevPath = newPath;
+        prevUrl = newUrl;
       });
   }
 
