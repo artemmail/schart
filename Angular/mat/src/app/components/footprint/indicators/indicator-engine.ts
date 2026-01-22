@@ -305,11 +305,14 @@ export class FootprintIndicatorEngine {
   }
 
   private createContext(barsCount: number): IndicatorContext {
+    const getCandles = () => this.getCandlesSnapshot();
     return {
-      candles: this.getCandlesSnapshot(),
+      get candles() {
+        return getCandles();
+      },
       source: (bar: number, src: SourceType) => this.sourceAt(bar, src),
-      currentBar: () => Math.max(0, this.getCandlesSnapshot().length - 1),
-      barsCount: () => this.getCandlesSnapshot().length,
+      currentBar: () => Math.max(0, getCandles().length - 1),
+      barsCount: () => getCandles().length,
       requestRender: () => this.callbacks.requestRender(),
       requestRecalc: () => {
         this.callbacks.requestRecalc();
