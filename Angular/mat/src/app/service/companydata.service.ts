@@ -15,8 +15,8 @@ export class DataService {
 
   private apiUrl = `${environment.apiUrl}/api/common`; // Замените на фактический URL вашего API
 
-
-  private shareholdersUrl = 'assets/ShareholdersStructure.json'; // Добавим URL для нового файла
+  private shareholdersApiUrl = `${environment.apiUrl}/api/shareholders`;
+  private recommendationsApiUrl = `${environment.apiUrl}/api/recommendations`;
 
   constructor(private http: HttpClient) { }
 
@@ -95,8 +95,14 @@ export class DataService {
 
 
   loadRecommendations(ticker: string): Observable<Recommendation> {
-    const recommendationUrl = `/assets/shares/${ticker}/recomendation.json`;
-    return this.http.get<Recommendation>(recommendationUrl);
+    const safeTicker = (ticker || '').trim().toUpperCase();
+    if (!safeTicker) {
+      return of({ ReasonsUp: [], ReasonsDown: [] });
+    }
+
+    return this.http.get<Recommendation>(`${this.recommendationsApiUrl}/${safeTicker}`).pipe(
+      catchError(() => of({ ReasonsUp: [], ReasonsDown: [] }))
+    );
   }
 
   loadFilteredData(ticker: string, nameToFilter: string, standart = 'MSFO', period: string = 'y'): Observable<FilteredDataResult> {
@@ -131,8 +137,23 @@ export class DataService {
   }
   // Метод для получения структуры акционеров
   getShareholdersStructure(ticker: string): Observable<ShareholdersStructure | undefined> {
-    return this.http.get<{ [key: string]: ShareholdersStructure }>(this.shareholdersUrl).pipe(
-      map(data => data[ticker])
+    const safeTicker = (ticker || '').trim().toUpperCase();
+    if (!safeTicker) {
+      return of({
+        Title: 'Структура акционеров',
+        LastUpdateDate: '',
+        Shareholders: []
+      });
+    }
+
+    return this.http.get<ShareholdersStructure>(`${this.shareholdersApiUrl}/${safeTicker}`).pipe(
+      catchError(() =>
+        of({
+          Title: `Структура акционеров ${safeTicker}`.trim(),
+          LastUpdateDate: '',
+          Shareholders: []
+        })
+      )
     );
   }
 }

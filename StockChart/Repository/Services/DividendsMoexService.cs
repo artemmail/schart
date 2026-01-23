@@ -16,15 +16,18 @@ namespace StockChart.Repository.Services
         private readonly ApplicationDbContext _dbContext;
         private readonly HttpClient _httpClient;
         private readonly ILogger<DividendsMoexService> _logger;
+        private readonly IShareholdersRecommendationsService _shareholdersRecommendationsService;
 
         public DividendsMoexService(
             ApplicationDbContext dbContext,
             HttpClient httpClient,
-            ILogger<DividendsMoexService> logger)
+            ILogger<DividendsMoexService> logger,
+            IShareholdersRecommendationsService shareholdersRecommendationsService)
         {
             _dbContext = dbContext;
             _httpClient = httpClient;
             _logger = logger;
+            _shareholdersRecommendationsService = shareholdersRecommendationsService;
         }
 
         public async Task<DividendsResponse> GetDividendsAsync(string ticker, CancellationToken cancellationToken = default)
@@ -80,6 +83,16 @@ namespace StockChart.Repository.Services
         public async Task<int> UpdateDueDividendsAsync(CancellationToken cancellationToken = default)
         {
             var now = DateTime.Now;
+
+            /*
+            try
+            {
+                await _shareholdersRecommendationsService.ImportFromFolderAsync("c:/zip/", cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при импорте структуры акционеров и рекомендаций");
+            }*/
 
             /*
             try

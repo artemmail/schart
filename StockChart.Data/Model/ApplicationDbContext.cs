@@ -90,6 +90,10 @@ public class ApplicationDbContext2
 
     public virtual DbSet<DividendsMoex> DividendsMoex { get; set; }
     public virtual DbSet<DividendsMoexUpdateLog> DividendsMoexUpdateLogs { get; set; }
+    public virtual DbSet<ShareholderSnapshot> ShareholderSnapshots { get; set; }
+    public virtual DbSet<ShareholderEntry> ShareholderEntries { get; set; }
+    public virtual DbSet<RecommendationSnapshot> RecommendationSnapshots { get; set; }
+    public virtual DbSet<RecommendationReason> RecommendationReasons { get; set; }
 
 
 
@@ -522,6 +526,54 @@ public partial class ApplicationDbContext : ApplicationDbContext2
             entity.HasKey(e => e.Id);
             entity.ToTable("DividendsMoexUpdateLogs");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+        });
+
+        modelBuilder.Entity<ShareholderSnapshot>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("ShareholderSnapshots");
+            entity.Property(e => e.ImportedAt).HasColumnType("datetime2");
+            entity.Property(e => e.LastUpdateDate).HasColumnType("datetime2");
+            entity.Property(e => e.Title).HasMaxLength(512);
+            entity.HasIndex(e => new { e.DictionaryId, e.ImportedAt });
+            entity.HasOne(d => d.Dictionary).WithMany()
+                .HasForeignKey(d => d.DictionaryId)
+                .HasConstraintName("FK_ShareholderSnapshots_Dictionary");
+        });
+
+        modelBuilder.Entity<ShareholderEntry>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("ShareholderEntries");
+            entity.Property(e => e.Name).HasMaxLength(256);
+            entity.Property(e => e.SharePercentage).HasColumnType("decimal(18, 6)");
+            entity.HasIndex(e => new { e.SnapshotId, e.SortOrder });
+            entity.HasOne(d => d.Snapshot).WithMany(p => p.Shareholders)
+                .HasForeignKey(d => d.SnapshotId)
+                .HasConstraintName("FK_ShareholderEntries_ShareholderSnapshots");
+        });
+
+        modelBuilder.Entity<RecommendationSnapshot>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("RecommendationSnapshots");
+            entity.Property(e => e.ImportedAt).HasColumnType("datetime2");
+            entity.HasIndex(e => new { e.DictionaryId, e.ImportedAt });
+            entity.HasOne(d => d.Dictionary).WithMany()
+                .HasForeignKey(d => d.DictionaryId)
+                .HasConstraintName("FK_RecommendationSnapshots_Dictionary");
+        });
+
+        modelBuilder.Entity<RecommendationReason>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("RecommendationReasons");
+            entity.Property(e => e.Direction).HasConversion<byte>();
+            entity.Property(e => e.Text).HasMaxLength(2000);
+            entity.HasIndex(e => new { e.SnapshotId, e.Direction, e.SortOrder });
+            entity.HasOne(d => d.Snapshot).WithMany(p => p.Reasons)
+                .HasForeignKey(d => d.SnapshotId)
+                .HasConstraintName("FK_RecommendationReasons_RecommendationSnapshots");
         });
 
         modelBuilder.Entity<Lot>(entity =>
