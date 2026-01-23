@@ -41,44 +41,60 @@ export class DataService {
   }
 
   loadData(ticker: string, standart = 'MSFO', period: string = 'y'): Observable<DataItem[]> {
-    const dataUrl = (standart === 'MULT' || standart === 'FIN')
-      ? `/assets/shares/${ticker}/${standart}/data.json`
-      : `/assets/shares/${ticker}/${standart}/${period}/data.json`;
-  
-    const dataRequest = this.http.get<DataItem[]>(dataUrl).pipe(
+    const safeTicker = (ticker || '').trim();
+    if (!safeTicker) {
+      return of([]);
+    }
+
+    const useAssets = standart === 'MULT' || standart === 'FIN';
+    const dataRequest = useAssets
+      ? this.http.get<DataItem[]>(`/assets/shares/${safeTicker}/${standart}/data.json`)
+      : this.http.get<DataItem[]>(`${environment.apiUrl}/api/statements/${safeTicker}`, {
+          params: { standart, period, mode: 'raw' }
+        });
+
+    return dataRequest.pipe(
       map(dataItems => {
         return dataItems.map(item => {
+          const valueStr = item.value !== null && item.value !== undefined ? item.value.toString() : '';
           // Проверка, является ли строка датой (формат dd.mm.yyyy)
-          const isDate = /^\d{2}\.\d{2}\.\d{4}$/.test(item.value);
-          
-          if (!isDate && item.value) {
+          const isDate = /^\d{2}\.\d{2}\.\d{4}$/.test(valueStr);
+
+          if (!isDate && valueStr) {
             // Если это не дата, пытаемся преобразовать значение
-            const sanitizedValue = item.value.replace(/\s+/g, '').replace(',', '.');
+            const sanitizedValue = valueStr.replace(/\s+/g, '').replace(',', '.');
             const numericValue = parseFloat(sanitizedValue);
-  
+
             return {
               ...item,
-              value: isNaN(numericValue) ? item.value : numericValue.toString()
+              value: isNaN(numericValue) ? valueStr : numericValue.toString()
             };
           }
-  
-          // Если это дата, возвращаем исходное значение
-          return item;
+
+          // Если это дата или пусто, возвращаем исходное значение
+          return {
+            ...item,
+            value: valueStr
+          };
         });
       })
     );
-  
-    
-      return dataRequest;
-    
   }
   
   loadData2(ticker: string, standart = 'MSFO', period: string = 'y', filter?: string): Observable<DataItem[]> {
-    const dataUrl = (standart === 'MULT' || standart === 'FIN')
-      ? `/assets/shares/${ticker}/${standart}/data.json`
-      : `/assets/shares/${ticker}/${standart}/${period}/data_ext.json`;
-  
-    const dataRequest = this.http.get<DataItem[]>(dataUrl).pipe(
+    const safeTicker = (ticker || '').trim();
+    if (!safeTicker) {
+      return of([]);
+    }
+
+    const useAssets = standart === 'MULT' || standart === 'FIN';
+    const dataRequest = useAssets
+      ? this.http.get<DataItem[]>(`/assets/shares/${safeTicker}/${standart}/data.json`)
+      : this.http.get<DataItem[]>(`${environment.apiUrl}/api/statements/${safeTicker}`, {
+          params: { standart, period, mode: 'ext' }
+        });
+
+    return dataRequest.pipe(
       map(dataItems => {
         if (filter) {
           return dataItems.filter(item => item.name === filter);
@@ -86,10 +102,6 @@ export class DataService {
         return dataItems;
       })
     );
-  
-    
-      return dataRequest;
-    
   }
 
 

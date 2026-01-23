@@ -11,7 +11,7 @@ public static class CliHelp
         Console.WriteLine("  sl_par <mode> [options]");
         Console.WriteLine();
         Console.WriteLine("Режимы:");
-        Console.WriteLine("  financial        Скачивание финансовых таблиц (data.json + dic.json).");
+        Console.WriteLine("  financial        Скачивание финансовых таблиц (data.json + dic.json + data.csv).");
         Console.WriteLine("  diagrams         Скачивание диаграмм по показателям.");
         Console.WriteLine("  shareholders     Скачивание структуры акционеров.");
         Console.WriteLine("  logos            Скачивание логотипов компаний.");
@@ -35,6 +35,7 @@ public static class CliHelp
             Console.WriteLine("  --periods y,q           Периоды (по умолчанию y,q).");
             Console.WriteLine("  --output C:\\zip         Корневая папка вывода.");
             Console.WriteLine("  (Если на странице есть блок Reasons Up/Down, сохраняется recomendation.json).");
+            Console.WriteLine("  (CSV скачивается для MSFO/RSBU и периодов y,q).");
             Console.WriteLine();
             Console.WriteLine("Параметры режима diagrams:");
             Console.WriteLine("  --report RSBU           Отчетность (по умолчанию RSBU).");
@@ -79,6 +80,7 @@ public static class CliHelp
                 Console.WriteLine("  --periods y,q           Периоды (по умолчанию y,q).");
                 Console.WriteLine("  --output C:\\zip         Корневая папка вывода.");
                 Console.WriteLine("  (Если на странице есть блок Reasons Up/Down, сохраняется recomendation.json).");
+                Console.WriteLine("  (CSV скачивается для MSFO/RSBU и периодов y,q).");
                 Console.WriteLine();
                 break;
             case AppMode.Diagrams:

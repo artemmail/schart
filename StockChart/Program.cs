@@ -78,6 +78,7 @@ builder.Services.AddScoped<IFootprintFavoritesRepository, FootprintFavoritesRepo
 builder.Services.AddScoped<IFootprintLevelMarksRepository, FootprintLevelMarksRepository>();
 builder.Services.AddScoped<IDividendsMoexService, DividendsMoexService>();
 builder.Services.AddScoped<IShareholdersRecommendationsService, ShareholdersRecommendationsService>();
+builder.Services.AddScoped<IFinancialStatementsService, FinancialStatementsService>();
 
 builder.Services.AddScoped<IReportsRepository, ReportsRepository>();
 builder.Services.AddScoped<IBillingRepository, BillingRepository>();

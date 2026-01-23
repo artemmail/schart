@@ -17,17 +17,20 @@ namespace StockChart.Repository.Services
         private readonly HttpClient _httpClient;
         private readonly ILogger<DividendsMoexService> _logger;
         private readonly IShareholdersRecommendationsService _shareholdersRecommendationsService;
+        private readonly IFinancialStatementsService _financialStatementsService;
 
         public DividendsMoexService(
             ApplicationDbContext dbContext,
             HttpClient httpClient,
             ILogger<DividendsMoexService> logger,
-            IShareholdersRecommendationsService shareholdersRecommendationsService)
+            IShareholdersRecommendationsService shareholdersRecommendationsService,
+            IFinancialStatementsService financialStatementsService)
         {
             _dbContext = dbContext;
             _httpClient = httpClient;
             _logger = logger;
             _shareholdersRecommendationsService = shareholdersRecommendationsService;
+            _financialStatementsService = financialStatementsService;
         }
 
         public async Task<DividendsResponse> GetDividendsAsync(string ticker, CancellationToken cancellationToken = default)
@@ -92,6 +95,16 @@ namespace StockChart.Repository.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ошибка при импорте структуры акционеров и рекомендаций");
+            }*/
+
+            /*
+            try
+            {
+                await _financialStatementsService.ImportFromFolderAsync("c:/zip/", cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при импорте отчетности РСБУ/МСФО");
             }*/
 
             /*

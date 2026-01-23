@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StockChart.Model;
 
 #nullable disable
 
-namespace StockChart.Migrations.ApplicationDbContext2Migrations
+namespace StockChart.Data.Migrations.ApplicationDbContext2Migrations
 {
     [DbContext(typeof(ApplicationDbContext2))]
-    partial class ApplicationDbContext2ModelSnapshot : ModelSnapshot
+    [Migration("20260123132442_prim2")]
+    partial class prim2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -669,29 +672,16 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("DictionaryId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("ImportedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<string>("Period")
-                        .IsRequired()
-                        .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)");
+                    b.Property<int>("SnapshotId")
+                        .HasColumnType("int");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
-
-                    b.Property<string>("Standard")
-                        .IsRequired()
-                        .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)");
 
                     b.Property<decimal?>("ValueNum")
                         .HasColumnType("decimal(28,10)");
@@ -706,12 +696,44 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DictionaryId", "Standard", "Period", "SortOrder");
-
-                    b.HasIndex("DictionaryId", "Standard", "Period", "Name", "Year")
-                        .IsUnique();
+                    b.HasIndex("SnapshotId", "SortOrder");
 
                     b.ToTable("FinancialStatementEntries", (string)null);
+                });
+
+            modelBuilder.Entity("StockChart.Model.FinancialStatementSnapshot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DictionaryId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ImportedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Mode")
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
+
+                    b.Property<string>("Period")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)");
+
+                    b.Property<string>("Standard")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DictionaryId", "Standard", "Period", "Mode", "ImportedAt");
+
+                    b.ToTable("FinancialStatementSnapshots", (string)null);
                 });
 
             modelBuilder.Entity("StockChart.Model.FootprintFavorite", b =>
@@ -1312,12 +1334,24 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
 
             modelBuilder.Entity("StockChart.Model.FinancialStatementEntry", b =>
                 {
+                    b.HasOne("StockChart.Model.FinancialStatementSnapshot", "Snapshot")
+                        .WithMany("Entries")
+                        .HasForeignKey("SnapshotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_FinancialStatementEntries_FinancialStatementSnapshots");
+
+                    b.Navigation("Snapshot");
+                });
+
+            modelBuilder.Entity("StockChart.Model.FinancialStatementSnapshot", b =>
+                {
                     b.HasOne("StockChart.Model.Dictionary", "Dictionary")
                         .WithMany()
                         .HasForeignKey("DictionaryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("FK_FinancialStatementEntries_Dictionary");
+                        .HasConstraintName("FK_FinancialStatementSnapshots_Dictionary");
 
                     b.Navigation("Dictionary");
                 });
@@ -1514,6 +1548,11 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
             modelBuilder.Entity("StockChart.Model.Class", b =>
                 {
                     b.Navigation("Dictionaries");
+                });
+
+            modelBuilder.Entity("StockChart.Model.FinancialStatementSnapshot", b =>
+                {
+                    b.Navigation("Entries");
                 });
 
             modelBuilder.Entity("StockChart.Model.Market", b =>

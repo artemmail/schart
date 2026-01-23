@@ -94,6 +94,8 @@ public class ApplicationDbContext2
     public virtual DbSet<ShareholderEntry> ShareholderEntries { get; set; }
     public virtual DbSet<RecommendationSnapshot> RecommendationSnapshots { get; set; }
     public virtual DbSet<RecommendationReason> RecommendationReasons { get; set; }
+    public virtual DbSet<FinancialStatementEntry> FinancialStatementEntries { get; set; }
+    public virtual DbSet<FinancialStatementDictionary> FinancialStatementDictionaries { get; set; }
 
 
 
@@ -139,6 +141,32 @@ public class ApplicationDbContext2
         modelBuilder.Entity<UserGameOrder>(entity =>
         {
             entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<FinancialStatementDictionary>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("FinancialStatementDictionary");
+            entity.Property(e => e.Code).HasMaxLength(256);
+            entity.Property(e => e.Value).HasMaxLength(512);
+            entity.HasIndex(e => e.Code).IsUnique();
+        });
+
+        modelBuilder.Entity<FinancialStatementEntry>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("FinancialStatementEntries");
+            entity.Property(e => e.Standard).HasMaxLength(8);
+            entity.Property(e => e.Period).HasMaxLength(4);
+            entity.Property(e => e.Name).HasMaxLength(256);
+            entity.Property(e => e.Year).HasMaxLength(32);
+            entity.Property(e => e.ValueNum).HasColumnType("decimal(28,10)");
+            entity.Property(e => e.ImportedAt).HasColumnType("datetime2");
+            entity.HasIndex(e => new { e.DictionaryId, e.Standard, e.Period, e.Name, e.Year }).IsUnique();
+            entity.HasIndex(e => new { e.DictionaryId, e.Standard, e.Period, e.SortOrder });
+            entity.HasOne(d => d.Dictionary).WithMany()
+                .HasForeignKey(d => d.DictionaryId)
+                .HasConstraintName("FK_FinancialStatementEntries_Dictionary");
         });
     }
 

@@ -137,6 +137,23 @@ public class FinancialDataService
     }
 
     /// <summary>
+    /// Downloads CSV export for the financial report table and saves it alongside JSON files.
+    /// </summary>
+    public async Task DownloadFinancialCsvAsync(string companyId, string period, string reportType, string outputRoot)
+    {
+        var targetDirectory = Path.Combine(outputRoot, companyId, reportType, period);
+        Directory.CreateDirectory(targetDirectory);
+
+        var url = $"https://smart-lab.ru/q/{companyId}/f/{period}/{reportType}/download/";
+        using var response = await _httpClient.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+
+        var csvBytes = await response.Content.ReadAsByteArrayAsync();
+        var csvPath = Path.Combine(targetDirectory, "data.csv");
+        await File.WriteAllBytesAsync(csvPath, csvBytes);
+    }
+
+    /// <summary>
     /// Downloads and parses the shareholders structure page.
     /// </summary>
     public async Task<ShareholdersStructure> FetchShareholdersAsync(string companyId)

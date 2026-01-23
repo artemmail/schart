@@ -103,10 +103,36 @@ static async Task RunFinancialAsync(FinancialDataService service, CliOptions opt
             {
                 var result = await service.FetchFinancialDataAsync(ticker, period, reportType);
                 service.SaveFinancialData(result, ticker, period, reportType, options.OutputRoot);
+
+                if (ShouldDownloadFinancialCsv(reportType, period))
+                {
+                    try
+                    {
+                        await service.DownloadFinancialCsvAsync(ticker, period, reportType, options.OutputRoot);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Ошибка скачивания CSV для {ticker} {reportType} {period}: {ex.Message}");
+                    }
+                }
                 await Task.Delay(options.SleepMs);
             }
         }
     }
+}
+
+static bool ShouldDownloadFinancialCsv(string reportType, string period)
+{
+    if (string.IsNullOrWhiteSpace(reportType) || string.IsNullOrWhiteSpace(period))
+    {
+        return false;
+    }
+
+    var isReport = reportType.Equals("MSFO", StringComparison.OrdinalIgnoreCase) ||
+                   reportType.Equals("RSBU", StringComparison.OrdinalIgnoreCase);
+    var isPeriod = period.Equals("y", StringComparison.OrdinalIgnoreCase) ||
+                   period.Equals("q", StringComparison.OrdinalIgnoreCase);
+    return isReport && isPeriod;
 }
 
 static async Task RunDiagramsAsync(FinancialDataService service, CliOptions options)
