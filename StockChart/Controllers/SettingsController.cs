@@ -15,14 +15,14 @@ namespace StockChart.Controllers
         private readonly ISettingsRepository _settingsRepository;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly StockProcContext _dbContext;
+        private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<SettingsController> _logger;
 
         public SettingsController(
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager,
             ISettingsRepository settingsRepository,
-            StockProcContext dbContext,
+            ApplicationDbContext dbContext,
             ILogger<SettingsController> logger)
         {
             _signInManager = signInManager;

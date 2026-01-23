@@ -12,11 +12,11 @@ namespace StockChart.Controllers
     [Authorize]
     public class SubscriptionPlansController : ControllerBase
     {
-        private readonly StockProcContext _dbContext;
+        private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<SubscriptionPlansController> _logger;
 
         public SubscriptionPlansController(
-            StockProcContext dbContext,
+            ApplicationDbContext dbContext,
             ILogger<SubscriptionPlansController> logger)
         {
             _dbContext = dbContext;

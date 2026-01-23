@@ -7,8 +7,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using static StockChart.Repository.ReportsRepository;
-using static StockProcContext;
-
 namespace StockChart.Controllers
 {
     [ApiController]

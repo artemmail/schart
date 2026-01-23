@@ -22,7 +22,7 @@ public class MissingIntervalsFetcherService : IHostedService, IDisposable
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private Task _executingTask;
     private static readonly HttpClient httpClient = new HttpClient();
-    private readonly IDbContextFactory<StockProcContext> _contextFactory;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
     private DateTime startPeriod = DateTime.Now.Date.AddDays(-1);
     private DateTime endPeriod = DateTime.Now.Date.AddDays(+1);
@@ -33,7 +33,7 @@ public class MissingIntervalsFetcherService : IHostedService, IDisposable
     // Задаём количество параллельных потоков
     private const int MAX_THREADS = 3;
 
-    public MissingIntervalsFetcherService(IDbContextFactory<StockProcContext> contextFactory)
+    public MissingIntervalsFetcherService(IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _contextFactory = contextFactory;
     }

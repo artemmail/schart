@@ -5,10 +5,10 @@ namespace StockChart.Repository
 {
     public class CommentsRepository : ICommentsRepository
     {
-        private StockProcContext _dbContext;
+        private ApplicationDbContext _dbContext;
         ITopicsRepository topicsRepository;
         IImageStoreRepository _imageStoreRepository;
-        public CommentsRepository(StockProcContext dbContext,
+        public CommentsRepository(ApplicationDbContext dbContext,
              ITopicsRepository topicsRepository,
              IImageStoreRepository imageStoreRepository
             )

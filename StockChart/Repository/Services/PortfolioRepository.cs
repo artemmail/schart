@@ -19,10 +19,10 @@ namespace StockChart.Repository.Services
         public DateTime Date;
         ITopicsRepository topicsRepository;
         IStockMarketServiceRepository service;
-        private StockProcContext _dbContext;
+        private ApplicationDbContext _dbContext;
         ITickersRepository tikrep;
         public PortfoiloRepository(
-            StockProcContext dbContext,
+            ApplicationDbContext dbContext,
                ITickersRepository tikrep,
         SignInManager<ApplicationUser> signInManager,
         UserManager<ApplicationUser> userManager,

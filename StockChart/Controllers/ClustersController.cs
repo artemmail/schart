@@ -8,8 +8,6 @@ using StockChart.Repository.Services;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using static StockProcContext;
-
 namespace StockChart.Controllers
 {
     [ApiController]
@@ -24,7 +22,7 @@ namespace StockChart.Controllers
         private readonly ICandlesRepositorySet _candlesRepositorySet;
         private readonly IUsersRepository _usersRepository;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly StockProcContext _dbContext;
+        private readonly ApplicationDbContext _dbContext;
 
         public ClustersController(
             ICandlesRepository candlesRepository,
@@ -34,7 +32,7 @@ namespace StockChart.Controllers
             IClusterRepository clusterRepository,
             UserManager<ApplicationUser> userManager,
             IUsersRepository usersRepository,
-            StockProcContext dbContext,
+            ApplicationDbContext dbContext,
             IStockMarketServiceRepository stockMarketServiceRepository)
         {
             _dbContext = dbContext;

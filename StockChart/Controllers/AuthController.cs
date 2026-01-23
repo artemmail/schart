@@ -23,10 +23,10 @@ namespace YourNamespace.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<AuthController> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly StockProcContext _db;
+        private readonly ApplicationDbContext _db;
 
         public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager,
-            ILogger<AuthController> logger, StockProcContext db, IHttpContextAccessor httpContextAccessor, IEmailSender emailSender)
+            ILogger<AuthController> logger, ApplicationDbContext db, IHttpContextAccessor httpContextAccessor, IEmailSender emailSender)
         {
             _emailSender = emailSender;
             _signInManager = signInManager;

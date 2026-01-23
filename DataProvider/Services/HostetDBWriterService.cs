@@ -19,7 +19,7 @@ namespace DataProvider
     public class HostetDBWriterService : IHostedService, IDisposable
     {
         private readonly IBroadCast _broadCast;
-        private readonly IDbContextFactory<StockProcContext> _contextFactory;
+        private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
         private readonly ILastTradeCache _lastTradeCache;
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private Task _executingTask;
@@ -32,7 +32,7 @@ namespace DataProvider
             new ConcurrentQueue<DBRecord>()
         };
 
-        public HostetDBWriterService(IBroadCast broadCast, IDbContextFactory<StockProcContext> contextFactory, ILastTradeCache lastTradeCache)
+        public HostetDBWriterService(IBroadCast broadCast, IDbContextFactory<ApplicationDbContext> contextFactory, ILastTradeCache lastTradeCache)
         {
             _broadCast = broadCast;
             _contextFactory = contextFactory;

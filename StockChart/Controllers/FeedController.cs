@@ -1,19 +1,18 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using StockChart.Model;
+using Microsoft.AspNetCore.Mvc;
 using StockChart.Repository;
 using System.Globalization;
 using System.IO.Compression;
 using System.Text;
-using static StockProcContext;
-
 [ApiController]
 [Route("api/[controller]")]
 public class FeedController : Controller
 {
-    private readonly StockProcContext _dbContext;
+    private readonly ApplicationDbContext _dbContext;
     private readonly ITickersRepository _tikrep;
     private readonly ILogger<FeedController> _logger;
 
-    public FeedController(StockProcContext dbContext, ITickersRepository tikrep, ILogger<FeedController> logger)
+    public FeedController(ApplicationDbContext dbContext, ITickersRepository tikrep, ILogger<FeedController> logger)
     {
         _dbContext = dbContext;
         _tikrep = tikrep;

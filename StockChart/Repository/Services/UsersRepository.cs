@@ -13,11 +13,11 @@ namespace StockChart.Repository
 {
     public class UsersRepository : IUsersRepository
     {
-        private readonly StockProcContext _dbContext;
+        private readonly ApplicationDbContext _dbContext;
         private readonly IStockMarketServiceRepository _stockMarketServiceRepository;
         private readonly ITickersRepository _tickers;
 
-        public UsersRepository(StockProcContext dbContext,
+        public UsersRepository(ApplicationDbContext dbContext,
                                IStockMarketServiceRepository stockMarketServiceRepository,
                                ITickersRepository tickers)
         {

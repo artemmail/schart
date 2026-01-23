@@ -1,5 +1,5 @@
-﻿using StockChart.EventBus.Models;
-using static StockProcContext;
+using StockChart.Model;
+using StockChart.EventBus.Models;
 namespace StockChart.Repository.Services
 {
     public interface IClusterRepository

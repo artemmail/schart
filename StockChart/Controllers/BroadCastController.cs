@@ -19,11 +19,11 @@ namespace StockChart.Controllers
         IStockMarketServiceRepository _stockMarketServiceRepository;
         ITickersRepository _tickers;
         SignInManager<ApplicationUser> SignInManager;
-        StockProcContext dbContext;
+        ApplicationDbContext dbContext;
         CandlesHub _uptimeHub;
 
         public BroadCastController(
-            StockProcContext dbContext,
+            ApplicationDbContext dbContext,
             ICandlesRepository candlesRepository,
             ITickersRepository tickers,
             IStockMarketServiceRepository stockMarketServiceRepository,

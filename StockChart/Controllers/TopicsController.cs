@@ -16,10 +16,10 @@ namespace StockChart.Controllers
     {
         private readonly ITopicsRepository _topicsRepository;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly StockProcContext _context;
+        private readonly ApplicationDbContext _context;
         private readonly HttpClient _httpClient;
 
-        public TopicsController(HttpClient httpClient, ITopicsRepository topicsRepository, UserManager<ApplicationUser> userManager, StockProcContext context)
+        public TopicsController(HttpClient httpClient, ITopicsRepository topicsRepository, UserManager<ApplicationUser> userManager, ApplicationDbContext context)
         {
             _httpClient = httpClient;
             _topicsRepository = topicsRepository;

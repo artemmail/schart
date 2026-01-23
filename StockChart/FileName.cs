@@ -28,13 +28,13 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddHttpClient();
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
-builder.Services.AddDbContext<StockProcContext>(options => options.UseSqlServer(connectionString));
-builder.Services.AddDbContext<ApplicationDbContext2>(options => options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
-    .AddEntityFrameworkStores<StockProcContext>();
-builder.Services.AddScoped<DbContext, StockProcContext>();
+    .AddEntityFrameworkStores<ApplicationDbContext>();
+builder.Services.AddScoped<DbContext, ApplicationDbContext>();
 builder.Services.AddSingleton<ITickersRepository, TickersRepository>();
 builder.Services.AddScoped<ITopicsRepository, TopicsRepository>();
 builder.Services.AddScoped<ICommentsRepository, CommentsRepository>();

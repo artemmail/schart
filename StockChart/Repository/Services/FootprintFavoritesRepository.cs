@@ -6,9 +6,9 @@ namespace StockChart.Repository.Services
 {
     public class FootprintFavoritesRepository : IFootprintFavoritesRepository
     {
-        private readonly StockProcContext _dbContext;
+        private readonly ApplicationDbContext _dbContext;
 
-        public FootprintFavoritesRepository(StockProcContext dbContext)
+        public FootprintFavoritesRepository(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         }
@@ -77,4 +77,4 @@ namespace StockChart.Repository.Services
             return true;
         }
     }
-}
+}

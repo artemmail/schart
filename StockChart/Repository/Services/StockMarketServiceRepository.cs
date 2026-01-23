@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using StockChart.Model;
+using Microsoft.EntityFrameworkCore;
 using StockChart.Extentions;
 using System.Linq.Dynamic.Core;
 using System.Text.RegularExpressions;
@@ -6,11 +7,11 @@ namespace StockChart.Repository
 {
     public class StockMarketServiceRepository : IStockMarketServiceRepository
     {
-        private StockProcContext _dbContext;
+        private ApplicationDbContext _dbContext;
         private Func<CacheTech, ICacheService> _cacheService;
         ITickersRepository _dic;
         private readonly static CacheTech cacheTech = CacheTech.Memory;
-        public StockMarketServiceRepository(StockProcContext dbContext,
+        public StockMarketServiceRepository(ApplicationDbContext dbContext,
             Func<CacheTech, ICacheService> cacheService, ITickersRepository dic)
         {
             _dic = dic;

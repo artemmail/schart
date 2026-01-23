@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using StockChart.Model;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
@@ -55,7 +56,7 @@ namespace StockChart.Repository
         public TickersRepository()
         {
             UpdateData();
-            using (var dbContext = new StockProcContext())
+            using (var dbContext = new ApplicationDbContext())
             {
                 markets = new ConcurrentDictionary<byte, Model.Market>(
                     dbContext.Markets
@@ -128,7 +129,7 @@ namespace StockChart.Repository
             var quickDict = LoadDictionary(fileName);
             var updatedList = new List<StockChart.Model.Dictionary>();
 
-            using (var dbContext = new StockProcContext())
+            using (var dbContext = new ApplicationDbContext())
             {
                 var dictionaries = dbContext.Dictionaries.ToArray();
                 var classes = dbContext.Classes.ToDictionary(x => x.Name, x => x);

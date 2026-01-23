@@ -227,9 +227,9 @@ namespace StockChart.Repository.Services
                 }
             }
         }
-        private StockProcContext _dbcontext;
+        private ApplicationDbContext _dbcontext;
         private Taxes data = new();
-        public BillingRepository(StockProcContext dbContext)
+        public BillingRepository(ApplicationDbContext dbContext)
         {
             _dbcontext = dbContext;
             data = LoadTaxesFromDatabase();

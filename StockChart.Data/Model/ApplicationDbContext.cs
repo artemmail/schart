@@ -49,26 +49,26 @@ public class ApplicationUser : IdentityUser<Guid>
 }
 
 
-public class ApplicationDbContext2
+public partial class ApplicationDbContext
 : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>
 {
 
-    public ApplicationDbContext2()
+    public ApplicationDbContext()
     {
     }
     [ActivatorUtilitiesConstructor]
-    public ApplicationDbContext2(DbContextOptions<ApplicationDbContext2> options)
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
     }
-    protected ApplicationDbContext2(DbContextOptions options)
+    protected ApplicationDbContext(DbContextOptions options)
         : base(options)
     {
     }
 
     private readonly string _connectionString;
 
-    public ApplicationDbContext2(string connectionString)
+    public ApplicationDbContext(string connectionString)
     {
         _connectionString = connectionString;
     }
@@ -112,90 +112,9 @@ public class ApplicationDbContext2
         }
     }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
-
-        // Explicit decimal types to avoid implicit precision defaults/truncation warnings.
-        modelBuilder.Entity<Bill>(entity =>
-        {
-            entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
-        });
-
-        modelBuilder.Entity<Dictionary>(entity =>
-        {
-            entity.Property(e => e.Minstep).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.Volperqnt).HasColumnType("decimal(18,2)");
-        });
-
-        modelBuilder.Entity<Payment>(entity =>
-        {
-            entity.Property(e => e.PayAmount).HasColumnType("decimal(18,2)");
-        });
-
-        modelBuilder.Entity<UserGameBallance>(entity =>
-        {
-            entity.Property(e => e.Ballance).HasColumnType("decimal(18,2)");
-        });
-
-        modelBuilder.Entity<UserGameOrder>(entity =>
-        {
-            entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
-        });
-
-        modelBuilder.Entity<FinancialStatementDictionary>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.ToTable("FinancialStatementDictionary");
-            entity.Property(e => e.Code).HasMaxLength(256);
-            entity.Property(e => e.Value).HasMaxLength(512);
-            entity.HasIndex(e => e.Code).IsUnique();
-        });
-
-        modelBuilder.Entity<FinancialStatementEntry>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.ToTable("FinancialStatementEntries");
-            entity.Property(e => e.Standard).HasMaxLength(8);
-            entity.Property(e => e.Period).HasMaxLength(4);
-            entity.Property(e => e.Name).HasMaxLength(256);
-            entity.Property(e => e.Year).HasMaxLength(32);
-            entity.Property(e => e.ValueNum).HasColumnType("decimal(28,10)");
-            entity.Property(e => e.ImportedAt).HasColumnType("datetime2");
-            entity.HasIndex(e => new { e.DictionaryId, e.Standard, e.Period, e.Name, e.Year }).IsUnique();
-            entity.HasIndex(e => new { e.DictionaryId, e.Standard, e.Period, e.SortOrder });
-            entity.HasOne(d => d.Dictionary).WithMany()
-                .HasForeignKey(d => d.DictionaryId)
-                .HasConstraintName("FK_FinancialStatementEntries_Dictionary");
-        });
-    }
-
-
-
-
 }
-public partial class ApplicationDbContext : ApplicationDbContext2
+public partial class ApplicationDbContext
 {
-    public ApplicationDbContext()
-    {
-    }
-    [ActivatorUtilitiesConstructor]
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-       : base(options)
-    {
-    }
-    protected ApplicationDbContext(DbContextOptions options)
-       : base(options)
-    {
-    }
-
-    private readonly string _connectionString;
-
-    public ApplicationDbContext(string connectionString)
-    {
-        _connectionString = connectionString;
-    }
-
     public virtual DbSet<UserGameBallance> UserGameBallances { get; set; }
     public virtual DbSet<UserGameOrder> UserGameOrders { get; set; }
     public virtual DbSet<UserGameShare> UserGameShares { get; set; }
@@ -245,23 +164,64 @@ public partial class ApplicationDbContext : ApplicationDbContext2
 
 
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured)
-        {
-            var configuration = new ConfigurationBuilder()
-                .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-                .AddJsonFile("appsettings.json")
-                .Build();
-
-            optionsBuilder.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
-        }
-    }
-
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Explicit decimal types to avoid implicit precision defaults/truncation warnings.
+        modelBuilder.Entity<Bill>(entity =>
+        {
+            entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<Dictionary>(entity =>
+        {
+            entity.Property(e => e.Minstep).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Volperqnt).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<Payment>(entity =>
+        {
+            entity.Property(e => e.PayAmount).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<UserGameBallance>(entity =>
+        {
+            entity.Property(e => e.Ballance).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<UserGameOrder>(entity =>
+        {
+            entity.ToTable("UserGameOrder", t => t.ExcludeFromMigrations());
+            entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<FinancialStatementDictionary>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("FinancialStatementDictionary");
+            entity.Property(e => e.Code).HasMaxLength(256);
+            entity.Property(e => e.Value).HasMaxLength(512);
+            entity.HasIndex(e => e.Code).IsUnique();
+        });
+
+        modelBuilder.Entity<FinancialStatementEntry>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("FinancialStatementEntries");
+            entity.Property(e => e.Standard).HasMaxLength(8);
+            entity.Property(e => e.Period).HasMaxLength(4);
+            entity.Property(e => e.Name).HasMaxLength(256);
+            entity.Property(e => e.Year).HasMaxLength(32);
+            entity.Property(e => e.ValueNum).HasColumnType("decimal(28,10)");
+            entity.Property(e => e.ImportedAt).HasColumnType("datetime2");
+            entity.HasIndex(e => new { e.DictionaryId, e.Standard, e.Period, e.Name, e.Year }).IsUnique();
+            entity.HasIndex(e => new { e.DictionaryId, e.Standard, e.Period, e.SortOrder });
+            entity.HasOne(d => d.Dictionary).WithMany()
+                .HasForeignKey(d => d.DictionaryId)
+                .HasConstraintName("FK_FinancialStatementEntries_Dictionary");
+        });
+
         modelBuilder.Entity<Al>(entity =>
         {
             entity
@@ -290,6 +250,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         });
         modelBuilder.Entity<Alert>(entity =>
         {
+            entity.ToTable("Alerts", t => t.ExcludeFromMigrations());
             entity.HasKey(e => e.Id).HasName("PK__Alerts__3213E83F860A28E0");
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Exectime)
@@ -323,6 +284,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         modelBuilder.Entity<Candle>(entity =>
         {
             entity.HasNoKey();
+            entity.ToTable("Candles", t => t.ExcludeFromMigrations());
             entity.HasIndex(e => new { e.Id, e.Period }, "ClusteredIdex-20230120-1702548")
                 .IsUnique()
                 .IsClustered();
@@ -345,7 +307,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         {
             entity
                 .HasNoKey()
-                .ToTable("Category");
+                .ToTable("Category", t => t.ExcludeFromMigrations());
             entity.Property(e => e.CategoryName)
                 .HasMaxLength(50)
                 .IsUnicode(false);
@@ -358,18 +320,19 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         modelBuilder.Entity<CategoryType>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Category__3214EC07560B21FF");
-            entity.ToTable("CategoryType");
+            entity.ToTable("CategoryType", t => t.ExcludeFromMigrations());
             entity.Property(e => e.Name)
                 .HasMaxLength(50)
                 .IsUnicode(false);
         });
         modelBuilder.Entity<Class>(entity =>
         {
-            entity.ToTable("Class");
+            entity.ToTable("Class", t => t.ExcludeFromMigrations());
         });
         modelBuilder.Entity<Cluster>(entity =>
         {
             entity.HasNoKey();
+            entity.ToTable("Clusters", t => t.ExcludeFromMigrations());
             entity.HasIndex(e => new { e.Id, e.Period, e.Price }, "ClusteredIndex-20230120-005253")
                 .IsUnique()
                 .IsClustered();
@@ -400,6 +363,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         modelBuilder.Entity<DayCandle>(entity =>
         {
             entity.HasNoKey();
+            entity.ToTable("DayCandles", t => t.ExcludeFromMigrations());
             entity.HasIndex(e => new { e.Id, e.Period }, "Cluster3edIndex-20230223-142312")
                 .IsUnique()
                 .IsDescending(false, true)
@@ -423,6 +387,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         modelBuilder.Entity<DayCluster>(entity =>
         {
             entity.HasNoKey();
+            entity.ToTable("DayClusters", t => t.ExcludeFromMigrations());
             entity.HasIndex(e => new { e.Id, e.Period, e.Price }, "ClusteredIndex-20230120-005235")
                 .IsUnique()
                 .IsClustered();
@@ -464,7 +429,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         {
             entity
                 .HasNoKey()
-                .ToTable("DiconaryGLU");
+                .ToTable("DiconaryGLU", t => t.ExcludeFromMigrations());
             entity.Property(e => e.Id)
                 .ValueGeneratedOnAdd()
                 .HasColumnName("id");
@@ -491,10 +456,14 @@ public partial class ApplicationDbContext : ApplicationDbContext2
                 .IsUnicode(false)
                 .HasColumnName("shortname");
         });
+        modelBuilder.Entity<GlobalDicExt>(entity =>
+        {
+            entity.ToTable("GlobalDicExt", t => t.ExcludeFromMigrations());
+        });
         modelBuilder.Entity<Dictionary>(entity =>
         {
             entity.HasKey(e => e.Id).IsClustered(false);
-            entity.ToTable("Dictionary");
+            entity.ToTable("Dictionary", t => t.ExcludeFromMigrations());
             entity.HasIndex(e => e.Id, "ClusteredIndex-20230119-23212229")
                 .IsUnique()
                 .IsClustered();
@@ -608,7 +577,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         {
             entity
                 .HasNoKey()
-                .ToTable("lot");
+                .ToTable("lot", t => t.ExcludeFromMigrations());
             entity.Property(e => e.ClassCode)
                 .HasMaxLength(50)
                 .IsUnicode(false)
@@ -656,6 +625,8 @@ public partial class ApplicationDbContext : ApplicationDbContext2
                 .IsUnicode(false)
                 .HasColumnName("short_name");
         });
+        modelBuilder.Entity<Market>()
+            .ToTable("Market", t => t.ExcludeFromMigrations());
         modelBuilder.Entity<Market>().Property(e => e.Visible).HasConversion<byte>(); // f => f, t => t);
         modelBuilder.Entity<Market>().Property(e => e.Structed).HasConversion<byte>();// f => f, t => t);
         modelBuilder.Entity<Market>(entity =>
@@ -669,10 +640,12 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         modelBuilder.Entity<MaxFullTrade>(entity =>
         {
             entity.HasNoKey();
+            entity.ToTable("MaxFullTrades", t => t.ExcludeFromMigrations());
         });
         modelBuilder.Entity<MaxTrade>(entity =>
         {
             entity.HasNoKey();
+            entity.ToTable("MaxTrades", t => t.ExcludeFromMigrations());
             entity.HasIndex(e => e.Id, "ClusteredIndex-20230116-233135")
                 .IsUnique()
                 .IsClustered();
@@ -682,7 +655,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         modelBuilder.Entity<MigrationHistory>(entity =>
         {
             entity.HasKey(e => new { e.MigrationId, e.ContextKey }).HasName("PK_dbo.__MigrationHistory");
-            entity.ToTable("__MigrationHistory");
+            entity.ToTable("__MigrationHistory", t => t.ExcludeFromMigrations());
             entity.Property(e => e.MigrationId).HasMaxLength(150);
             entity.Property(e => e.ContextKey).HasMaxLength(300);
             entity.Property(e => e.ProductVersion).HasMaxLength(32);
@@ -691,7 +664,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         {
             entity
                 .HasNoKey()
-                .ToTable("MoexStruct");
+                .ToTable("MoexStruct", t => t.ExcludeFromMigrations());
             entity.Property(e => e.Owner)
                 .HasMaxLength(120)
                 .IsUnicode(false);
@@ -719,7 +692,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         {
             entity
                 .HasNoKey()
-                .ToTable("shares");
+                .ToTable("shares", t => t.ExcludeFromMigrations());
             entity.HasIndex(e => e.Secid, "ClusteredIndex-20160115-115705")
                 .IsUnique()
                 .IsClustered();
@@ -776,7 +749,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         {
             entity
                 .HasNoKey()
-                .ToTable("Structure");
+                .ToTable("Structure", t => t.ExcludeFromMigrations());
             entity.Property(e => e.Owner)
                 .HasMaxLength(100)
                 .IsUnicode(false);
@@ -790,6 +763,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
             entity.HasKey(e => new { e.Id, e.Number });
             entity.ToTable("trades", tb =>
                 {
+                    tb.ExcludeFromMigrations();
                     tb.HasTrigger("ClusterrTrigger1");
                     tb.HasTrigger("autocandle1e1ex21");
                     tb.HasTrigger("candleT8rigger1");
@@ -810,7 +784,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         modelBuilder.Entity<TradesEx>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK_dbo.tradesEXes");
-            entity.ToTable("tradesEX");
+            entity.ToTable("tradesEX", t => t.ExcludeFromMigrations());
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.Number).HasColumnName("number");
             entity.Property(e => e.Oi).HasColumnName("OI");
@@ -822,7 +796,11 @@ public partial class ApplicationDbContext : ApplicationDbContext2
         modelBuilder.Entity<Tradesbinance>(entity =>
         {
             entity.HasKey(e => new { e.Id, e.Number });
-            entity.ToTable("tradesbinance", tb => tb.HasTrigger("autocandlebin"));
+            entity.ToTable("tradesbinance", tb =>
+            {
+                tb.ExcludeFromMigrations();
+                tb.HasTrigger("autocandlebin");
+            });
             entity.HasIndex(e => new { e.Id, e.TradeDate }, "ClusteredIndex-20230223-120044").IsClustered();
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.Number).HasColumnName("number");
@@ -837,6 +815,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
 
         modelBuilder.Entity<SubscriptionPlan>(entity =>
         {
+            entity.ToTable("SubscriptionPlans", t => t.ExcludeFromMigrations());
             entity.Property(e => e.Interval)
                 .HasMaxLength(8)
                 .IsUnicode(false);
@@ -849,6 +828,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
 
         modelBuilder.Entity<TaxSetting>(entity =>
         {
+            entity.ToTable("TaxSettings", t => t.ExcludeFromMigrations());
             entity.Property(e => e.DiscountBefore).HasColumnType("datetime");
         });
 

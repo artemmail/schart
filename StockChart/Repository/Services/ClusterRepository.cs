@@ -2,12 +2,11 @@
 using Newtonsoft.Json;
 using StockChart.EventBus.Models;
 using StockChart.Model;
-using static StockProcContext;
 namespace StockChart.Repository.Services
 {
     public class ClusterRepository : IClusterRepository
     {
-        private StockProcContext _dbContext;
+        private ApplicationDbContext _dbContext;
         ITickersRepository tikrep;
         IStockMarketServiceRepository stockMarketServiceRepository;
 
@@ -21,7 +20,7 @@ namespace StockChart.Repository.Services
         
 
 
-            public ClusterRepository(StockProcContext dbContext, HttpClient client,
+            public ClusterRepository(ApplicationDbContext dbContext, HttpClient client,
         ITickersRepository tikrep,
         IStockMarketServiceRepository stockMarketServiceRepository, IOptions<RecieverOptions> options)
         {

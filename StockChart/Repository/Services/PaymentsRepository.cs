@@ -3,13 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using StockChart.Model;
 using StockChart.Model.Payments;
 using System.Globalization;
-using static StockProcContext;
 namespace StockChart.Repository
 {
     public class PaymentsRepository : IPaymentsRepository
     {
-        private StockProcContext _dbContext;
-        public PaymentsRepository(StockProcContext dbContext)
+        private ApplicationDbContext _dbContext;
+        public PaymentsRepository(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
         }

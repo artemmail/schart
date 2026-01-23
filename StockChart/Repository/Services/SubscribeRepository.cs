@@ -14,7 +14,7 @@ namespace StockChart.Repository
         IEventBus _bus;
 
 
-        public SubscribeRepository(StockProcContext dbContext, ITickersRepository tikrep, ILogger<CandlesRepository> logger, IOptions<RecieverOptions> options, IEventBus bus)
+        public SubscribeRepository(ApplicationDbContext dbContext, ITickersRepository tikrep, ILogger<CandlesRepository> logger, IOptions<RecieverOptions> options, IEventBus bus)
         {
 
             _bus = bus;

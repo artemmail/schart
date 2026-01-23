@@ -7,7 +7,7 @@ namespace StockChart.Pages
 
     public class NewsTableModel : PageModel
     {
-        private StockProcContext db;
+        private ApplicationDbContext db;
         public line?[] Blogs()
         {
             return db.Topics
@@ -27,7 +27,7 @@ namespace StockChart.Pages
                 }).ToArray();
         }
         public int count = 10;
-        public NewsTableModel(StockProcContext dbContext)
+        public NewsTableModel(ApplicationDbContext dbContext)
         {
             db = dbContext;
 

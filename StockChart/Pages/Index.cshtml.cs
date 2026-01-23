@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using StockChart.Model;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using StockChart.Repository;
 using StockChart.Repository.Services;
@@ -61,7 +62,7 @@ namespace StockChart.Pages
         ICandlesRepository can;
         ILogger<IndexModel> log;
         SinglePageService singlePageService_;
-        public IndexModel(IYooMoneyRepository yoo, StockProcContext dbContext, IDetectionService detectionService,
+        public IndexModel(IYooMoneyRepository yoo, ApplicationDbContext dbContext, IDetectionService detectionService,
             ICandlesRepository can, ILogger<IndexModel> log, SinglePageService singlePageService
             )
         {

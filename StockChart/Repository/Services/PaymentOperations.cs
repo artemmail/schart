@@ -22,7 +22,7 @@ namespace StockChart.Repository.Services
             {
                 if (_data == null)
                 {
-                    using var context = new StockProcContext();
+                    using var context = new ApplicationDbContext();
                     var settings = context.TaxSettings.AsNoTracking().FirstOrDefault();
                     var plans = context.SubscriptionPlans.AsNoTracking().ToList();
 

@@ -6,9 +6,9 @@ namespace StockChart.Repository.Services
 {
     public class FootprintLevelMarksRepository : IFootprintLevelMarksRepository
     {
-        private readonly StockProcContext _dbContext;
+        private readonly ApplicationDbContext _dbContext;
 
-        public FootprintLevelMarksRepository(StockProcContext dbContext)
+        public FootprintLevelMarksRepository(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         }
@@ -84,4 +84,4 @@ namespace StockChart.Repository.Services
             return marks.Count;
         }
     }
-}
+}

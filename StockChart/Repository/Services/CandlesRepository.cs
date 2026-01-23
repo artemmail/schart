@@ -14,13 +14,13 @@ namespace StockChart.Repository
 {
     public class CandlesRepository : ICandlesRepository
     {
-        private StockProcContext _dbContext;
+        private ApplicationDbContext _dbContext;
         ITickersRepository tikrep;
 
         ILogger<CandlesRepository> _logger;
         string apiPath;
         HttpClient client_;
-        public CandlesRepository(HttpClient client, StockProcContext dbContext, ITickersRepository tikrep, ILogger<CandlesRepository> logger, IOptions<RecieverOptions> options)
+        public CandlesRepository(HttpClient client, ApplicationDbContext dbContext, ITickersRepository tikrep, ILogger<CandlesRepository> logger, IOptions<RecieverOptions> options)
         {
             client_ = client;
             apiPath = options.Value.apiPath + "/api/Candles/";

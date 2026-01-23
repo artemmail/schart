@@ -1,13 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
+using StockChart.Model;
+using Microsoft.EntityFrameworkCore;
 using StockChart.Repository.Interfaces;
 
 namespace StockChart.Repository.Services
 {
     public class AdminService : IAdminService
     {
-        private readonly StockProcContext _dbContext;
+        private readonly ApplicationDbContext _dbContext;
 
-        public AdminService(StockProcContext dbContext)
+        public AdminService(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
         }

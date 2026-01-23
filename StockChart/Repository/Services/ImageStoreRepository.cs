@@ -6,10 +6,10 @@ namespace StockChart.Repository
 {
     public class ImageStoreRepository : IImageStoreRepository
     {
-        private StockProcContext dbContext;
+        private ApplicationDbContext dbContext;
         IStockMarketServiceRepository _stockMarketServiceRepository;
         ITickersRepository _tickers;
-        public ImageStoreRepository(StockProcContext dbContext,
+        public ImageStoreRepository(ApplicationDbContext dbContext,
             IStockMarketServiceRepository stockMarketServiceRepository,
         ITickersRepository tickers
             )

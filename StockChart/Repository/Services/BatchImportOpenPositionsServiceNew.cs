@@ -6,13 +6,13 @@ namespace StockChart.Repository.Services
 {
     public class BatchImportOpenPositionsServiceNew
     {
-        private readonly StockProcContext _context;
+        private readonly ApplicationDbContext _context;
         private readonly HttpClient _httpClient;
         private bool _isRunning = false;
         private List<string> _processedContracts = new List<string>();
 
         /*
-        public BatchImportOpenPositionsServiceNew(StockProcContext context, HttpClient httpClient)
+        public BatchImportOpenPositionsServiceNew(ApplicationDbContext context, HttpClient httpClient)
         {
             _context = context;
             _httpClient = httpClient;
@@ -21,7 +21,7 @@ namespace StockChart.Repository.Services
 
         public BatchImportOpenPositionsServiceNew()
         {
-            _context = new StockProcContext();
+            _context = new ApplicationDbContext();
             _httpClient = new HttpClient();
         }
         public bool IsRunning => _isRunning;

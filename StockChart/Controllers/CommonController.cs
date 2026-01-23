@@ -19,12 +19,12 @@ namespace StockChart.Controllers
         private readonly IStockMarketServiceRepository _stockMarketServiceRepository;
         private readonly ITickersRepository _tickers;
         private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly StockProcContext _dbContext;
+        private readonly ApplicationDbContext _dbContext;
         private readonly BatchImportOpenPositionsService _batchImportService;
         private readonly IUsersRepository _usersRepository;
 
         public CommonController(
-            StockProcContext dbContext,
+            ApplicationDbContext dbContext,
             ICandlesRepository candlesRepository,
             ITickersRepository tickers,
             IStockMarketServiceRepository stockMarketServiceRepository,

@@ -12,21 +12,9 @@ public static class DatabaseContextFactory
             .Options;
     }
 
-    public static StockProcContext CreateStockProcContext(string connectionString)
-    {
-        var options = BuildOptions<StockProcContext>(connectionString);
-        return new StockProcContext(options);
-    }
-
     public static ApplicationDbContext CreateApplicationDbContext(string connectionString)
     {
         var options = BuildOptions<ApplicationDbContext>(connectionString);
         return new ApplicationDbContext(options);
-    }
-
-    public static ApplicationDbContext2 CreateApplicationDbContext2(string connectionString)
-    {
-        var options = BuildOptions<ApplicationDbContext2>(connectionString);
-        return new ApplicationDbContext2(options);
     }
 }

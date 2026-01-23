@@ -6,9 +6,9 @@ public class SinglePageService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
-    private readonly ApplicationDbContext2 _context;
+    private readonly ApplicationDbContext _context;
 
-    public SinglePageService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, StockProcContext context)
+    public SinglePageService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ApplicationDbContext context)
     {
         _userManager = userManager;
         _signInManager = signInManager;

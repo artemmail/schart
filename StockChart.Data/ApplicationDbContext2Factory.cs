@@ -6,9 +6,9 @@ using StockChart.Model;
 
 namespace StockChart.Data;
 
-public class ApplicationDbContext2Factory : IDesignTimeDbContextFactory<ApplicationDbContext2>
+public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
 {
-    public ApplicationDbContext2 CreateDbContext(string[] args)
+    public ApplicationDbContext CreateDbContext(string[] args)
     {
         var basePath = ResolveBasePath();
         var configuration = new ConfigurationBuilder()
@@ -24,10 +24,10 @@ public class ApplicationDbContext2Factory : IDesignTimeDbContextFactory<Applicat
             throw new InvalidOperationException("DefaultConnection is missing in appsettings.json.");
         }
 
-        var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext2>();
+        var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         optionsBuilder.UseSqlServer(connectionString);
 
-        return new ApplicationDbContext2(optionsBuilder.Options);
+        return new ApplicationDbContext(optionsBuilder.Options);
     }
 
     private static string ResolveBasePath()

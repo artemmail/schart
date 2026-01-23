@@ -5,8 +5,6 @@ using StockChart.Extentions;
 using StockChart.Model;
 using StockProject.MemCache;
 using System.Linq;
-using static StockProcContext;
-
 namespace StockChart.Repository
 {
 
@@ -16,7 +14,7 @@ namespace StockChart.Repository
     {
         private sealed record DailyVolumeRow(int Id, DateOnly Day, decimal Volume);
 
-        private readonly StockProcContext _dbContext;
+        private readonly ApplicationDbContext _dbContext;
         private readonly Func<CacheTech, ICacheService> _cacheService;
         private readonly ITickersRepository _tickerRepository;
         private readonly IStockMarketServiceRepository _marketServiceRepository;
@@ -24,7 +22,7 @@ namespace StockChart.Repository
         private const CacheTech cacheTech = CacheTech.Memory;
 
         public ReportsRepository(
-            StockProcContext dbContext,
+            ApplicationDbContext dbContext,
             IStockMarketServiceRepository marketServiceRepository,
             Func<CacheTech, ICacheService> cacheService,
             ITickersRepository tickerRepository,

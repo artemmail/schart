@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
+using StockChart.Model;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Newtonsoft.Json;
 using StockChart.Repository;
@@ -22,10 +23,10 @@ namespace StockChart.Pages
         IYooMoneyRepository yoo;
         ICandlesRepository can;
         ILogger<SearchModel> log;
-        StockProcContext db;
+        ApplicationDbContext db;
         ITickersRepository tikrep;
 
-        public SearchModel(IYooMoneyRepository yoo, StockProcContext dbContext, ITickersRepository tikrep        )
+        public SearchModel(IYooMoneyRepository yoo, ApplicationDbContext dbContext, ITickersRepository tikrep        )
         {
             db = dbContext;
             this.tikrep = tikrep;

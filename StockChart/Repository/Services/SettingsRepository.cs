@@ -6,11 +6,11 @@ namespace StockChart.Repository
 {
     public class SettingsRepository : ISettingsRepository
     {
-        private readonly StockProcContext _dbContext;
+        private readonly ApplicationDbContext _dbContext;
         private readonly IUsersRepository _usersRepository;
         private readonly Guid _rutickerId = new Guid("C568752A-2FCD-43BE-A9F3-AC65FAAD194C");
 
-        public SettingsRepository(StockProcContext dbContext, IUsersRepository usersRepository)
+        public SettingsRepository(ApplicationDbContext dbContext, IUsersRepository usersRepository)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _usersRepository = usersRepository ?? throw new ArgumentNullException(nameof(usersRepository));

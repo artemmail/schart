@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using StockChart.Model;
+using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using System.Xml.Linq;
 
@@ -15,10 +16,10 @@ namespace StockChart.Controllers
 
 
 
-        private readonly StockProcContext _dbContext;
+        private readonly ApplicationDbContext _dbContext;
         private readonly IConfiguration _configuration;
 
-        public SitemapController(StockProcContext dbContext, IConfiguration configuration)
+        public SitemapController(ApplicationDbContext dbContext, IConfiguration configuration)
         {
             _dbContext = dbContext;
             _configuration = configuration;

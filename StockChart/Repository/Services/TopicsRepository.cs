@@ -9,10 +9,10 @@ namespace StockChart.Repository
 {
     public class TopicsRepository : ITopicsRepository
     {
-        private readonly StockProcContext _dbContext;
+        private readonly ApplicationDbContext _dbContext;
         private readonly IImageStoreRepository _imageStoreRepository;
 
-        public TopicsRepository(StockProcContext dbContext, IImageStoreRepository imageStoreRepository)
+        public TopicsRepository(ApplicationDbContext dbContext, IImageStoreRepository imageStoreRepository)
         {
             _dbContext = dbContext;
             _imageStoreRepository = imageStoreRepository;

@@ -11,12 +11,12 @@ namespace StockChart.Repository
 {
     public class CandlesRepositorySet : ICandlesRepositorySet
     {
-        private readonly StockProcContext _dbContext;
+        private readonly ApplicationDbContext _dbContext;
         private readonly ITickersRepository _tickersRepository;
         private readonly IStockMarketServiceRepository _stockMarketService;
 
         public CandlesRepositorySet(
-            StockProcContext dbContext,
+            ApplicationDbContext dbContext,
             ITickersRepository tickersRepository,
             IStockMarketServiceRepository stockMarketService)
         {

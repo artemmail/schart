@@ -1,6 +1,5 @@
 ﻿using StockChart.Model;
 using static StockChart.Repository.ReportsRepository;
-using static StockProcContext;
 namespace StockChart.Repository
 {
     public interface IReportsRepository
@@ -13,6 +12,6 @@ namespace StockChart.Repository
         public Task<List<TopOrdersResult>> TopOrdersPeriod(string ticker, DateTime startDate, DateTime endDate, int topN = 200);
         public Task<List<MarketMapItem>> MarketMap(DateTime startDate, DateTime endDate, int top, byte market, HashSet<int> CatIds);
         public Task<List<ReportLeader>> MarketLeadersRep(DateTime startDate, DateTime endDate, int top, byte market, int dir, int colorModel = 0);
-        public Task<List<StockProcContext.MarketMapPeriod4Result>> MarketLeaders(DateTime startDate, DateTime endDate, int top, byte market, int dir);
+        public Task<List<MarketMapPeriod4Result>> MarketLeaders(DateTime startDate, DateTime endDate, int top, byte market, int dir);
     }
 }

@@ -10,7 +10,7 @@ using StockChart.Model;
 
 namespace StockChart.Migrations.ApplicationDbContext2Migrations
 {
-    [DbContext(typeof(ApplicationDbContext2))]
+    [DbContext(typeof(ApplicationDbContext))]
     partial class ApplicationDbContext2ModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
@@ -144,6 +144,126 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("SinglePageTable");
+                });
+
+            modelBuilder.Entity("StockChart.Model.Al", b =>
+                {
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("Exectime")
+                        .HasColumnType("datetime")
+                        .HasColumnName("exectime");
+
+                    b.Property<int>("Id")
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("IsAnonymous")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("LastActivityDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("LoweredUserName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("MobileAlias")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("money")
+                        .HasColumnName("price");
+
+                    b.Property<short>("Sign")
+                        .HasColumnType("smallint")
+                        .HasColumnName("sign");
+
+                    b.Property<string>("Ticker")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(12)")
+                        .HasColumnName("ticker");
+
+                    b.Property<DateTime>("Time")
+                        .HasColumnType("datetime")
+                        .HasColumnName("time");
+
+                    b.Property<Guid>("User")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("user");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("al", (string)null);
+                });
+
+            modelBuilder.Entity("StockChart.Model.Alert", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("Exectime")
+                        .HasColumnType("datetime")
+                        .HasColumnName("exectime");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("money")
+                        .HasColumnName("price");
+
+                    b.Property<short>("Sign")
+                        .HasColumnType("smallint")
+                        .HasColumnName("sign");
+
+                    b.Property<string>("Ticker")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(12)")
+                        .HasColumnName("ticker");
+
+                    b.Property<DateTime>("Time")
+                        .HasColumnType("datetime")
+                        .HasColumnName("time");
+
+                    b.Property<Guid>("User")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("user");
+
+                    b.HasKey("Id")
+                        .HasName("PK__Alerts__3213E83F860A28E0");
+
+                    b.ToTable("Alerts", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
+            modelBuilder.Entity("StockChart.Model.AliasResult", b =>
+                {
+                    b.Property<string>("SECURITYID")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
                 });
 
             modelBuilder.Entity("StockChart.Model.ApplicationRole", b =>
@@ -282,6 +402,78 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.ToTable("Bill");
                 });
 
+            modelBuilder.Entity("StockChart.Model.Candle", b =>
+                {
+                    b.Property<decimal>("BuyQuantity")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<decimal>("BuyVolume")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<decimal>("ClsPrice")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("MaxPrice")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<decimal>("MinPrice")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<int>("Oi")
+                        .HasColumnType("int")
+                        .HasColumnName("OI");
+
+                    b.Property<decimal>("OpnPrice")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<DateTime>("Period")
+                        .HasColumnType("smalldatetime");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<decimal>("Volume")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.HasIndex(new[] { "Id", "Period" }, "ClusteredIdex-20230120-1702548")
+                        .IsUnique();
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex(new[] { "Id", "Period" }, "ClusteredIdex-20230120-1702548"));
+
+                    b.ToTable("Candles", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
+            modelBuilder.Entity("StockChart.Model.Category", b =>
+                {
+                    b.Property<string>("CategoryName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<short>("Id")
+                        .HasColumnType("smallint")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Securityid")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(12)")
+                        .HasColumnName("SECURITYID");
+
+                    b.ToTable("Category", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
             modelBuilder.Entity("StockChart.Model.CategoryType", b =>
                 {
                     b.Property<int>("Id")
@@ -295,11 +487,17 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("PK__Category__3214EC07560B21FF");
 
-                    b.ToTable("CategoryType");
+                    b.ToTable("CategoryType", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
                 });
 
             modelBuilder.Entity("StockChart.Model.ChartSettings", b =>
@@ -451,7 +649,117 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Class");
+                    b.ToTable("Class", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
+            modelBuilder.Entity("StockChart.Model.Cluster", b =>
+                {
+                    b.Property<decimal>("Buyquantity")
+                        .HasColumnType("decimal(18, 6)")
+                        .HasColumnName("buyquantity");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("int")
+                        .HasColumnName("count");
+
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Maxtrade")
+                        .HasColumnType("decimal(18, 6)")
+                        .HasColumnName("maxtrade");
+
+                    b.Property<DateTime>("Period")
+                        .HasColumnType("smalldatetime")
+                        .HasColumnName("period");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18, 6)")
+                        .HasColumnName("price");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18, 6)")
+                        .HasColumnName("quantity");
+
+                    b.HasIndex(new[] { "Id", "Period", "Price" }, "ClusteredIndex-20230120-005253")
+                        .IsUnique();
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex(new[] { "Id", "Period", "Price" }, "ClusteredIndex-20230120-005253"));
+
+                    b.HasIndex(new[] { "Id", "Period" }, "NonClusteredIndex-20230207-140351");
+
+                    b.ToTable("Clusters", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
+            modelBuilder.Entity("StockChart.Model.ClusterProfileNewResult", b =>
+                {
+                    b.Property<decimal>("buyquantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("clsprice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("count")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("maxprice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("maxtrade")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("minprice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("oi")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("opnprice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("period")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("quantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("StockChart.Model.ClusterProfileResult", b =>
+                {
+                    b.Property<decimal>("buyquantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("count")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("maxtrade")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("period")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("quantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
                 });
 
             modelBuilder.Entity("StockChart.Model.Comment", b =>
@@ -484,11 +792,169 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.ToTable("UserComment");
                 });
 
+            modelBuilder.Entity("StockChart.Model.DayCandle", b =>
+                {
+                    b.Property<decimal>("BuyQuantity")
+                        .HasColumnType("decimal(22, 6)");
+
+                    b.Property<decimal>("BuyVolume")
+                        .HasColumnType("decimal(22, 6)");
+
+                    b.Property<decimal>("ClsPrice")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("MaxPrice")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<decimal>("MinPrice")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<int>("Oi")
+                        .HasColumnType("int")
+                        .HasColumnName("OI");
+
+                    b.Property<decimal>("OpnPrice")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<DateTime>("Period")
+                        .HasColumnType("smalldatetime");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(22, 6)");
+
+                    b.Property<decimal>("Volume")
+                        .HasColumnType("decimal(22, 6)");
+
+                    b.HasIndex(new[] { "Id", "Period" }, "Cluster3edIndex-20230223-142312")
+                        .IsUnique()
+                        .IsDescending(false, true);
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex(new[] { "Id", "Period" }, "Cluster3edIndex-20230223-142312"));
+
+                    b.HasIndex(new[] { "Period" }, "NonClustere3dIndex-20230223-143230");
+
+                    b.ToTable("DayCandles", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
+            modelBuilder.Entity("StockChart.Model.DayCluster", b =>
+                {
+                    b.Property<decimal>("Buyquantity")
+                        .HasColumnType("decimal(18, 6)")
+                        .HasColumnName("buyquantity");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("int")
+                        .HasColumnName("count");
+
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Maxtrade")
+                        .HasColumnType("decimal(18, 6)")
+                        .HasColumnName("maxtrade");
+
+                    b.Property<DateTime>("Period")
+                        .HasColumnType("smalldatetime")
+                        .HasColumnName("period");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18, 6)")
+                        .HasColumnName("price");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18, 6)")
+                        .HasColumnName("quantity");
+
+                    b.HasIndex(new[] { "Id", "Period", "Price" }, "ClusteredIndex-20230120-005235")
+                        .IsUnique();
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex(new[] { "Id", "Period", "Price" }, "ClusteredIndex-20230120-005235"));
+
+                    b.HasIndex(new[] { "Id", "Period" }, "NonClusteredIndex-20230207-140412");
+
+                    b.ToTable("DayClusters", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
+            modelBuilder.Entity("StockChart.Model.Devicesview", b =>
+                {
+                    b.Property<Guid>("Userid")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("userid");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("username");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("devicesview", (string)null);
+                });
+
+            modelBuilder.Entity("StockChart.Model.DiconaryGlu", b =>
+                {
+                    b.Property<short>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
+
+                    b.Property<string>("Securityid")
+                        .HasMaxLength(12)
+                        .HasColumnType("nvarchar(12)")
+                        .HasColumnName("SECURITYID");
+
+                    b.Property<string>("Shortname")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("SHORTNAME");
+
+                    b.ToTable("DiconaryGLU", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
+            modelBuilder.Entity("StockChart.Model.DiconaryLastInfoRtsview", b =>
+                {
+                    b.Property<short>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Securityid")
+                        .HasMaxLength(12)
+                        .HasColumnType("nvarchar(12)")
+                        .HasColumnName("SECURITYID");
+
+                    b.Property<string>("Shortname")
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("shortname");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("DiconaryLastInfoRTSView", (string)null);
+                });
+
             modelBuilder.Entity("StockChart.Model.Dictionary", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("id");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
@@ -502,58 +968,82 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Currency")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasColumnName("currency");
 
                     b.Property<DateTime?>("FromDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime")
+                        .HasColumnName("from_date");
 
                     b.Property<string>("Fullname")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Isin")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasColumnName("isin");
 
                     b.Property<int?>("Lotsize")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("lotsize");
 
                     b.Property<byte?>("Market")
                         .HasColumnType("tinyint");
 
-                    b.Property<byte?>("MarketNavigationId")
-                        .HasColumnType("tinyint");
-
                     b.Property<decimal>("Minstep")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("decimal(18, 8)")
+                        .HasColumnName("minstep");
 
                     b.Property<short?>("Oldid")
-                        .HasColumnType("smallint");
+                        .HasColumnType("smallint")
+                        .HasColumnName("oldid");
 
                     b.Property<int?>("Scale")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("scale");
 
                     b.Property<string>("Securityid")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasColumnName("SECURITYID");
 
                     b.Property<string>("Shortname")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("SHORTNAME");
 
                     b.Property<DateTime?>("ToDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime")
+                        .HasColumnName("to_date");
 
                     b.Property<decimal>("Volperqnt")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("decimal(18, 6)")
+                        .HasColumnName("volperqnt");
 
                     b.HasKey("Id");
+
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
 
                     b.HasIndex("CategoryTypeId");
 
                     b.HasIndex("ClassId");
 
-                    b.HasIndex("MarketNavigationId");
+                    b.HasIndex("Market");
 
-                    b.ToTable("Dictionary");
+                    b.HasIndex(new[] { "Id" }, "ClusteredIndex-20230119-23212229")
+                        .IsUnique();
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex(new[] { "Id" }, "ClusteredIndex-20230119-23212229"));
+
+                    b.HasIndex(new[] { "Securityid" }, "NonClusteredIndex-202230119-2321241")
+                        .IsUnique();
+
+                    b.ToTable("Dictionary", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
                 });
 
             modelBuilder.Entity("StockChart.Model.DividendsMoex", b =>
@@ -571,13 +1061,13 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("Value")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("decimal(18, 2)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DictionaryId");
 
-                    b.ToTable("DividendsMoex");
+                    b.ToTable("DividendsMoex", (string)null);
                 });
 
             modelBuilder.Entity("StockChart.Model.DividendsMoexUpdateLog", b =>
@@ -599,7 +1089,7 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DividendsMoexUpdateLogs");
+                    b.ToTable("DividendsMoexUpdateLogs", (string)null);
                 });
 
             modelBuilder.Entity("StockChart.Model.FileEntity", b =>
@@ -788,6 +1278,131 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.ToTable("FootprintLevelMarks");
                 });
 
+            modelBuilder.Entity("StockChart.Model.GlobalDicExt", b =>
+                {
+                    b.Property<short>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
+
+                    b.Property<byte>("Iscluster")
+                        .HasColumnType("tinyint");
+
+                    b.Property<byte>("Isfuture")
+                        .HasColumnType("tinyint");
+
+                    b.Property<byte>("Market")
+                        .HasColumnType("tinyint");
+
+                    b.Property<decimal>("Minstep")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Securityid")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Shortname")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Volperqnt")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("GlobalDicExt", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
+            modelBuilder.Entity("StockChart.Model.LastTradingDateProcResult", b =>
+                {
+                    b.Property<DateTime>("period")
+                        .HasColumnType("datetime2");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("StockChart.Model.Lot", b =>
+                {
+                    b.Property<string>("ClassCode")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("class_code");
+
+                    b.Property<string>("ClassName")
+                        .HasMaxLength(256)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(256)")
+                        .HasColumnName("class_name");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("code");
+
+                    b.Property<string>("FaceUnit")
+                        .HasMaxLength(256)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(256)")
+                        .HasColumnName("face_unit");
+
+                    b.Property<string>("FaceValue")
+                        .HasMaxLength(256)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(256)")
+                        .HasColumnName("face_value");
+
+                    b.Property<string>("IsinCode")
+                        .HasMaxLength(256)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(256)")
+                        .HasColumnName("isin_code");
+
+                    b.Property<decimal?>("LotSize")
+                        .HasColumnType("numeric(18, 0)")
+                        .HasColumnName("lot_size");
+
+                    b.Property<string>("MatDate")
+                        .HasMaxLength(256)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(256)")
+                        .HasColumnName("mat_date");
+
+                    b.Property<string>("MinPriceStep")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("min_price_step");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(256)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(256)")
+                        .HasColumnName("name");
+
+                    b.Property<decimal?>("Scale")
+                        .HasColumnType("numeric(18, 0)")
+                        .HasColumnName("scale");
+
+                    b.Property<string>("ShortName")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("short_name");
+
+                    b.ToTable("lot", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
             modelBuilder.Entity("StockChart.Model.Market", b =>
                 {
                     b.Property<byte>("Id")
@@ -797,15 +1412,172 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("Structed")
-                        .HasColumnType("bit");
+                    b.Property<byte>("Structed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValueSql("((0))");
 
-                    b.Property<bool>("Visible")
-                        .HasColumnType("bit");
+                    b.Property<byte>("Visible")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValueSql("((1))");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Market");
+                    b.ToTable("Market", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
+            modelBuilder.Entity("StockChart.Model.MarketMapPeriod4Result", b =>
+                {
+                    b.Property<decimal>("BuyVolume")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Cls")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Opn")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Volume")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("StockChart.Model.MaxFullTrade", b =>
+                {
+                    b.Property<byte>("Market")
+                        .HasColumnType("tinyint");
+
+                    b.Property<long>("MaxNumber")
+                        .HasColumnType("bigint");
+
+                    b.ToTable("MaxFullTrades", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
+            modelBuilder.Entity("StockChart.Model.MaxTrade", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    b.Property<long>("MaxNumber")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("MaxTime")
+                        .HasColumnType("datetime");
+
+                    b.HasIndex(new[] { "Id" }, "ClusteredIndex-20230116-233135")
+                        .IsUnique();
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex(new[] { "Id" }, "ClusteredIndex-20230116-233135"));
+
+                    b.ToTable("MaxTrades", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
+            modelBuilder.Entity("StockChart.Model.MicexVolYearResult", b =>
+                {
+                    b.Property<decimal?>("BuyVolume")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("Volume")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("StockChart.Model.MigrationHistory", b =>
+                {
+                    b.Property<string>("MigrationId")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("ContextKey")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<byte[]>("Model")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("ProductVersion")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.HasKey("MigrationId", "ContextKey")
+                        .HasName("PK_dbo.__MigrationHistory");
+
+                    b.ToTable("__MigrationHistory", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
+            modelBuilder.Entity("StockChart.Model.MissingIntervalWithTrades", b =>
+                {
+                    b.Property<DateTime?>("AfterGapTradeDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("AfterGapTradeNumber")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("BeforeGapTradeDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("BeforeGapTradeNumber")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("MissingEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("MissingStart")
+                        .HasColumnType("datetime2");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("StockChart.Model.MoexStruct", b =>
+                {
+                    b.Property<int>("DictionaryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Owner")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<double>("Percent")
+                        .HasColumnType("float");
+
+                    b.HasIndex("DictionaryId");
+
+                    b.ToTable("MoexStruct", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
                 });
 
             modelBuilder.Entity("StockChart.Model.OpenPosition", b =>
@@ -935,13 +1707,14 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
 
                     b.Property<string>("Text")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SnapshotId");
+                    b.HasIndex("SnapshotId", "Direction", "SortOrder");
 
-                    b.ToTable("RecommendationReasons");
+                    b.ToTable("RecommendationReasons", (string)null);
                 });
 
             modelBuilder.Entity("StockChart.Model.RecommendationSnapshot", b =>
@@ -960,9 +1733,9 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DictionaryId");
+                    b.HasIndex("DictionaryId", "ImportedAt");
 
-                    b.ToTable("RecommendationSnapshots");
+                    b.ToTable("RecommendationSnapshots", (string)null);
                 });
 
             modelBuilder.Entity("StockChart.Model.Settings.UserLoginHistory", b =>
@@ -996,6 +1769,91 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.ToTable("UserLoginHistory");
                 });
 
+            modelBuilder.Entity("StockChart.Model.Share", b =>
+                {
+                    b.Property<string>("Faceunit")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("FACEUNIT");
+
+                    b.Property<string>("Facevalue")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("FACEVALUE");
+
+                    b.Property<string>("Isin")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("ISIN");
+
+                    b.Property<string>("Issuedate")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("ISSUEDATE");
+
+                    b.Property<string>("Issuesize")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("ISSUESIZE");
+
+                    b.Property<string>("Latname")
+                        .HasMaxLength(500)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("LATNAME");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(500)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("NAME");
+
+                    b.Property<string>("Regnumber")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("REGNUMBER");
+
+                    b.Property<string>("Secid")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("SECID");
+
+                    b.Property<string>("Shortname")
+                        .HasMaxLength(500)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("SHORTNAME");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(500)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("TYPE");
+
+                    b.Property<string>("Typename")
+                        .HasMaxLength(500)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("TYPENAME");
+
+                    b.HasIndex(new[] { "Secid" }, "ClusteredIndex-20160115-115705")
+                        .IsUnique();
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex(new[] { "Secid" }, "ClusteredIndex-20160115-115705"));
+
+                    b.ToTable("shares", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
             modelBuilder.Entity("StockChart.Model.ShareholderEntry", b =>
                 {
                     b.Property<int>("Id")
@@ -1006,10 +1864,11 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
                     b.Property<decimal>("SharePercentage")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("decimal(18, 6)");
 
                     b.Property<int>("SnapshotId")
                         .HasColumnType("int");
@@ -1019,9 +1878,9 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SnapshotId");
+                    b.HasIndex("SnapshotId", "SortOrder");
 
-                    b.ToTable("ShareholderEntries");
+                    b.ToTable("ShareholderEntries", (string)null);
                 });
 
             modelBuilder.Entity("StockChart.Model.ShareholderSnapshot", b =>
@@ -1042,13 +1901,124 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DictionaryId");
+                    b.HasIndex("DictionaryId", "ImportedAt");
 
-                    b.ToTable("ShareholderSnapshots");
+                    b.ToTable("ShareholderSnapshots", (string)null);
+                });
+
+            modelBuilder.Entity("StockChart.Model.Structure", b =>
+                {
+                    b.Property<string>("Owner")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<double>("Percent")
+                        .HasColumnType("float");
+
+                    b.Property<string>("SecurityId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("SecurityID");
+
+                    b.ToTable("Structure", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
+            modelBuilder.Entity("StockChart.Model.SubscriptionPlan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Code")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("DiscountMoney")
+                        .HasColumnType("money");
+
+                    b.Property<string>("Interval")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(8)");
+
+                    b.Property<bool>("IsReferal")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("OrdinalMoney")
+                        .HasColumnType("money");
+
+                    b.Property<int?>("ReferalCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReferalInterval")
+                        .HasMaxLength(8)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(8)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SubscriptionPlans", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
+            modelBuilder.Entity("StockChart.Model.TaxSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("DiscountBefore")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TaxSettings", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
+            modelBuilder.Entity("StockChart.Model.TopOrdersResult", b =>
+                {
+                    b.Property<byte>("direction")
+                        .HasColumnType("tinyint");
+
+                    b.Property<decimal>("price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("quantity")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("tradeDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("volume")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
                 });
 
             modelBuilder.Entity("StockChart.Model.Topic", b =>
@@ -1082,6 +2052,139 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Topic");
+                });
+
+            modelBuilder.Entity("StockChart.Model.Trade", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int")
+                        .HasColumnName("ID");
+
+                    b.Property<long>("Number")
+                        .HasColumnType("bigint")
+                        .HasColumnName("number");
+
+                    b.Property<byte>("Direction")
+                        .HasColumnType("tinyint");
+
+                    b.Property<int>("Oi")
+                        .HasColumnType("int")
+                        .HasColumnName("OI");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("TradeDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<decimal>("Volume")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.HasKey("Id", "Number");
+
+                    b.HasIndex(new[] { "Id", "TradeDate" }, "ClusteredIndex-20230219-092123");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex(new[] { "Id", "TradeDate" }, "ClusteredIndex-20230219-092123"));
+
+                    b.ToTable("trades", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+
+                            t.HasTrigger("ClusterrTrigger1");
+
+                            t.HasTrigger("autocandle1e1ex21");
+
+                            t.HasTrigger("candleT8rigger1");
+
+                            t.HasTrigger("maxupdater1");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("StockChart.Model.TradesEx", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("ID");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<byte>("Direction")
+                        .HasColumnType("tinyint");
+
+                    b.Property<long>("Number")
+                        .HasColumnType("bigint")
+                        .HasColumnName("number");
+
+                    b.Property<int>("Oi")
+                        .HasColumnType("int")
+                        .HasColumnName("OI");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("RoundDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime>("TradeDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<decimal>("Volume")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.HasKey("Id")
+                        .HasName("PK_dbo.tradesEXes");
+
+                    b.ToTable("tradesEX", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
+            modelBuilder.Entity("StockChart.Model.Tradesbinance", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int")
+                        .HasColumnName("ID");
+
+                    b.Property<long>("Number")
+                        .HasColumnType("bigint")
+                        .HasColumnName("number");
+
+                    b.Property<byte>("Direction")
+                        .HasColumnType("tinyint");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<DateTime>("TradeDate")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id", "Number");
+
+                    b.HasIndex(new[] { "Id", "TradeDate" }, "ClusteredIndex-20230223-120044");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex(new[] { "Id", "TradeDate" }, "ClusteredIndex-20230223-120044"));
+
+                    b.ToTable("tradesbinance", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+
+                            t.HasTrigger("autocandlebin");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("StockChart.Model.UserGameBallance", b =>
@@ -1135,7 +2238,10 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserGameOrder");
+                    b.ToTable("UserGameOrder", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
                 });
 
             modelBuilder.Entity("StockChart.Model.UserGameShare", b =>
@@ -1168,6 +2274,105 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("UserGameShare");
+                });
+
+            modelBuilder.Entity("StockChart.Model.VolumeSearchResult", b =>
+                {
+                    b.Property<int>("Ask")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BarSize")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Bid")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Delta")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaxVolume")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("Time")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TotalVolume")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Trades")
+                        .HasColumnType("int");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("StockChart.Model.candleseekerResult", b =>
+                {
+                    b.Property<decimal?>("avgval")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("cls")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("huge")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("max")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ticker")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("StockChart.Model.tickersResult", b =>
+                {
+                    b.Property<byte>("Direction")
+                        .HasColumnType("tinyint");
+
+                    b.Property<long>("Number")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("OI")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("TradeDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Volume")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("StockChart.Model.tickersdatesResult", b =>
+                {
+                    b.Property<DateTime>("period")
+                        .HasColumnType("datetime2");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -1241,6 +2446,17 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("StockChart.Model.Candle", b =>
+                {
+                    b.HasOne("StockChart.Model.Dictionary", "IdNavigation")
+                        .WithMany()
+                        .HasForeignKey("Id")
+                        .IsRequired()
+                        .HasConstraintName("FK__Candles__Id__7C9A5A9E");
+
+                    b.Navigation("IdNavigation");
+                });
+
             modelBuilder.Entity("StockChart.Model.ChartSettings", b =>
                 {
                     b.HasOne("StockChart.Model.ApplicationUser", "User")
@@ -1248,6 +2464,17 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .HasForeignKey("UserId");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("StockChart.Model.Cluster", b =>
+                {
+                    b.HasOne("StockChart.Model.Dictionary", "IdNavigation")
+                        .WithMany()
+                        .HasForeignKey("Id")
+                        .IsRequired()
+                        .HasConstraintName("FK__Clusters__Id__7E82A310");
+
+                    b.Navigation("IdNavigation");
                 });
 
             modelBuilder.Entity("StockChart.Model.Comment", b =>
@@ -1269,19 +2496,44 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("StockChart.Model.DayCandle", b =>
+                {
+                    b.HasOne("StockChart.Model.Dictionary", "IdNavigation")
+                        .WithMany()
+                        .HasForeignKey("Id")
+                        .IsRequired()
+                        .HasConstraintName("FK__DayCandles__Id__7BA63665");
+
+                    b.Navigation("IdNavigation");
+                });
+
+            modelBuilder.Entity("StockChart.Model.DayCluster", b =>
+                {
+                    b.HasOne("StockChart.Model.Dictionary", "IdNavigation")
+                        .WithMany()
+                        .HasForeignKey("Id")
+                        .IsRequired()
+                        .HasConstraintName("FK__DayClusters__Id__7D8E7ED7");
+
+                    b.Navigation("IdNavigation");
+                });
+
             modelBuilder.Entity("StockChart.Model.Dictionary", b =>
                 {
                     b.HasOne("StockChart.Model.CategoryType", "CategoryType")
                         .WithMany("Dictionaries")
-                        .HasForeignKey("CategoryTypeId");
+                        .HasForeignKey("CategoryTypeId")
+                        .HasConstraintName("FK__Dictionar__Categ__11957784");
 
                     b.HasOne("StockChart.Model.Class", "Class")
                         .WithMany("Dictionaries")
-                        .HasForeignKey("ClassId");
+                        .HasForeignKey("ClassId")
+                        .HasConstraintName("FK__Dictionar__Class__10A1534B");
 
                     b.HasOne("StockChart.Model.Market", "MarketNavigation")
                         .WithMany("Dictionaries")
-                        .HasForeignKey("MarketNavigationId");
+                        .HasForeignKey("Market")
+                        .HasConstraintName("FK__Dictionar__Marke__0CD0C267");
 
                     b.Navigation("CategoryType");
 
@@ -1296,7 +2548,8 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .WithMany()
                         .HasForeignKey("DictionaryId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_DividendsMoex_Dictionary");
 
                     b.Navigation("Dictionary");
                 });
@@ -1352,6 +2605,17 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("StockChart.Model.MoexStruct", b =>
+                {
+                    b.HasOne("StockChart.Model.Dictionary", "Dictionary")
+                        .WithMany()
+                        .HasForeignKey("DictionaryId")
+                        .IsRequired()
+                        .HasConstraintName("FK_dicti3onary_2");
+
+                    b.Navigation("Dictionary");
+                });
+
             modelBuilder.Entity("StockChart.Model.Payment", b =>
                 {
                     b.HasOne("StockChart.Model.ApplicationUser", "User")
@@ -1380,7 +2644,8 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .WithMany("Reasons")
                         .HasForeignKey("SnapshotId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_RecommendationReasons_RecommendationSnapshots");
 
                     b.Navigation("Snapshot");
                 });
@@ -1391,7 +2656,8 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .WithMany()
                         .HasForeignKey("DictionaryId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_RecommendationSnapshots_Dictionary");
 
                     b.Navigation("Dictionary");
                 });
@@ -1413,7 +2679,8 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .WithMany("Shareholders")
                         .HasForeignKey("SnapshotId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_ShareholderEntries_ShareholderSnapshots");
 
                     b.Navigation("Snapshot");
                 });
@@ -1424,7 +2691,8 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .WithMany()
                         .HasForeignKey("DictionaryId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_ShareholderSnapshots_Dictionary");
 
                     b.Navigation("Dictionary");
                 });
@@ -1438,6 +2706,28 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("StockChart.Model.Trade", b =>
+                {
+                    b.HasOne("StockChart.Model.Dictionary", "IdNavigation")
+                        .WithMany()
+                        .HasForeignKey("Id")
+                        .IsRequired()
+                        .HasConstraintName("FK__trades__ID__006AEB82");
+
+                    b.Navigation("IdNavigation");
+                });
+
+            modelBuilder.Entity("StockChart.Model.Tradesbinance", b =>
+                {
+                    b.HasOne("StockChart.Model.Dictionary", "IdNavigation")
+                        .WithMany()
+                        .HasForeignKey("Id")
+                        .IsRequired()
+                        .HasConstraintName("FK__tradesbinanc__ID__7F76C749");
+
+                    b.Navigation("IdNavigation");
                 });
 
             modelBuilder.Entity("StockChart.Model.UserGameBallance", b =>

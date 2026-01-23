@@ -10,11 +10,11 @@ namespace StockChart.Controllers
     public class ShotsController : Controller
     {
         public UserManager<ApplicationUser> UserManager;
-        StockProcContext dbContext;
+        ApplicationDbContext dbContext;
         IImageStoreRepository _imageStoreRepository;
 
         public ShotsController(
-            StockProcContext dbContext,
+            ApplicationDbContext dbContext,
             UserManager<ApplicationUser> userManager,
             IImageStoreRepository imageStoreRepository
             )

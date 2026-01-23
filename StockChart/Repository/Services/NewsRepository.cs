@@ -6,14 +6,13 @@ using StockChart.Model;
 using StockChart.Repository.Interfaces;
 using System.Globalization;
 using System.Net;
-using static StockProcContext;
 namespace StockChart.Repository
 {
     public class NewsRepository: INewsRepository
     {
-        private StockProcContext _dbContext;
+        private ApplicationDbContext _dbContext;
          
-        public NewsRepository(StockProcContext dbContext)
+        public NewsRepository(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
         }

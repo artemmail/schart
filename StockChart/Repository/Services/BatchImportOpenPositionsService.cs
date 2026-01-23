@@ -9,9 +9,9 @@ using System.Text.RegularExpressions;
 
 public class BatchImportOpenPositionsService
 {
-    private readonly StockProcContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public BatchImportOpenPositionsService(StockProcContext context)
+    public BatchImportOpenPositionsService(ApplicationDbContext context)
     {
         _context = context;
     }
