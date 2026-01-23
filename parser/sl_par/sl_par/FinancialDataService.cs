@@ -1,0 +1,345 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using HtmlAgilityPack;
+using Newtonsoft.Json;
+
+/// <summary>
+/// Smart-Lab data service for financial tables, diagrams, and shareholders data.
+/// </summary>
+public class FinancialDataService
+{
+    private readonly HttpClient _httpClient;
+
+    /// <summary>
+    /// Creates a new Smart-Lab data service.
+    /// </summary>
+    public FinancialDataService(HttpClient httpClient)
+    {
+        _httpClient = httpClient;
+    }
+
+    /// <summary>
+    /// Downloads and parses a financial report table from Smart-Lab.
+    /// </summary>
+    public async Task<FinancialDataResult> FetchFinancialDataAsync(string companyId, string period = "y", string reportType = "MSFO")
+    {
+        var url = $"https://smart-lab.ru/q/{companyId}/f/{period}/{reportType}/";
+        var response = await _httpClient.GetStringAsync(url);
+
+        var doc = new HtmlDocument();
+        doc.LoadHtml(response);
+
+        var table = doc.DocumentNode.SelectSingleNode("//table");
+        if (table == null)
+        {
+            return new FinancialDataResult();
+        }
+
+        var rowNodes = table.SelectNodes(".//tr");
+        if (rowNodes == null)
+        {
+            return new FinancialDataResult();
+        }
+
+        var headerRow = rowNodes.FirstOrDefault(x => x.OuterHtml.Contains("header_row"));
+        if (headerRow == null)
+        {
+            return new FinancialDataResult();
+        }
+
+        var years = ParseRowCells(headerRow);
+        var rows = rowNodes.Where(x => x.OuterHtml.StartsWith("<tr field")).ToArray();
+
+        var values = new List<FinancialMetricValue>();
+        var captions = new Dictionary<string, string>();
+
+        foreach (var row in rows)
+        {
+            var name = row.Attributes[0].Value;
+            if (name.Contains("smartlab"))
+            {
+                continue;
+            }
+
+            var caption = row.SelectNodes(".//th")?.FirstOrDefault()?.InnerText
+                .Trim()
+                .Replace("\t", "")
+                .Replace("\u00A0", "");
+            if (!string.IsNullOrWhiteSpace(caption))
+            {
+                captions[name] = caption;
+            }
+
+            var rowValues = ParseRowCells(row);
+
+            for (int i = 0; i < years.Count && i < rowValues.Count; i++)
+            {
+                var year = years[i].Trim().Replace("\t", "").Replace("\u00A0", "").Replace("&nbsp;", "");
+                if (string.IsNullOrWhiteSpace(year))
+                {
+                    continue;
+                }
+
+                values.Add(new FinancialMetricValue
+                {
+                    Name = name,
+                    Year = year,
+                    Value = rowValues[i]
+                });
+            }
+        }
+
+        return new FinancialDataResult(values, captions);
+    }
+
+    /// <summary>
+    /// Writes financial data to the standard output folder structure.
+    /// </summary>
+    public void SaveFinancialData(FinancialDataResult result, string companyId, string period, string reportType, string outputRoot)
+    {
+        var targetDirectory = Path.Combine(outputRoot, companyId, reportType, period);
+        Directory.CreateDirectory(targetDirectory);
+
+        var resultFilePath = Path.Combine(targetDirectory, "data.json");
+        var dicFilePath = Path.Combine(targetDirectory, "dic.json");
+
+        File.WriteAllText(resultFilePath, JsonConvert.SerializeObject(result.Values, Formatting.Indented));
+        File.WriteAllText(dicFilePath, JsonConvert.SerializeObject(result.Captions, Formatting.Indented));
+    }
+
+    /// <summary>
+    /// Downloads recommendations (reasons up/down) for a company.
+    /// </summary>
+    public async Task<Recommendations> FetchRecommendationsAsync(string companyId, string reportType = "MSFO")
+    {
+        var url = $"https://smart-lab.ru/q/{companyId}/f/y/{reportType}";
+        var response = await _httpClient.GetStringAsync(url);
+
+        var document = new HtmlDocument();
+        document.LoadHtml(response);
+
+        var reasonsUpNodes = document.DocumentNode.SelectNodes("//div[@class='reasons-up']//ul[@class='list-reasons']//li");
+        var reasonsDownNodes = document.DocumentNode.SelectNodes("//div[@class='reasons-down']//ul[@class='list-reasons2']//li");
+
+        return new Recommendations
+        {
+            ReasonsUp = reasonsUpNodes?.Select(node => node.InnerText.Trim()).ToList() ?? new List<string>(),
+            ReasonsDown = reasonsDownNodes?.Select(node => node.InnerText.Trim()).ToList() ?? new List<string>()
+        };
+    }
+
+    /// <summary>
+    /// Downloads and parses the shareholders structure page.
+    /// </summary>
+    public async Task<ShareholdersStructure> FetchShareholdersAsync(string companyId)
+    {
+        var url = $"https://smart-lab.ru/q/{companyId}/shareholders/";
+        var response = await _httpClient.GetStringAsync(url);
+        return ParseShareholdersHtml(response);
+    }
+
+    /// <summary>
+    /// Downloads and parses year/quarter diagram data for an indicator.
+    /// </summary>
+    public async Task<DiagramDataResult> FetchDiagramDataAsync(string companyId, string indicator, string reportType)
+    {
+        var url = $"https://smart-lab.ru/q/{companyId}/{reportType}/{indicator}/";
+        var response = await _httpClient.GetStringAsync(url);
+        return ParseDiagramData(response);
+    }
+
+    /// <summary>
+    /// Converts diagram data to a list of points for JSON output.
+    /// </summary>
+    public IReadOnlyList<DiagramMetricValue> ConvertDiagramToPoints(Diagram diagram, string name)
+    {
+        var points = new List<DiagramMetricValue>();
+        if (diagram?.Categories == null || diagram.Data == null)
+        {
+            return points;
+        }
+
+        for (int i = 0; i < diagram.Categories.Count && i < diagram.Data.Count; i++)
+        {
+            points.Add(new DiagramMetricValue
+            {
+                Name = name,
+                Year = diagram.Categories[i],
+                Value = diagram.Data[i].Y
+            });
+        }
+
+        return points;
+    }
+
+    /// <summary>
+    /// Downloads company logos in WebP format from Smart-Lab pages.
+    /// </summary>
+    public async Task DownloadLogoWebpAsync(IEnumerable<string> tickers, string outputDirectory)
+    {
+        Directory.CreateDirectory(outputDirectory);
+        string baseUrl = "https://smart-lab.ru/forum/";
+
+        foreach (var ticker in tickers)
+        {
+            try
+            {
+                var html = await _httpClient.GetStringAsync($"{baseUrl}{ticker}");
+                var htmlDoc = new HtmlDocument();
+                htmlDoc.LoadHtml(html);
+
+                var imageDiv = htmlDoc.DocumentNode.SelectSingleNode("//div[@align='center' and contains(@class, 'logo_place')]//img");
+                var imageUrl = imageDiv?.GetAttributeValue("src", null);
+
+                if (string.IsNullOrWhiteSpace(imageUrl))
+                {
+                    Console.WriteLine($"Не удалось найти изображение для {ticker}");
+                    continue;
+                }
+
+                if (!imageUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                {
+                    imageUrl = "https://smart-lab.ru" + imageUrl;
+                }
+
+                var imageBytes = await _httpClient.GetByteArrayAsync(imageUrl);
+                var filePath = Path.Combine(outputDirectory, $"{ticker}.webp");
+                await File.WriteAllBytesAsync(filePath, imageBytes);
+
+                Console.WriteLine($"Изображение для {ticker} сохранено: {filePath}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при обработке {ticker}: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Downloads company logos in SVG format from Finrange.
+    /// </summary>
+    public async Task DownloadLogoSvgAsync(IEnumerable<string> tickers, string outputDirectory)
+    {
+        Directory.CreateDirectory(outputDirectory);
+
+        foreach (var ticker in tickers)
+        {
+            try
+            {
+                string imageUrl = $"https://finrange.com/storage/companies/logo/svg/MOEX_{ticker}.svg";
+                var imageBytes = await _httpClient.GetByteArrayAsync(imageUrl);
+                var filePath = Path.Combine(outputDirectory, $"{ticker}.svg");
+                await File.WriteAllBytesAsync(filePath, imageBytes);
+            }
+            catch
+            {
+                Console.WriteLine(ticker);
+            }
+        }
+    }
+
+    private static ShareholdersStructure ParseShareholdersHtml(string html)
+    {
+        var structure = new ShareholdersStructure();
+
+        var titleMatch = Regex.Match(html, @"title:\s*'(.*?)'");
+        if (titleMatch.Success)
+        {
+            structure.Title = titleMatch.Groups[1].Value;
+        }
+
+        var shareholdersMatch = Regex.Match(html, @"var\s+aShareholders\s*=\s*(\[\[.*?\]\]);");
+        if (shareholdersMatch.Success)
+        {
+            var shareholdersArray = Regex.Unescape(shareholdersMatch.Groups[1].Value);
+            var dataMatches = Regex.Matches(shareholdersArray, @"\[(.*?)\]");
+
+            for (int i = 1; i < dataMatches.Count; i++)
+            {
+                var shareholderData = dataMatches[i].Groups[1].Value;
+                var parts = shareholderData.Replace("\"", "").Split(',');
+
+                if (parts.Length == 2 && double.TryParse(parts[1], out double percentage))
+                {
+                    structure.Shareholders.Add(new Shareholder
+                    {
+                        Name = parts[0],
+                        SharePercentage = percentage
+                    });
+                }
+            }
+        }
+
+        var dateMatch = Regex.Match(html, @"Дата последнего обновления этой структуры:\s*(\d{2}\.\d{2}\.\d{4})");
+        if (dateMatch.Success)
+        {
+            structure.LastUpdateDate = DateTime.ParseExact(dateMatch.Groups[1].Value, "dd.MM.yyyy", CultureInfo.InvariantCulture);
+        }
+
+        return structure;
+    }
+
+    private static DiagramDataResult ParseDiagramData(string html)
+    {
+        var yearMatch = Regex.Match(html, @"var aYearData\s*=\s*({.*?});", RegexOptions.Singleline);
+        if (!yearMatch.Success)
+        {
+            throw new Exception("Year diagram data not found in HTML.");
+        }
+
+        var quarterMatch = Regex.Match(html, @"var aQuarterData\s*=\s*({.*?});", RegexOptions.Singleline);
+        if (!quarterMatch.Success)
+        {
+            throw new Exception("Quarter diagram data not found in HTML.");
+        }
+
+        var yearData = JsonConvert.DeserializeObject<DiagramData>(yearMatch.Groups[1].Value);
+        var quarterData = JsonConvert.DeserializeObject<DiagramData>(quarterMatch.Groups[1].Value);
+
+        return new DiagramDataResult { QuarterData = quarterData, YearData = yearData };
+    }
+
+    private static List<string> ParseRowCells(HtmlNode row)
+    {
+        var cells = row.SelectNodes(".//th|.//td");
+        var result = new List<string>();
+
+        if (cells == null)
+        {
+            return result;
+        }
+
+        foreach (var cell in cells)
+        {
+            var anchors = cell.SelectNodes(".//a[@href]");
+            var foundLinks = false;
+
+            if (anchors != null)
+            {
+                foreach (var anchor in anchors)
+                {
+                    var hrefValue = anchor.GetAttributeValue("href", string.Empty);
+                    if (!string.IsNullOrEmpty(hrefValue))
+                    {
+                        result.Add(hrefValue);
+                        foundLinks = true;
+                    }
+                }
+            }
+
+            if (!foundLinks)
+            {
+                var innerText = cell.InnerText.Trim().Replace("\t", "");
+                result.Add(innerText);
+            }
+        }
+
+        return result;
+    }
+}
