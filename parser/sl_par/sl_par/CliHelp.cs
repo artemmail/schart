@@ -13,7 +13,6 @@ public static class CliHelp
         Console.WriteLine("Режимы:");
         Console.WriteLine("  financial        Скачивание финансовых таблиц (data.json + dic.json).");
         Console.WriteLine("  diagrams         Скачивание диаграмм по показателям.");
-        Console.WriteLine("  recommendations  Скачивание блока Reasons Up/Down.");
         Console.WriteLine("  shareholders     Скачивание структуры акционеров.");
         Console.WriteLine("  logos            Скачивание логотипов компаний.");
         Console.WriteLine("  finam            Разбор локальных HTML-файлов Finam.");
@@ -34,16 +33,13 @@ public static class CliHelp
             Console.WriteLine("  --report MSFO,RSBU      Отчетность (по умолчанию MSFO,RSBU).");
             Console.WriteLine("  --periods y,q           Периоды (по умолчанию y,q).");
             Console.WriteLine("  --output C:\\zip         Корневая папка вывода.");
+            Console.WriteLine("  (Если на странице есть блок Reasons Up/Down, сохраняется recomendation.json).");
             Console.WriteLine();
             Console.WriteLine("Параметры режима diagrams:");
             Console.WriteLine("  --report RSBU           Отчетность (по умолчанию RSBU).");
             Console.WriteLine("  --dic-root C:\\...       Папка с dic.json.");
             Console.WriteLine("  --dic-period y          Период для dic.json (по умолчанию y).");
             Console.WriteLine("  --indicators ...        Список показателей (если не указан, читается из dic.json).");
-            Console.WriteLine("  --output C:\\zip         Корневая папка вывода.");
-            Console.WriteLine();
-            Console.WriteLine("Параметры режима recommendations:");
-            Console.WriteLine("  --report MSFO           Отчетность (по умолчанию MSFO).");
             Console.WriteLine("  --output C:\\zip         Корневая папка вывода.");
             Console.WriteLine();
             Console.WriteLine("Параметры режима shareholders:");
@@ -64,7 +60,6 @@ public static class CliHelp
         Console.WriteLine("Примеры:");
         Console.WriteLine("  sl_par financial --tickers SBER,GAZP --report MSFO,RSBU --periods y,q");
         Console.WriteLine("  sl_par diagrams --tickers SBER --report RSBU --dic-root C:\\stock\\...\\shares");
-        Console.WriteLine("  sl_par recommendations --tickers SBER");
         Console.WriteLine("  sl_par logos --tickers SBER --format svg --logos-output C:\\log");
         Console.WriteLine("  sl_par finam --finam-input C:\\log\\financial --finam-output C:\\log\\fin");
     }
@@ -78,6 +73,7 @@ public static class CliHelp
                 Console.WriteLine("  --report MSFO,RSBU      Отчетность (по умолчанию MSFO,RSBU).");
                 Console.WriteLine("  --periods y,q           Периоды (по умолчанию y,q).");
                 Console.WriteLine("  --output C:\\zip         Корневая папка вывода.");
+                Console.WriteLine("  (Если на странице есть блок Reasons Up/Down, сохраняется recomendation.json).");
                 Console.WriteLine();
                 break;
             case AppMode.Diagrams:
@@ -86,12 +82,6 @@ public static class CliHelp
                 Console.WriteLine("  --dic-root C:\\...       Папка с dic.json.");
                 Console.WriteLine("  --dic-period y          Период для dic.json (по умолчанию y).");
                 Console.WriteLine("  --indicators ...        Список показателей (если не указан, читается из dic.json).");
-                Console.WriteLine("  --output C:\\zip         Корневая папка вывода.");
-                Console.WriteLine();
-                break;
-            case AppMode.Recommendations:
-                Console.WriteLine("Параметры режима recommendations:");
-                Console.WriteLine("  --report MSFO           Отчетность (по умолчанию MSFO).");
                 Console.WriteLine("  --output C:\\zip         Корневая папка вывода.");
                 Console.WriteLine();
                 break;

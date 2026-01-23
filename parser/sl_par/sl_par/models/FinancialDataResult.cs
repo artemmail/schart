@@ -19,4 +19,5 @@ public class FinancialDataResult
 
     public List<FinancialMetricValue> Values { get; set; }
     public Dictionary<string, string> Captions { get; set; }
+    public Recommendations? Recommendations { get; set; }
 }

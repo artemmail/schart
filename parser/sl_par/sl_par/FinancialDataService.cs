@@ -35,22 +35,35 @@ public class FinancialDataService
         var doc = new HtmlDocument();
         doc.LoadHtml(response);
 
+        var recommendations = TryParseRecommendations(doc, out var parsedRecommendations)
+            ? parsedRecommendations
+            : null;
+
         var table = doc.DocumentNode.SelectSingleNode("//table");
         if (table == null)
         {
-            return new FinancialDataResult();
+            return new FinancialDataResult
+            {
+                Recommendations = recommendations
+            };
         }
 
         var rowNodes = table.SelectNodes(".//tr");
         if (rowNodes == null)
         {
-            return new FinancialDataResult();
+            return new FinancialDataResult
+            {
+                Recommendations = recommendations
+            };
         }
 
         var headerRow = rowNodes.FirstOrDefault(x => x.OuterHtml.Contains("header_row"));
         if (headerRow == null)
         {
-            return new FinancialDataResult();
+            return new FinancialDataResult
+            {
+                Recommendations = recommendations
+            };
         }
 
         var years = ParseRowCells(headerRow);
@@ -95,7 +108,10 @@ public class FinancialDataService
             }
         }
 
-        return new FinancialDataResult(values, captions);
+        return new FinancialDataResult(values, captions)
+        {
+            Recommendations = recommendations
+        };
     }
 
     /// <summary>
@@ -111,27 +127,13 @@ public class FinancialDataService
 
         File.WriteAllText(resultFilePath, JsonConvert.SerializeObject(result.Values, Formatting.Indented));
         File.WriteAllText(dicFilePath, JsonConvert.SerializeObject(result.Captions, Formatting.Indented));
-    }
 
-    /// <summary>
-    /// Downloads recommendations (reasons up/down) for a company.
-    /// </summary>
-    public async Task<Recommendations> FetchRecommendationsAsync(string companyId, string reportType = "MSFO")
-    {
-        var url = $"https://smart-lab.ru/q/{companyId}/f/y/{reportType}";
-        var response = await _httpClient.GetStringAsync(url);
-
-        var document = new HtmlDocument();
-        document.LoadHtml(response);
-
-        var reasonsUpNodes = document.DocumentNode.SelectNodes("//div[@class='reasons-up']//ul[@class='list-reasons']//li");
-        var reasonsDownNodes = document.DocumentNode.SelectNodes("//div[@class='reasons-down']//ul[@class='list-reasons2']//li");
-
-        return new Recommendations
+        if (result.Recommendations != null)
         {
-            ReasonsUp = reasonsUpNodes?.Select(node => node.InnerText.Trim()).ToList() ?? new List<string>(),
-            ReasonsDown = reasonsDownNodes?.Select(node => node.InnerText.Trim()).ToList() ?? new List<string>()
-        };
+            var recommendationsPath = Path.Combine(outputRoot, companyId, "recomendation.json");
+            Directory.CreateDirectory(Path.Combine(outputRoot, companyId));
+            File.WriteAllText(recommendationsPath, JsonConvert.SerializeObject(result.Recommendations, Formatting.Indented));
+        }
     }
 
     /// <summary>
@@ -254,7 +256,10 @@ public class FinancialDataService
             structure.Title = titleMatch.Groups[1].Value;
         }
 
-        var shareholdersMatch = Regex.Match(html, @"var\s+aShareholders\s*=\s*(\[\[.*?\]\]);");
+        var shareholdersMatch = Regex.Match(
+            html,
+            @"var\s+aShareholders\s*=\s*(\[\[.*?\]\]);",
+            RegexOptions.Singleline);
         if (shareholdersMatch.Success)
         {
             var shareholdersArray = Regex.Unescape(shareholdersMatch.Groups[1].Value);
@@ -265,13 +270,20 @@ public class FinancialDataService
                 var shareholderData = dataMatches[i].Groups[1].Value;
                 var parts = shareholderData.Replace("\"", "").Split(',');
 
-                if (parts.Length == 2 && double.TryParse(parts[1], out double percentage))
+                if (parts.Length == 2)
                 {
-                    structure.Shareholders.Add(new Shareholder
+                    var name = parts[0].Trim();
+                    var valueText = parts[1].Trim();
+
+                    if (double.TryParse(valueText, NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage) ||
+                        double.TryParse(valueText, NumberStyles.Float, CultureInfo.CurrentCulture, out percentage))
                     {
-                        Name = parts[0],
-                        SharePercentage = percentage
-                    });
+                        structure.Shareholders.Add(new Shareholder
+                        {
+                            Name = name,
+                            SharePercentage = percentage
+                        });
+                    }
                 }
             }
         }
@@ -341,5 +353,28 @@ public class FinancialDataService
         }
 
         return result;
+    }
+
+    private static bool TryParseRecommendations(HtmlDocument document, out Recommendations? recommendations)
+    {
+        var reasonsUpContainer = document.DocumentNode.SelectSingleNode("//div[contains(@class, 'reasons-up')]");
+        var reasonsDownContainer = document.DocumentNode.SelectSingleNode("//div[contains(@class, 'reasons-down')]");
+
+        if (reasonsUpContainer == null && reasonsDownContainer == null)
+        {
+            recommendations = null;
+            return false;
+        }
+
+        var reasonsUpNodes = reasonsUpContainer?.SelectNodes(".//ul[contains(@class, 'list-reasons')]//li");
+        var reasonsDownNodes = reasonsDownContainer?.SelectNodes(".//ul[contains(@class, 'list-reasons2')]//li");
+
+        recommendations = new Recommendations
+        {
+            ReasonsUp = reasonsUpNodes?.Select(node => node.InnerText.Trim()).ToList() ?? new List<string>(),
+            ReasonsDown = reasonsDownNodes?.Select(node => node.InnerText.Trim()).ToList() ?? new List<string>()
+        };
+
+        return true;
     }
 }

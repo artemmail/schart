@@ -2,7 +2,7 @@
   "profiles": {
     "sl_par": {
       "commandName": "Project",
-      "commandLineArgs": "recommendations  --report MSFO,RSBU --periods y,q"
+      "commandLineArgs": "shareholders --report MSFO,RSBU --periods y,q"
     }
   }
 }

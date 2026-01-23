@@ -199,10 +199,6 @@ public static class CliParser
             case "sostav":
                 mode = AppMode.Diagrams;
                 return true;
-            case "recommendations":
-            case "recom":
-                mode = AppMode.Recommendations;
-                return true;
             case "shareholders":
             case "holders":
                 mode = AppMode.Shareholders;

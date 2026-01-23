@@ -39,9 +39,6 @@ switch (options.Mode)
     case AppMode.Diagrams:
         await RunDiagramsAsync(service, options);
         break;
-    case AppMode.Recommendations:
-        await RunRecommendationsAsync(service, options);
-        break;
     case AppMode.Shareholders:
         await RunShareholdersAsync(service, options);
         break;
@@ -88,9 +85,6 @@ static void ApplyDefaults(CliOptions options)
                 break;
             case AppMode.Diagrams:
                 options.ReportTypes.Add("RSBU");
-                break;
-            case AppMode.Recommendations:
-                options.ReportTypes.Add("MSFO");
                 break;
         }
     }
@@ -161,27 +155,21 @@ static async Task RunDiagramsAsync(FinancialDataService service, CliOptions opti
     }
 }
 
-static async Task RunRecommendationsAsync(FinancialDataService service, CliOptions options)
-{
-    var reportType = options.ReportTypes.First();
-
-    foreach (var ticker in options.Tickers)
-    {
-        var data = await service.FetchRecommendationsAsync(ticker, reportType);
-        var outputPath = Path.Combine(options.OutputRoot, ticker, "recomendation.json");
-        WriteJson(outputPath, data);
-        await Task.Delay(options.SleepMs);
-    }
-}
-
 static async Task RunShareholdersAsync(FinancialDataService service, CliOptions options)
 {
     foreach (var ticker in options.Tickers)
     {
-        var data = await service.FetchShareholdersAsync(ticker);
-        var outputPath = Path.Combine(options.OutputRoot, ticker, "shareholders.json");
-        WriteJson(outputPath, data);
-        await Task.Delay(options.SleepMs);
+        try
+        {
+            var data = await service.FetchShareholdersAsync(ticker);
+            var outputPath = Path.Combine(options.OutputRoot, ticker, "shareholders.json");
+            WriteJson(outputPath, data);
+            await Task.Delay(options.SleepMs);
+        }
+        catch (Exception e)
+        {
+
+        }
     }
 }
 

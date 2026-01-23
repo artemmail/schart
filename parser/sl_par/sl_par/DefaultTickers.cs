@@ -29,7 +29,7 @@ public static class DefaultTickers
         "SVETP", "T", "TASB", "TASBP", "TATN", "TATNP", "TGKA", "TGKB", "TGKBP", "TGKN", "TNSE",
         "TORS", "TORSP", "TRMK", "TRNFP", "TTLK", "TUZA", "UGLD", "UKUZ", "UNAC", "UNKL", "UPRO",
         "URKZ", "USBN", "UTAR", "UWGN", "VGSB", "VGSBP", "VJGZ", "VJGZP", "VKCO",
-        "VLHZ", "VRSB", "VRSBP", "VSEH", "VSMO", "VSYD", "VSYDP", "VTBR", "WTCM","WTCMP" "WUSH",
+        "VLHZ", "VRSB", "VRSBP", "VSEH", "VSMO", "VSYD", "VSYDP", "VTBR", "WTCM","WTCMP", "WUSH",
         "X5", "YAKG", "YDEX", "YKEN", "YKENP", "YRSB", "YRSBP", "ZAYM", "ZILL", "ZVEZ"
     };
 

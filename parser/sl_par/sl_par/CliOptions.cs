@@ -7,7 +7,6 @@ public enum AppMode
 {
     Financial,
     Diagrams,
-    Recommendations,
     Shareholders,
     Logos,
     Finam
