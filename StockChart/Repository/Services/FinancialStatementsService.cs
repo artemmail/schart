@@ -20,6 +20,11 @@ namespace StockChart.Repository.Services
         private static readonly TimeSpan ImportInterval = TimeSpan.FromHours(24);
         private static readonly string[] Standards = { "RSBU", "MSFO" };
         private static readonly string[] Periods = { "y", "q" };
+        private static readonly HashSet<string> SupplementalJsonFields = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "report_url",
+            "presentation_url"
+        };
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             PropertyNameCaseInsensitive = true
@@ -184,6 +189,26 @@ namespace StockChart.Repository.Services
                             continue;
                         }
 
+                        var csvYears = new HashSet<string>(items.Select(i => i.Year), StringComparer.OrdinalIgnoreCase);
+                        var csvKeys = new HashSet<string>(
+                            items.Select(i => BuildEntryKey(i.Name, i.Year)),
+                            StringComparer.OrdinalIgnoreCase);
+
+                        var jsonPath = Path.Combine(periodFolder, "data.json");
+                        if (File.Exists(jsonPath) && csvYears.Count > 0)
+                        {
+                            var supplementalItems = await LoadSupplementalItemsFromJsonAsync(
+                                jsonPath,
+                                csvYears,
+                                csvKeys,
+                                items.Count,
+                                cancellationToken);
+                            if (supplementalItems.Count > 0)
+                            {
+                                items.AddRange(supplementalItems);
+                            }
+                        }
+
                         var existingKeys = await LoadExistingEntryKeysAsync(dictionary.Id, standard, period, cancellationToken);
                         var ltrEntries = await LoadExistingLtrEntriesAsync(dictionary.Id, standard, period, cancellationToken);
                         var processedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -289,27 +314,30 @@ namespace StockChart.Repository.Services
             var recentYears = SelectRecentYears(filteredRows.Select(e => e.Year), 8);
 
             return filteredRows
+                .Select(e => new
+                {
+                    Entry = e,
+                    NormalizedYear = NormalizeYear(e.Year) ?? e.Year
+                })
                 .Where(e =>
                 {
-                    var normalizedYear = NormalizeYear(e.Year) ?? e.Year;
-                    if (IsLtrYear(normalizedYear))
+                    if (IsLtrYear(e.NormalizedYear))
                     {
                         return true;
                     }
 
-                    return recentYears.Contains(normalizedYear);
+                    return recentYears.Contains(e.NormalizedYear);
                 })
-                .Select(e =>
+                .OrderBy(e => GetPriorityRank(e.Entry.Name))
+                .ThenBy(e => e.Entry.SortOrder)
+                .ThenBy(e => e.Entry.Id)
+                .Select(e => new FinancialStatementEntryDto
                 {
-                    var normalizedYear = NormalizeYear(e.Year) ?? e.Year;
-                    return new FinancialStatementEntryDto
-                    {
-                        Name = e.Name,
-                        Year = normalizedYear,
-                        Value = useNumeric
-                            ? (e.ValueNum.HasValue ? e.ValueNum.Value.ToString(CultureInfo.InvariantCulture) : null)
-                            : e.ValueRaw
-                    };
+                    Name = e.Entry.Name,
+                    Year = e.NormalizedYear,
+                    Value = useNumeric
+                        ? (e.Entry.ValueNum.HasValue ? e.Entry.ValueNum.Value.ToString(CultureInfo.InvariantCulture) : null)
+                        : e.Entry.ValueRaw
                 })
                 .ToList();
         }
@@ -514,6 +542,90 @@ namespace StockChart.Repository.Services
             }
         }
 
+        private async Task<List<StatementImportItem>> LoadSupplementalItemsFromJsonAsync(
+            string path,
+            HashSet<string> allowedYears,
+            HashSet<string> existingKeys,
+            int startingOrder,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var json = await File.ReadAllTextAsync(path, cancellationToken);
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.ValueKind != JsonValueKind.Array)
+                {
+                    return new List<StatementImportItem>();
+                }
+
+                var order = startingOrder;
+                var result = new List<StatementImportItem>();
+                foreach (var element in doc.RootElement.EnumerateArray())
+                {
+                    var name = GetString(element, "name");
+                    if (string.IsNullOrWhiteSpace(name))
+                    {
+                        continue;
+                    }
+
+                    name = name.Trim();
+                    if (!SupplementalJsonFields.Contains(name))
+                    {
+                        continue;
+                    }
+
+                    var year = NormalizeYear(GetString(element, "year"));
+                    if (string.IsNullOrWhiteSpace(year) || !allowedYears.Contains(year))
+                    {
+                        continue;
+                    }
+
+                    var key = BuildEntryKey(name, year);
+                    if (!existingKeys.Add(key))
+                    {
+                        continue;
+                    }
+
+                    var rawValue = NormalizeRawValue(GetString(element, "value"));
+                    var valueNum = TryParseNumeric(rawValue);
+
+                    order++;
+                    result.Add(new StatementImportItem(
+                        name,
+                        year,
+                        rawValue,
+                        valueNum,
+                        order));
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка чтения data.json: {Path}", path);
+                return new List<StatementImportItem>();
+            }
+        }
+
+        private static string? GetString(JsonElement element, string propertyName)
+        {
+            if (!element.TryGetProperty(propertyName, out var property))
+            {
+                return null;
+            }
+
+            return property.ValueKind switch
+            {
+                JsonValueKind.String => property.GetString(),
+                JsonValueKind.Number => property.TryGetDecimal(out var dec)
+                    ? dec.ToString(CultureInfo.InvariantCulture)
+                    : property.GetDouble().ToString(CultureInfo.InvariantCulture),
+                JsonValueKind.True => "true",
+                JsonValueKind.False => "false",
+                _ => null
+            };
+        }
+
         private static string? NormalizeRawValue(string? value)
         {
             if (value == null)
@@ -689,6 +801,61 @@ namespace StockChart.Repository.Services
 
             var decoded = TryUrlDecode(normalized);
             return !string.IsNullOrWhiteSpace(decoded) && IsSmartlabPresenceText(decoded);
+        }
+
+        private static int GetPriorityRank(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return 2;
+            }
+
+            var normalized = NormalizeLabel(name);
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return 2;
+            }
+
+            if (IsReportUrlRowName(normalized))
+            {
+                return 0;
+            }
+
+            if (IsPresentationUrlRowName(normalized))
+            {
+                return 1;
+            }
+
+            return 2;
+        }
+
+        private static bool IsReportUrlRowName(string value)
+        {
+            return IsCompactMatch(value, "reporturl", "финансовыйотчет");
+        }
+
+        private static bool IsPresentationUrlRowName(string value)
+        {
+            return IsCompactMatch(value, "presentationurl", "презентация");
+        }
+
+        private static bool IsCompactMatch(string value, params string[] targets)
+        {
+            var compact = NormalizeCompact(value);
+            if (string.IsNullOrWhiteSpace(compact))
+            {
+                return false;
+            }
+
+            foreach (var target in targets)
+            {
+                if (string.Equals(compact, target, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool IsSmartlabPresenceText(string value)
