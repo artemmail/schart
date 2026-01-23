@@ -36,6 +36,9 @@ switch (options.Mode)
     case AppMode.Financial:
         await RunFinancialAsync(service, options);
         break;
+    case AppMode.ReportLinks:
+        await RunReportLinksAsync(service, options);
+        break;
     case AppMode.Diagrams:
         await RunDiagramsAsync(service, options);
         break;
@@ -118,6 +121,17 @@ static async Task RunFinancialAsync(FinancialDataService service, CliOptions opt
                 await Task.Delay(options.SleepMs);
             }
         }
+
+        try
+        {
+            await DownloadReportLinksAsync(service, options, ticker);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка скачивания ссылок на отчетность для {ticker}: {ex.Message}");
+        }
+
+        await Task.Delay(options.SleepMs);
     }
 }
 
@@ -133,6 +147,29 @@ static bool ShouldDownloadFinancialCsv(string reportType, string period)
     var isPeriod = period.Equals("y", StringComparison.OrdinalIgnoreCase) ||
                    period.Equals("q", StringComparison.OrdinalIgnoreCase);
     return isReport && isPeriod;
+}
+
+static async Task RunReportLinksAsync(FinancialDataService service, CliOptions options)
+{
+    foreach (var ticker in options.Tickers)
+    {
+        try
+        {
+            await DownloadReportLinksAsync(service, options, ticker);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка скачивания ссылок на отчетность для {ticker}: {ex.Message}");
+        }
+
+        await Task.Delay(options.SleepMs);
+    }
+}
+
+static async Task DownloadReportLinksAsync(FinancialDataService service, CliOptions options, string ticker)
+{
+    var sections = await service.FetchReportLinksAsync(ticker);
+    service.SaveReportLinksCsv(sections, ticker, options.OutputRoot);
 }
 
 static async Task RunDiagramsAsync(FinancialDataService service, CliOptions options)

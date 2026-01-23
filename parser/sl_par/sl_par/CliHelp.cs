@@ -12,6 +12,7 @@ public static class CliHelp
         Console.WriteLine();
         Console.WriteLine("Режимы:");
         Console.WriteLine("  financial        Скачивание финансовых таблиц (data.json + dic.json + data.csv).");
+        Console.WriteLine("  report-links     Скачивание ссылок на отчетность (CSV) со страницы /f/l/.");
         Console.WriteLine("  diagrams         Скачивание диаграмм по показателям.");
         Console.WriteLine("  shareholders     Скачивание структуры акционеров.");
         Console.WriteLine("  logos            Скачивание логотипов компаний.");
@@ -36,6 +37,10 @@ public static class CliHelp
             Console.WriteLine("  --output C:\\zip         Корневая папка вывода.");
             Console.WriteLine("  (Если на странице есть блок Reasons Up/Down, сохраняется recomendation.json).");
             Console.WriteLine("  (CSV скачивается для MSFO/RSBU и периодов y,q).");
+            Console.WriteLine("  (Ссылки на отчетность сохраняются в report_links/*/links.csv).");
+            Console.WriteLine();
+            Console.WriteLine("Параметры режима report-links:");
+            Console.WriteLine("  --output C:\\zip         Корневая папка вывода.");
             Console.WriteLine();
             Console.WriteLine("Параметры режима diagrams:");
             Console.WriteLine("  --report RSBU           Отчетность (по умолчанию RSBU).");
@@ -64,6 +69,7 @@ public static class CliHelp
 
         Console.WriteLine("Примеры:");
         Console.WriteLine("  sl_par financial --tickers SBER,GAZP --report MSFO,RSBU --periods y,q");
+        Console.WriteLine("  sl_par report-links --tickers SBER --output C:\\zip");
         Console.WriteLine("  sl_par diagrams --tickers SBER --report RSBU --dic-root C:\\stock\\...\\shares");
         Console.WriteLine("  sl_par logos --tickers SBER --format svg --logos-output C:\\log");
         Console.WriteLine("  sl_par finam --finam-input C:\\log\\financial --finam-output C:\\log\\fin");
@@ -81,6 +87,12 @@ public static class CliHelp
                 Console.WriteLine("  --output C:\\zip         Корневая папка вывода.");
                 Console.WriteLine("  (Если на странице есть блок Reasons Up/Down, сохраняется recomendation.json).");
                 Console.WriteLine("  (CSV скачивается для MSFO/RSBU и периодов y,q).");
+                Console.WriteLine("  (Ссылки на отчетность сохраняются в report_links/*/links.csv).");
+                Console.WriteLine();
+                break;
+            case AppMode.ReportLinks:
+                Console.WriteLine("Параметры режима report-links:");
+                Console.WriteLine("  --output C:\\zip         Корневая папка вывода.");
                 Console.WriteLine();
                 break;
             case AppMode.Diagrams:

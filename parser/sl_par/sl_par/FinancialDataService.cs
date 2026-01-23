@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
@@ -151,6 +152,56 @@ public class FinancialDataService
         var csvBytes = await response.Content.ReadAsByteArrayAsync();
         var csvPath = Path.Combine(targetDirectory, "data.csv");
         await File.WriteAllBytesAsync(csvPath, csvBytes);
+    }
+
+    /// <summary>
+    /// Downloads report links from the Smart-Lab financial reports page.
+    /// </summary>
+    public async Task<IReadOnlyList<ReportLinksSection>> FetchReportLinksAsync(string companyId)
+    {
+        var url = $"https://smart-lab.ru/q/{companyId}/f/l/";
+        var response = await _httpClient.GetStringAsync(url);
+        return ParseReportLinksHtml(response, url);
+    }
+
+    /// <summary>
+    /// Writes report links into CSV files grouped by section.
+    /// </summary>
+    public void SaveReportLinksCsv(IEnumerable<ReportLinksSection> sections, string companyId, string outputRoot)
+    {
+        if (sections == null)
+        {
+            return;
+        }
+
+        var rootDirectory = Path.Combine(outputRoot, companyId, "report_links");
+        Directory.CreateDirectory(rootDirectory);
+
+        foreach (var section in sections)
+        {
+            if (section == null)
+            {
+                continue;
+            }
+
+            var title = section.Title?.Trim();
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                title = "section";
+            }
+
+            var folderName = SanitizePathSegment(title);
+            if (string.IsNullOrWhiteSpace(folderName))
+            {
+                folderName = "section";
+            }
+
+            var targetDirectory = Path.Combine(rootDirectory, folderName);
+            Directory.CreateDirectory(targetDirectory);
+
+            var csvPath = Path.Combine(targetDirectory, "links.csv");
+            File.WriteAllText(csvPath, BuildReportLinksCsv(section.Links));
+        }
     }
 
     /// <summary>
@@ -397,6 +448,122 @@ public class FinancialDataService
         }
 
         return result;
+    }
+
+    private static IReadOnlyList<ReportLinksSection> ParseReportLinksHtml(string html, string baseUrl)
+    {
+        var document = new HtmlDocument();
+        document.LoadHtml(html);
+
+        var columns = document.DocumentNode.SelectNodes("//div[contains(@class, 'externals_col')]");
+        if (columns == null)
+        {
+            return Array.Empty<ReportLinksSection>();
+        }
+
+        var sections = new Dictionary<string, ReportLinksSection>(StringComparer.OrdinalIgnoreCase);
+        var unnamedIndex = 1;
+
+        foreach (var column in columns)
+        {
+            var headingNode = column.SelectSingleNode(".//h2") ?? column.SelectSingleNode(".//h3");
+            var title = HtmlEntity.DeEntitize(headingNode?.InnerText ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                title = $"section_{unnamedIndex++}";
+            }
+
+            if (!sections.TryGetValue(title, out var section))
+            {
+                section = new ReportLinksSection { Title = title };
+                sections[title] = section;
+            }
+
+            var anchors = column.SelectNodes(".//table//a[@href]");
+            if (anchors == null)
+            {
+                continue;
+            }
+
+            foreach (var anchor in anchors)
+            {
+                var href = HtmlEntity.DeEntitize(anchor.GetAttributeValue("href", string.Empty)).Trim();
+                if (string.IsNullOrWhiteSpace(href))
+                {
+                    continue;
+                }
+
+                var label = HtmlEntity.DeEntitize(anchor.InnerText ?? string.Empty).Trim();
+                if (string.IsNullOrWhiteSpace(label))
+                {
+                    label = HtmlEntity.DeEntitize(anchor.ParentNode?.InnerText ?? string.Empty).Trim();
+                }
+
+                var url = NormalizeUrl(href, baseUrl);
+                section.Links.Add(new ReportLinkEntry
+                {
+                    Label = label,
+                    Url = url
+                });
+            }
+        }
+
+        return sections.Values.ToList();
+    }
+
+    private static string NormalizeUrl(string href, string baseUrl)
+    {
+        if (Uri.TryCreate(href, UriKind.Absolute, out var absolute))
+        {
+            return absolute.ToString();
+        }
+
+        if (Uri.TryCreate(new Uri(baseUrl), href, out var combined))
+        {
+            return combined.ToString();
+        }
+
+        return href;
+    }
+
+    private static string SanitizePathSegment(string value)
+    {
+        var invalidChars = Path.GetInvalidFileNameChars();
+        var cleaned = new string(value.Select(ch => invalidChars.Contains(ch) ? '_' : ch).ToArray());
+        cleaned = Regex.Replace(cleaned, @"\s+", " ").Trim().TrimEnd('.');
+        return cleaned;
+    }
+
+    private static string BuildReportLinksCsv(IReadOnlyList<ReportLinkEntry>? links)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine("label,url");
+
+        if (links == null)
+        {
+            return builder.ToString();
+        }
+
+        foreach (var link in links)
+        {
+            builder.Append(EscapeCsv(link?.Label ?? string.Empty));
+            builder.Append(',');
+            builder.AppendLine(EscapeCsv(link?.Url ?? string.Empty));
+        }
+
+        return builder.ToString();
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        var escaped = value.Replace("\"", "\"\"");
+        var needsQuotes = escaped.Contains(',') || escaped.Contains('"') || escaped.Contains('\n') || escaped.Contains('\r');
+        return needsQuotes ? $"\"{escaped}\"" : escaped;
     }
 
     private static bool TryParseRecommendations(HtmlDocument document, out Recommendations? recommendations)

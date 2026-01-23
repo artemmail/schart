@@ -199,6 +199,14 @@ public static class CliParser
             case "reports":
                 mode = AppMode.Financial;
                 return true;
+            case "report-links":
+            case "reports-links":
+            case "reportlinks":
+            case "reportslinks":
+            case "financial-links":
+            case "finlinks":
+                mode = AppMode.ReportLinks;
+                return true;
             case "diagrams":
             case "diagram":
             case "sostav":

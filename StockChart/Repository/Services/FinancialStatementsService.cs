@@ -20,11 +20,14 @@ namespace StockChart.Repository.Services
         private static readonly TimeSpan ImportInterval = TimeSpan.FromHours(24);
         private static readonly string[] Standards = { "RSBU", "MSFO" };
         private static readonly string[] Periods = { "y", "q" };
-        private static readonly HashSet<string> SupplementalJsonFields = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "report_url",
-            "presentation_url"
-        };
+        private const string ReportLinksFolderName = "report_links";
+        private const string ReportUrlField = "report_url";
+        private const string PresentationUrlField = "presentation_url";
+        private const string QuarterlyMsfoFolderName = "Квартальные отчеты МСФО";
+        private const string QuarterlyRsbuFolderName = "Квартальные отчеты РСБУ";
+        private const string AnnualMsfoFolderName = "Годовые отчеты МСФО";
+        private const string AnnualRsbuFolderName = "Годовые отчеты РСБУ";
+        private const string AnnualPresentationsFolderName = "Годовые презентации";
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             PropertyNameCaseInsensitive = true
@@ -194,11 +197,13 @@ namespace StockChart.Repository.Services
                             items.Select(i => BuildEntryKey(i.Name, i.Year)),
                             StringComparer.OrdinalIgnoreCase);
 
-                        var jsonPath = Path.Combine(periodFolder, "data.json");
-                        if (File.Exists(jsonPath) && csvYears.Count > 0)
+                        if (csvYears.Count > 0)
                         {
-                            var supplementalItems = await LoadSupplementalItemsFromJsonAsync(
-                                jsonPath,
+                            var reportLinksRoot = Path.Combine(dir, ReportLinksFolderName);
+                            var supplementalItems = await LoadSupplementalItemsFromReportLinksAsync(
+                                reportLinksRoot,
+                                standard,
+                                period,
                                 csvYears,
                                 csvKeys,
                                 items.Count,
@@ -542,88 +547,220 @@ namespace StockChart.Repository.Services
             }
         }
 
-        private async Task<List<StatementImportItem>> LoadSupplementalItemsFromJsonAsync(
-            string path,
+        private async Task<List<StatementImportItem>> LoadSupplementalItemsFromReportLinksAsync(
+            string reportLinksRoot,
+            string standard,
+            string period,
             HashSet<string> allowedYears,
             HashSet<string> existingKeys,
             int startingOrder,
             CancellationToken cancellationToken)
         {
+            if (string.IsNullOrWhiteSpace(reportLinksRoot) || !Directory.Exists(reportLinksRoot))
+            {
+                return new List<StatementImportItem>();
+            }
+
+            var order = startingOrder;
+            var result = new List<StatementImportItem>();
+
+            var reportFolder = GetReportLinksFolderName(standard, period);
+            if (!string.IsNullOrWhiteSpace(reportFolder))
+            {
+                var reportPath = Path.Combine(reportLinksRoot, reportFolder, "links.csv");
+                order = await AppendReportLinkItemsAsync(
+                    reportPath,
+                    ReportUrlField,
+                    allowedYears,
+                    existingKeys,
+                    order,
+                    result,
+                    cancellationToken);
+            }
+
+            if (string.Equals(period, "y", StringComparison.OrdinalIgnoreCase))
+            {
+                var presentationPath = Path.Combine(reportLinksRoot, AnnualPresentationsFolderName, "links.csv");
+                order = await AppendReportLinkItemsAsync(
+                    presentationPath,
+                    PresentationUrlField,
+                    allowedYears,
+                    existingKeys,
+                    order,
+                    result,
+                    cancellationToken);
+            }
+
+            return result;
+        }
+
+        private async Task<int> AppendReportLinkItemsAsync(
+            string path,
+            string entryName,
+            HashSet<string> allowedYears,
+            HashSet<string> existingKeys,
+            int order,
+            List<StatementImportItem> result,
+            CancellationToken cancellationToken)
+        {
+            if (!File.Exists(path))
+            {
+                return order;
+            }
+
             try
             {
-                var json = await File.ReadAllTextAsync(path, cancellationToken);
-                using var doc = JsonDocument.Parse(json);
-                if (doc.RootElement.ValueKind != JsonValueKind.Array)
+                using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var parser = new TextFieldParser(stream, Encoding.UTF8);
+                parser.TextFieldType = FieldType.Delimited;
+                parser.SetDelimiters(",");
+                parser.HasFieldsEnclosedInQuotes = true;
+
+                if (parser.EndOfData)
                 {
-                    return new List<StatementImportItem>();
+                    return order;
                 }
 
-                var order = startingOrder;
-                var result = new List<StatementImportItem>();
-                foreach (var element in doc.RootElement.EnumerateArray())
+                var header = parser.ReadFields();
+                if (header is { Length: >= 2 }
+                    && string.Equals(header[0]?.Trim(), "label", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(header[1]?.Trim(), "url", StringComparison.OrdinalIgnoreCase))
                 {
-                    var name = GetString(element, "name");
-                    if (string.IsNullOrWhiteSpace(name))
-                    {
-                        continue;
-                    }
-
-                    name = name.Trim();
-                    if (!SupplementalJsonFields.Contains(name))
-                    {
-                        continue;
-                    }
-
-                    var year = NormalizeYear(GetString(element, "year"));
-                    if (string.IsNullOrWhiteSpace(year) || !allowedYears.Contains(year))
-                    {
-                        continue;
-                    }
-
-                    var key = BuildEntryKey(name, year);
-                    if (!existingKeys.Add(key))
-                    {
-                        continue;
-                    }
-
-                    var rawValue = NormalizeRawValue(GetString(element, "value"));
-                    var valueNum = TryParseNumeric(rawValue);
-
-                    order++;
-                    result.Add(new StatementImportItem(
-                        name,
-                        year,
-                        rawValue,
-                        valueNum,
-                        order));
+                    // Header row consumed.
+                }
+                else if (header is { Length: >= 2 })
+                {
+                    order = AppendReportLinkRow(header, entryName, allowedYears, existingKeys, order, result);
                 }
 
-                return result;
+                while (!parser.EndOfData)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var fields = parser.ReadFields() ?? Array.Empty<string>();
+                    if (fields.Length < 2)
+                    {
+                        continue;
+                    }
+
+                    order = AppendReportLinkRow(fields, entryName, allowedYears, existingKeys, order, result);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка чтения data.json: {Path}", path);
-                return new List<StatementImportItem>();
+                _logger.LogError(ex, "Ошибка чтения links.csv: {Path}", path);
             }
+
+            return order;
         }
 
-        private static string? GetString(JsonElement element, string propertyName)
+        private int AppendReportLinkRow(
+            string[] fields,
+            string entryName,
+            HashSet<string> allowedYears,
+            HashSet<string> existingKeys,
+            int order,
+            List<StatementImportItem> result)
         {
-            if (!element.TryGetProperty(propertyName, out var property))
+            var label = NormalizeLabel(fields[0]);
+            if (string.IsNullOrWhiteSpace(label))
+            {
+                return order;
+            }
+
+            var urlField = fields.Length == 2 ? fields[1] : string.Join(",", fields.Skip(1));
+            var rawValue = NormalizeRawValue(urlField);
+            if (string.IsNullOrWhiteSpace(rawValue))
+            {
+                return order;
+            }
+
+            var year = NormalizeReportLinkYear(label);
+            if (string.IsNullOrWhiteSpace(year) || !allowedYears.Contains(year))
+            {
+                return order;
+            }
+
+            var key = BuildEntryKey(entryName, year);
+            if (!existingKeys.Add(key))
+            {
+                return order;
+            }
+
+            order++;
+            result.Add(new StatementImportItem(
+                entryName,
+                year,
+                rawValue,
+                TryParseNumeric(rawValue),
+                order));
+
+            return order;
+        }
+
+        private static string? NormalizeReportLinkYear(string? label)
+        {
+            if (string.IsNullOrWhiteSpace(label))
             {
                 return null;
             }
 
-            return property.ValueKind switch
+            var normalized = NormalizeLabel(label);
+            if (string.IsNullOrWhiteSpace(normalized))
             {
-                JsonValueKind.String => property.GetString(),
-                JsonValueKind.Number => property.TryGetDecimal(out var dec)
-                    ? dec.ToString(CultureInfo.InvariantCulture)
-                    : property.GetDouble().ToString(CultureInfo.InvariantCulture),
-                JsonValueKind.True => "true",
-                JsonValueKind.False => "false",
-                _ => null
-            };
+                return null;
+            }
+
+            normalized = normalized
+                .Replace('К', 'Q')
+                .Replace('к', 'Q')
+                .Replace('K', 'Q')
+                .Replace('k', 'Q');
+
+            return NormalizeYear(normalized);
+        }
+
+        private static string? GetReportLinksFolderName(string standard, string period)
+        {
+            if (string.IsNullOrWhiteSpace(standard) || string.IsNullOrWhiteSpace(period))
+            {
+                return null;
+            }
+
+            var normalizedStandard = standard.Trim().ToUpperInvariant();
+            var normalizedPeriod = period.Trim().ToLowerInvariant();
+
+            if (normalizedPeriod == "q")
+            {
+                if (normalizedStandard == "MSFO")
+                {
+                    return QuarterlyMsfoFolderName;
+                }
+
+                if (normalizedStandard == "RSBU")
+                {
+                    return QuarterlyRsbuFolderName;
+                }
+
+                return null;
+            }
+
+            if (normalizedPeriod == "y")
+            {
+                if (normalizedStandard == "MSFO")
+                {
+                    return AnnualMsfoFolderName;
+                }
+
+                if (normalizedStandard == "RSBU")
+                {
+                    return AnnualRsbuFolderName;
+                }
+
+                return null;
+            }
+
+            return null;
         }
 
         private static string? NormalizeRawValue(string? value)
@@ -807,26 +944,46 @@ namespace StockChart.Repository.Services
         {
             if (string.IsNullOrWhiteSpace(name))
             {
-                return 2;
+                return 4;
             }
 
             var normalized = NormalizeLabel(name);
             if (string.IsNullOrWhiteSpace(normalized))
             {
-                return 2;
+                return 4;
             }
 
-            if (IsReportUrlRowName(normalized))
+            if (IsDateRowName(normalized))
             {
                 return 0;
             }
 
-            if (IsPresentationUrlRowName(normalized))
+            if (IsCurrencyRowName(normalized))
             {
                 return 1;
             }
 
-            return 2;
+            if (IsReportUrlRowName(normalized))
+            {
+                return 2;
+            }
+
+            if (IsPresentationUrlRowName(normalized))
+            {
+                return 3;
+            }
+
+            return 4;
+        }
+
+        private static bool IsDateRowName(string value)
+        {
+            return IsCompactMatch(value, "date", "датаотчета");
+        }
+
+        private static bool IsCurrencyRowName(string value)
+        {
+            return IsCompactMatch(value, "currency", "валютаотчета");
         }
 
         private static bool IsReportUrlRowName(string value)

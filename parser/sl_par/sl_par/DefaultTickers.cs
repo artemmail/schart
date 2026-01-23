@@ -8,7 +8,7 @@ public static class DefaultTickers
 {
     private static readonly string[] Raw = new[]
     {
-       /* "ABIO", "ABRD", "AFKS", "AFLT", "AKRN", "ALRS", "APRI", "APTK", "AQUA", "ARSA", "ASSB", "ASTR",
+        "ABIO", "ABRD", "AFKS", "AFLT", "AKRN", "ALRS", "APRI", "APTK", "AQUA", "ARSA", "ASSB", "ASTR",
         "AVAN", "BANE", "BANEP", "BAZA", "BELU", "BISV", "BLNG", "BRZL", "BSPB", "BSPBP", "CARM",
         "CBOM", "CHGZ", "CHKZ", "CHMF", "CHMK", "CNRU", "CNTL", "CNTLP", "DATA", "DELI", "DIAS",
         "DIOD", "DOMRF", "DVEC", "DZRD", "DZRDP", "EELT", "ELFV", "ELMT", "ENPG", "ETLN", "EUTR",
@@ -29,7 +29,7 @@ public static class DefaultTickers
         "SVETP", "T", "TASB", "TASBP", "TATN", "TATNP", "TGKA", "TGKB", "TGKBP", "TGKN", "TNSE",
         "TORS", "TORSP", "TRMK", "TRNFP", "TTLK", "TUZA", "UGLD", "UKUZ", "UNAC", "UNKL", "UPRO",
         "URKZ", "USBN", "UTAR", "UWGN", "VGSB", "VGSBP", "VJGZ", "VJGZP", "VKCO",
-        "VLHZ", "VRSB", "VRSBP", "VSEH", "VSMO", "VSYD", "VSYDP", "VTBR", */"WUSH",
+        "VLHZ", "VRSB", "VRSBP", "VSEH", "VSMO", "VSYD", "VSYDP", "VTBR", "WUSH",
         "X5", "YAKG", "YDEX", "YKEN", "YKENP", "YRSB", "YRSBP", "ZAYM", "ZILL", "ZVEZ"
     };
 

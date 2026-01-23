@@ -6,6 +6,7 @@ using System.Collections.Generic;
 public enum AppMode
 {
     Financial,
+    ReportLinks,
     Diagrams,
     Shareholders,
     Logos,
