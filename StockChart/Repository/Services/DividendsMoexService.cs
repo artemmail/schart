@@ -95,9 +95,9 @@ namespace StockChart.Repository.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ошибка при импорте структуры акционеров и рекомендаций");
-            }*/
-
-            
+            }
+            */
+            /*
             try
             {
                 await _financialStatementsService.ImportFromFolderAsync("c:/zip/", cancellationToken);
@@ -106,7 +106,7 @@ namespace StockChart.Repository.Services
             {
                 _logger.LogError(ex, "Ошибка при импорте отчетности РСБУ/МСФО");
             }
-
+            */
             /*
             try
             {

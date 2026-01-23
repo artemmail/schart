@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 /// <summary>
 /// Smart-Lab data service for financial tables, diagrams, and shareholders data.
@@ -345,42 +346,20 @@ public class FinancialDataService
     {
         var structure = new ShareholdersStructure();
 
-        var titleMatch = Regex.Match(html, @"title:\s*'(.*?)'");
+        if (string.IsNullOrWhiteSpace(html))
+        {
+            return structure;
+        }
+
+        var titleMatch = Regex.Match(html, @"title\s*:\s*'([^']*)'", RegexOptions.IgnoreCase);
         if (titleMatch.Success)
         {
             structure.Title = titleMatch.Groups[1].Value;
         }
 
-        var shareholdersMatch = Regex.Match(
-            html,
-            @"var\s+aShareholders\s*=\s*(\[\[.*?\]\]);",
-            RegexOptions.Singleline);
-        if (shareholdersMatch.Success)
+        if (!TryParseShareholdersFromScript(html, structure))
         {
-            var shareholdersArray = Regex.Unescape(shareholdersMatch.Groups[1].Value);
-            var dataMatches = Regex.Matches(shareholdersArray, @"\[(.*?)\]");
-
-            for (int i = 1; i < dataMatches.Count; i++)
-            {
-                var shareholderData = dataMatches[i].Groups[1].Value;
-                var parts = shareholderData.Replace("\"", "").Split(',');
-
-                if (parts.Length == 2)
-                {
-                    var name = parts[0].Trim();
-                    var valueText = parts[1].Trim();
-
-                    if (double.TryParse(valueText, NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage) ||
-                        double.TryParse(valueText, NumberStyles.Float, CultureInfo.CurrentCulture, out percentage))
-                    {
-                        structure.Shareholders.Add(new Shareholder
-                        {
-                            Name = name,
-                            SharePercentage = percentage
-                        });
-                    }
-                }
-            }
+            TryParseShareholdersFromTable(html, structure);
         }
 
         var dateMatch = Regex.Match(html, @"Дата последнего обновления этой структуры:\s*(\d{2}\.\d{2}\.\d{4})");
@@ -390,6 +369,128 @@ public class FinancialDataService
         }
 
         return structure;
+    }
+
+    private static bool TryParseShareholdersFromScript(string html, ShareholdersStructure structure)
+    {
+        var shareholdersMatch = Regex.Match(
+            html,
+            @"var\s+aShareholders\s*=\s*(\[\[.*?\]\]);",
+            RegexOptions.Singleline);
+        if (!shareholdersMatch.Success)
+        {
+            return false;
+        }
+
+        var shareholdersArray = shareholdersMatch.Groups[1].Value;
+
+        try
+        {
+            var rows = JArray.Parse(shareholdersArray);
+            if (rows.Count == 0)
+            {
+                return false;
+            }
+
+            for (int i = 1; i < rows.Count; i++)
+            {
+                if (rows[i] is not JArray row || row.Count < 2)
+                {
+                    continue;
+                }
+
+                var name = row[0]?.ToString()?.Trim();
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    continue;
+                }
+
+                var valueToken = row[1];
+                if (valueToken == null)
+                {
+                    continue;
+                }
+
+                double percentage;
+                if (valueToken.Type == JTokenType.Float || valueToken.Type == JTokenType.Integer)
+                {
+                    percentage = valueToken.Value<double>();
+                }
+                else if (!double.TryParse(valueToken.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out percentage) &&
+                         !double.TryParse(valueToken.ToString(), NumberStyles.Float, CultureInfo.CurrentCulture, out percentage))
+                {
+                    continue;
+                }
+
+                structure.Shareholders.Add(new Shareholder
+                {
+                    Name = name,
+                    SharePercentage = percentage
+                });
+            }
+
+            return structure.Shareholders.Count > 0;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryParseShareholdersFromTable(string html, ShareholdersStructure structure)
+    {
+        var document = new HtmlDocument();
+        document.LoadHtml(html);
+
+        if (string.IsNullOrWhiteSpace(structure.Title))
+        {
+            var titleNode = document.DocumentNode.SelectSingleNode("//h1") ??
+                            document.DocumentNode.SelectSingleNode("//title");
+            if (titleNode != null)
+            {
+                structure.Title = HtmlEntity.DeEntitize(titleNode.InnerText).Trim();
+            }
+        }
+
+        var table = document.DocumentNode.SelectSingleNode("//table[contains(@class, 'financials')]");
+        if (table == null)
+        {
+            return false;
+        }
+
+        var rows = table.SelectNodes(".//tr[td]");
+        if (rows == null)
+        {
+            return false;
+        }
+
+        foreach (var row in rows)
+        {
+            var cells = row.SelectNodes("./td");
+            if (cells == null || cells.Count < 2)
+            {
+                continue;
+            }
+
+            var name = HtmlEntity.DeEntitize(cells[0].InnerText).Trim();
+            var valueText = HtmlEntity.DeEntitize(cells[1].InnerText).Trim().Replace("%", "");
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                continue;
+            }
+
+            if (double.TryParse(valueText, NumberStyles.Float, CultureInfo.InvariantCulture, out var percentage) ||
+                double.TryParse(valueText, NumberStyles.Float, CultureInfo.CurrentCulture, out percentage))
+            {
+                structure.Shareholders.Add(new Shareholder
+                {
+                    Name = name,
+                    SharePercentage = percentage
+                });
+            }
+        }
+
+        return structure.Shareholders.Count > 0;
     }
 
     private static DiagramDataResult ParseDiagramData(string html)
