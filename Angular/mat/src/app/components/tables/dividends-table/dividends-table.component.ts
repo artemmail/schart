@@ -4,7 +4,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { Chart } from 'chart.js/auto';
 
-import { map, Observable } from 'rxjs';
+import { firstValueFrom, map, Observable, shareReplay } from 'rxjs';
 import { StockData } from 'src/app/models/fundamental.model';
 import {  DataService } from 'src/app/service/companydata.service';
 
@@ -24,16 +24,16 @@ export class DividendsTableComponent implements OnInit, AfterViewInit, OnDestroy
   private chart: Chart;
 
   displayedColumns: string[] = ['buyBefore', 'recordDate', 'dividend', 'yield'];
-  dataSource$: Observable<StockData | undefined>;
-  data: StockData;
+  dataSource$: Observable<StockData>;
+  data: StockData = { Ticker: '', Title: '', Description: '', Dividends: [] };
 
   constructor(private DataService: DataService) {}
 
   async ngOnInit(): Promise<void> {
     if (this.ticker) {
-      this.dataSource$ = this.DataService.getDividends(this.ticker);
-
-      this.data = await this.DataService.getDividends(this.ticker).toPromise();
+      const dividends$ = this.DataService.getDividends(this.ticker).pipe(shareReplay(1));
+      this.dataSource$ = dividends$;
+      this.data = await firstValueFrom(dividends$);
     }
   }
 

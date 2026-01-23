@@ -48,6 +48,9 @@ switch (options.Mode)
     case AppMode.Finam:
         RunFinam(options);
         break;
+    case AppMode.Dividends:
+        await RunDividendsAsync(service, options);
+        break;
 }
 
 static void ApplyDefaults(CliOptions options)
@@ -196,6 +199,36 @@ static void RunFinam(CliOptions options)
         foreach (var failure in result.FailedFiles)
         {
             Console.WriteLine($"  {failure}");
+        }
+    }
+}
+
+static async Task RunDividendsAsync(FinancialDataService service, CliOptions options)
+{
+    var errors = new List<string>();
+
+    foreach (var ticker in options.Tickers)
+    {
+        try
+        {
+            var page = await service.FetchFinamDividendsAsync(ticker);
+            var outputPath = Path.Combine(options.OutputRoot, ticker, "dividends.json");
+            WriteJson(outputPath, page);
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"{ticker}: {ex.Message}");
+        }
+
+        await Task.Delay(options.SleepMs);
+    }
+
+    if (errors.Count > 0)
+    {
+        Console.WriteLine("Ошибки:");
+        foreach (var error in errors)
+        {
+            Console.WriteLine($"  {error}");
         }
     }
 }

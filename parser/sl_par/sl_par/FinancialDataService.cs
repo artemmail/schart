@@ -147,6 +147,33 @@ public class FinancialDataService
     }
 
     /// <summary>
+    /// Downloads and parses Finam dividends page for a ticker.
+    /// </summary>
+    public async Task<FinamDividendsPage> FetchFinamDividendsAsync(string ticker)
+    {
+        var normalizedTicker = ticker?.Trim().ToLowerInvariant() ?? string.Empty;
+        var url = $"https://www.finam.ru/quote/moex/{normalizedTicker}/dividends/";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.TryAddWithoutValidation(
+            "User-Agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36");
+
+        using var response = await _httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var html = await response.Content.ReadAsStringAsync();
+
+        var parser = new FinamDividendsParser();
+        if (!parser.TryParseHtml(html, normalizedTicker, out var page, out var error))
+        {
+            throw new Exception(error);
+        }
+
+        return page;
+    }
+
+    /// <summary>
     /// Downloads and parses year/quarter diagram data for an indicator.
     /// </summary>
     public async Task<DiagramDataResult> FetchDiagramDataAsync(string companyId, string indicator, string reportType)

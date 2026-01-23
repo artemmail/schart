@@ -103,6 +103,11 @@ public static class CliParser
                     options.FinamTableIndex = ReadIntValue(args, ref i, token, result);
                     if (result.Error != null) return result;
                     break;
+                case "--dividends-output":
+                case "--div-output":
+                    options.OutputRoot = ReadValue(args, ref i, token, result);
+                    if (result.Error != null) return result;
+                    break;
                 default:
                     result.Error = $"Неизвестный аргумент: {token}";
                     return result;
@@ -209,6 +214,14 @@ public static class CliParser
                 return true;
             case "finam":
                 mode = AppMode.Finam;
+                return true;
+            case "dividends":
+            case "dividend":
+            case "divs":
+            case "div":
+            case "finam-dividends":
+            case "finamdividends":
+                mode = AppMode.Dividends;
                 return true;
             default:
                 mode = default;

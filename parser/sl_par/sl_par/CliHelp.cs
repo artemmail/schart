@@ -16,6 +16,7 @@ public static class CliHelp
         Console.WriteLine("  shareholders     Скачивание структуры акционеров.");
         Console.WriteLine("  logos            Скачивание логотипов компаний.");
         Console.WriteLine("  finam            Разбор локальных HTML-файлов Finam.");
+        Console.WriteLine("  dividends        Разбор локальных HTML-дивидендов Finam.");
         Console.WriteLine();
         Console.WriteLine("Общие параметры:");
         Console.WriteLine("  --tickers SBER,GAZP     Список тикеров через запятую (по умолчанию все).");
@@ -55,6 +56,9 @@ public static class CliHelp
             Console.WriteLine("  --finam-legend C:\\log\\legend.json Путь к легенде.");
             Console.WriteLine("  --finam-table 0         Индекс таблицы.");
             Console.WriteLine();
+            Console.WriteLine("Параметры режима dividends:");
+            Console.WriteLine("  --output C:\\zip         Корневая папка вывода.");
+            Console.WriteLine();
         }
 
         Console.WriteLine("Примеры:");
@@ -62,6 +66,7 @@ public static class CliHelp
         Console.WriteLine("  sl_par diagrams --tickers SBER --report RSBU --dic-root C:\\stock\\...\\shares");
         Console.WriteLine("  sl_par logos --tickers SBER --format svg --logos-output C:\\log");
         Console.WriteLine("  sl_par finam --finam-input C:\\log\\financial --finam-output C:\\log\\fin");
+        Console.WriteLine("  sl_par dividends --tickers SBER,GAZP --output C:\\zip");
     }
 
     private static void PrintModeHelp(AppMode mode)
@@ -102,6 +107,11 @@ public static class CliHelp
                 Console.WriteLine("  --finam-output C:\\log\\fin        Папка вывода.");
                 Console.WriteLine("  --finam-legend C:\\log\\legend.json Путь к легенде.");
                 Console.WriteLine("  --finam-table 0         Индекс таблицы.");
+                Console.WriteLine();
+                break;
+            case AppMode.Dividends:
+                Console.WriteLine("Параметры режима dividends:");
+                Console.WriteLine("  --output C:\\zip         Корневая папка вывода.");
                 Console.WriteLine();
                 break;
         }

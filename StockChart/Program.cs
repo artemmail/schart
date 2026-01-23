@@ -76,6 +76,7 @@ builder.Services.AddScoped<IUsersRepository, UsersRepository>();
 builder.Services.AddScoped<ISettingsRepository, SettingsRepository>();
 builder.Services.AddScoped<IFootprintFavoritesRepository, FootprintFavoritesRepository>();
 builder.Services.AddScoped<IFootprintLevelMarksRepository, FootprintLevelMarksRepository>();
+builder.Services.AddScoped<IDividendsMoexService, DividendsMoexService>();
 
 builder.Services.AddScoped<IReportsRepository, ReportsRepository>();
 builder.Services.AddScoped<IBillingRepository, BillingRepository>();
@@ -151,6 +152,7 @@ builder.Services.AddSignalR();
 builder.Services.AddHostedService<TimedHostedService>();
 builder.Services.AddHostedService<YooMoneyHostedService>();
 builder.Services.AddHostedService<NightlyFunctionHostedService>();
+builder.Services.AddHostedService<DividendsMoexHostedService>();
 
 
 

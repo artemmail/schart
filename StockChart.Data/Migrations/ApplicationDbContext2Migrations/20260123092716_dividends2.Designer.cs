@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StockChart.Model;
 
 #nullable disable
 
-namespace StockChart.Migrations.ApplicationDbContext2Migrations
+namespace StockChart.Data.Migrations.ApplicationDbContext2Migrations
 {
     [DbContext(typeof(ApplicationDbContext2))]
-    partial class ApplicationDbContext2ModelSnapshot : ModelSnapshot
+    [Migration("20260123092716_dividends2")]
+    partial class dividends2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -556,52 +559,6 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.ToTable("Dictionary");
                 });
 
-            modelBuilder.Entity("StockChart.Model.DividendsMoex", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Datetime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DictionaryId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Value")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DictionaryId");
-
-                    b.ToTable("DividendsMoex");
-                });
-
-            modelBuilder.Entity("StockChart.Model.DividendsMoexUpdateLog", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Failed")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Succ")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("DividendsMoexUpdateLogs");
-                });
-
             modelBuilder.Entity("StockChart.Model.FileEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1105,17 +1062,6 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.Navigation("Class");
 
                     b.Navigation("MarketNavigation");
-                });
-
-            modelBuilder.Entity("StockChart.Model.DividendsMoex", b =>
-                {
-                    b.HasOne("StockChart.Model.Dictionary", "Dictionary")
-                        .WithMany()
-                        .HasForeignKey("DictionaryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Dictionary");
                 });
 
             modelBuilder.Entity("StockChart.Model.FileEntity", b =>

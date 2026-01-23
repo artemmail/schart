@@ -9,7 +9,8 @@ public enum AppMode
     Diagrams,
     Shareholders,
     Logos,
-    Finam
+    Finam,
+    Dividends
 }
 
 /// <summary>

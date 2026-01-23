@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StockChart.Model;
 
 #nullable disable
 
-namespace StockChart.Migrations.ApplicationDbContext2Migrations
+namespace StockChart.Data.Migrations.ApplicationDbContext2Migrations
 {
     [DbContext(typeof(ApplicationDbContext2))]
-    partial class ApplicationDbContext2ModelSnapshot : ModelSnapshot
+    [Migration("20260123101751_dividends4")]
+    partial class dividends4
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -567,7 +570,7 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.Property<DateTime>("Datetime")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("DictionaryId")
+                    b.Property<int?>("DictionaryId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Value")
@@ -588,6 +591,9 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("DictionaryId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Failed")
                         .HasColumnType("nvarchar(max)");
 
@@ -598,6 +604,8 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DictionaryId");
 
                     b.ToTable("DividendsMoexUpdateLogs");
                 });
@@ -1111,9 +1119,16 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                 {
                     b.HasOne("StockChart.Model.Dictionary", "Dictionary")
                         .WithMany()
-                        .HasForeignKey("DictionaryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("DictionaryId");
+
+                    b.Navigation("Dictionary");
+                });
+
+            modelBuilder.Entity("StockChart.Model.DividendsMoexUpdateLog", b =>
+                {
+                    b.HasOne("StockChart.Model.Dictionary", "Dictionary")
+                        .WithMany()
+                        .HasForeignKey("DictionaryId");
 
                     b.Navigation("Dictionary");
                 });

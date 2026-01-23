@@ -88,6 +88,10 @@ public class ApplicationDbContext2
     public virtual DbSet<FootprintFavorite> FootprintFavorites { get; set; }
     public virtual DbSet<FootprintLevelMark> FootprintLevelMarks { get; set; }
 
+    public virtual DbSet<DividendsMoex> DividendsMoex { get; set; }
+    public virtual DbSet<DividendsMoexUpdateLog> DividendsMoexUpdateLogs { get; set; }
+
+
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -183,7 +187,7 @@ public partial class ApplicationDbContext : ApplicationDbContext2
 
     public virtual DbSet<DiconaryGlu> DiconaryGlus { get; set; }
     public virtual DbSet<Dictionary> Dictionaries { get; set; }
-
+    
     public virtual DbSet<GlobalDicExt> GlobalDicExts { get; set; }
     public virtual DbSet<Lot> Lots { get; set; }
     public virtual DbSet<Market> Markets { get; set; }
@@ -498,6 +502,26 @@ public partial class ApplicationDbContext : ApplicationDbContext2
             entity.HasOne(d => d.MarketNavigation).WithMany(p => p.Dictionaries)
                 .HasForeignKey(d => d.Market)
                 .HasConstraintName("FK__Dictionar__Marke__0CD0C267");
+        });
+
+        modelBuilder.Entity<DividendsMoex>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("DividendsMoex");
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.Datetime).HasColumnType("datetime2");
+            entity.Property(e => e.Value).HasColumnType("decimal(18, 2)");
+            entity.HasIndex(e => e.DictionaryId);
+            entity.HasOne(d => d.Dictionary).WithMany()
+                .HasForeignKey(d => d.DictionaryId)
+                .HasConstraintName("FK_DividendsMoex_Dictionary");
+        });
+
+        modelBuilder.Entity<DividendsMoexUpdateLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("DividendsMoexUpdateLogs");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
         });
 
         modelBuilder.Entity<Lot>(entity =>

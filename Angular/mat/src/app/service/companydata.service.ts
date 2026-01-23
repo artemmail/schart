@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, forkJoin, of } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { stat_dic } from '../data/companyinfo';
 import { DataItem, FilteredDataItem, FilteredDataResult, OpenPosition, Recommendation, ShareholdersStructure, StockData } from '../models/fundamental.model';
 import { environment } from '../environment';
@@ -16,7 +16,6 @@ export class DataService {
   private apiUrl = `${environment.apiUrl}/api/common`; // Замените на фактический URL вашего API
 
 
-  private dataUrl = 'assets/dividends.json';
   private shareholdersUrl = 'assets/ShareholdersStructure.json'; // Добавим URL для нового файла
 
   constructor(private http: HttpClient) { }
@@ -117,12 +116,17 @@ export class DataService {
     );
   }
   // Метод для получения данных о дивидендах
-  getDividends(ticker: string): Observable<StockData | undefined> {
-    return this.http.get<StockData[]>(this.dataUrl).pipe(
-      map(data => {
-        const stock = data.find(item => item.Ticker === ticker);
-        return stock;
-      })
+  getDividends(ticker: string): Observable<StockData> {
+    const safeTicker = (ticker || '').trim();
+    return this.http.get<StockData>(`${environment.apiUrl}/api/dividends/${safeTicker}`).pipe(
+      catchError(() =>
+        of({
+          Ticker: safeTicker || '',
+          Title: `Дивиденды ${safeTicker || ''}`.trim(),
+          Description: 'нет информации',
+          Dividends: []
+        })
+      )
     );
   }
   // Метод для получения структуры акционеров
