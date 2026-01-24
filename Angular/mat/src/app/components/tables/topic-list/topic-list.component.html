@@ -65,6 +65,9 @@
     <div infiniteScroll
          [infiniteScrollDistance]="2"
          [infiniteScrollThrottle]="300"
+         [scrollWindow]="false"
+         [infiniteScrollContainer]="'.main-content'"
+         [fromRoot]="true"
          (scrolled)="onScrollDown()">
       <mat-spinner *ngIf="loading"></mat-spinner>
     </div>
