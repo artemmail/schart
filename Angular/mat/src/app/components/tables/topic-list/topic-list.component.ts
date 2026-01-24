@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit } from '@angular/core';
 import { NewsService } from 'src/app/service/news.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MaterialModule } from 'src/app/material.module';
@@ -11,7 +11,7 @@ import { InfiniteScrollModule } from 'ngx-infinite-scroll';
   templateUrl: './topic-list.component.html',
   styleUrls: ['./topic-list.component.css'],
 })
-export class TopicListComponent implements OnInit {
+export class TopicListComponent implements OnInit, AfterViewInit {
   topics: Array<{
     header: string, 
     text: SafeHtml, 
@@ -25,6 +25,9 @@ export class TopicListComponent implements OnInit {
   loading: boolean = false;
   page: number = 1; // текущая страница
   pageSize: number = 5; // количество тем за один запрос
+  scrollWindow = true;
+  scrollContainer: string | null = null;
+  fromRoot = false;
 
   constructor(
     private newsService: NewsService,
@@ -32,7 +35,12 @@ export class TopicListComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.configureScrollContainer();
     this.loadTopics();
+  }
+  
+  ngAfterViewInit(): void {
+    this.configureScrollContainer();
   }
 
   loadTopics(): void {
@@ -80,5 +88,23 @@ export class TopicListComponent implements OnInit {
   onScrollDown(): void {
     this.page++;
     this.loadTopics();
+  }
+
+  private configureScrollContainer(): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+      this.scrollWindow = false;
+      this.scrollContainer = '.main-content';
+      this.fromRoot = true;
+      return;
+    }
+
+    this.scrollWindow = true;
+    this.scrollContainer = null;
+    this.fromRoot = false;
   }
 }
