@@ -2,13 +2,14 @@ import { Component, OnInit } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { STOCK_TICKERS } from 'src/app/data/companyinfo';
+import { MatCardModule } from '@angular/material/card';
 import { ShareholdersChartComponent } from '../../tables/shareholders-chart/shareholders-chart.component';
 
 
 @Component({
   standalone: true,
   selector: 'app-shareholders',
-  imports: [ShareholdersChartComponent],
+  imports: [MatCardModule, ShareholdersChartComponent],
   templateUrl: './shareholders.component.html',
   styleUrls: ['./shareholders.component.css']
 })

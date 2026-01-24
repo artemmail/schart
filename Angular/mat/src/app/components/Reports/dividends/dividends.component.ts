@@ -2,13 +2,14 @@ import { Component, OnInit } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { STOCK_TICKERS, TICK_DESCR } from 'src/app/data/companyinfo';
+import { MatCardModule } from '@angular/material/card';
 import { DividendsTableComponent } from '../../tables/dividends-table/dividends-table.component';
 import { ShareholdersChartComponent } from '../../tables/shareholders-chart/shareholders-chart.component';
 
 @Component({
   standalone: true,
   selector: 'app-dividends',
-  imports: [DividendsTableComponent, ShareholdersChartComponent],
+  imports: [MatCardModule, DividendsTableComponent, ShareholdersChartComponent],
   templateUrl: './dividends.component.html',
   styleUrls: ['./dividends.component.css']
 })

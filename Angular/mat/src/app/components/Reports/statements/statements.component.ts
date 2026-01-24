@@ -4,6 +4,7 @@ import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatCardModule } from '@angular/material/card';
 import { STOCK_TICKERS } from 'src/app/data/companyinfo';
 import { RecommendationListComponent } from '../recommendation-list/recommendation-list.component';
 import { CompanyTableComponent } from '../../tables/company-table/company-table.component';
@@ -18,6 +19,7 @@ import { DividendsTableComponent } from '../../tables/dividends-table/dividends-
     RouterModule,
     MatIconModule,
     MatTabsModule,
+    MatCardModule,
     RecommendationListComponent,
     CompanyTableComponent,
     DividendsTableComponent,
