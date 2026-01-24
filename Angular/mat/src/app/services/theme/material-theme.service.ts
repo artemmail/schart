@@ -55,6 +55,10 @@ export class MaterialThemeService {
     docEl.style.colorScheme = '';
   }
 
+  getStoredPreset(): ThemePreset | null {
+    return this.readStoredPreset();
+  }
+
   private persistPreset(preset: ThemePreset): void {
     const storage = this.getStorage();
     if (!storage) return;

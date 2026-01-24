@@ -208,7 +208,7 @@ export class FootPrintSettingsDialogComponent {
 
   onThemePresetChange(preset: string) {
     if (!this.fp) return;
-    this.fp.applyThemePreset(preset);
+    this.fp.applyThemePreset(preset, true);
     this.save();
   }
 

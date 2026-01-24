@@ -228,15 +228,21 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.data.setOiDeltaDivideBy2(!!this.FPsettings.OIDeltaDivideBy2);
   }
 
-  applyThemePreset(presetName?: string | null): void {
+  applyThemePreset(presetName?: string | null, force = false): void {
     const normalized =
       typeof presetName === 'string' && presetName.trim()
         ? presetName.trim()
         : DEFAULT_THEME_PRESET;
-    const preset: ThemePreset = normalized === 'Dark' ? 'Dark' : 'Light';
+    const explicitPreset: ThemePreset = normalized === 'Dark' ? 'Dark' : 'Light';
+    const storedPreset = this.materialThemeService.getStoredPreset();
+    const preset: ThemePreset = force
+      ? explicitPreset
+      : storedPreset ?? DEFAULT_THEME_PRESET;
+
     this.materialThemeService.applyPreset(preset);
-    if (this.themePreset === preset) {
-      return;
+    const currentSettings = this.state.snapshot.settings;
+    if (currentSettings && currentSettings.ThemePreset !== preset) {
+      this.state.setSettings({ ...currentSettings, ThemePreset: preset });
     }
     this.themePreset = preset;
     const hostEl = this.hostRef?.nativeElement;
