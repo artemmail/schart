@@ -451,17 +451,7 @@ export class ViewsManager {
   alignCanvas() {
     var canvas = this.footprint.canvasRef?.nativeElement;
     if (!canvas) return;
-
-    let container: HTMLElement | null = canvas.parentElement;
-
-    while (container) {
-      const rect = container.getBoundingClientRect();
-      if (rect.height > 0 && rect.width > 0) {
-        break;
-      }
-      container = container.parentElement;
-    }
-
+    const container = this.resolveCanvasContainer(canvas);
     if (!container) return;
 
     const containerRect = container.getBoundingClientRect();
@@ -490,9 +480,13 @@ export class ViewsManager {
     if (!this.footprint.data) return;
   
     var canvas = this.footprint.canvasRef?.nativeElement;
-    const container = canvas.parentNode.parentNode;
+    if (!canvas) {
+      return;
+    }
+
+    const container = this.resolveCanvasContainer(canvas);
   
-    if (canvas && container) {
+    if (container) {
       // Получаем размеры контейнера
       
       const containerRect = container.getBoundingClientRect();
@@ -532,6 +526,20 @@ export class ViewsManager {
       );
       this.drawClusterView();
     }
+  }
+
+  private resolveCanvasContainer(canvas: HTMLCanvasElement): HTMLElement | null {
+    let container: HTMLElement | null = canvas.parentElement;
+
+    while (container) {
+      const rect = container.getBoundingClientRect();
+      if (rect.height > 0 && rect.width > 0) {
+        return container;
+      }
+      container = container.parentElement;
+    }
+
+    return null;
   }
   
   

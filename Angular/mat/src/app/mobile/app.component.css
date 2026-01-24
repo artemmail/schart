@@ -1,6 +1,7 @@
 /* Обеспечиваем, чтобы mat-sidenav-container занимал всю высоту */
 .sidenav-container {
-  height: 100%;
+  height: var(--app-vh, 100vh);
+  min-height: var(--app-vh, 100vh);
   display: flex;
   flex-direction: column;
 }
@@ -15,18 +16,22 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
+  gap: 0;
 }
 
 /* Заголовок имеет фиксированную высоту */
 app-header {
-  flex: 0 0 60px; /* Настройте высоту заголовка по необходимости */
+  flex: 0 0 auto;
 }
 
 /* Основной контент занимает оставшееся пространство */
 .main-content {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
+  padding: 0;
 }
 
 /* Стили для элементов навигации */

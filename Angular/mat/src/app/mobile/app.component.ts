@@ -1,4 +1,4 @@
-import { Component, ViewChild, AfterViewInit, OnInit, Inject, ElementRef } from '@angular/core';
+import { Component, ViewChild, AfterViewInit, OnInit, OnDestroy, Inject, ElementRef } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { isPlatformServer } from '@angular/common';
 import { filter } from 'rxjs/operators';
@@ -30,7 +30,17 @@ const METRIKA_ID = 16829734;
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-export class AppMobileComponent implements AfterViewInit, OnInit {
+export class AppMobileComponent implements AfterViewInit, OnInit, OnDestroy {
+
+  private readonly isBrowser: boolean;
+  private visualViewport?: VisualViewport;
+  private readonly windowResizeHandler = () => {
+    this.updateViewportVars();
+  };
+  private readonly viewportResizeHandler = () => {
+    this.updateViewportVars();
+    window.dispatchEvent(new Event('resize'));
+  };
 
   isSignedIn: boolean = false;
   user: ApplicationUser | null = null;
@@ -46,8 +56,9 @@ export class AppMobileComponent implements AfterViewInit, OnInit {
     @Inject(PLATFORM_ID) private platformId: Object,
     private materialThemeService: MaterialThemeService
   ) {
+    this.isBrowser = !isPlatformServer(this.platformId);
     // SSR: на сервере метрику/роутер-ивенты не трогаем
-    if (isPlatformServer(this.platformId)) {
+    if (!this.isBrowser) {
       return;
     }
 
@@ -72,11 +83,17 @@ export class AppMobileComponent implements AfterViewInit, OnInit {
   }
 
   ngAfterViewInit() {
+    if (!this.isBrowser) {
+      return;
+    }
+
     this.sidenav.openedChange.subscribe(() => this.triggerResizeEvent());
 
     // Hammer для свайпа
     const hammer = new Hammer(this.sidenavElement.nativeElement);
     hammer.on('panleft', this.onPanStart);
+
+    this.setupViewportListeners();
   }
 
   triggerResizeEvent() {
@@ -90,7 +107,8 @@ export class AppMobileComponent implements AfterViewInit, OnInit {
   }
 
   ngOnInit(): void {
-    if (!isPlatformServer(this.platformId)) {
+    if (this.isBrowser) {
+      this.updateViewportVars();
       this.materialThemeService.initializeFromStorage();
     }
     this.isSignedIn = this.authService.isAuthenticated();
@@ -109,5 +127,46 @@ export class AppMobileComponent implements AfterViewInit, OnInit {
         this.user = null;
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    if (!this.isBrowser) {
+      return;
+    }
+
+    window.removeEventListener('resize', this.windowResizeHandler);
+    window.removeEventListener('orientationchange', this.windowResizeHandler);
+    if (this.visualViewport) {
+      this.visualViewport.removeEventListener('resize', this.viewportResizeHandler);
+      this.visualViewport.removeEventListener('scroll', this.viewportResizeHandler);
+    }
+  }
+
+  private setupViewportListeners(): void {
+    if (!this.isBrowser) {
+      return;
+    }
+
+    this.updateViewportVars();
+    window.addEventListener('resize', this.windowResizeHandler);
+    window.addEventListener('orientationchange', this.windowResizeHandler);
+
+    this.visualViewport = window.visualViewport ?? undefined;
+    if (this.visualViewport) {
+      this.visualViewport.addEventListener('resize', this.viewportResizeHandler);
+      this.visualViewport.addEventListener('scroll', this.viewportResizeHandler);
+    }
+  }
+
+  private updateViewportVars(): void {
+    if (!this.isBrowser) {
+      return;
+    }
+
+    const height = window.visualViewport?.height ?? window.innerHeight;
+    document.documentElement.style.setProperty(
+      '--app-vh',
+      `${Math.round(height)}px`
+    );
   }
 }

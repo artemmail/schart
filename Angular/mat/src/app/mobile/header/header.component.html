@@ -10,7 +10,17 @@
 
   <span class="spacer"></span>
 
-  <button *ngIf="showSettingsButton" mat-icon-button (click)="openSettings()">
-    <mat-icon>settings</mat-icon>
-  </button>
+  <span class="right-actions">
+    <button
+      *ngIf="showSettingsButton && fullscreenSupported"
+      mat-icon-button
+      (click)="toggleFullscreen()"
+      [attr.aria-label]="isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
+    >
+      <mat-icon>{{ isFullscreen ? 'fullscreen_exit' : 'fullscreen' }}</mat-icon>
+    </button>
+    <button *ngIf="showSettingsButton" mat-icon-button (click)="openSettings()">
+      <mat-icon>settings</mat-icon>
+    </button>
+  </span>
 </mat-toolbar>

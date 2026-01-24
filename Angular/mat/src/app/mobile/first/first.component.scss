@@ -1,3 +1,9 @@
+app-first1 {
+  display: block;
+  height: 100%;
+  min-height: 0;
+}
+
 .sidenav-container {
   height: 100%;
 }
@@ -24,19 +30,23 @@
 }
 
 .content {
-  height: calc(100vh - 64px);
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
 .mat-nav-list {
-  height: calc(100vh - 64px);
+  height: 100%;
+  min-height: 0;
   overflow: auto;
 }
 
 .sidenav-content {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
 }
 
 .nav-item {
@@ -131,6 +141,8 @@ html, body, #container {
 
 #container {
   display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
   justify-content: center;
   align-items: center;
 }
@@ -139,7 +151,7 @@ html, body, #container {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  height: var(--app-vh, 100vh);
 }
 
 .form-container {
