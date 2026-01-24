@@ -10,6 +10,7 @@ import {
   getVolumeHeightDefaults,
   normalizeVolumeHeights,
 } from '../models/volume-heights';
+import { DEFAULT_THEME_PRESET, ThemePreset } from '../services/theme/theme.model';
 
 @Injectable({
   providedIn: 'root',
@@ -95,7 +96,7 @@ export class ChartSettingsService {
       MaxTrades: false,
       Default: false,
       Name: 'Свечи мини',
-      ThemePreset: storedTheme ?? 'Light',
+      ThemePreset: storedTheme ?? DEFAULT_THEME_PRESET,
       VolumesHeight: { ...MINI_VOLUME_HEIGHTS },
       DeltaGraph: false,
       DialogPositions: {},
@@ -106,7 +107,7 @@ export class ChartSettingsService {
 
   static DefaultSettings(): ChartSettings {
     const storedTheme = ChartSettingsService.getStoredThemePreset();
-    return {
+  return {
   VolumesHeight: { ...DEFAULT_VOLUME_HEIGHTS },
   Default: false,
   CandlesOnly: false,
@@ -136,7 +137,7 @@ export class ChartSettingsService {
   volume2: 0,
   MaxTrades: false,
   Name: '',
-  ThemePreset: storedTheme ?? 'Light',
+  ThemePreset: storedTheme ?? DEFAULT_THEME_PRESET,
 
   DeltaGraph: false,
   DialogPositions: {},
@@ -154,7 +155,7 @@ export class ChartSettingsService {
         : null;
     return {
       ...settings,
-      ThemePreset: storedTheme ?? settingsTheme ?? 'Light',
+      ThemePreset: storedTheme ?? settingsTheme ?? DEFAULT_THEME_PRESET,
       OIDeltaDivideBy2: settings.OIDeltaDivideBy2 ?? false,
       VolumesHeight: normalizeVolumeHeights(settings.VolumesHeight, defaults),
       Indicators: settings.Indicators ?? [],
@@ -162,7 +163,7 @@ export class ChartSettingsService {
     };
   }
 
-  private static getStoredThemePreset(): 'Light' | 'Dark' | null {
+  private static getStoredThemePreset(): ThemePreset | null {
     try {
       const storage = typeof window !== 'undefined' ? window.localStorage : null;
       const value = storage?.getItem('uiThemePreset');

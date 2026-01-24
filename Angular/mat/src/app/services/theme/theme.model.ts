@@ -38,6 +38,10 @@ export type StockChartTheme = Partial<{
 
 export type StockChartPalette = Required<StockChartTheme>;
 
+export type ThemePreset = 'Light' | 'Dark';
+
+export const DEFAULT_THEME_PRESET: ThemePreset = 'Dark';
+
 export const STOCK_CHART_DEFAULT_PALETTE: StockChartPalette = {
   bg: '#ffffff',
   grid: '#888888',

@@ -41,6 +41,8 @@ import { MaterialThemeService } from 'src/app/services/theme/material-theme.serv
 import {
   StockChartPalette,
   STOCK_CHART_DEFAULT_PALETTE,
+  DEFAULT_THEME_PRESET,
+  ThemePreset,
 } from 'src/app/services/theme/theme.model';
 
 @Component({
@@ -68,7 +70,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   private _canvas: HTMLCanvasElement | null = this.canvasRef?.nativeElement;
   private _ctx: CanvasRenderingContext2D | null = null;
   private themeSubscription?: Subscription;
-  private themePreset: string = 'Light';
+  private themePreset: ThemePreset = DEFAULT_THEME_PRESET;
 
   palette: StockChartPalette = { ...STOCK_CHART_DEFAULT_PALETTE };
   animButtonState = {
@@ -227,10 +229,11 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   applyThemePreset(presetName?: string | null): void {
-    const preset =
+    const normalized =
       typeof presetName === 'string' && presetName.trim()
         ? presetName.trim()
-        : 'Light';
+        : DEFAULT_THEME_PRESET;
+    const preset: ThemePreset = normalized === 'Dark' ? 'Dark' : 'Light';
     this.materialThemeService.applyPreset(preset);
     if (this.themePreset === preset) {
       return;

@@ -16,7 +16,12 @@ import { TickerAutocompleteComponent } from '../../Controls/ticker-autocomplete/
 import { ReportsService } from 'src/app/service/reports.service';
 import { MaterialModule } from 'src/app/material.module';
 import { ColorSchemeService } from 'src/app/services/theme/color-scheme.service';
-import { StockChartPalette, STOCK_CHART_DEFAULT_PALETTE } from 'src/app/services/theme/theme.model';
+import {
+  DEFAULT_THEME_PRESET,
+  StockChartPalette,
+  STOCK_CHART_DEFAULT_PALETTE,
+  ThemePreset,
+} from 'src/app/services/theme/theme.model';
 import { FootprintWidgetComponent } from 'src/app/components/footprint/components/footprint-widget/footprint-widget.component';
 import { FootPrintParameters } from 'src/app/models/Params';
 
@@ -37,7 +42,7 @@ export class SeasonalityComponent implements OnInit, AfterViewInit, OnDestroy {
   palette: StockChartPalette = { ...STOCK_CHART_DEFAULT_PALETTE };
 
   private chartData: any[] | null = null;
-  private themePreset: 'Light' | 'Dark' = 'Light';
+  private themePreset: ThemePreset = DEFAULT_THEME_PRESET;
   private themeObserver?: MutationObserver;
   private tooltipCmp?: ComponentRef<FootprintWidgetComponent>;
   private showTimer: any = null;
@@ -214,7 +219,7 @@ export class SeasonalityComponent implements OnInit, AfterViewInit, OnDestroy {
     this.themeObserver.observe(docEl, { attributes: true, attributeFilter: ['class'] });
   }
 
-  private readThemePreset(): 'Light' | 'Dark' {
+  private readThemePreset(): ThemePreset {
     try {
       const stored = window.localStorage.getItem('uiThemePreset');
       if (stored === 'Dark' || stored === 'Light') {
@@ -227,7 +232,7 @@ export class SeasonalityComponent implements OnInit, AfterViewInit, OnDestroy {
     if (doc?.documentElement?.classList.contains('mat-dark-theme') || doc?.body?.classList.contains('mat-dark-theme')) {
       return 'Dark';
     }
-    return 'Light';
+    return DEFAULT_THEME_PRESET;
   }
 
   private toRgba(color: string, alpha: number): string {

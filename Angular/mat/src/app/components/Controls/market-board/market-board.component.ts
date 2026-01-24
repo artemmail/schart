@@ -21,6 +21,7 @@ import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
 import { FootprintWidgetComponent } from 'src/app/components/footprint/components/footprint-widget/footprint-widget.component';
 import { ColorSchemeService } from 'src/app/services/theme/color-scheme.service';
 import { blendOverlayWithBase, resolvePanelBackgroundColor } from 'src/app/utils/color-utils';
+import { DEFAULT_THEME_PRESET, ThemePreset } from 'src/app/services/theme/theme.model';
 
 @Component({
   standalone: true,
@@ -52,7 +53,7 @@ export class MarketBoardComponent implements OnDestroy, AfterViewInit {
   private tooltipCmp?: ComponentRef<FootprintWidgetComponent>;
   private showTimer: any = null;
   private hideTimer: any = null;
-  private themePreset: 'Light' | 'Dark' = 'Light';
+  private themePreset: ThemePreset = DEFAULT_THEME_PRESET;
   private themeObserver?: MutationObserver;
   private basePanelColor = '#ffffff';
 
@@ -351,7 +352,7 @@ export class MarketBoardComponent implements OnDestroy, AfterViewInit {
     this.themeObserver.observe(docEl, { attributes: true, attributeFilter: ['class'] });
   }
 
-  private readThemePreset(): 'Light' | 'Dark' {
+  private readThemePreset(): ThemePreset {
     try {
       const stored = window.localStorage.getItem('uiThemePreset');
       if (stored === 'Dark' || stored === 'Light') {
@@ -364,7 +365,7 @@ export class MarketBoardComponent implements OnDestroy, AfterViewInit {
     if (doc?.documentElement?.classList.contains('mat-dark-theme') || doc?.body?.classList.contains('mat-dark-theme')) {
       return 'Dark';
     }
-    return 'Light';
+    return DEFAULT_THEME_PRESET;
   }
 }
 

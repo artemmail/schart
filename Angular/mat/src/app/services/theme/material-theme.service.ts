@@ -1,5 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { Inject, Injectable } from '@angular/core';
+import { DEFAULT_THEME_PRESET, ThemePreset } from './theme.model';
 
 @Injectable({
   providedIn: 'root',
@@ -8,22 +9,20 @@ export class MaterialThemeService {
   private readonly darkThemeId = 'material-dark-theme';
   private readonly darkThemeHref = 'assets/material-themes/magenta-violet.css';
   private readonly storageKey = 'uiThemePreset';
+  private readonly defaultPreset: ThemePreset = DEFAULT_THEME_PRESET;
   private isDark = false;
 
   constructor(@Inject(DOCUMENT) private document: Document) {}
 
   initializeFromStorage(): void {
-    const stored = this.readStoredPreset();
-    if (stored) {
-      this.setDarkMode(stored === 'Dark');
-    }
+    this.applyPreset(this.readStoredPreset());
   }
 
   applyPreset(presetName?: string | null): void {
     const normalized =
       typeof presetName === 'string' && presetName.trim()
         ? presetName.trim()
-        : 'Light';
+        : this.defaultPreset;
     const preset = normalized === 'Dark' ? 'Dark' : 'Light';
     this.persistPreset(preset);
     this.setDarkMode(preset === 'Dark');
@@ -56,7 +55,7 @@ export class MaterialThemeService {
     docEl.style.colorScheme = '';
   }
 
-  private persistPreset(preset: 'Light' | 'Dark'): void {
+  private persistPreset(preset: ThemePreset): void {
     const storage = this.getStorage();
     if (!storage) return;
     try {
@@ -66,7 +65,7 @@ export class MaterialThemeService {
     }
   }
 
-  private readStoredPreset(): 'Light' | 'Dark' | null {
+  private readStoredPreset(): ThemePreset | null {
     const storage = this.getStorage();
     if (!storage) return null;
     try {
