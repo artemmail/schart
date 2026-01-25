@@ -11,6 +11,7 @@ import { ApplicationUser } from '../models/UserTopic';
 import { MaterialModule } from 'src/app/material.module';
 import { HeaderComponent } from './header/header.component';
 import { MaterialThemeService } from 'src/app/services/theme/material-theme.service';
+import { YandexAdvComponent } from 'src/app/components/ads/yandex-adv/yandex-adv.component';
 
 import * as Hammer from 'hammerjs';
 
@@ -26,7 +27,7 @@ const METRIKA_ID = 16829734;
 @Component({
   standalone: true,
   selector: 'angular-material-drawer',
-  imports: [MaterialModule, HeaderComponent],
+  imports: [MaterialModule, HeaderComponent, YandexAdvComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })

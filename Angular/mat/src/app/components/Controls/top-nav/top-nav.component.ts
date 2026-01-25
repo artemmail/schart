@@ -11,6 +11,7 @@ import { RouterModule } from '@angular/router';
 import { OpenSupportDialogDirective } from 'src/app/directives/open-support-dialog.directive';
 import { MatDialog } from '@angular/material/dialog';
 import { DialogService } from 'src/app/service/DialogService.service';
+import { YandexAdvComponent } from 'src/app/components/ads/yandex-adv/yandex-adv.component';
 import {
   FootprintFavorite,
   FootprintFavoritePayload,
@@ -44,7 +45,12 @@ type FirstComponentMethods =
 @Component({
   standalone: true,
   selector: 'app-top-nav',
-  imports: [MaterialModule, RouterModule, OpenSupportDialogDirective],
+  imports: [
+    MaterialModule,
+    RouterModule,
+    OpenSupportDialogDirective,
+    YandexAdvComponent,
+  ],
   templateUrl: './top-nav.component.html',
   styleUrls: ['./top-nav.component.scss'],
 })

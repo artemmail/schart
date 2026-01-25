@@ -1,4 +1,5 @@
 <div class="main-container">
+  <app-yandex-adv *ngIf="!isSignedIn"></app-yandex-adv>
   <mat-toolbar color="primary" class="mat-elevation-z1">
     <button *ngIf="isFootPrintSelected" class="btn-toggle" mat-icon-button id="menu" (click)="toggle()">
       <div class="wrapper-menu" [ngClass]="isDrawerOpened ? 'open' : 'close'">

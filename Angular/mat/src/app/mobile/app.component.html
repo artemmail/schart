@@ -46,6 +46,7 @@
     </mat-nav-list>
   </mat-sidenav>
   <mat-sidenav-content class="sidenav-content">
+    <app-yandex-adv *ngIf="!isSignedIn"></app-yandex-adv>
     <app-header (menuToggle)="drawer.toggle()"></app-header>
     <div class="main-content">
       <router-outlet></router-outlet>

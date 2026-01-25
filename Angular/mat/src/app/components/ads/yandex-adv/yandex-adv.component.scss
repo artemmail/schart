@@ -1,0 +1,16 @@
+:host {
+  display: block;
+}
+
+.yandex-adv {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+  background: var(--mat-sys-surface-container, #fafafa);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.yandex-adv > div {
+  width: 100%;
+  max-width: 1000px;
+}
