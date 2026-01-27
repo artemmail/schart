@@ -1,9 +1,36 @@
+.container {
+  width: 100%;
+  max-width: 1250px;
+  margin: 0 auto;
+}
+
+.blogblock {
+  border-style: solid;
+  border-color: var(--mat-sys-outline-variant, #ceced2);
+  margin-top: 12px;
+  display: block;
+  border-width: 1px;
+  background: var(--mat-sys-surface-container, #ffffff);
+  color: var(--mat-sys-on-surface, #1f1f1f);
+  padding: 10px;
+  box-sizing: border-box;
+}
+
 .table-container {
-    max-width: 1100px;
-    margin: 0 auto; /* Центрирование таблицы на странице */
-    overflow-x: auto; /* Позволяет горизонтальную прокрутку, если содержимое превышает 1100px */
-    background: #fff;
-    font-family: Roboto, "Helvetica Neue", sans-serif;
-    padding: 20px;
-  }
-  
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  overflow-x: auto;
+  background: transparent;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  padding: 0;
+}
+
+.canvas-container {
+  position: relative;
+  height: 40vh;
+}
+
+.canvas-spaced {
+  margin-top: 20px;
+}
