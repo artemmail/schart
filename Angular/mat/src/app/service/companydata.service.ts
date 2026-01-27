@@ -48,35 +48,17 @@ export class DataService {
 
     const useAssets = standart === 'MULT' || standart === 'FIN';
     const dataRequest = useAssets
-      ? this.http.get<DataItem[]>(`/assets/shares/${safeTicker}/${standart}/data.json`)
+      ? this.http.get<any[]>(`/assets/shares/${safeTicker}/${standart}/data.json`)
       : this.http.get<DataItem[]>(`${environment.apiUrl}/api/statements/${safeTicker}`, {
           params: { standart, period, mode: 'raw' }
         });
 
     return dataRequest.pipe(
       map(dataItems => {
-        return dataItems.map(item => {
-          const valueStr = item.value !== null && item.value !== undefined ? item.value.toString() : '';
-          // Проверка, является ли строка датой (формат dd.mm.yyyy)
-          const isDate = /^\d{2}\.\d{2}\.\d{4}$/.test(valueStr);
-
-          if (!isDate && valueStr) {
-            // Если это не дата, пытаемся преобразовать значение
-            const sanitizedValue = valueStr.replace(/\s+/g, '').replace(',', '.');
-            const numericValue = parseFloat(sanitizedValue);
-
-            return {
-              ...item,
-              value: isNaN(numericValue) ? valueStr : numericValue.toString()
-            };
-          }
-
-          // Если это дата или пусто, возвращаем исходное значение
-          return {
-            ...item,
-            value: valueStr
-          };
-        });
+        const normalized = useAssets
+          ? this.mapAssetItems(dataItems)
+          : (dataItems as DataItem[]);
+        return normalized.map(item => this.normalizeStatementItem(item));
       })
     );
   }
@@ -89,17 +71,21 @@ export class DataService {
 
     const useAssets = standart === 'MULT' || standart === 'FIN';
     const dataRequest = useAssets
-      ? this.http.get<DataItem[]>(`/assets/shares/${safeTicker}/${standart}/data.json`)
+      ? this.http.get<any[]>(`/assets/shares/${safeTicker}/${standart}/data.json`)
       : this.http.get<DataItem[]>(`${environment.apiUrl}/api/statements/${safeTicker}`, {
           params: { standart, period, mode: 'ext' }
         });
 
     return dataRequest.pipe(
       map(dataItems => {
+        const normalized = useAssets
+          ? this.mapAssetItems(dataItems)
+          : (dataItems as DataItem[]);
+        const mapped = normalized.map(item => this.normalizeStatementItem(item));
         if (filter) {
-          return dataItems.filter(item => item.name === filter);
+          return mapped.filter(item => item.metricKey === filter);
         }
-        return dataItems;
+        return mapped;
       })
     );
   }
@@ -120,18 +106,92 @@ export class DataService {
   loadFilteredData(ticker: string, nameToFilter: string, standart = 'MSFO', period: string = 'y'): Observable<FilteredDataResult> {
     return this.loadData2(ticker, standart, period).pipe(
       map(dataItems => {
-        
-        const displayName = stat_dic[nameToFilter] || nameToFilter; // Используем имя из dic.json или оригинальное имя
-        const filteredData = dataItems
-          .filter(item => item.name === nameToFilter && item.value ) // Фильтрация по отображаемому имени
+        const filtered = dataItems.filter(item => item.metricKey === nameToFilter && item.value);
+        const displayName = filtered[0]?.displayName || stat_dic[nameToFilter] || nameToFilter;
+        const filteredData = filtered
+          .filter(item => item.valueType === 'number')
           .map(({ year, value }) => ({
             year,
             value: parseFloat(value)
           } as FilteredDataItem));
 
-        return { filteredData, displayName }; // Возвращаем объект с фильтрованными данными и именем
+        return { filteredData, displayName };
       })
     );
+  }
+
+  private mapAssetItems(items: any[]): DataItem[] {
+    return (items ?? []).map(item => {
+      const metricKey = item.name ?? '';
+      const displayName = stat_dic[metricKey] || metricKey;
+      const valueType = this.getDefaultValueType(metricKey);
+      const isClickable = this.getDefaultIsClickable(metricKey);
+      const valueStr = item.value !== null && item.value !== undefined ? item.value.toString() : '';
+      return {
+        metricKey,
+        displayName,
+        isClickable,
+        valueType,
+        year: item.year?.toString?.() ?? '',
+        value: valueStr,
+        link: valueType === 'url' ? valueStr : null
+      } as DataItem;
+    });
+  }
+
+  private normalizeStatementItem(item: DataItem): DataItem {
+    const valueStr = item.value !== null && item.value !== undefined ? item.value.toString() : '';
+    const metricKey = item.metricKey ?? '';
+    const displayName = item.displayName || stat_dic[metricKey] || metricKey;
+    const valueType = item.valueType || this.getDefaultValueType(metricKey);
+    const isClickable = item.isClickable ?? this.getDefaultIsClickable(metricKey);
+    const link = item.link ?? (valueType === 'url' ? valueStr : null);
+    const isDate = /^\d{2}\.\d{2}\.\d{4}$/.test(valueStr);
+
+    if (!isDate && valueStr && valueType === 'number') {
+      const sanitizedValue = valueStr.replace(/\s+/g, '').replace(',', '.');
+      const numericValue = parseFloat(sanitizedValue);
+      return {
+        ...item,
+        metricKey,
+        displayName,
+        valueType,
+        isClickable,
+        link,
+        value: isNaN(numericValue) ? valueStr : numericValue.toString()
+      };
+    }
+
+    return {
+      ...item,
+      metricKey,
+      displayName,
+      valueType,
+      isClickable,
+      link,
+      value: valueStr
+    };
+  }
+
+  private getDefaultIsClickable(metricKey: string): boolean {
+    return this.getDefaultValueType(metricKey) === 'number';
+  }
+
+  private getDefaultValueType(metricKey: string): string {
+    if (!metricKey) {
+      return 'number';
+    }
+    const lower = metricKey.toLowerCase();
+    if (lower === 'report_url' || lower === 'presentation_url' || lower === 'year_report_url') {
+      return 'url';
+    }
+    if (lower === 'date') {
+      return 'date';
+    }
+    if (lower === 'currency') {
+      return 'string';
+    }
+    return 'number';
   }
   // Метод для получения данных о дивидендах
   getDividends(ticker: string): Observable<StockData> {

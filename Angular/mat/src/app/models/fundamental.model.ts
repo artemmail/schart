@@ -1,7 +1,11 @@
 export interface DataItem {
-    name: string;
+    metricKey: string;
+    displayName: string;
+    isClickable: boolean;
+    valueType: string;
     year: string;
     value: string;
+    link?: string | null;
   }
   
   // Новый тип данных для фильтрованных данных без поля name

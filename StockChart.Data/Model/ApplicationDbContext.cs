@@ -202,6 +202,12 @@ public partial class ApplicationDbContext
             entity.ToTable("FinancialStatementDictionary");
             entity.Property(e => e.Code).HasMaxLength(256);
             entity.Property(e => e.Value).HasMaxLength(512);
+            entity.Property(e => e.IsClickable).HasDefaultValue(true);
+            entity.Property(e => e.ValueType).HasMaxLength(16).HasDefaultValue("number");
+            entity.Property(e => e.SortGroup).HasMaxLength(64);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.Tooltip).HasMaxLength(1024);
+            entity.Property(e => e.Unit).HasMaxLength(64);
             entity.HasIndex(e => e.Code).IsUnique();
         });
 
@@ -209,17 +215,21 @@ public partial class ApplicationDbContext
         {
             entity.HasKey(e => e.Id);
             entity.ToTable("FinancialStatementEntries");
+            entity.Property(e => e.MetricId);
             entity.Property(e => e.Standard).HasMaxLength(8);
             entity.Property(e => e.Period).HasMaxLength(4);
             entity.Property(e => e.Name).HasMaxLength(256);
             entity.Property(e => e.Year).HasMaxLength(32);
             entity.Property(e => e.ValueNum).HasColumnType("decimal(28,10)");
             entity.Property(e => e.ImportedAt).HasColumnType("datetime2");
-            entity.HasIndex(e => new { e.DictionaryId, e.Standard, e.Period, e.Name, e.Year }).IsUnique();
+            entity.HasIndex(e => new { e.DictionaryId, e.Standard, e.Period, e.MetricId, e.Year }).IsUnique();
             entity.HasIndex(e => new { e.DictionaryId, e.Standard, e.Period, e.SortOrder });
             entity.HasOne(d => d.Dictionary).WithMany()
                 .HasForeignKey(d => d.DictionaryId)
                 .HasConstraintName("FK_FinancialStatementEntries_Dictionary");
+            entity.HasOne(d => d.Metric).WithMany(p => p.Entries)
+                .HasForeignKey(d => d.MetricId)
+                .HasConstraintName("FK_FinancialStatementEntries_Metric");
         });
 
         modelBuilder.Entity<Al>(entity =>

@@ -4,7 +4,7 @@ import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Legend_tab, stat_dic } from 'src/app/data/companyinfo';
+import { Legend_tab } from 'src/app/data/companyinfo';
 import { DataItem } from 'src/app/models/fundamental.model';
 import {  DataService } from 'src/app/service/companydata.service';
 import { MoneyToStrPipe } from 'src/app/pipes/money-to-str.pipe';
@@ -35,28 +35,6 @@ export class CompanyTableComponent implements OnInit {
   // Глобальный словарь легенд
   legend = Legend_tab;
 
-  // Список исключений для отображения ссылок
-  noLinkNames: string[] = [
-    "date",
-    "currency",
-    "report_url",
-    "presentation_url",
-    "year_report_url",
-    "oil_refining",
-    "capex",
-    "fcf",
-    "dividend_payout",
-    "dividend",
-    "div_yield",
-    "div_payout_ratio",
-    "employment_expenses",
-    "interest_expenses",
-    "free_float",
-    "insider_own",
-    "p_fcf",
-    "r_and_d_capex"
-  ];
-
   constructor(private dataService: DataService) {}
 
   transformData(data: DataItem[]): any {
@@ -66,14 +44,17 @@ export class CompanyTableComponent implements OnInit {
     data.forEach(item => {
       yearsSet.add(item.year);
 
-      if (!result[item.name]) {
+      if (!result[item.metricKey]) {
         // Создаем два поля: одно для отображения, другое для ссылки
-        result[item.name] = { 
-          nameForDisplay: stat_dic[item.name] || item.name, // Для отображения
-          nameForLink: item.name // Оригинальное имя для ссылки
+        result[item.metricKey] = { 
+          nameForDisplay: item.displayName || item.metricKey,
+          nameForLink: item.metricKey,
+          isClickable: item.isClickable ?? true,
+          valueType: item.valueType || 'number'
         };
       }
-      result[item.name][item.year] = item.value;
+      const cellValue = item.valueType === 'url' ? (item.link || item.value) : item.value;
+      result[item.metricKey][item.year] = cellValue;
     });
 
     return {
@@ -83,8 +64,8 @@ export class CompanyTableComponent implements OnInit {
   }
 
   // Метод для проверки, нужно ли отображать ссылку
-  shouldDisplayLink(name: string): boolean {
-    return !this.filter && !this.noLinkNames.includes(name);
+  shouldDisplayLink(isClickable: boolean): boolean {
+    return !!isClickable;
   }
 
   ngOnInit(): void {
@@ -103,10 +84,7 @@ export class CompanyTableComponent implements OnInit {
     }
   }
 
-  isLink(value: string | number): boolean {
-    if (typeof value !== 'string') {
-      return false;
-    }
-    return value.startsWith('http') || value.startsWith('https') || value.startsWith('file');
+  isUrlValue(valueType: string, value: string | number): boolean {
+    return valueType === 'url' && !!value;
   }
 }

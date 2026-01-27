@@ -4,6 +4,7 @@ public partial class FinancialStatementEntry
 {
     public int Id { get; set; }
     public int DictionaryId { get; set; }
+    public int MetricId { get; set; }
     public string Standard { get; set; } = string.Empty;
     public string Period { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
@@ -14,4 +15,5 @@ public partial class FinancialStatementEntry
     public DateTime ImportedAt { get; set; }
 
     public virtual Dictionary? Dictionary { get; set; }
+    public virtual FinancialStatementDictionary? Metric { get; set; }
 }

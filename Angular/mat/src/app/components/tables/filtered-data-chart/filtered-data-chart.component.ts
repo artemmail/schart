@@ -3,7 +3,7 @@ import { Title } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { Chart } from 'chart.js/auto';
 import { map, Observable } from 'rxjs';
-import { stat_dic, STOCK_TICKERS } from 'src/app/data/companyinfo';
+import { STOCK_TICKERS } from 'src/app/data/companyinfo';
 import { FilteredDataResult } from 'src/app/models/fundamental.model';
 import { DataService } from 'src/app/service/companydata.service';
 import { MaterialModule } from 'src/app/material.module';
@@ -53,7 +53,7 @@ export class FilteredDataChartComponent implements OnInit, AfterViewInit, OnDest
       this.nameToFilter = params['filtername'];
 
 
-      this.displayName =  stat_dic[this.nameToFilter] || this.nameToFilter;
+      this.displayName = this.nameToFilter;
       this.companyName =  STOCK_TICKERS[this.ticker] || this.ticker;
       this.titleService.setTitle(`Квартальный и годовой ${this.displayName} для ${this.companyName}`);
 

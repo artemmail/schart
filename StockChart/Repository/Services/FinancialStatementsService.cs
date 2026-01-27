@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -28,6 +29,10 @@ namespace StockChart.Repository.Services
         private const string AnnualMsfoFolderName = "Годовые отчеты МСФО";
         private const string AnnualRsbuFolderName = "Годовые отчеты РСБУ";
         private const string AnnualPresentationsFolderName = "Годовые презентации";
+        private const string ValueTypeNumber = "number";
+        private const string ValueTypeString = "string";
+        private const string ValueTypeDate = "date";
+        private const string ValueTypeUrl = "url";
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             PropertyNameCaseInsensitive = true
@@ -135,8 +140,10 @@ namespace StockChart.Repository.Services
             var entriesToAdd = new List<FinancialStatementEntry>();
             var added = 0;
 
-            HashSet<string>? existingDictionaryCodes = null;
-            var dictionaryAdditions = new List<FinancialStatementDictionary>();
+            var existingMetrics = await _dbContext.FinancialStatementDictionaries
+                .ToListAsync(cancellationToken);
+            var metricRegistry = new MetricRegistry(existingMetrics, _logger);
+            var dictionaryAdditions = metricRegistry.Additions;
 
             foreach (var dir in tickerDirs)
             {
@@ -169,10 +176,17 @@ namespace StockChart.Repository.Services
                             var dictionaryData = await LoadDictionaryAsync(dicPath, cancellationToken);
                             if (dictionaryData.Count > 0)
                             {
-                                existingDictionaryCodes ??= await LoadExistingDictionaryCodesAsync(cancellationToken);
-                                MergeDictionary(dictionaryData, existingDictionaryCodes, dictionaryAdditions);
-                                dictionaryLookup = BuildDictionaryLookup(dictionaryData);
+                                metricRegistry.MergeDictionaryData(dictionaryData);
+                                dictionaryLookup = metricRegistry.BuildDictionaryLookup(dictionaryData);
                             }
+                            else
+                            {
+                                dictionaryLookup = metricRegistry.BuildDictionaryLookup();
+                            }
+                        }
+                        else
+                        {
+                            dictionaryLookup = metricRegistry.BuildDictionaryLookup();
                         }
 
                         if (dictionary == null)
@@ -186,7 +200,11 @@ namespace StockChart.Repository.Services
                             continue;
                         }
 
-                        var items = await LoadStatementItemsFromCsvAsync(dataPath, dictionaryLookup, cancellationToken);
+                        var items = await LoadStatementItemsFromCsvAsync(
+                            dataPath,
+                            metricRegistry,
+                            dictionaryLookup,
+                            cancellationToken);
                         if (items.Count == 0)
                         {
                             continue;
@@ -194,7 +212,7 @@ namespace StockChart.Repository.Services
 
                         var csvYears = new HashSet<string>(items.Select(i => i.Year), StringComparer.OrdinalIgnoreCase);
                         var csvKeys = new HashSet<string>(
-                            items.Select(i => BuildEntryKey(i.Name, i.Year)),
+                            items.Select(i => BuildEntryKey(i.Metric.Key, i.Year)),
                             StringComparer.OrdinalIgnoreCase);
 
                         if (csvYears.Count > 0)
@@ -206,6 +224,7 @@ namespace StockChart.Repository.Services
                                 period,
                                 csvYears,
                                 csvKeys,
+                                metricRegistry,
                                 items.Count,
                                 cancellationToken);
                             if (supplementalItems.Count > 0)
@@ -219,7 +238,7 @@ namespace StockChart.Repository.Services
                         var processedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                         foreach (var item in items)
                         {
-                            var key = BuildEntryKey(item.Name, item.Year);
+                            var key = BuildEntryKey(item.Metric.Key, item.Year);
                             if (!processedKeys.Add(key))
                             {
                                 continue;
@@ -227,6 +246,12 @@ namespace StockChart.Repository.Services
 
                             if (IsLtrYear(item.Year) && ltrEntries.TryGetValue(key, out var existingEntry))
                             {
+                                if (existingEntry.MetricId == 0 && item.Metric.MetricEntity != null)
+                                {
+                                    existingEntry.Metric = item.Metric.MetricEntity;
+                                    existingEntry.MetricId = item.Metric.MetricEntity.Id;
+                                    existingEntry.Name = item.Metric.Key;
+                                }
                                 existingEntry.ValueRaw = item.ValueRaw;
                                 existingEntry.ValueNum = item.ValueNum;
                                 existingEntry.SortOrder = item.SortOrder;
@@ -242,9 +267,11 @@ namespace StockChart.Repository.Services
                             entriesToAdd.Add(new FinancialStatementEntry
                             {
                                 DictionaryId = dictionary.Id,
+                                MetricId = item.Metric.MetricEntity.Id,
+                                Metric = item.Metric.MetricEntity,
                                 Standard = standard,
                                 Period = period,
-                                Name = item.Name,
+                                Name = item.Metric.Key,
                                 Year = item.Year,
                                 ValueRaw = item.ValueRaw,
                                 ValueNum = item.ValueNum,
@@ -274,12 +301,20 @@ namespace StockChart.Repository.Services
                     await _dbContext.SaveChangesAsync(cancellationToken);
                 }
             }
-            catch(Exception we)
+            catch (Exception ex)
             {
-
+                _logger.LogError(ex, "Ошибка сохранения импортированных данных отчетности");
             }
 
             
+            if (added > 0 || dictionaryAdditions.Count > 0)
+            {
+                _logger.LogInformation(
+                    "Импорт отчетности завершен. Новых записей: {Entries}, новых метрик: {Metrics}",
+                    added,
+                    dictionaryAdditions.Count);
+            }
+
             return added;
         }
 
@@ -301,6 +336,7 @@ namespace StockChart.Repository.Services
         {
             var query = _dbContext.FinancialStatementEntries
                 .AsNoTracking()
+                .Include(e => e.Metric)
                 .Where(e => e.DictionaryId == dictionaryId && e.Standard == standard && e.Period == period);
 
             if (useNumeric)
@@ -313,8 +349,102 @@ namespace StockChart.Repository.Services
                 .ThenBy(e => e.Id)
                 .ToListAsync(cancellationToken);
 
+            Dictionary<string, FinancialStatementDictionary>? metricsByKey = null;
+            DictionaryValueLookup? metricsLookup = null;
+            if (rows.Any(e => e.Metric == null))
+            {
+                var metrics = await _dbContext.FinancialStatementDictionaries
+                    .AsNoTracking()
+                    .ToListAsync(cancellationToken);
+                metricsByKey = metrics
+                    .Where(m => !string.IsNullOrWhiteSpace(m.Code))
+                    .ToDictionary(m => m.Code, StringComparer.OrdinalIgnoreCase);
+
+                var lookupSource = metrics
+                    .Where(m => !string.IsNullOrWhiteSpace(m.Code) && !string.IsNullOrWhiteSpace(m.Value))
+                    .ToDictionary(m => m.Code, m => m.Value, StringComparer.OrdinalIgnoreCase);
+                if (lookupSource.Count > 0)
+                {
+                    metricsLookup = BuildDictionaryLookup(lookupSource);
+                }
+            }
+
+            FinancialStatementDictionary? ResolveMetric(FinancialStatementEntry entry)
+            {
+                if (entry.Metric != null)
+                {
+                    return entry.Metric;
+                }
+
+                if (metricsByKey == null || string.IsNullOrWhiteSpace(entry.Name))
+                {
+                    return null;
+                }
+
+                if (metricsByKey.TryGetValue(entry.Name, out var metric))
+                {
+                    return metric;
+                }
+
+                if (metricsLookup != null)
+                {
+                    var normalized = NormalizeLabel(entry.Name);
+                    var resolved = ResolveDictionaryName(normalized, metricsLookup);
+                    if (metricsByKey.TryGetValue(resolved, out metric))
+                    {
+                        return metric;
+                    }
+                }
+
+                return null;
+            }
+
+            string ResolveMetricKey(FinancialStatementEntry entry)
+            {
+                var metric = ResolveMetric(entry);
+                if (metric != null && !string.IsNullOrWhiteSpace(metric.Code))
+                {
+                    return metric.Code;
+                }
+
+                return entry.Name ?? string.Empty;
+            }
+
+            string ResolveDisplayName(FinancialStatementEntry entry)
+            {
+                var metric = ResolveMetric(entry);
+                if (metric != null && !string.IsNullOrWhiteSpace(metric.Value))
+                {
+                    return metric.Value;
+                }
+
+                return entry.Name ?? string.Empty;
+            }
+
+            bool ResolveIsClickable(FinancialStatementEntry entry, string valueType)
+            {
+                var metric = ResolveMetric(entry);
+                if (metric != null)
+                {
+                    return metric.IsClickable;
+                }
+
+                return string.Equals(valueType, ValueTypeNumber, StringComparison.OrdinalIgnoreCase);
+            }
+
+            string ResolveValueType(FinancialStatementEntry entry)
+            {
+                var metric = ResolveMetric(entry);
+                if (metric != null && !string.IsNullOrWhiteSpace(metric.ValueType))
+                {
+                    return metric.ValueType;
+                }
+
+                return GetDefaultValueType(ResolveMetricKey(entry));
+            }
+
             var filteredRows = rows
-                .Where(e => !IsSmartlabPresenceRow(e.Name))
+                .Where(e => !IsSmartlabPresenceRow(ResolveMetricKey(e)))
                 .ToList();
 
             var recentYears = SelectRecentYears(filteredRows.Select(e => e.Year), 8);
@@ -334,16 +464,24 @@ namespace StockChart.Repository.Services
 
                     return recentYears.Contains(e.NormalizedYear);
                 })
-                .OrderBy(e => GetPriorityRank(e.Entry.Name))
+                .OrderBy(e => GetPriorityRank(ResolveMetricKey(e.Entry)))
                 .ThenBy(e => e.Entry.SortOrder)
                 .ThenBy(e => e.Entry.Id)
-                .Select(e => new FinancialStatementEntryDto
+                .Select(e =>
                 {
-                    Name = e.Entry.Name,
-                    Year = e.NormalizedYear,
-                    Value = useNumeric
-                        ? (e.Entry.ValueNum.HasValue ? e.Entry.ValueNum.Value.ToString(CultureInfo.InvariantCulture) : null)
-                        : e.Entry.ValueRaw
+                    var valueType = ResolveValueType(e.Entry);
+                    return new FinancialStatementEntryDto
+                    {
+                        MetricKey = ResolveMetricKey(e.Entry),
+                        DisplayName = ResolveDisplayName(e.Entry),
+                        IsClickable = ResolveIsClickable(e.Entry, valueType),
+                        ValueType = valueType,
+                        Year = e.NormalizedYear,
+                        Value = useNumeric
+                            ? (e.Entry.ValueNum.HasValue ? e.Entry.ValueNum.Value.ToString(CultureInfo.InvariantCulture) : null)
+                            : e.Entry.ValueRaw,
+                        Link = valueType == ValueTypeUrl ? e.Entry.ValueRaw : null
+                    };
                 })
                 .ToList();
         }
@@ -356,15 +494,16 @@ namespace StockChart.Repository.Services
         {
             var keys = await _dbContext.FinancialStatementEntries
                 .AsNoTracking()
+                .Include(e => e.Metric)
                 .Where(e => e.DictionaryId == dictionaryId && e.Standard == standard && e.Period == period)
-                .Select(e => new { e.Name, e.Year })
+                .Select(e => new { MetricKey = e.Metric != null ? e.Metric.Code : e.Name, e.Year })
                 .ToListAsync(cancellationToken);
 
             var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var key in keys)
             {
                 var normalizedYear = NormalizeYear(key.Year) ?? key.Year;
-                result.Add(BuildEntryKey(key.Name, normalizedYear));
+                result.Add(BuildEntryKey(key.MetricKey, normalizedYear));
             }
 
             return result;
@@ -382,6 +521,7 @@ namespace StockChart.Repository.Services
             CancellationToken cancellationToken)
         {
             var entries = await _dbContext.FinancialStatementEntries
+                .Include(e => e.Metric)
                 .Where(e => e.DictionaryId == dictionaryId
                     && e.Standard == standard
                     && e.Period == period
@@ -397,21 +537,12 @@ namespace StockChart.Repository.Services
                     continue;
                 }
 
-                var key = BuildEntryKey(entry.Name, normalizedYear);
+                var metricKey = GetMetricKey(entry);
+                var key = BuildEntryKey(metricKey, normalizedYear);
                 result[key] = entry;
             }
 
             return result;
-        }
-
-        private async Task<HashSet<string>> LoadExistingDictionaryCodesAsync(CancellationToken cancellationToken)
-        {
-            var codes = await _dbContext.FinancialStatementDictionaries
-                .AsNoTracking()
-                .Select(d => d.Code)
-                .ToListAsync(cancellationToken);
-
-            return new HashSet<string>(codes, StringComparer.OrdinalIgnoreCase);
         }
 
         private async Task<Dictionary<string, string>> LoadDictionaryAsync(
@@ -431,40 +562,9 @@ namespace StockChart.Repository.Services
             }
         }
 
-        private void MergeDictionary(
-            Dictionary<string, string> data,
-            HashSet<string> existingCodes,
-            List<FinancialStatementDictionary> additions)
-        {
-            foreach (var item in data)
-            {
-                var code = (item.Key ?? string.Empty).Trim();
-                if (string.IsNullOrWhiteSpace(code))
-                {
-                    continue;
-                }
-
-                if (existingCodes.Contains(code))
-                {
-                    continue;
-                }
-
-                var value = NormalizeLabel(item.Value);
-                if (string.IsNullOrWhiteSpace(value))
-                {
-                    continue;
-                }
-                additions.Add(new FinancialStatementDictionary
-                {
-                    Code = code,
-                    Value = value
-                });
-                existingCodes.Add(code);
-            }
-        }
-
         private async Task<List<StatementImportItem>> LoadStatementItemsFromCsvAsync(
             string path,
+            MetricRegistry metricRegistry,
             DictionaryValueLookup? dictionaryLookup,
             CancellationToken cancellationToken)
         {
@@ -517,7 +617,7 @@ namespace StockChart.Repository.Services
                         continue;
                     }
 
-                    var name = ResolveDictionaryName(label, dictionaryLookup);
+                    var metric = metricRegistry.ResolveByLabel(label, dictionaryLookup);
                     for (var i = 1; i < header.Length; i++)
                     {
                         var year = normalizedYears[i];
@@ -528,10 +628,11 @@ namespace StockChart.Repository.Services
 
                         var rawValue = NormalizeRawValue(fields[i]);
                         var valueNum = TryParseNumeric(rawValue);
+                        metricRegistry.RegisterObservedValueType(metric, rawValue, valueNum);
 
                         order++;
                         result.Add(new StatementImportItem(
-                            name,
+                            metric,
                             year,
                             rawValue,
                             valueNum,
@@ -554,6 +655,7 @@ namespace StockChart.Repository.Services
             string period,
             HashSet<string> allowedYears,
             HashSet<string> existingKeys,
+            MetricRegistry metricRegistry,
             int startingOrder,
             CancellationToken cancellationToken)
         {
@@ -574,6 +676,7 @@ namespace StockChart.Repository.Services
                     ReportUrlField,
                     allowedYears,
                     existingKeys,
+                    metricRegistry,
                     order,
                     result,
                     cancellationToken);
@@ -587,6 +690,7 @@ namespace StockChart.Repository.Services
                     PresentationUrlField,
                     allowedYears,
                     existingKeys,
+                    metricRegistry,
                     order,
                     result,
                     cancellationToken);
@@ -600,6 +704,7 @@ namespace StockChart.Repository.Services
             string entryName,
             HashSet<string> allowedYears,
             HashSet<string> existingKeys,
+            MetricRegistry metricRegistry,
             int order,
             List<StatementImportItem> result,
             CancellationToken cancellationToken)
@@ -611,6 +716,7 @@ namespace StockChart.Repository.Services
 
             try
             {
+                var metric = metricRegistry.ResolveByKey(entryName, entryName);
                 using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                 using var parser = new TextFieldParser(stream, Encoding.UTF8);
                 parser.TextFieldType = FieldType.Delimited;
@@ -631,7 +737,7 @@ namespace StockChart.Repository.Services
                 }
                 else if (header is { Length: >= 2 })
                 {
-                    order = AppendReportLinkRow(header, entryName, allowedYears, existingKeys, order, result);
+                    order = AppendReportLinkRow(header, metricRegistry, metric, allowedYears, existingKeys, order, result);
                 }
 
                 while (!parser.EndOfData)
@@ -644,7 +750,7 @@ namespace StockChart.Repository.Services
                         continue;
                     }
 
-                    order = AppendReportLinkRow(fields, entryName, allowedYears, existingKeys, order, result);
+                    order = AppendReportLinkRow(fields, metricRegistry, metric, allowedYears, existingKeys, order, result);
                 }
             }
             catch (Exception ex)
@@ -657,7 +763,8 @@ namespace StockChart.Repository.Services
 
         private int AppendReportLinkRow(
             string[] fields,
-            string entryName,
+            MetricRegistry metricRegistry,
+            MetricRef metric,
             HashSet<string> allowedYears,
             HashSet<string> existingKeys,
             int order,
@@ -676,13 +783,15 @@ namespace StockChart.Repository.Services
                 return order;
             }
 
+            metricRegistry.RegisterObservedValueType(metric, rawValue, TryParseNumeric(rawValue));
+
             var year = NormalizeReportLinkYear(label);
             if (string.IsNullOrWhiteSpace(year) || !allowedYears.Contains(year))
             {
                 return order;
             }
 
-            var key = BuildEntryKey(entryName, year);
+            var key = BuildEntryKey(metric.Key, year);
             if (!existingKeys.Add(key))
             {
                 return order;
@@ -690,7 +799,7 @@ namespace StockChart.Repository.Services
 
             order++;
             result.Add(new StatementImportItem(
-                entryName,
+                metric,
                 year,
                 rawValue,
                 TryParseNumeric(rawValue),
@@ -1121,6 +1230,206 @@ namespace StockChart.Repository.Services
             return label;
         }
 
+        private static string GetMetricKey(FinancialStatementEntry entry)
+        {
+            if (entry.Metric != null && !string.IsNullOrWhiteSpace(entry.Metric.Code))
+            {
+                return entry.Metric.Code;
+            }
+
+            return entry.Name ?? string.Empty;
+        }
+
+        private static bool GetDefaultIsClickable(string key)
+        {
+            return string.Equals(GetDefaultValueType(key), ValueTypeNumber, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string GetDefaultValueType(string key)
+        {
+            if (IsReportUrlRowName(key) || IsPresentationUrlRowName(key)
+                || string.Equals(key, "year_report_url", StringComparison.OrdinalIgnoreCase))
+            {
+                return ValueTypeUrl;
+            }
+
+            if (IsDateRowName(key))
+            {
+                return ValueTypeDate;
+            }
+
+            if (IsCurrencyRowName(key))
+            {
+                return ValueTypeString;
+            }
+
+            return ValueTypeNumber;
+        }
+
+        private static string? DetectValueType(string? rawValue, decimal? valueNum)
+        {
+            if (string.IsNullOrWhiteSpace(rawValue))
+            {
+                return valueNum.HasValue ? ValueTypeNumber : null;
+            }
+
+            var trimmed = rawValue.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed))
+            {
+                return valueNum.HasValue ? ValueTypeNumber : null;
+            }
+
+            if (trimmed == "-" || trimmed == "—"
+                || string.Equals(trimmed, "n/a", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(trimmed, "na", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            if (IsUrlValue(trimmed))
+            {
+                return ValueTypeUrl;
+            }
+
+            if (IsDateValue(trimmed))
+            {
+                return ValueTypeDate;
+            }
+
+            if (valueNum.HasValue)
+            {
+                return ValueTypeNumber;
+            }
+
+            return ValueTypeString;
+        }
+
+        private static bool IsUrlValue(string value)
+        {
+            return value.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                || value.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+                || value.StartsWith("file://", StringComparison.OrdinalIgnoreCase)
+                || value.StartsWith("file:", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsDateValue(string value)
+        {
+            return Regex.IsMatch(value, "^\\d{2}\\.\\d{2}\\.\\d{4}$")
+                || Regex.IsMatch(value, "^\\d{4}-\\d{2}-\\d{2}$");
+        }
+
+        private static int GetValueTypeRank(string valueType)
+        {
+            if (string.Equals(valueType, ValueTypeUrl, StringComparison.OrdinalIgnoreCase))
+            {
+                return 3;
+            }
+
+            if (string.Equals(valueType, ValueTypeDate, StringComparison.OrdinalIgnoreCase))
+            {
+                return 2;
+            }
+
+            if (string.Equals(valueType, ValueTypeString, StringComparison.OrdinalIgnoreCase))
+            {
+                return 1;
+            }
+
+            return 0;
+        }
+
+        private static void EnsureDefaults(FinancialStatementDictionary metric, string key)
+        {
+            if (metric == null)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(metric.ValueType))
+            {
+                metric.ValueType = GetDefaultValueType(key);
+            }
+
+            if (string.IsNullOrWhiteSpace(metric.Value))
+            {
+                metric.Value = key;
+            }
+
+            if (metric.Id == 0)
+            {
+                metric.IsClickable = string.Equals(metric.ValueType, ValueTypeNumber, StringComparison.OrdinalIgnoreCase);
+                metric.IsActive = true;
+            }
+        }
+
+        private static bool IsSafeMetricKey(string value)
+        {
+            return !string.IsNullOrWhiteSpace(value)
+                && Regex.IsMatch(value, "^[A-Za-z0-9_]+$");
+        }
+
+        private static string NormalizeMetricKey(string key, string? fallbackLabel = null)
+        {
+            var trimmed = (key ?? string.Empty).Trim();
+            if (IsSafeMetricKey(trimmed))
+            {
+                return trimmed;
+            }
+
+            var source = !string.IsNullOrWhiteSpace(trimmed) ? trimmed : (fallbackLabel ?? string.Empty);
+            return GenerateMetricKey(source);
+        }
+
+        private static string GenerateMetricKey(string value)
+        {
+            var slug = SlugifyMetricKey(value);
+            if (!string.IsNullOrWhiteSpace(slug))
+            {
+                return slug;
+            }
+
+            var hash = ShortHash(value);
+            return $"metric_{hash}";
+        }
+
+        private static string SlugifyMetricKey(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var builder = new StringBuilder(value.Length);
+            var lastUnderscore = false;
+            foreach (var ch in value)
+            {
+                if (char.IsLetterOrDigit(ch))
+                {
+                    builder.Append(char.ToLowerInvariant(ch));
+                    lastUnderscore = false;
+                    continue;
+                }
+
+                if (!lastUnderscore && builder.Length > 0)
+                {
+                    builder.Append('_');
+                    lastUnderscore = true;
+                }
+            }
+
+            return builder.ToString().Trim('_');
+        }
+
+        private static string ShortHash(string value)
+        {
+            var input = value ?? string.Empty;
+            using var sha = SHA256.Create();
+            var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
+            return Convert.ToHexString(hash)
+                .Substring(0, 8)
+                .ToLowerInvariant();
+        }
+
         private static string NormalizeLabel(string? value)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -1250,6 +1559,285 @@ namespace StockChart.Repository.Services
             return builder.ToString();
         }
 
+        private sealed class MetricRegistry
+        {
+            private readonly Dictionary<string, FinancialStatementDictionary> _metricsByKey;
+            private readonly Dictionary<string, FinancialStatementDictionary> _metricsByValue;
+            private readonly ILogger _logger;
+
+            public MetricRegistry(IEnumerable<FinancialStatementDictionary> existing, ILogger logger)
+            {
+                _logger = logger;
+                _metricsByKey = new Dictionary<string, FinancialStatementDictionary>(StringComparer.OrdinalIgnoreCase);
+                _metricsByValue = new Dictionary<string, FinancialStatementDictionary>(StringComparer.OrdinalIgnoreCase);
+                foreach (var metric in existing)
+                {
+                    var key = (metric.Code ?? string.Empty).Trim();
+                    if (string.IsNullOrWhiteSpace(key))
+                    {
+                        continue;
+                    }
+
+                    EnsureDefaults(metric, key);
+                    _metricsByKey[key] = metric;
+
+                    var valueKey = NormalizeLabel(metric.Value);
+                    if (!string.IsNullOrWhiteSpace(valueKey))
+                    {
+                        if (_metricsByValue.TryGetValue(valueKey, out var existingByValue)
+                            && !ReferenceEquals(existingByValue, metric))
+                        {
+                            _logger.LogWarning(
+                                "Дубликат в словаре метрик по отображаемому имени '{Value}'. Коды: {ExistingCode}, {NewCode}",
+                                valueKey,
+                                existingByValue.Code,
+                                key);
+                        }
+                        else
+                        {
+                            _metricsByValue[valueKey] = metric;
+                        }
+                    }
+                }
+            }
+
+            public List<FinancialStatementDictionary> Additions { get; } = new();
+
+            public void MergeDictionaryData(Dictionary<string, string> data)
+            {
+                foreach (var item in data)
+                {
+                    var keyRaw = (item.Key ?? string.Empty).Trim();
+                    if (string.IsNullOrWhiteSpace(keyRaw))
+                    {
+                        continue;
+                    }
+
+                    var displayName = NormalizeLabel(item.Value);
+                    if (string.IsNullOrWhiteSpace(displayName))
+                    {
+                        continue;
+                    }
+
+                    var valueKey = NormalizeLabel(displayName);
+                    if (_metricsByValue.TryGetValue(valueKey, out var existingByValue)
+                        && !string.Equals(existingByValue.Code, keyRaw, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogWarning(
+                            "Пропуск дубликата метрики из dic.json. Код {NewCode} конфликтует с существующим кодом {ExistingCode} для имени '{Value}'",
+                            keyRaw,
+                            existingByValue.Code,
+                            valueKey);
+                        continue;
+                    }
+
+                    var key = _metricsByKey.ContainsKey(keyRaw)
+                        ? keyRaw
+                        : NormalizeMetricKey(keyRaw, displayName);
+                    if (_metricsByKey.TryGetValue(key, out var existing))
+                    {
+                        var existingValueKey = NormalizeLabel(existing.Value);
+                        if (!string.Equals(existing.Value, displayName, StringComparison.Ordinal))
+                        {
+                            existing.Value = displayName;
+                        }
+
+                        EnsureDefaults(existing, key);
+                        if (!string.IsNullOrWhiteSpace(existingValueKey)
+                            && _metricsByValue.TryGetValue(existingValueKey, out var mapped)
+                            && ReferenceEquals(mapped, existing)
+                            && !string.Equals(existingValueKey, valueKey, StringComparison.OrdinalIgnoreCase))
+                        {
+                            _metricsByValue.Remove(existingValueKey);
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(valueKey))
+                        {
+                            _metricsByValue[valueKey] = existing;
+                        }
+                        continue;
+                    }
+
+                    var entity = new FinancialStatementDictionary
+                    {
+                        Code = key,
+                        Value = displayName
+                    };
+                    EnsureDefaults(entity, key);
+                    Additions.Add(entity);
+                    _metricsByKey[key] = entity;
+                    if (!string.IsNullOrWhiteSpace(valueKey))
+                    {
+                        _metricsByValue[valueKey] = entity;
+                    }
+                }
+            }
+
+            public DictionaryValueLookup? BuildDictionaryLookup(Dictionary<string, string>? fileData = null)
+            {
+                var combined = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+                if (fileData != null)
+                {
+                    foreach (var item in fileData)
+                    {
+                        var key = (item.Key ?? string.Empty).Trim();
+                        var value = NormalizeLabel(item.Value);
+                        if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(value))
+                        {
+                            continue;
+                        }
+
+                        var valueKey = NormalizeLabel(value);
+                        if (_metricsByKey.ContainsKey(key))
+                        {
+                            combined[key] = _metricsByKey[key].Value;
+                            continue;
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(valueKey)
+                            && _metricsByValue.TryGetValue(valueKey, out var existingByValue))
+                        {
+                            combined[existingByValue.Code] = existingByValue.Value;
+                            continue;
+                        }
+
+                        if (!combined.ContainsKey(key))
+                        {
+                            combined[key] = value;
+                        }
+                    }
+                }
+
+                foreach (var metric in _metricsByKey.Values)
+                {
+                    if (string.IsNullOrWhiteSpace(metric.Code) || string.IsNullOrWhiteSpace(metric.Value))
+                    {
+                        continue;
+                    }
+
+                    if (!combined.ContainsKey(metric.Code))
+                    {
+                        combined[metric.Code] = metric.Value;
+                    }
+                }
+
+                if (combined.Count == 0)
+                {
+                    return null;
+                }
+
+                return FinancialStatementsService.BuildDictionaryLookup(combined);
+            }
+
+            public void RegisterObservedValueType(MetricRef metricRef, string? rawValue, decimal? valueNum)
+            {
+                if (metricRef.MetricEntity == null)
+                {
+                    return;
+                }
+
+                var observed = DetectValueType(rawValue, valueNum);
+                if (string.IsNullOrWhiteSpace(observed))
+                {
+                    return;
+                }
+
+                var current = metricRef.MetricEntity.ValueType;
+                if (string.IsNullOrWhiteSpace(current))
+                {
+                    current = ValueTypeNumber;
+                }
+
+                if (GetValueTypeRank(observed) > GetValueTypeRank(current))
+                {
+                    metricRef.MetricEntity.ValueType = observed;
+                    metricRef.MetricEntity.IsClickable = string.Equals(observed, ValueTypeNumber, StringComparison.OrdinalIgnoreCase);
+                }
+            }
+
+            public MetricRef ResolveByLabel(string label, DictionaryValueLookup? lookup)
+            {
+                var normalizedLabel = NormalizeLabel(label);
+                if (string.IsNullOrWhiteSpace(normalizedLabel))
+                {
+                    normalizedLabel = label ?? string.Empty;
+                }
+
+                var resolved = ResolveDictionaryName(normalizedLabel, lookup);
+                var key = resolved;
+                if (!_metricsByKey.ContainsKey(key))
+                {
+                    key = NormalizeMetricKey(resolved, normalizedLabel);
+                }
+
+                return ResolveByKey(key, normalizedLabel);
+            }
+
+            public MetricRef ResolveByKey(string key, string? displayName = null)
+            {
+                var trimmedKey = (key ?? string.Empty).Trim();
+                if (_metricsByKey.TryGetValue(trimmedKey, out var existing))
+                {
+                    EnsureDefaults(existing, trimmedKey);
+                    if (!string.IsNullOrWhiteSpace(displayName) && string.IsNullOrWhiteSpace(existing.Value))
+                    {
+                        existing.Value = NormalizeLabel(displayName);
+                    }
+
+                    return new MetricRef(trimmedKey, existing);
+                }
+
+                var normalizedKey = NormalizeMetricKey(trimmedKey, displayName);
+                if (_metricsByKey.TryGetValue(normalizedKey, out existing))
+                {
+                    EnsureDefaults(existing, normalizedKey);
+                    if (!string.IsNullOrWhiteSpace(displayName) && string.IsNullOrWhiteSpace(existing.Value))
+                    {
+                        existing.Value = NormalizeLabel(displayName);
+                    }
+
+                    return new MetricRef(normalizedKey, existing);
+                }
+
+                var displayKey = NormalizeLabel(displayName);
+                if (!string.IsNullOrWhiteSpace(displayKey)
+                    && _metricsByValue.TryGetValue(displayKey, out var existingByValue))
+                {
+                    EnsureDefaults(existingByValue, existingByValue.Code);
+                    _logger.LogWarning(
+                        "Метрика с кодом {Key} сопоставлена по имени '{DisplayName}' к существующему коду {ExistingCode}",
+                        trimmedKey,
+                        displayKey,
+                        existingByValue.Code);
+                    return new MetricRef(existingByValue.Code, existingByValue);
+                }
+
+                var finalDisplayName = NormalizeLabel(displayName);
+                if (string.IsNullOrWhiteSpace(finalDisplayName))
+                {
+                    finalDisplayName = normalizedKey;
+                }
+
+                var entity = new FinancialStatementDictionary
+                {
+                    Code = normalizedKey,
+                    Value = finalDisplayName
+                };
+                EnsureDefaults(entity, normalizedKey);
+                Additions.Add(entity);
+                _metricsByKey[normalizedKey] = entity;
+                var valueKey = NormalizeLabel(finalDisplayName);
+                if (!string.IsNullOrWhiteSpace(valueKey))
+                {
+                    _metricsByValue[valueKey] = entity;
+                }
+
+                _logger.LogInformation("Добавлена новая метрика отчётности: {Key} ({DisplayName})", normalizedKey, finalDisplayName);
+                return new MetricRef(normalizedKey, entity);
+            }
+        }
+
         private async Task<(DictionaryEntity? Primary, DictionaryEntity? Alternate)> FindDictionariesAsync(
             string ticker,
             CancellationToken cancellationToken)
@@ -1342,11 +1930,15 @@ namespace StockChart.Repository.Services
         }
 
         private sealed record StatementImportItem(
-            string Name,
+            MetricRef Metric,
             string Year,
             string? ValueRaw,
             decimal? ValueNum,
             int SortOrder);
+
+        private sealed record MetricRef(
+            string Key,
+            FinancialStatementDictionary MetricEntity);
 
         private sealed class DictionaryValueLookup
         {
