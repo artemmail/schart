@@ -10,11 +10,12 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { MaterialModule } from 'src/app/material.module';
 import { MarketSelectorComponent } from '../../Controls/MarketSelector/market-selector.component';
+import { TickerIconComponent } from '../../Controls/ticker-icon/ticker-icon.component';
 
 @Component({
   standalone: true,
   selector: 'app-volume-dashboard',
-  imports: [MaterialModule, MarketSelectorComponent],
+  imports: [MaterialModule, MarketSelectorComponent, TickerIconComponent],
   templateUrl: './volume-dashboard.component.html',
   styleUrls: ['./volume-dashboard.component.css'],
 })

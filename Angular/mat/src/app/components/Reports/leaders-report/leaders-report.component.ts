@@ -17,6 +17,7 @@ import { ComboBoxComponent } from '../../Controls/ComboBox/combobox.component';
 import { PresetSelectorComponent1 } from '../../DateRangeSelector/date-range-selector.component';
 import { MoneyToStrPipe } from 'src/app/pipes/money-to-str.pipe';
 import { blendOverlayWithBase, resolveBaseTextColor } from 'src/app/utils/color-utils';
+import { TickerIconComponent } from '../../Controls/ticker-icon/ticker-icon.component';
 
 @Component({
   standalone: true,
@@ -27,6 +28,7 @@ import { blendOverlayWithBase, resolveBaseTextColor } from 'src/app/utils/color-
     ComboBoxComponent,
     PresetSelectorComponent1,
     DateRangePickerComponent,
+    TickerIconComponent,
     MoneyToStrPipe,
   ],
   templateUrl: './leaders-report.component.html',
