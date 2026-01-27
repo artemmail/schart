@@ -1263,7 +1263,7 @@ namespace StockChart.Repository.Services
                 return ValueTypeString;
             }
 
-            return ValueTypeNumber;
+            return ValueTypeString;
         }
 
         private static string? DetectValueType(string? rawValue, decimal? valueNum)
@@ -1744,12 +1744,7 @@ namespace StockChart.Repository.Services
                 }
 
                 var current = metricRef.MetricEntity.ValueType;
-                if (string.IsNullOrWhiteSpace(current))
-                {
-                    current = ValueTypeNumber;
-                }
-
-                if (GetValueTypeRank(observed) > GetValueTypeRank(current))
+                if (string.IsNullOrWhiteSpace(current) || GetValueTypeRank(observed) > GetValueTypeRank(current))
                 {
                     metricRef.MetricEntity.ValueType = observed;
                     metricRef.MetricEntity.IsClickable = string.Equals(observed, ValueTypeNumber, StringComparison.OrdinalIgnoreCase);
