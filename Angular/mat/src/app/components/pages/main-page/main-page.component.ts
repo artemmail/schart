@@ -10,7 +10,7 @@ import { MarketSelectorComponent } from 'src/app/components/Controls/MarketSelec
 import { MultiComponent } from 'src/app/components/pages/multi/multi.component';
 import { BarometerTableComponent } from 'src/app/components/tables/barometer/barometer.component';
 import { TopicListComponent } from 'src/app/components/tables/topic-list/topic-list.component';
-import { StockChartTreemapComponent } from '../../Controls/stockChart-treemap/stockChart-treemap.component';
+import { StockChartTreemapComponent } from '../../Controls/stockchart-treemap/stockchart-treemap.component';
 import { LeaderboardTableComponent } from '../../Controls/leaderboard-table/leaderboard-table.component';
 
 @Component({

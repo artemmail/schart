@@ -6,7 +6,7 @@ import {
   OnInit,
   ViewChild
 } from '@angular/core';
-import { StockChartTreemapComponent } from '../../Controls/stockChart-treemap/stockChart-treemap.component';
+import { StockChartTreemapComponent } from '../../Controls/stockchart-treemap/stockchart-treemap.component';
 import { MarketBoardComponent } from '../../Controls/market-board/market-board.component';
 import { FootPrintRequestModel } from 'src/app/models/tickerpreset';
 import { Title } from '@angular/platform-browser';

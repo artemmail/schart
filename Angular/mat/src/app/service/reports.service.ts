@@ -194,7 +194,21 @@ export class ReportsService {
 
     return this.http
       .get<MarketMapItem[]>(`${this.baseUrl}/MarketMap2`, { params })
-      .pipe(map((result) => [{ value: 0, items: result }]));
+      .pipe(
+        map((result) => {
+          const sectors = (result ?? [])
+            .map((sector) => ({
+              ...sector,
+              // Сервер иногда возвращает пустые сектора или items без ticker.
+              // Такие узлы превращаются в "лист" (leaf) и рисуются отдельной плиткой (например "Химия").
+              // Это не нужно — выкидываем их на клиенте.
+              items: (sector?.items ?? []).filter((x) => !!x?.ticker),
+            }))
+            .filter((sector) => (sector.items?.length ?? 0) > 0);
+
+          return [{ value: 0, items: sectors }];
+        })
+      );
   }
 
   callGetMarketMap(

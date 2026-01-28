@@ -34,7 +34,7 @@ import { TreeMapEvent } from '../tree-map/tree-map.models';
   providers: [MoneyToStrPipe],
   imports: [CommonModule, TreeMapComponent]
 })
-export class StockChartTreemapComponent implements AfterViewInit, OnDestroy {
+	export class StockChartTreemapComponent implements AfterViewInit, OnDestroy {
   @Input() startDate?: Date;
   @Input() endDate?: Date;
   @Input() categories?: string;
@@ -81,10 +81,23 @@ export class StockChartTreemapComponent implements AfterViewInit, OnDestroy {
   @ViewChild('wrapper', { static: true }) wrapper!: ElementRef<HTMLElement>;
 
   @ViewChild('tooltipHost', { read: ViewContainerRef }) tooltipHost!: ViewContainerRef;
-  private tooltipCmp?: ComponentRef<any>;
-  private tooltipIsTitle: boolean = false;
-  private tooltipSectorItems: MarketMapSquare[] | null = null;
-  private tooltipSectorName: string | null = null;
+	  private tooltipCmp?: ComponentRef<any>;
+	  private tooltipIsTitle: boolean = false;
+	  private tooltipSectorItems: MarketMapSquare[] | null = null;
+	  private tooltipSectorName: string | null = null;
+	  private tooltipPinnedUid: string | null = null;
+	  private readonly isCoarsePointer: boolean = (() => {
+	    try {
+	      if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+	        return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+	      }
+	    } catch {}
+	    try {
+	      return typeof navigator !== 'undefined' && (navigator as any).maxTouchPoints > 0;
+	    } catch {
+	      return false;
+	    }
+	  })();
 
 constructor(
   private el: ElementRef<HTMLElement>,
@@ -166,15 +179,34 @@ constructor(
     this.refreshSubscription = undefined;
   }
 
-  // ====== клики как раньше ======
-  onTileClick(e: TreeMapEvent<any>): void {
-    const item = e.dataItem;
-    if (!item) return;
+		  // ====== клики как раньше ======
+		  onTileClick(e: TreeMapEvent<any>): void {
+		    const item = e.dataItem;
+		    if (!item) return;
+	
+		    const isTitle = !!e.node.children?.length;
+		    const isSectorLike = isTitle || this.isSectorLikeItem(item);
+		    if (this.isCoarsePointer && isSectorLike) {
+		      // На тач-устройствах "hover" нет, поэтому 1-й тап по заголовку сектора
+		      // открывает мини-карту, 2-й тап — выполняет действие (как раньше).
+		      if (this.tooltipVisible && this.tooltipPinnedUid === e.node.uid) {
+		        // второй тап: продолжаем к навигации ниже
+	      } else {
+	        this.prepareTooltip(e);
+	        this.tooltipPinnedUid = e.node.uid;
+	
+	        if (this.hideTimer) clearTimeout(this.hideTimer);
+	        this.hideTimer = setTimeout(() => this.hideTooltip(), 15000);
+	
+	        this.showTooltipAtUid(e.node.uid);
+	        return;
+	      }
+	    }
 
-    if (item.ticker) {
-      this.navigateTo('/FootPrint', { ticker: item.ticker });
-      return;
-    }
+	    if (item.ticker) {
+	      this.navigateTo('/FootPrint', { ticker: item.ticker });
+	      return;
+	    }
 
     // сектор: собрать тикеры
     const arr = Array.isArray(item.items) ? item.items : [];
@@ -188,25 +220,23 @@ constructor(
     this.router.navigate([route], { queryParams });
   }
 
-  // ====== Tooltip (аналог stockChartTooltip) ======
-  onTileHover(e: TreeMapEvent<any>): void {
-    this.item = e.dataItem;
-    if (!this.item) return;
+	  // ====== Tooltip (аналог stockChartTooltip) ======
+	  onTileHover(e: TreeMapEvent<any>): void {
+	    // На тач-устройствах hover может "симулироваться" браузером при тапе,
+	    // из-за чего показывается не тот тултип. Для мобильного режима открываем
+	    // тултип через onTileClick (см. выше).
+	    if (this.isCoarsePointer) return;
+	
+	    this.item = e.dataItem;
+	    if (!this.item) return;
+	
+	    this.prepareTooltip(e);
 
-    const isTitle = !!e.node.children?.length;
-    this.tooltipWidth = this.tooltipLargeWidth;
-    this.tooltipHeight = this.tooltipLargeHeight;
-    this.tooltipIsTitle = isTitle;
-    const sectorItems =
-      isTitle && Array.isArray(this.item.items) ? (this.item.items as MarketMapSquare[]) : null;
-    this.tooltipSectorItems = sectorItems;
-    this.tooltipSectorName = sectorItems ? (this.item.name ?? null) : null;
-
-    // showAfter 200ms
-    if (this.showTimer) clearTimeout(this.showTimer);
-    this.showTimer = setTimeout(() => {
-      this.showTooltipAtUid(e.node.uid);
-    }, 200);
+	    // showAfter 200ms
+	    if (this.showTimer) clearTimeout(this.showTimer);
+	    this.showTimer = setTimeout(() => {
+	      this.showTooltipAtUid(e.node.uid);
+	    }, 200);
 
     // hideAfter 15000ms (сбрасываем при движении)
     if (this.hideTimer) clearTimeout(this.hideTimer);
@@ -217,22 +247,28 @@ constructor(
     this.hideTooltip();
   }
 
-  private showTooltipAtUid(uid: string): void {
-    const host = this.wrapper?.nativeElement;
-    if (!host) return;
+	  private showTooltipAtUid(uid: string): void {
+	    const host = this.wrapper?.nativeElement;
+	    if (!host) return;
 
-    const tile = host.querySelector<HTMLElement>(`[data-uid="${uid}"]`);
-    if (!tile) return;
+	    const tile = host.querySelector<HTMLElement>(`[data-uid="${uid}"]`);
+	    if (!tile) return;
 
-    // Позиционируем слева или справа от тайла, чтобы не перекрывать его
-    const hostRect = host.getBoundingClientRect();
-    const tileRect = tile.getBoundingClientRect();
-    const gap = this.tooltipGap;
+	    // Позиционируем слева или справа от тайла, чтобы не перекрывать его
+	    const hostRect = host.getBoundingClientRect();
+	
+	    // На узких/низких контейнерах не даём тултипу выходить за границы.
+	    const gap = this.tooltipGap;
+	    const maxW = Math.max(80, hostRect.width - gap * 2);
+	    const maxH = Math.max(60, hostRect.height - gap * 2);
+	    this.tooltipWidth = Math.min(this.tooltipWidth, maxW);
+	    this.tooltipHeight = Math.min(this.tooltipHeight, maxH);
+	    const tileRect = tile.getBoundingClientRect();
 
-    const spaceRight = hostRect.right - tileRect.right;
-    const spaceLeft = tileRect.left - hostRect.left;
-    const rightLeft = tileRect.right - hostRect.left + gap;
-    const leftLeft = tileRect.left - hostRect.left - this.tooltipWidth - gap;
+	    const spaceRight = hostRect.right - tileRect.right;
+	    const spaceLeft = tileRect.left - hostRect.left;
+	    const rightLeft = tileRect.right - hostRect.left + gap;
+	    const leftLeft = tileRect.left - hostRect.left - this.tooltipWidth - gap;
 
     let left: number;
     if (spaceRight >= this.tooltipWidth + gap) {
@@ -254,26 +290,45 @@ constructor(
 
     this.renderTooltipContent();
 
-    this.tooltipVisible = true;
-    this.cdr.markForCheck();
-  }
+	    this.tooltipVisible = true;
+	    this.cdr.markForCheck();
+	  }
+	
+	  private prepareTooltip(e: TreeMapEvent<any>): void {
+	    this.item = e.dataItem;
+	    if (!this.item) return;
+	
+	    const isTitle = !!e.node.children?.length;
+	    const sectorItems = isTitle
+	      ? ((e.node.children ?? []).map((c) => c.dataItem) as MarketMapSquare[])
+	      : this.normalizeSectorItems((this.item as any)?.items);
+	
+	    this.tooltipIsTitle = isTitle || !!sectorItems?.length;
+	    this.tooltipSectorItems = sectorItems?.length ? sectorItems : null;
+	    this.tooltipSectorName = this.tooltipSectorItems ? (this.item.name ?? null) : null;
+	
+		    const showLarge = this.tooltipIsTitle || (!!this.item && !!this.item.cls);
+	    this.tooltipWidth = showLarge ? this.tooltipLargeWidth : this.tooltipSmallWidth;
+	    this.tooltipHeight = showLarge ? this.tooltipLargeHeight : this.tooltipSmallHeight;
+	  }
 
-  private renderTooltipContent(): void {
-    this.tooltipHost?.clear();
-    if (this.tooltipCmp) {
-      this.tooltipCmp.destroy();
-      this.tooltipCmp = undefined;
-    }
-
-    if (this.tooltipIsTitle && this.tooltipSectorItems?.length) {
-      const cmp = this.tooltipHost.createComponent(SectorMiniTreemapComponent, { injector: this.injector });
-      cmp.instance.data = this.tooltipSectorItems;
-      cmp.instance.sectorName = this.tooltipSectorName;
-      cmp.changeDetectorRef.detectChanges();
-      this.tooltipCmp = cmp;
-      this.tooltipTextHtml = '';
-      return;
-    }
+	  private renderTooltipContent(): void {
+	    this.tooltipHost?.clear();
+	    if (this.tooltipCmp) {
+	      this.tooltipCmp.destroy();
+	      this.tooltipCmp = undefined;
+	    }
+	
+	    // Если есть items сектора — всегда показываем мини-карту (даже если tooltipIsTitle ошибочно false).
+	    if (this.tooltipSectorItems?.length) {
+	      const cmp = this.tooltipHost.createComponent(SectorMiniTreemapComponent, { injector: this.injector });
+	      cmp.instance.data = this.tooltipSectorItems;
+	      cmp.instance.sectorName = this.tooltipSectorName;
+	      cmp.changeDetectorRef.detectChanges();
+	      this.tooltipCmp = cmp;
+	      this.tooltipTextHtml = '';
+	      return;
+	    }
 
     if (!this.item) {
       this.tooltipTextHtml = '';
@@ -302,29 +357,53 @@ constructor(
       return;
     }
 
-    // иначе - простой текстовый тултип
-    const vol = this.moneyToStrPipe.transform(this.item.value);
-    this.tooltipTextHtml =
-      `<p><b>${escapeHtml(this.item.name ?? '')}</b></p>` +
-      `<p><b>Объем:</b> ${escapeHtml(vol ?? '')}</p>`;
-  }
+	    // иначе - простой текстовый тултип
+	    const vol = this.moneyToStrPipe.transform(this.item.value);
+	    if (this.isCoarsePointer) {
+	      // На мобильном этот fallback не должен показываться: либо мини-карта сектора, либо footprint по тикеру.
+	      this.hideTooltip();
+	      return;
+	    }
+	
+	    this.tooltipTextHtml =
+	      `<p><b>${escapeHtml(this.item.name ?? '')}</b></p>` +
+	      `<p><b>Объем:</b> ${escapeHtml(vol ?? '')}</p>`;
+	  }
 
-  private hideTooltip(): void {
-    if (this.showTimer) clearTimeout(this.showTimer);
-    if (this.hideTimer) clearTimeout(this.hideTimer);
-    this.showTimer = null;
-    this.hideTimer = null;
+	  private hideTooltip(): void {
+	    if (this.showTimer) clearTimeout(this.showTimer);
+	    if (this.hideTimer) clearTimeout(this.hideTimer);
+	    this.showTimer = null;
+	    this.hideTimer = null;
 
-    this.tooltipVisible = false;
-    this.item = null;
+	    this.tooltipVisible = false;
+	    this.tooltipPinnedUid = null;
+	    this.item = null;
 
-    this.tooltipHost?.clear();
-    this.tooltipCmp?.destroy();
-    this.tooltipCmp = undefined;
-
-    this.cdr.markForCheck();
-  }
-}
+	    this.tooltipHost?.clear();
+	    this.tooltipCmp?.destroy();
+	    this.tooltipCmp = undefined;
+	
+	    this.cdr.markForCheck();
+	  }
+	
+	  private isSectorLikeItem(item: any): item is { name?: string; items: MarketMapSquare[] } {
+	    return !!item && Array.isArray(item.items) && item.items.length > 0;
+	  }
+	
+	  private normalizeSectorItems(rawItems: unknown): MarketMapSquare[] | null {
+	    if (Array.isArray(rawItems)) return rawItems as MarketMapSquare[];
+	
+	    // Поддержка .NET preserve-references: { "$values": [...] }
+	    if (rawItems && typeof rawItems === 'object') {
+	      const anyObj = rawItems as any;
+	      const values = anyObj.$values ?? anyObj.values;
+	      if (Array.isArray(values)) return values as MarketMapSquare[];
+	    }
+	
+	    return null;
+	  }
+	}
 
 function escapeHtml(s: string): string {
   return String(s)

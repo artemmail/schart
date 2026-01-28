@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { StockChartTreemapComponent } from 'src/app/components/Controls/stockChart-treemap/stockChart-treemap.component';
+import { StockChartTreemapComponent } from 'src/app/components/Controls/stockchart-treemap/stockchart-treemap.component';
 
 
 @Component({

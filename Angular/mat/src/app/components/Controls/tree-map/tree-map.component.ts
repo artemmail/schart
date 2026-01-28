@@ -139,7 +139,9 @@ export class TreeMapComponent<T = any> implements AfterViewInit, OnChanges, OnDe
     const hasText = (node.text ?? '').trim().length > 0;
     const hasTpl = !!this.titleTemplate;
     if (!hasText && !hasTpl) return 0;
-    return Math.max(0, this.cfg.titleSize);
+    const raw = Math.max(0, this.cfg.titleSize);
+    const maxByNode = this.isTitleSide() ? (node.coord?.width ?? raw) : (node.coord?.height ?? raw);
+    return Math.max(0, Math.min(raw, Math.max(0, maxByNode)));
   }
 
 onTileMouseEnter(node: TreeNode<T>): void {
@@ -268,17 +270,17 @@ this.cdr.markForCheck();   // <-- важно
   }
 
   private buildNodes(items: T[], level: number): TreeNode<T>[] {
-    
-    const { textField, valueField, colorField, childrenField } = this.cfg;
+	    
+	    const { textField, valueField, colorField, childrenField } = this.cfg;
 
-    const nodes: TreeNode<T>[] = [];
-    for (const item of items ?? []) {
-      const rawText = getField(textField, item);
-      const rawValue = getField(valueField, item);
-      const rawColor = getField(colorField, item);
-      const rawChildren = getField(childrenField, item);
+	    const nodes: TreeNode<T>[] = [];
+	    for (const item of items ?? []) {
+	      const rawText = getField(textField, item);
+	      const rawValue = getField(valueField, item);
+	      const rawColor = getField(colorField, item);
+	      const rawChildren = getField(childrenField, item);
 
-      const childrenArr = Array.isArray(rawChildren) ? (rawChildren as T[]) : [];
+	      const childrenArr = this.normalizeChildren(rawChildren);
 
       const node: TreeNode<T> = {
         uid: this.nextUid(),
@@ -293,13 +295,35 @@ this.cdr.markForCheck();   // <-- важно
 
       // Пропускаем только "пустые" листья без детей и нулевой value; контейнеры с children оставляем,
       // чтобы значение пересчиталось от потомков и дерево не опустело (случай value=0 у корня данных).
-      if (Number.isFinite(node.value) && node.value === 0 && !childrenArr.length) continue;
+      // ВАЖНО: тикеры могут легально иметь value=0 (например объём=0 за период). Их пропускать нельзя,
+      // иначе сектор схлопнется в leaf и на мобильном вместо мини-карты будет показываться текстовый тултип.
+      const hasTicker = typeof (item as any)?.ticker === 'string' && (item as any).ticker.length > 0;
+      if (Number.isFinite(node.value) && node.value === 0 && !childrenArr.length && !hasTicker) continue;
 
       nodes.push(node);
     }
 
-    return nodes;
-  }
+	    return nodes;
+	  }
+
+	  private normalizeChildren(rawChildren: unknown): T[] {
+	    if (Array.isArray(rawChildren)) return rawChildren as T[];
+
+	    // Support common .NET "preserve references" shapes: { "$values": [...] }
+	    if (rawChildren && typeof rawChildren === 'object') {
+	      const anyObj = rawChildren as any;
+	      const values = anyObj.$values ?? anyObj.values;
+	      if (Array.isArray(values)) return values as T[];
+
+	      // Support generic iterables (but not strings)
+	      try {
+	        const it = anyObj[Symbol.iterator];
+	        if (typeof it === 'function') return Array.from(anyObj) as T[];
+	      } catch {}
+	    }
+
+	    return [];
+	  }
 
   private sortTree(node: TreeNode<T>): void {
     if (!node.children?.length) return;
@@ -408,7 +432,7 @@ this.cdr.markForCheck();   // <-- важно
   }
 
   private layoutNode(node: TreeNode<T>, layout: Layout): void {
-    const children = node.children?.filter(c => !(Number.isFinite(c.value) && c.value === 0)) ?? [];
+    const children = node.children ?? [];
     if (!children.length) return;
 
     const title = this.titleSizeFor(node);
@@ -419,20 +443,17 @@ this.cdr.markForCheck();   // <-- важно
         ? { width: Math.max(0, node.coord.width - title), height: node.coord.height, top: 0, left: 0 }
         : { width: node.coord.width, height: Math.max(0, node.coord.height - title), top: 0, left: 0 };
 
-    if (content.width < this.cfg.minTileSize || content.height < this.cfg.minTileSize) {
-      node.children = undefined;
-      return;
-    }
+    // Если контентная область слишком мала (например, сектор очень маленький и title "съедает" всё место),
+    // НЕ превращаем контейнер в leaf — просто не раскладываем детей. Так title остаётся title,
+    // и на мобильном можно открыть мини-карту по тапу.
+    if (content.width < this.cfg.minTileSize || content.height < this.cfg.minTileSize) return;
 
     // compute coords for children
     layout.compute(children, content);
 
     // recurse
     for (const c of children) {
-      if (c.coord.width < this.cfg.minTileSize || c.coord.height < this.cfg.minTileSize) {
-        c.children = undefined;
-        continue;
-      }
+      if (c.coord.width < this.cfg.minTileSize || c.coord.height < this.cfg.minTileSize) continue;
       this.layoutNode(c, layout);
     }
   }
