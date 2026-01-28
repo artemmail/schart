@@ -1,4 +1,15 @@
 <div class="card-row-container">
+  <!-- Статусы -->
+  <mat-card *ngIf="isLoading">
+    <mat-card-content>Загрузка...</mat-card-content>
+  </mat-card>
+
+  <mat-card *ngIf="errorMessage">
+    <mat-card-content>
+      <mat-error>{{ errorMessage }}</mat-error>
+    </mat-card-content>
+  </mat-card>
+
   <!-- Основная информация о фьючерсе -->
   <mat-card *ngIf="futInfo">
     <mat-card-header>
@@ -6,11 +17,6 @@
     </mat-card-header>
 
     <mat-card-content>
-      <!-- Сообщение об ошибке -->
-      <div *ngIf="errorMessage">
-        <mat-error>{{ errorMessage }}</mat-error>
-      </div>
-
       <!-- Основная информация о фьючерсе -->
       <mat-list>
 
