@@ -529,18 +529,12 @@ public sealed class DictionaryController : ControllerBase
         if (isActive.HasValue)
         {
             var now = DateTime.UtcNow;
-            bool IsActive(DictionaryEntity d) =>
-                (!d.FromDate.HasValue || d.FromDate.Value <= now)
-                && (!d.ToDate.HasValue || d.ToDate.Value >= now);
-
             // EF can translate this simple predicate.
             query = isActive.Value
                 ? query.Where(d => (!d.FromDate.HasValue || d.FromDate.Value <= now)
                     && (!d.ToDate.HasValue || d.ToDate.Value >= now))
                 : query.Where(d => (d.FromDate.HasValue && d.FromDate.Value > now)
                     || (d.ToDate.HasValue && d.ToDate.Value < now));
-
-            _ = IsActive; // keep the helper in case we later need in-memory filtering.
         }
 
         return query;

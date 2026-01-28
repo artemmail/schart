@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using StockChart.EventBus.Models;
 using StockChart.Model;
 using StockChart.Repository;
 using StockChart.Repository.Interfaces;
@@ -213,6 +214,324 @@ namespace StockChart.Controllers
             {
                 return BadRequest( ex.Message);
             }
+        }
+
+        [HttpGet]
+        [Route("candlesSeries")]
+        public async Task<IActionResult> GetCandlesSeries(
+            string? ticker,
+            decimal period,
+            DateTime? startDate,
+            DateTime? endDate,
+            int limit = 500,
+            string? fields = null)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(ticker))
+                {
+                    return BadRequest(new ApiErrorResponseDto
+                    {
+                        Error = new ApiErrorDto
+                        {
+                            Code = "VALIDATION_ERROR",
+                            Message = "ticker is required",
+                            Details = new { }
+                        }
+                    });
+                }
+
+                if (period <= 0)
+                {
+                    return BadRequest(new ApiErrorResponseDto
+                    {
+                        Error = new ApiErrorDto
+                        {
+                            Code = "VALIDATION_ERROR",
+                            Message = "period must be > 0 (minutes).",
+                            Details = new { }
+                        }
+                    });
+                }
+
+                const int maxLimit = 5000;
+                limit = Math.Clamp(limit, 1, maxLimit);
+
+                bool glued = false;
+                if (ticker.Length == 4 && ticker.Contains("##"))
+                {
+                    ticker = ticker.Substring(0, 2);
+                    glued = true;
+                }
+                else
+                {
+                    _stockMarketServiceRepository.UpdateAlias(ref ticker);
+                }
+
+                if (startDate == null)
+                {
+                    startDate = GetDefaultStartDate(ticker, period);
+                }
+
+                var dates = GetDateTimePair(startDate, endDate, period);
+
+                var selectedFields = ParseCandleFields(fields);
+                if (selectedFields.Error != null)
+                {
+                    return BadRequest(selectedFields.Error);
+                }
+
+                int fetchTop = Math.Min(maxLimit + 1, limit + 1);
+
+                List<ClusterColumnBase> candles;
+                if (period == 3)
+                {
+                    candles = await _candlesRepository.GetTradesCandles(ticker, dates.Start, dates.End) ?? new List<ClusterColumnBase>();
+                }
+                else if (glued)
+                {
+                    candles = await _candlesRepository.GetCandlesGlued1(ticker + "##", (int)period, dates.Start, dates.End, fetchTop) ?? new List<ClusterColumnBase>();
+                }
+                else if (IsFormulaTicker(ticker))
+                {
+                    ticker = _tickersRepository.CorrectFormula(ticker);
+                    candles = await _candlesRepositorySet.GetRangeSetBase(ticker, null, null, (double)period, dates, fetchTop) ?? new List<ClusterColumnBase>();
+                }
+                else
+                {
+                    var raw = await _candlesRepository.GetCandles(ticker, (double)period, dates.Start, dates.End, fetchTop) ?? new List<Candle>();
+                    candles = raw.Select(row => new ClusterColumnBase
+                    {
+                        x = row.Period,
+                        o = row.OpnPrice,
+                        c = row.ClsPrice,
+                        l = row.MinPrice,
+                        h = row.MaxPrice,
+                        oi = row.Oi,
+                        q = row.Quantity,
+                        bq = row.BuyQuantity,
+                        v = row.Volume,
+                        bv = row.BuyVolume
+                    }).ToList();
+                }
+
+                bool truncated = false;
+                if (candles.Count > limit)
+                {
+                    truncated = true;
+                    candles = candles.Take(limit).ToList();
+                }
+
+                var data = new object?[candles.Count][];
+                for (int i = 0; i < candles.Count; i++)
+                {
+                    var c = candles[i];
+                    var row = new object?[selectedFields.Fields.Length];
+                    for (int j = 0; j < selectedFields.Fields.Length; j++)
+                    {
+                        row[j] = selectedFields.Fields[j] switch
+                        {
+                            "t" => c.x.ToString("yyyy-MM-ddTHH:mm:ss"),
+                            "o" => c.o,
+                            "h" => c.h,
+                            "l" => c.l,
+                            "c" => c.c,
+                            "q" => c.q,
+                            "v" => c.v,
+                            "bq" => c.bq,
+                            "bv" => c.bv,
+                            "sq" => c.q - c.bq,
+                            "sv" => c.v - c.bv,
+                            "oi" => c.oi,
+                            _ => null
+                        };
+                    }
+                    data[i] = row;
+                }
+
+                var response = new CandleSeriesResponseDto
+                {
+                    Ticker = ticker,
+                    Period = period,
+                    Start = dates.Start.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    End = dates.End.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    Fields = selectedFields.Fields,
+                    Data = data,
+                    Meta = new ApiMetaDto
+                    {
+                        RequestId = HttpContext.TraceIdentifier ?? string.Empty,
+                        RowsReturned = data.Length,
+                        RowsTotal = null,
+                        Truncated = truncated,
+                        NextCursor = null,
+                        ServerTimeUtc = DateTime.UtcNow.ToString("O"),
+                        Source = new[] { "candles" }
+                    }
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiErrorResponseDto
+                {
+                    Error = new ApiErrorDto
+                    {
+                        Code = "INTERNAL_ERROR",
+                        Message = ex.Message,
+                        Details = new { exceptionType = ex.GetType().Name }
+                    }
+                });
+            }
+        }
+
+        private sealed class CandleFieldsParseResult
+        {
+            public string[] Fields { get; init; } = Array.Empty<string>();
+            public ApiErrorResponseDto? Error { get; init; }
+        }
+
+        private static CandleFieldsParseResult ParseCandleFields(string? fields)
+        {
+            var requested = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(fields))
+            {
+                foreach (var raw in fields.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    var token = raw.ToLowerInvariant();
+                    if (string.IsNullOrWhiteSpace(token))
+                    {
+                        continue;
+                    }
+
+                    switch (token)
+                    {
+                        case "base":
+                            requested.AddRange(new[] { "t", "c" });
+                            break;
+                        case "ohlc":
+                            requested.AddRange(new[] { "t", "o", "h", "l", "c" });
+                            break;
+                        case "vol":
+                        case "volume":
+                            requested.Add("v");
+                            break;
+                        case "qty":
+                        case "quantity":
+                            requested.Add("q");
+                            break;
+                        case "bidask":
+                        case "askbid":
+                            requested.AddRange(new[] { "bq", "sq", "bv", "sv" });
+                            break;
+                        case "oi":
+                            requested.Add("oi");
+                            break;
+                        case "t":
+                        case "time":
+                        case "date":
+                        case "datetime":
+                            requested.Add("t");
+                            break;
+                        case "o":
+                        case "open":
+                            requested.Add("o");
+                            break;
+                        case "h":
+                        case "high":
+                            requested.Add("h");
+                            break;
+                        case "l":
+                        case "low":
+                            requested.Add("l");
+                            break;
+                        case "c":
+                        case "close":
+                            requested.Add("c");
+                            break;
+                        case "v":
+                            requested.Add("v");
+                            break;
+                        case "q":
+                            requested.Add("q");
+                            break;
+                        case "bq":
+                        case "bidq":
+                        case "buyq":
+                        case "buyqty":
+                        case "buyquantity":
+                            requested.Add("bq");
+                            break;
+                        case "bv":
+                        case "bidv":
+                        case "buyv":
+                        case "buyvol":
+                        case "buyvolume":
+                            requested.Add("bv");
+                            break;
+                        case "sq":
+                        case "askq":
+                        case "sellq":
+                        case "sellqty":
+                        case "sellquantity":
+                            requested.Add("sq");
+                            break;
+                        case "sv":
+                        case "askv":
+                        case "sellv":
+                        case "sellvol":
+                        case "sellvolume":
+                            requested.Add("sv");
+                            break;
+                        case "all":
+                            requested.AddRange(new[] { "t", "o", "h", "l", "c", "q", "bq", "sq", "v", "bv", "sv", "oi" });
+                            break;
+                        default:
+                            return new CandleFieldsParseResult
+                            {
+                                Error = new ApiErrorResponseDto
+                                {
+                                    Error = new ApiErrorDto
+                                    {
+                                        Code = "VALIDATION_ERROR",
+                                        Message = $"Unknown field token: {raw}",
+                                        Details = new
+                                        {
+                                            allowed = new[]
+                                            {
+                                                "base", "ohlc", "vol", "qty", "bidask", "oi", "all",
+                                                "t", "o", "h", "l", "c", "q", "v", "bq", "bv", "sq", "sv", "oi"
+                                            }
+                                        }
+                                    }
+                                }
+                            };
+                    }
+                }
+            }
+
+            if (requested.Count == 0)
+            {
+                requested.AddRange(new[] { "t", "c" });
+            }
+
+            if (!requested.Contains("t"))
+            {
+                requested.Insert(0, "t");
+            }
+
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var unique = new List<string>();
+            foreach (var f in requested)
+            {
+                if (seen.Add(f))
+                {
+                    unique.Add(f);
+                }
+            }
+
+            return new CandleFieldsParseResult { Fields = unique.ToArray() };
         }
 
         private async Task<IActionResult?> CheckUserAuthorization(string ticker, decimal period, bool candlesOnly, bool isFromStamp = false)

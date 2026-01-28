@@ -22,6 +22,19 @@ from typing import Any, Dict, List, Optional, Tuple
 
 PROTOCOL_VERSIONS_SUPPORTED = ["2025-03-26", "2024-11-05"]
 
+def _ensure_utf8_stdio() -> None:
+    # MCP transports are UTF-8; ensure Windows stdio can emit Cyrillic without crashing.
+    # Without this, tool results containing non-ASCII (e.g. Russian names) can raise
+    # UnicodeEncodeError and terminate the process ("Transport closed" in the host).
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+    try:
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 
 def _eprint(*args: object) -> None:
     print(*args, file=sys.stderr, flush=True)
@@ -56,7 +69,7 @@ def _tool_result_json(data: Any, is_error: bool = False) -> Dict[str, Any]:
 
 
 def _get_base_url() -> str:
-    base = os.environ.get("STOCKCHART_BASE_URL", "http://localhost:5000").strip()
+    base = os.environ.get("STOCKCHART_BASE_URL", "http://localhost:5253").strip()
     return base.rstrip("/")
 
 
@@ -114,7 +127,34 @@ def _http_json(
             payload = raw.decode("utf-8", errors="replace") if raw else None
         return int(e.code), payload
     except Exception as e:
-        return 0, {"error": {"code": "INTERNAL_ERROR", "message": str(e), "details": {}}}
+        message = str(e)
+        details: Dict[str, Any] = {
+            "exceptionType": type(e).__name__,
+            "url": url,
+            "baseUrl": base,
+        }
+
+        lowered = message.lower()
+        hint: Optional[str] = None
+        if "wrong_version_number" in lowered or "wrong version number" in lowered:
+            hint = (
+                "TLS handshake failed; this usually means you're calling https:// against an HTTP endpoint/port. "
+                "Check STOCKCHART_BASE_URL scheme/port (for this repo: http://localhost:5253)."
+            )
+        elif "certificate_verify_failed" in lowered:
+            hint = (
+                "TLS certificate verification failed. If this is a local/dev self-signed cert, set "
+                "STOCKCHART_INSECURE_TLS=1 (dev only), or install a trusted certificate."
+            )
+        elif "timed out" in lowered:
+            hint = "Request timed out; check that the StockChart REST API is running and reachable."
+        elif "connection refused" in lowered:
+            hint = "Connection refused; check STOCKCHART_BASE_URL and that the REST API is listening on that host/port."
+
+        if hint:
+            details["hint"] = hint
+
+        return 0, {"error": {"code": "INTERNAL_ERROR", "message": message, "details": details}}
 
 
 def _tool_defs() -> List[Dict[str, Any]]:
@@ -246,6 +286,38 @@ def _tool_defs() -> List[Dict[str, Any]]:
                 "additionalProperties": False,
             },
         },
+        {
+            "name": "candles_series",
+            "description": "Get candle history (time series) with selectable fields to keep the response small.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "ticker": {"type": "string"},
+                    "period": {"type": "number", "minimum": 0},
+                    "startDate": {"type": "string", "description": "Optional ISO datetime (server timezone)."},
+                    "endDate": {"type": "string", "description": "Optional ISO datetime (server timezone)."},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 5000, "default": 500},
+                    "fields": {
+                        "type": "string",
+                        "description": "Comma-separated field tokens, e.g. 't,c' (default), 'ohlc,vol,oi', 'bidask'.",
+                    },
+                },
+                "required": ["ticker", "period"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "dividends",
+            "description": "Get dividends history for a ticker (MOEX).",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "ticker": {"type": "string"},
+                },
+                "required": ["ticker"],
+                "additionalProperties": False,
+            },
+        },
     ]
 
 
@@ -330,6 +402,31 @@ def _call_tool(name: str, args: Dict[str, Any]) -> Tuple[bool, Any]:
         status, payload = _http_json("POST", "/api/statements/series/batch", body={"items": items})
         return status >= 400 or status == 0, payload
 
+    if name == "candles_series":
+        ticker = str(args.get("ticker", "")).strip()
+        period = args.get("period")
+        if not ticker:
+            return True, {"error": {"code": "VALIDATION_ERROR", "message": "ticker is required", "details": {}}}
+        if period is None:
+            return True, {"error": {"code": "VALIDATION_ERROR", "message": "period is required", "details": {}}}
+        q = {
+            "ticker": ticker,
+            "period": period,
+            "startDate": args.get("startDate"),
+            "endDate": args.get("endDate"),
+            "limit": args.get("limit", 500),
+            "fields": args.get("fields"),
+        }
+        status, payload = _http_json("GET", "/api/clusters/candlesSeries", query=q)
+        return status >= 400 or status == 0, payload
+
+    if name == "dividends":
+        ticker = str(args.get("ticker", "")).strip()
+        if not ticker:
+            return True, {"error": {"code": "VALIDATION_ERROR", "message": "ticker is required", "details": {}}}
+        status, payload = _http_json("GET", f"/api/Dividends/{urllib.parse.quote(ticker)}")
+        return status >= 400 or status == 0, payload
+
     return True, {"error": {"code": "VALIDATION_ERROR", "message": f"Unknown tool: {name}", "details": {}}}
 
 
@@ -341,12 +438,13 @@ def _handle_request(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if method == "initialize":
         requested = (params.get("protocolVersion") or "").strip()
         if requested and requested not in PROTOCOL_VERSIONS_SUPPORTED:
-            return _jsonrpc_error(
-                req_id,
-                -32602,
-                "Unsupported protocol version",
-                {"supported": PROTOCOL_VERSIONS_SUPPORTED, "requested": requested},
+            # Be tolerant: some MCP hosts may send a newer protocol version string.
+            # We can still interop using the latest version we support.
+            _eprint(
+                f"[StockChart.MCP] warn: unsupported protocolVersion={requested}; "
+                f"falling back to {PROTOCOL_VERSIONS_SUPPORTED[0]}"
             )
+            requested = ""
 
         version = requested if requested else PROTOCOL_VERSIONS_SUPPORTED[0]
         return _jsonrpc_result(
@@ -382,6 +480,7 @@ def _handle_request(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 
 def main() -> int:
+    _ensure_utf8_stdio()
     _eprint(f"[StockChart.MCP] starting; baseUrl={_get_base_url()}")
 
     for line in sys.stdin:
@@ -420,4 +519,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

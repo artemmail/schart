@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 public class RefererFilterAttribute : ActionFilterAttribute
 {
-    public string[] ValidReferers { get; set; } = new[] { "ru-ticker", "stockchart", "stock-charts", "localhost:5253", "localhost" };
+    public string[] ValidReferers { get; set; } = new[] { "ru-ticker", "stockchart", "stock-charts", "localhost:5000", "localhost" };
 
     public override void OnActionExecuting(ActionExecutingContext context)
     {

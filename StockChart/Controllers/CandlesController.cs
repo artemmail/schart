@@ -32,11 +32,29 @@ namespace StockChart.Controllers
             _stockMarketServiceRepository = stockMarketServiceRepository;
         }
 
+        private static bool TryResolvePeriod(string? periodParam, out double period, out string? error)
+        {
+            error = null;
+            if (string.IsNullOrWhiteSpace(periodParam))
+            {
+                period = 15;
+                return true;
+            }
+
+            if (CandlePeriodParser.TryParse(periodParam, out period))
+            {
+                return true;
+            }
+
+            error = "Invalid `period`. Use numeric minutes (e.g. 15, 60, 1440, 10080, 30000) or timeframe codes like m1, m5, h1, d1, w1, MN1/M.";
+            return false;
+        }
+
         [HttpGet]
         [Route("getRange")]
         [RefererFilter]
         public async Task<object> getRange(string? ticker, string? rperiod, string? startDate, string? endDate, string? startTime, string? endTime,
-             string? from_stamp, bool? packed, int count = 2000, int z = 0, double period = 15, bool timeEnable = false)
+             string? from_stamp, bool? packed, int count = 2000, int z = 0, string? period = "15", bool timeEnable = false)
         {
             bool glued = false;
             if (!string.IsNullOrWhiteSpace(ticker) && ticker.Length == 4 && ticker.Contains("##"))
@@ -51,20 +69,32 @@ namespace StockChart.Controllers
                 return await getRangeSet(ticker, null, null, rperiod, startDate, endDate, startTime, endTime,
                 from_stamp, packed, count, period, timeEnable);
             var res = _stockMarketServiceRepository.getStartEndDateTime(ticker, rperiod, startDate, endDate, from_stamp, startTime, endTime, timeEnable);
+
+            if (!TryResolvePeriod(period, out var resolvedPeriod, out var error))
+            {
+                return BadRequest(error);
+            }
+
             var t =
                 glued ?
-                await _candlesRepository.GetCandlesGlued(ticker.Substring(0, 2) + "##", (int)period, res.Start, res.End, 1000) :
-                await _candlesRepository.GetCandles(ticker, period, res.Start, res.End, 1000);
+                await _candlesRepository.GetCandlesGlued(ticker.Substring(0, 2) + "##", (int)resolvedPeriod, res.Start, res.End, 1000) :
+                await _candlesRepository.GetCandles(ticker, resolvedPeriod, res.Start, res.End, 1000);
             return CandlePacker.PackCandlesResult(t, false);
         }
         [HttpGet]
         [Route("getStats")]
         public async Task<object> getStats(string? ticker, string? rperiod, string? startDate, string? endDate, string? startTime, string? endTime,
-             string? from_stamp, bool? packed, int count = 2000, int z = 0, double period = 15, bool timeEnable = false)
+             string? from_stamp, bool? packed, int count = 2000, int z = 0, string? period = "15", bool timeEnable = false)
         {
             _stockMarketServiceRepository.UpdateAlias(ref ticker);
             var res = _stockMarketServiceRepository.getStartEndDateTime(ticker, rperiod, startDate, endDate, from_stamp, startTime, endTime, timeEnable);
-            var candles = await _candlesRepository.GetCandles(ticker, (int)period, res.Start, res.End, 10000);
+
+            if (!TryResolvePeriod(period, out var resolvedPeriod, out var error))
+            {
+                return BadRequest(error);
+            }
+
+            var candles = await _candlesRepository.GetCandles(ticker, (int)resolvedPeriod, res.Start, res.End, 10000);
 
             CandlesStatistic stat = new CandlesStatistic(candles);
             return
@@ -78,7 +108,7 @@ namespace StockChart.Controllers
         [HttpGet]
         [Route("getRangeSet")]
         public async Task<ActionResult<CandlesRangeSetResult>> getRangeSet(string? ticker, string? ticker1, string? ticker2, string? rperiod, string? startDate, string? endDate, string? startTime, string? endTime,
-            string? from_stamp, bool? packed, int count = 2000, double period = 15, bool timeEnable = false)
+            string? from_stamp, bool? packed, int count = 2000, string? period = "15", bool timeEnable = false)
         {
             try
             {
@@ -88,7 +118,13 @@ namespace StockChart.Controllers
                 }
 
                 var res = _stockMarketServiceRepository.getStartEndDateTime(ticker, rperiod, startDate, endDate, from_stamp, startTime, endTime, timeEnable);
-                var t = await _candlesRepositorySet.GetRangeSet(ticker, ticker1, ticker2, (int)period, res, 1000);
+
+                if (!TryResolvePeriod(period, out var resolvedPeriod, out var error))
+                {
+                    return BadRequest(error);
+                }
+
+                var t = await _candlesRepositorySet.GetRangeSet(ticker, ticker1, ticker2, (int)resolvedPeriod, res, 1000);
                 return Ok(t);
             }
             catch (Exception ex)
@@ -100,7 +136,7 @@ namespace StockChart.Controllers
         [HttpGet]
         [Route("getRangeSetArray")]
         public async Task<ActionResult<CandlesRangeSetValue[]>> getRangeSetArray(string? ticker, string? ticker1, string? ticker2, string? rperiod, string? startDate, string? endDate, string? startTime, string? endTime,
-            string? from_stamp, bool? packed, int count = 2000, double period = 15, bool timeEnable = false)
+            string? from_stamp, bool? packed, int count = 2000, string? period = "15", bool timeEnable = false)
         {
             try
             {
@@ -110,7 +146,13 @@ namespace StockChart.Controllers
                 }
 
                 var res = _stockMarketServiceRepository.getStartEndDateTime(ticker, rperiod, startDate, endDate, from_stamp, startTime, endTime, timeEnable);
-                var t = await _candlesRepositorySet.GetRangeSetArray(ticker, ticker1, ticker2, (int)period, res, 1000);
+
+                if (!TryResolvePeriod(period, out var resolvedPeriod, out var error))
+                {
+                    return BadRequest(error);
+                }
+
+                var t = await _candlesRepositorySet.GetRangeSetArray(ticker, ticker1, ticker2, (int)resolvedPeriod, res, 1000);
                 return Ok(t);
             }
             catch (Exception ex)
