@@ -1,0 +1,39 @@
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 520px;
+}
+
+.dialog-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.favorites-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px 16px;
+}
+
+.favorite-index {
+  display: inline-block;
+  min-width: 24px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.favorite-checkbox {
+  align-items: center;
+}
+
+.empty-text {
+  color: rgba(0, 0, 0, 0.6);
+}

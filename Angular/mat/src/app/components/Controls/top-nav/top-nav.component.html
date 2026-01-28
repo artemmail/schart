@@ -93,6 +93,10 @@
     <button *ngIf="isFootPrintSelected" mat-button [matMenuTriggerFor]="footp">
       <mat-icon>settings</mat-icon> <b>Доп. инструменты</b>
     </button>
+
+    <button *ngIf="isFavoritesBoardSelected" mat-button [matMenuTriggerFor]="favoritesBoardMenu">
+      <mat-icon>settings</mat-icon> <b>Доп. инструменты</b>
+    </button>
   
     <mat-menu #footp="matMenu">
 
@@ -153,6 +157,17 @@
 
 
       
+    </mat-menu>
+
+    <mat-menu #favoritesBoardMenu="matMenu">
+      <button mat-menu-item (click)="openFavoritesBoardSettings()">
+        <mat-icon>tune</mat-icon>
+        Настроить избранное
+      </button>
+      <button mat-menu-item (click)="openFavoritesBoardLayoutSettings()">
+        <mat-icon>grid_view</mat-icon>
+        Настроить сетку
+      </button>
     </mat-menu>
 
     <mat-menu #favoritesMenu="matMenu" panelClass="favorites-menu-panel">
@@ -307,6 +322,15 @@
           alt="Мультиграфики"
         />
         <p>Просмотр и сравнение нескольких графиков</p>
+      </button>
+      <button mat-menu-item [routerLink]="'/FavoritesBoard'">
+        <img
+          width="263"
+          height="151"
+          src="assets/images/FootPrintSmall.webp"
+          alt="Доска FootPrint"
+        />
+        <p>Доска FootPrint (настройки из FootPrint)</p>
       </button>
       <button mat-menu-item [routerLink]="'/Report/Seasonality'">
         <img

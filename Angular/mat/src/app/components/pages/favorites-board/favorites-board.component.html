@@ -1,0 +1,22 @@
+<div #topPanel class="top-panel-spacer"></div>
+
+<div #container class="container1"></div>
+
+<div class="empty-state" *ngIf="favorites.length === 0">
+  <mat-icon>star_border</mat-icon>
+  <div class="empty-title">Нет избранных графиков</div>
+  <div class="empty-subtitle">
+    Добавьте избранное в FootPrint, затем вернитесь сюда.
+  </div>
+</div>
+
+<div
+  class="empty-state"
+  *ngIf="favorites.length > 0 && selectedFavorites.length === 0"
+>
+  <mat-icon>tune</mat-icon>
+  <div class="empty-title">Ничего не выбрано</div>
+  <div class="empty-subtitle">
+    Откройте «Доп. инструменты» и отметьте нужные графики.
+  </div>
+</div>

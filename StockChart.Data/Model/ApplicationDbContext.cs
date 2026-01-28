@@ -86,6 +86,7 @@ public partial class ApplicationDbContext
     public virtual DbSet<OpenPosition> OpenPositions { get; set; }
 
     public virtual DbSet<FootprintFavorite> FootprintFavorites { get; set; }
+    public virtual DbSet<FootprintFavoritesBoard> FootprintFavoritesBoards { get; set; }
     public virtual DbSet<FootprintLevelMark> FootprintLevelMarks { get; set; }
 
     public virtual DbSet<DividendsMoex> DividendsMoex { get; set; }

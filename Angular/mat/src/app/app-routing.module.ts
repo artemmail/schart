@@ -32,6 +32,7 @@ import { PortfolioOptimizationComponent } from './components/pages/optimization/
 import { LeadersReportComponent } from './components/Reports/leaders-report/leaders-report.component';
 import { TreeMapComponent } from './components/Controls/tree-map/tree-map.component';
 import { MultiPageComponent } from './components/pages/multicandles/multicandles.component';
+import { FavoritesBoardComponent } from './components/pages/favorites-board/favorites-board.component';
 import { CreateTopicComponent } from './components/pages/create-topic/create-topic.component';
 import { EditTopicComponent } from './components/pages/edit-topic/edit-topic.component';
 import { EditCommentComponent } from './components/pages/edit-comment/edit-comment.component';
@@ -130,6 +131,12 @@ const routes: Routes = [
   { path: 'MultiDeltas', 
     component: MultiPageComponent,
     canActivate: [AuthGuard] 
+  },
+
+  {
+    path: 'FavoritesBoard',
+    component: FavoritesBoardComponent,
+    canActivate: [AuthGuard],
   },
 
       { path: 'MarketMap', component: MarketMapComponent,

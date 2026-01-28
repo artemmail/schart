@@ -1,0 +1,29 @@
+<h2 mat-dialog-title>Настройка сетки</h2>
+
+<div mat-dialog-content class="dialog-content">
+  <div class="layout-list">
+    <div class="layout-row" *ngFor="let entry of layoutEntries">
+      <mat-form-field appearance="outline" class="layout-select">
+        <mat-label>
+          Отображение для {{ displayLabelMap[entry.count] || entry.count }}
+        </mat-label>
+        <mat-select
+          [value]="selectedMap[entry.count]"
+          (selectionChange)="onSelectionChange(entry, $event.value)"
+        >
+          <mat-option
+            *ngFor="let option of getOptions(entry)"
+            [value]="option"
+          >
+            {{ option.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </div>
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Отмена</button>
+  <button mat-flat-button color="primary" (click)="save()">Сохранить</button>
+</div>

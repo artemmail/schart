@@ -1,0 +1,21 @@
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 520px;
+}
+
+.layout-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.layout-row {
+  display: flex;
+  align-items: center;
+}
+
+.layout-select {
+  flex: 1 1 auto;
+}

@@ -42,6 +42,10 @@ type FirstComponentMethods =
   | 'openCurrentChartUrl'
   | 'clearFootprintMarks';
 
+type FavoritesBoardMethods =
+  | 'openFavoritesBoardSettings'
+  | 'openFavoritesBoardLayoutSettings';
+
 @Component({
   standalone: true,
   selector: 'app-top-nav',
@@ -61,6 +65,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
   isSignedIn = false;
   user: ApplicationUser | null = null;
   isFootPrintSelected = false;
+  isFavoritesBoardSelected = false;
   isDrawerOpened = true;
   isAdmin: boolean = false; // Добавлено свойство для проверки администратора
   favorites: FootprintFavorite[] = [];
@@ -111,6 +116,9 @@ export class TopNavComponent implements OnInit, OnDestroy {
       )
       .subscribe(() => {
         this.isFootPrintSelected = this.isFootprintRoute(this.router.url);
+        this.isFavoritesBoardSelected = this.isFavoritesBoardRoute(
+          this.router.url
+        );
 
         if (this.isFootPrintSelected) {
           // Если боковая панель не открыта, откроем её
@@ -197,6 +205,22 @@ export class TopNavComponent implements OnInit, OnDestroy {
     this.executeFirstComponentMethod('openNonModalTopOrders');
   }
 
+  private executeFavoritesBoardMethod(methodName: FavoritesBoardMethods): void {
+    if (!this.isFavoritesBoardSelected || !this.outlet) {
+      return;
+    }
+
+    const instance = this.outlet.component as Record<string, unknown>;
+    if (instance && typeof instance[methodName] === 'function') {
+      (instance[methodName] as Function)();
+    } else {
+      console.warn(
+        `Метод ${methodName} отсутствует на активном компоненте`,
+        instance
+      );
+    }
+  }
+
   openNonModalOrderBook(): void {
     this.executeFirstComponentMethod('openNonModalOrderBook');
   }
@@ -235,6 +259,14 @@ export class TopNavComponent implements OnInit, OnDestroy {
 
   clearFootprintMarks(): void {
     this.executeFirstComponentMethod('clearFootprintMarks');
+  }
+
+  openFavoritesBoardSettings(): void {
+    this.executeFavoritesBoardMethod('openFavoritesBoardSettings');
+  }
+
+  openFavoritesBoardLayoutSettings(): void {
+    this.executeFavoritesBoardMethod('openFavoritesBoardLayoutSettings');
   }
 
   addCurrentFavorite(): void {
@@ -316,6 +348,10 @@ export class TopNavComponent implements OnInit, OnDestroy {
 
   private isFootprintRoute(url: string): boolean {
     return url.includes('/FootPrint') || url.includes('/CandlestickChart');
+  }
+
+  private isFavoritesBoardRoute(url: string): boolean {
+    return url.includes('/FavoritesBoard');
   }
 
   private buildFavoriteName(params: FootPrintParameters): string {

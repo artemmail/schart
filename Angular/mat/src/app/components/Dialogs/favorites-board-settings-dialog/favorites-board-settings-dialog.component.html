@@ -1,0 +1,28 @@
+<h2 mat-dialog-title>Настройка избранных графиков</h2>
+
+<div mat-dialog-content class="dialog-content">
+  <section class="dialog-section">
+    <div class="section-header">
+      <mat-icon>star</mat-icon>
+      <span>Показывать избранное</span>
+    </div>
+    <div class="favorites-list" *ngIf="favorites.length; else noFavorites">
+      <mat-checkbox
+        class="favorite-checkbox"
+        *ngFor="let favorite of favorites; let idx = index"
+        [(ngModel)]="selectedMap[favorite.id]"
+      >
+        <span class="favorite-index">{{ idx + 1 }}.</span>
+        {{ favorite.name }}
+      </mat-checkbox>
+    </div>
+    <ng-template #noFavorites>
+      <div class="empty-text">Избранных графиков пока нет.</div>
+    </ng-template>
+  </section>
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Отмена</button>
+  <button mat-flat-button color="primary" (click)="save()">Сохранить</button>
+</div>
