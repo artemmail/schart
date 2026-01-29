@@ -257,7 +257,6 @@ export class MarketBoardComponent implements OnDestroy, AfterViewInit {
   }
 
   private renderTooltipContent(): void {
-    /*
     this.tooltipHost?.clear();
     this.tooltipCmp?.destroy();
     this.tooltipCmp = undefined;
@@ -292,7 +291,7 @@ export class MarketBoardComponent implements OnDestroy, AfterViewInit {
     const vol = MoneyToStr(item.value);
     this.tooltipTextHtml =
       `<p><b>${escapeHtml(item.name ?? item.ticker ?? '')}</b></p>` +
-      `<p><b>Объем:</b> ${escapeHtml(vol ?? '')}</p>`;*/
+      `<p><b>Объем:</b> ${escapeHtml(vol ?? '')}</p>`;
   }
 
   private hideTooltip(): void {
