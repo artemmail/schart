@@ -5,6 +5,10 @@ ehthumbs.db
 *.swp
 
 ### IDE / tooling ###
+StockChart/*.dll
+.dotnet/
+.msbuild-sdks/
+_tmpDotnet/
 .vs/
 .idea/
 .vscode/*
@@ -12,7 +16,7 @@ ehthumbs.db
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
-
+tools/mcp_adapter/__pycache__/
 ### Git logs ###
 *.log
 npm-debug.log*
