@@ -43,6 +43,7 @@ export interface Topic {
   Header: string;
   Text: string;
   Date: Date;
+  Hide?: boolean;
   Slug: string; // Новое поле Slug
   TopicUser: ApplicationUser;
   UserComments: Comment[];

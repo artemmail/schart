@@ -308,7 +308,7 @@ builder.Services.AddScoped<IAuthorizationHandler, SampleAuthorizationHandler>();
 
 
 
-builder.Services.AddKendo();
+
 
 builder.Services.AddDetection();
 

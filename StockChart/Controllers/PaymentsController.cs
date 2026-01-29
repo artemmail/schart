@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using StockChart.Repository;
-using Kendo.Mvc.Extensions;
-using Kendo.Mvc.UI;
 using StockChart.Model.Payments;
 using System.Linq;
 using System.Linq.Dynamic.Core;
@@ -9,6 +7,7 @@ using System.Collections.Generic;
 
 namespace StockChart.Controllers
 {
+    
     [ApiController]
     [Route("api/[controller]")]
     public class PaymentsController : Controller
@@ -18,43 +17,6 @@ namespace StockChart.Controllers
         public PaymentsController(IPaymentsRepository paymentsRepository)
         {
             _paymentsRepository = paymentsRepository;
-        }
-
-        // Existing methods for Kendo UI Grid
-        [HttpPost]
-        [Route("Update")]
-        [Admin]
-        public DataSourceResult Update([DataSourceRequest] DataSourceRequest request, [FromForm][Bind(Prefix = "models")] IEnumerable<PaymentModel> models)
-        {
-            var res = _paymentsRepository.Update(models).Select(p => _paymentsRepository.PaymentToModel(p)).ToList();
-            return res.ToDataSourceResult(request, ModelState);
-        }
-
-        [HttpPost]
-        [Route("Create")]
-        [Admin]
-        public DataSourceResult Create([DataSourceRequest] DataSourceRequest request, [FromForm][Bind(Prefix = "models")] IEnumerable<PaymentModel> models)
-        {
-            var res = _paymentsRepository.Create(models).Select(p => _paymentsRepository.PaymentToModel(p)).ToList();
-            return res.ToDataSourceResult(request, ModelState);
-        }
-
-        [HttpPost]
-        [Route("Destroy")]
-        [Admin]
-        public void Destroy([DataSourceRequest] DataSourceRequest request, [FromForm][Bind(Prefix = "models")] IEnumerable<PaymentModel> models)
-        {
-            _paymentsRepository.Destroy(models);
-        }
-
-        [HttpPost("Read")]
-        [Admin]
-        public DataSourceResult Read([DataSourceRequest] DataSourceRequest requestModel)
-        {
-            var x = _paymentsRepository
-                .GetAll()
-                .Select(p => _paymentsRepository.PaymentToModel(p));
-            return x.ToDataSourceResult(requestModel);
         }
 
         [HttpGet("GetPayments")]

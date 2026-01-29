@@ -56,10 +56,10 @@ namespace StockChart.Repository
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<Topic> UpdateTopicAsync(ApplicationUser user, int id, string header, string text)
+        public async Task<Topic> UpdateTopicAsync(ApplicationUser user, int id, string header, string text, bool isAdmin = false)
         {
             var topic = await _dbContext.Topics
-                .Where(x => x.Id == id && x.UserId == user.Id)
+                .Where(x => x.Id == id && (isAdmin || x.UserId == user.Id))
                 .FirstOrDefaultAsync();
 
             if (topic != null)

@@ -584,6 +584,11 @@ public partial class ApplicationDbContext
                 .HasConstraintName("FK_RecommendationReasons_RecommendationSnapshots");
         });
 
+        modelBuilder.Entity<Topic>(entity =>
+        {
+            entity.Property(e => e.Hide).HasDefaultValue(false);
+        });
+
         modelBuilder.Entity<Lot>(entity =>
         {
             entity

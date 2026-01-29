@@ -34,7 +34,9 @@ namespace StockChart.Pages.ServiceNews
             {
                 return NotFound();
             }
-            if (LoggedInUser.Id == topic.UserId)
+            var isAdmin = string.Equals(User?.Identity?.Name, "ruticker", StringComparison.OrdinalIgnoreCase)
+                || User.IsInRole("Admin");
+            if (LoggedInUser.Id == topic.UserId || isAdmin)
             {
                 ViewData["Title"] = "Редактирование комментария";
                 Date = topic.Date;
@@ -55,7 +57,9 @@ namespace StockChart.Pages.ServiceNews
             Guid guid = LoggedInUser.Id;
             if (ModelState.IsValid && !string.IsNullOrWhiteSpace(Text))
             {
-                var topic = await topicsRepository.UpdateTopicAsync(LoggedInUser, Id, Header, Text);
+                var isAdmin = string.Equals(User?.Identity?.Name, "ruticker", StringComparison.OrdinalIgnoreCase)
+                    || User.IsInRole("Admin");
+                var topic = await topicsRepository.UpdateTopicAsync(LoggedInUser, Id, Header, Text, isAdmin);
                 if (topic != null)
                     //return await OnGet(Id);
                     return RedirectToPage($"Details", new { Id = topic.Id });

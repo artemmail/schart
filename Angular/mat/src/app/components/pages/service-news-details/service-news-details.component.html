@@ -23,11 +23,13 @@
       
       <p>
         <a href="#" (click)="goBack($event)">Назад</a>
-        <ng-container *ngIf="signed && loggedUser?.Id === topicUser?.Id">
+        <ng-container *ngIf="signed && (loggedUser?.Id === topicUser?.Id || isAdmin)">
           <span>|</span>
           <a [routerLink]="['/ServiceNews/Edit', id]">Редактировать</a>
-          <span>|</span>
-          <a href="#" (click)="deleteTopic($event)">Удалить</a>
+          <ng-container *ngIf="loggedUser?.Id === topicUser?.Id">
+            <span>|</span>
+            <a href="#" (click)="deleteTopic($event)">Удалить</a>
+          </ng-container>
         </ng-container>
       </p>
     </mat-card-content>

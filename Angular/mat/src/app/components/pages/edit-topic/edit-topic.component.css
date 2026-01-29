@@ -12,3 +12,9 @@
   mat-card {
     margin: 12px;
   }
+
+  .actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }

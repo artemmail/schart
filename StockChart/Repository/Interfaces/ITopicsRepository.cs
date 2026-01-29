@@ -8,7 +8,7 @@ namespace StockChart.Repository.Interfaces
     {
         Task<Topic> GetTopicAsync(int id);
         Task<Topic> GetTopicBySlugAsync(string slug);
-        Task<Topic> UpdateTopicAsync(ApplicationUser user, int id, string header, string text);
+        Task<Topic> UpdateTopicAsync(ApplicationUser user, int id, string header, string text, bool isAdmin = false);
         Task DeleteTopicAsync(ApplicationUser user, int id);
         Task<Topic> CreateTopicAsync(ApplicationUser user, string header, string text);
 

@@ -27,6 +27,7 @@ export class ServiceNewsDetailsComponent implements OnInit {
   topicUser: ApplicationUser;
   loggedUser: ApplicationUser;
   signed: boolean;
+  isAdmin: boolean = false;
   userComments: Comment[];
   comment: string;
 
@@ -52,6 +53,7 @@ export class ServiceNewsDetailsComponent implements OnInit {
 
   loadData(): void {
     this.signed = this.authService.isAuthenticated();
+    this.isAdmin = this.authService.isAdmin();
 
     if (this.signed) {
       this.authService.getLoggedUser().subscribe((user) => (this.loggedUser = user));

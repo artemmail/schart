@@ -1,0 +1,32 @@
+<h2 mat-dialog-title>Админ-параметры</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="admin-topic-form">
+    <mat-checkbox formControlName="hide">Скрыть тему</mat-checkbox>
+
+    <mat-form-field appearance="fill">
+      <mat-label>Автор</mat-label>
+      <input matInput formControlName="author" required />
+      <mat-error *ngIf="form.get('author')?.hasError('required')">
+        Автор обязателен
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill">
+      <mat-label>Дата публикации</mat-label>
+      <input matInput [matDatepicker]="picker" formControlName="date" required />
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+      <mat-error *ngIf="form.get('date')?.hasError('required')">
+        Дата обязательна
+      </mat-error>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="onCancel()">Отмена</button>
+  <button mat-raised-button color="primary" type="button" (click)="onSave()" [disabled]="form.invalid">
+    Сохранить
+  </button>
+</mat-dialog-actions>

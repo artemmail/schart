@@ -8,8 +8,8 @@ export interface PaymentModel {
   UserName?: string;
   Email?: string;
   PayAmount?: number;
-  PayDate?: Date;
-  ExpireDate?: Date;
+  PayDate?: Date | string;
+  ExpireDate?: Date | string;
   Service?: number;
 }
 
@@ -46,61 +46,44 @@ export class PaymentsService {
   }
 
   createPayment(payment: PaymentModel): Observable<any> {
-    const data = new FormData();
-  
-    // Convert PayDate and ExpireDate to Date objects if they are strings
     const payDate = payment.PayDate ? new Date(payment.PayDate) : new Date();
     const expireDate = payment.ExpireDate ? new Date(payment.ExpireDate) : null;
-  
-    data.append('models[0].UserName', payment.UserName || '');
-    data.append('models[0].Email', payment.Email || '');
-    data.append('models[0].PayAmount', (payment.PayAmount || 0).toString());
-    data.append('models[0].PayDate', payDate ? removeUTC(payDate) : '');
-    data.append('models[0].ExpireDate', expireDate ? removeUTC(expireDate) : '');
-    data.append('models[0].Service', (payment.Service || 0).toString());
-  
-    const params = new HttpParams()
-      .set('page', '1')
-      .set('pageSize', '20')
-      .set('sort', '')
-      .set('group', '')
-      .set('filter', '');
-  
-    return this.http.post<any>(`${this.apiUrl}/Create`, data, { params });
+
+    const payload: PaymentModel = {
+      UserName: payment.UserName || '',
+      Email: payment.Email || '',
+      PayAmount: payment.PayAmount || 0,
+      PayDate: removeUTC(payDate),
+      ExpireDate: expireDate ? removeUTC(expireDate) : null,
+      Service: payment.Service || 0,
+      Id: 0
+    };
+
+    return this.http.post<any>(`${this.apiUrl}/CreatePayments`, [payload]);
   }
   
 
   updatePayment(payment: PaymentModel): Observable<any> {
-    const data = new FormData();
-  
-    // Convert PayDate and ExpireDate to Date objects if they are strings
     const payDate = payment.PayDate ? new Date(payment.PayDate) : new Date();
     const expireDate = payment.ExpireDate ? new Date(payment.ExpireDate) : null;
-  
-    data.append('models[0].Id', payment.Id.toString());
-    data.append('models[0].UserName', payment.UserName || '');
-    data.append('models[0].Email', payment.Email || '');
-    data.append('models[0].PayAmount', (payment.PayAmount || 0).toString());
-    data.append('models[0].PayDate', payDate ? removeUTC(payDate) : '');
-    data.append('models[0].ExpireDate', expireDate ? removeUTC(expireDate) : '');
-    data.append('models[0].Service', (payment.Service || 0).toString());
-  
-    // Include DataSourceRequest parameters in the query string
-    const params = new HttpParams()
-      .set('page', '1')
-      .set('pageSize', '20')
-      .set('sort', '')
-      .set('group', '')
-      .set('filter', '');
-  
-    return this.http.post<any>(`${this.apiUrl}/Update`, data, { params });
+
+    const payload: PaymentModel = {
+      Id: payment.Id,
+      UserName: payment.UserName || '',
+      Email: payment.Email || '',
+      PayAmount: payment.PayAmount || 0,
+      PayDate: removeUTC(payDate),
+      ExpireDate: expireDate ? removeUTC(expireDate) : null,
+      Service: payment.Service || 0
+    };
+
+    return this.http.put<any>(`${this.apiUrl}/UpdatePayments`, [payload]);
   }
   
 
   deletePayment(paymentId: number): Observable<void> {
-    const data = new FormData();
-    data.append('models[0].Id', paymentId.toString());
-
-    return this.http.post<void>(`${this.apiUrl}/Destroy`, data);
+    return this.http.request<void>('delete', `${this.apiUrl}/DeletePayments`, {
+      body: [{ Id: paymentId }]
+    });
   }
 }

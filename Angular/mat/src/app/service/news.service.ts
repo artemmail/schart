@@ -53,6 +53,10 @@ export class NewsService {
     return this.http.put<any>(`${environment.apiUrl}/api/topics/${id}`, { Header: header, Text: text });
   }
 
+  updateTopicAdmin(id: number, hide: boolean, author: string, date: Date): Observable<any> {
+    return this.http.put<any>(`${environment.apiUrl}/api/topics/${id}/admin`, { Hide: hide, Author: author, Date: date });
+  }
+
   deleteTopic(id: number): Observable<any> {
     return this.http.delete<any>(`${environment.apiUrl}/api/topics/${id}`);
   }

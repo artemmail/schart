@@ -39,9 +39,9 @@ namespace StockChart.Controllers
             {
                 return BadRequest("Page and pageSize must be greater than 0.");
             }
-            var totalItems = await _context.Topics.CountAsync();
+            var totalItems = await _context.Topics.CountAsync(x => x.Text != null && !x.Hide);
             var topics = await _context.Topics
-                .Where(x => x.Text != null && !x.Text.Contains("Sponsored"))
+                .Where(x => x.Text != null && !x.Hide)
                 .OrderByDescending(x => x.Date)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -81,9 +81,9 @@ namespace StockChart.Controllers
             {
                 return BadRequest("Page and pageSize must be greater than 0.");
             }
-            var totalItems = await _context.Topics.CountAsync();
+            var totalItems = await _context.Topics.CountAsync(x => !x.Hide);
             var topics = await _context.Topics
-                .Where(x => !x.Text.Contains("Sponsored"))
+                .Where(x => !x.Hide)
                 .OrderByDescending(x => x.Date)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -128,6 +128,7 @@ namespace StockChart.Controllers
                 Header = topic.Header,
                 Text = topic.Text,
                 Date = topic.Date,
+                Hide = topic.Hide,
                 Slug = topic.Slug,
                 TopicUser = new
                 {
@@ -171,6 +172,7 @@ namespace StockChart.Controllers
                 Header = topic.Header,
                 Text = topic.Text,
                 Date = topic.Date,
+                Hide = topic.Hide,
                 Slug = topic.Slug,
                 TopicUser = new
                 {
@@ -376,7 +378,9 @@ namespace StockChart.Controllers
                 if (ModelState.IsValid && !string.IsNullOrWhiteSpace(model.Header) && !string.IsNullOrWhiteSpace(model.Text))
                 {
                     var loggedUser = await _userManager.GetUserAsync(User);
-                    var topic = await _topicsRepository.UpdateTopicAsync(loggedUser, id, model.Header, model.Text);
+                    var isAdmin = string.Equals(User?.Identity?.Name, "ruticker", StringComparison.OrdinalIgnoreCase)
+                        || User.IsInRole("Admin");
+                    var topic = await _topicsRepository.UpdateTopicAsync(loggedUser, id, model.Header, model.Text, isAdmin);
                     if (topic != null)
                     {
                         await NotifyYandexAsync(topic.Slug);
@@ -390,6 +394,49 @@ namespace StockChart.Controllers
             }
 
             return BadRequest();
+        }
+
+        [HttpPut("{id}/admin")]
+        [Authorize]
+        [Admin]
+        public async Task<IActionResult> UpdateTopicAdmin(int id, [FromBody] AdminTopicUpdateModel model)
+        {
+            if (model == null)
+            {
+                return BadRequest("Model is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(model.Author))
+            {
+                return BadRequest("Author is required.");
+            }
+
+            var topic = await _context.Topics.FirstOrDefaultAsync(x => x.Id == id);
+            if (topic == null)
+            {
+                return NotFound();
+            }
+
+            var authorUser = await _userManager.FindByNameAsync(model.Author);
+            if (authorUser == null)
+            {
+                return BadRequest("User not found.");
+            }
+
+            topic.Hide = model.Hide;
+            topic.Date = model.Date;
+            topic.UserId = authorUser.Id;
+
+            _context.Update(topic);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                topic.Id,
+                topic.Hide,
+                topic.Date,
+                Author = authorUser.UserName
+            });
         }
 
         [HttpDelete("{id}")]
@@ -437,6 +484,13 @@ namespace StockChart.Controllers
         {
             public string Header { get; set; }
             public string Text { get; set; }
+        }
+
+        public class AdminTopicUpdateModel
+        {
+            public bool Hide { get; set; }
+            public string Author { get; set; }
+            public DateTime Date { get; set; }
         }
 
         public class Line

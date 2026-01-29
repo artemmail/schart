@@ -16,6 +16,7 @@ public partial class Topic
     public string Header { get; set; } = null!;
     public string Text { get; set; } = null!;
     public string Slug { get; set; } = null!;
+    public bool Hide { get; set; } = false;
 
     public virtual ICollection<Comment> UserComments { get; set; } = new List<Comment>();
     [ForeignKey("UserId")]

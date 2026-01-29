@@ -1,4 +1,4 @@
-﻿using KendoNET.DynamicLinq;
+﻿
 using Microsoft.EntityFrameworkCore;
 using StockChart.Model;
 using StockChart.Model.Payments;

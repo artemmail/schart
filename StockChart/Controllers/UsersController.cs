@@ -1,7 +1,6 @@
 ﻿//using KendoNET.DynamicLinq;
 using Microsoft.AspNetCore.Mvc;
-using Kendo.Mvc.Extensions;
-using Kendo.Mvc.UI;
+
 using StockChart.Model.Payments;
 using StockChart.Repository.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -11,6 +10,7 @@ using System.Linq.Dynamic.Core;
 
 namespace StockChart.Controllers
 {
+    
     [ApiController]
     [Route("api/[controller]")]
     public class UsersController : Controller
@@ -21,13 +21,6 @@ namespace StockChart.Controllers
             _usersRepository = usersRepository;
         }
        
-        [Admin]
-        [HttpPost("Destroy")]        
-        public void Destroy([DataSourceRequest] DataSourceRequest request, [FromForm][Bind(Prefix = "models")] IEnumerable<ApplicationUserModel> models)
-        {            
-            _usersRepository.Destroy(models.Select(x=>x.Id));
-        }
-
         [Admin]
         [HttpDelete("{id}")]
         public void HttpDelete(Guid id)
@@ -98,16 +91,6 @@ namespace StockChart.Controllers
         }
 
 
-
-        [Admin]
-        [HttpPost("Read")]
-        public DataSourceResult Read([DataSourceRequest] DataSourceRequest requestModel)
-        {            
-            var x = _usersRepository
-                .GetAll()
-                .Select(p => _usersRepository.UserToModel(p));//.ToList();
-            return x.ToDataSourceResult(requestModel);
-        }
 
         [Admin]
         [HttpGet("Read")]
