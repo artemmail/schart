@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using StockChart.Model;
-using StockChart.Repository.Moex;
+using StockChart.Repository.Interfaces;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Globalization;
 using System.Linq;
 
@@ -9,20 +10,20 @@ namespace StockChart.Repository.Services
     public class BatchImportOpenPositionsServiceNew
     {
         private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-        private readonly HttpClient _httpClient;
+        private readonly IMoexApiService _moexApiService;
         private bool _isRunning;
         private readonly List<string> _processedContracts = new();
 
-        public BatchImportOpenPositionsServiceNew(IDbContextFactory<ApplicationDbContext> contextFactory, HttpClient httpClient)
+        public BatchImportOpenPositionsServiceNew(IDbContextFactory<ApplicationDbContext> contextFactory, IMoexApiService moexApiService)
         {
             _contextFactory = contextFactory;
-            _httpClient = httpClient;
+            _moexApiService = moexApiService;
         }
 
         public BatchImportOpenPositionsServiceNew()
         {
             _contextFactory = new DefaultContextFactory();
-            _httpClient = new HttpClient();
+            _moexApiService = new MoexApiService(new HttpClient(), NullLogger<MoexApiService>.Instance);
         }
 
         public bool IsRunning => _isRunning;
@@ -121,39 +122,14 @@ namespace StockChart.Repository.Services
 
         private async Task<OpenPositionsImportData?> DownloadContractDataAsync(string contractName, DateTime date)
         {
-            string dateIso = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-            string cols = Uri.EscapeDataString("title,long_fiz,short_fiz,long_jur,short_jur,total");
-
-            string requestUrl =
-                $"https://web.moex.com/moex-web-iss-api/api/v1/open-position/F/{Uri.EscapeDataString(contractName)}" +
-                $"?lang=ru&iss.meta=off&iss.json=extended" +
-                $"&openpositions.columns={cols}" +
-                $"&limit=20&dir=asc" +
-                $"&date={Uri.EscapeDataString(dateIso)}" +
-                $"&asset={Uri.EscapeDataString(contractName)}";
-
             try
             {
-                using var req = new HttpRequestMessage(HttpMethod.Get, requestUrl);
-                req.Headers.TryAddWithoutValidation("User-Agent",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36");
-                req.Headers.TryAddWithoutValidation("Accept", "application/json,text/plain,*/*");
-
-                using var response = await _httpClient.SendAsync(req);
-                if (!response.IsSuccessStatusCode)
+                var rows = await _moexApiService.GetOpenPositionsAsync(contractName, date);
+                if (rows == null || rows.Count == 0)
                 {
-                    Console.WriteLine($"Failed to download data for {contractName} on {date:dd.MM.yyyy}: {response.StatusCode}");
+                    Console.WriteLine($"Failed to download data for {contractName} on {date:dd.MM.yyyy}.");
                     return null;
                 }
-
-                await using var stream = await response.Content.ReadAsStreamAsync();
-                var envelopes = MoexOpenPositionsDeserializer.Deserialize(stream);
-                if (envelopes == null || envelopes.Count == 0)
-                    return null;
-
-                var rows = envelopes.FirstOrDefault(x => x.Openpositions != null && x.Openpositions.Count > 0)?.Openpositions;
-                if (rows == null || rows.Count == 0)
-                    return null;
 
                 var tradeDate = date.Date;
 

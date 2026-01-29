@@ -143,6 +143,7 @@ builder.Services.AddScoped<IUsersRepository, UsersRepository>();
 builder.Services.AddScoped<ISettingsRepository, SettingsRepository>();
 builder.Services.AddScoped<IFootprintFavoritesRepository, FootprintFavoritesRepository>();
 builder.Services.AddScoped<IFootprintLevelMarksRepository, FootprintLevelMarksRepository>();
+builder.Services.AddSingleton<IMoexApiService, MoexApiService>();
 builder.Services.AddScoped<IDividendsMoexService, DividendsMoexService>();
 builder.Services.AddScoped<IShareholdersRecommendationsService, ShareholdersRecommendationsService>();
 builder.Services.AddScoped<IFinancialStatementsService, FinancialStatementsService>();

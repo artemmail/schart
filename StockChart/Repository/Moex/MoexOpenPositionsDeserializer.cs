@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using StockChart.Model;
 
 namespace StockChart.Repository.Moex
 {

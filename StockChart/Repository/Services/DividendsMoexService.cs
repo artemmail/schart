@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.IO;
-using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -14,20 +13,20 @@ namespace StockChart.Repository.Services
     {
         private static readonly TimeSpan UpdateInterval = TimeSpan.FromHours(24);
         private readonly ApplicationDbContext _dbContext;
-        private readonly HttpClient _httpClient;
+        private readonly IMoexApiService _moexApiService;
         private readonly ILogger<DividendsMoexService> _logger;
         private readonly IShareholdersRecommendationsService _shareholdersRecommendationsService;
         private readonly IFinancialStatementsService _financialStatementsService;
 
         public DividendsMoexService(
             ApplicationDbContext dbContext,
-            HttpClient httpClient,
+            IMoexApiService moexApiService,
             ILogger<DividendsMoexService> logger,
             IShareholdersRecommendationsService shareholdersRecommendationsService,
             IFinancialStatementsService financialStatementsService)
         {
             _dbContext = dbContext;
-            _httpClient = httpClient;
+            _moexApiService = moexApiService;
             _logger = logger;
             _shareholdersRecommendationsService = shareholdersRecommendationsService;
             _financialStatementsService = financialStatementsService;
@@ -273,86 +272,15 @@ namespace StockChart.Repository.Services
             return new DividendUpdateResult(true, toAdd.Count);
         }
 
-        private async Task<List<MoexDividendRow>?> DownloadMoexDividendsAsync(string ticker, CancellationToken cancellationToken)
+        private async Task<IReadOnlyList<MoexDividendRow>?> DownloadMoexDividendsAsync(string ticker, CancellationToken cancellationToken)
         {
             try
             {
-                var url = $"https://iss.moex.com/iss/securities/{Uri.EscapeDataString(ticker)}/dividends.json";
-
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
-                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                request.Headers.UserAgent.ParseAdd("StockChart/1.0");
-
-                using var response = await _httpClient.SendAsync(request, cancellationToken);
-                if (!response.IsSuccessStatusCode)
+                var rows = await _moexApiService.GetDividendsAsync(ticker, cancellationToken);
+                if (rows == null)
                 {
-                    _logger.LogWarning("MOEX dividends request failed for {Ticker} with status {StatusCode}", ticker, response.StatusCode);
+                    _logger.LogWarning("MOEX dividends request failed for {Ticker}", ticker);
                     return null;
-                }
-
-                var content = await response.Content.ReadAsStringAsync(cancellationToken);
-
-                using var doc = JsonDocument.Parse(content);
-                if (!doc.RootElement.TryGetProperty("dividends", out var dividendsElement))
-                {
-                    return null;
-                }
-
-                if (!dividendsElement.TryGetProperty("columns", out var columnsElement) ||
-                    columnsElement.ValueKind != JsonValueKind.Array)
-                {
-                    return null;
-                }
-
-                if (!dividendsElement.TryGetProperty("data", out var dataElement) ||
-                    dataElement.ValueKind != JsonValueKind.Array)
-                {
-                    return null;
-                }
-
-                var columnIndex = new System.Collections.Generic.Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                var index = 0;
-                foreach (var column in columnsElement.EnumerateArray())
-                {
-                    var name = column.GetString();
-                    if (!string.IsNullOrWhiteSpace(name))
-                    {
-                        columnIndex[name] = index;
-                    }
-                    index++;
-                }
-
-                if (!columnIndex.TryGetValue("registryclosedate", out var dateIndex) ||
-                    !columnIndex.TryGetValue("value", out var valueIndex))
-                {
-                    return null;
-                }
-
-                var rows = new List<MoexDividendRow>();
-                var seenDates = new HashSet<DateTime>();
-
-                foreach (var row in dataElement.EnumerateArray())
-                {
-                    if (row.ValueKind != JsonValueKind.Array)
-                    {
-                        continue;
-                    }
-
-                    var date = ParseMoexDate(row, dateIndex);
-                    var value = ParseMoexDecimal(row, valueIndex);
-
-                    if (!date.HasValue || !value.HasValue)
-                    {
-                        continue;
-                    }
-
-                    var dateValue = date.Value.Date;
-                    if (!seenDates.Add(dateValue))
-                    {
-                        continue;
-                    }
-
-                    rows.Add(new MoexDividendRow(dateValue, value.Value));
                 }
 
                 return rows;
@@ -369,76 +297,6 @@ namespace StockChart.Repository.Services
             }
         }
 
-        private static DateTime? ParseMoexDate(JsonElement row, int index)
-        {
-            if (row.GetArrayLength() <= index)
-            {
-                return null;
-            }
-
-            var element = row[index];
-            if (element.ValueKind == JsonValueKind.String)
-            {
-                var str = element.GetString();
-                if (string.IsNullOrWhiteSpace(str))
-                {
-                    return null;
-                }
-
-                if (DateTime.TryParseExact(str, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
-                {
-                    return date;
-                }
-
-                if (DateTime.TryParse(str, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
-                {
-                    return date;
-                }
-            }
-
-            return null;
-        }
-
-        private static decimal? ParseMoexDecimal(JsonElement row, int index)
-        {
-            if (row.GetArrayLength() <= index)
-            {
-                return null;
-            }
-
-            var element = row[index];
-            if (element.ValueKind == JsonValueKind.Number)
-            {
-                if (element.TryGetDecimal(out var dec))
-                {
-                    return dec;
-                }
-
-                if (element.TryGetDouble(out var dbl))
-                {
-                    return (decimal)dbl;
-                }
-            }
-
-            if (element.ValueKind == JsonValueKind.String)
-            {
-                var str = element.GetString();
-                if (string.IsNullOrWhiteSpace(str))
-                {
-                    return null;
-                }
-
-                if (decimal.TryParse(str.Replace(',', '.'),
-                        NumberStyles.Any,
-                        CultureInfo.InvariantCulture,
-                        out var dec))
-                {
-                    return dec;
-                }
-            }
-
-            return null;
-        }
 
         private async Task<int> ImportDividendsFromJsonAsync(string filePath, CancellationToken cancellationToken)
         {
@@ -626,8 +484,6 @@ namespace StockChart.Repository.Services
 
             return null;
         }
-
-        private sealed record MoexDividendRow(DateTime Date, decimal Value);
 
         private readonly record struct DividendUpdateResult(bool Success, int Added)
         {
