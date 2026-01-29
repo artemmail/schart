@@ -1,4 +1,4 @@
-﻿@page "{Id}"
+@page "{Id}"
 @model ContentModel
 @{
     ViewData["Title"] = Model.Header;
@@ -13,7 +13,7 @@
         @Html.Raw(Model.Text)
         <br />
         <p>
-            <a href="#" onclick="history.back();">Назад</a>
+            <a asp-page="/ServiceNews/Index">Назад</a>
             @if (Model.Signed)
             {
                 Guid guid = Model.LoggedUser.Id;
@@ -32,7 +32,7 @@
         <div class="blogblock">
             @foreach (var comment in Model.UserComments)
             {
-                <div class="blogblock" style="background:rgba(240,240,240,1)">
+                <div class="blogblock">
                     @Html.Raw(comment.Text)
                 </div>
                 <b>@Html.Raw(comment.User.UserName)</b>
@@ -51,8 +51,6 @@
     }
     @if (Model.Signed)
     {
-        <script src="/scripts/tinymce/tinymce.min.js"></script>
-        <script src="/scripts/tinymcecfg.js"></script>
         <div class="blogblock">
             @using (Html.BeginForm())
             {
@@ -60,7 +58,7 @@
                 <div class="form-group">
                     @Html.TextAreaFor(model => model.Comment, new { htmlAttributes = new { @class = "form-control" } })
                 </div>
-                <div style="padding-top:10px">
+                <div>
                     <input type="submit" value="Комментировать" class="k-button" />
                 </div>
             }
@@ -75,3 +73,4 @@
         </div>
     }
 </div>
+

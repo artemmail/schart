@@ -1,4 +1,4 @@
-﻿@page "{Id}"
+@page "{Id}"
 @model DeleteCommentModel
 @{
     ViewData["Title"] = "Удалить комментарий";
@@ -9,14 +9,15 @@
         {
             @Html.AntiForgeryToken()
             @Html.HiddenFor(m => m.Id)
-            <div style="padding:10px">
+            <div>
                 <H2>Удалить комментарий "@Model.Text"?</H2>
                 <p>
-                    <input type="submit" value="Удалить" class="k-button" style="font-size:16px; padding: 5px" /><span style="padding:10px"></span>
-                    <button onclick="history.back();" class="k-button" style="font-size:16px;padding: 5px">Отмена</button>
+                    <input type="submit" value="Удалить" class="k-button" />
+                    <a asp-page="/ServiceNews/Details" asp-route-Id="@Model.TopicId" class="k-button">Отмена</a>
                 </p>
             </div>
         }
     </div>
 </div>
+
 

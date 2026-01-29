@@ -11,6 +11,7 @@ namespace StockChart.Pages.ServiceNews
     public class DeleteCommentModel : PageModel
     {
         public int Id { get; set; }
+        public int TopicId { get; set; }
         public string Text;
         public string Header;
         public UserManager<ApplicationUser> UserManager;
@@ -42,6 +43,7 @@ namespace StockChart.Pages.ServiceNews
                 Date = topic.Date;
                 Text = topic.Text;                
                 this.Id = topic.Id;
+                TopicId = topic.TopicId;
                 return Page();
             }
             return RedirectToPage($"/");

@@ -1,8 +1,6 @@
-﻿@page "{Id}"
+@page "{Id}"
 @using StockChart.Model;
 @model EditModel
-<script src="/scripts/tinymce/tinymce.min.js"></script>
-<script src="/scripts/tinymcecfg.js"></script>
 <div class="widerightsidebar">
     <div class="blogblock">
         <p>
@@ -21,13 +19,14 @@
 
             <h2>Содержание темы</h2>
             <div class="form-group">
-                @Html.TextAreaFor(model => model.Text, new { htmlAttributes = new {@style="height:600px;", @class = " form-control" } })
+                @Html.TextAreaFor(model => model.Text, new { htmlAttributes = new { @class = "form-control" } })
             </div>
 
-            <div style="padding-top:10px">
+            <div>
                 <input type="submit" value="Опубликовать" class="k-button" />
             </div>
         }
     </div>
 </div>
+
 
