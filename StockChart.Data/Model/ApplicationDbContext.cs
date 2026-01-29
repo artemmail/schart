@@ -91,6 +91,11 @@ public partial class ApplicationDbContext
 
     public virtual DbSet<DividendsMoex> DividendsMoex { get; set; }
     public virtual DbSet<DividendsMoexUpdateLog> DividendsMoexUpdateLogs { get; set; }
+    public virtual DbSet<BondSpec> BondSpecs { get; set; }
+    public virtual DbSet<FutureSpec> FutureSpecs { get; set; }
+    public virtual DbSet<OptionSpec> OptionSpecs { get; set; }
+    public virtual DbSet<SecurityLink> SecurityLinks { get; set; }
+    public virtual DbSet<UnderlyingMap> UnderlyingMaps { get; set; }
     public virtual DbSet<ShareholderSnapshot> ShareholderSnapshots { get; set; }
     public virtual DbSet<ShareholderEntry> ShareholderEntries { get; set; }
     public virtual DbSet<RecommendationSnapshot> RecommendationSnapshots { get; set; }
@@ -489,6 +494,14 @@ public partial class ApplicationDbContext
             entity.Property(e => e.Isin)
                 .HasMaxLength(32)
                 .HasColumnName("isin");
+            entity.Property(e => e.EmitentId)
+                .HasColumnName("emitent_id");
+            entity.Property(e => e.EmitentTitle)
+                .HasMaxLength(256)
+                .HasColumnName("emitent_title");
+            entity.Property(e => e.EmitentInn)
+                .HasMaxLength(16)
+                .HasColumnName("emitent_inn");
             entity.Property(e => e.Lotsize).HasColumnName("lotsize");
             entity.Property(e => e.Minstep)
                 .HasColumnType("decimal(18, 8)")
@@ -534,6 +547,81 @@ public partial class ApplicationDbContext
             entity.HasKey(e => e.Id);
             entity.ToTable("DividendsMoexUpdateLogs");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+        });
+
+        modelBuilder.Entity<BondSpec>(entity =>
+        {
+            entity.HasKey(e => e.DictionaryId);
+            entity.ToTable("BondSpec");
+            entity.Property(e => e.DictionaryId).ValueGeneratedNever();
+            entity.Property(e => e.Isin).HasMaxLength(32);
+            entity.Property(e => e.RegNumber).HasMaxLength(64);
+            entity.Property(e => e.MaturityDate).HasColumnType("date");
+            entity.Property(e => e.FaceValue).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.Currency).HasMaxLength(8);
+            entity.Property(e => e.PrimaryBoardId).HasMaxLength(16);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+            entity.HasOne(d => d.Dictionary).WithOne()
+                .HasForeignKey<BondSpec>(d => d.DictionaryId)
+                .HasConstraintName("FK_BondSpec_Dictionary");
+        });
+
+        modelBuilder.Entity<FutureSpec>(entity =>
+        {
+            entity.HasKey(e => e.DictionaryId);
+            entity.ToTable("FutureSpec");
+            entity.Property(e => e.DictionaryId).ValueGeneratedNever();
+            entity.Property(e => e.AssetCode).HasMaxLength(32);
+            entity.Property(e => e.ExpirationDate).HasColumnType("date");
+            entity.Property(e => e.MinStep).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.StepPrice).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+            entity.HasOne(d => d.Dictionary).WithOne()
+                .HasForeignKey<FutureSpec>(d => d.DictionaryId)
+                .HasConstraintName("FK_FutureSpec_Dictionary");
+        });
+
+        modelBuilder.Entity<OptionSpec>(entity =>
+        {
+            entity.HasKey(e => e.DictionaryId);
+            entity.ToTable("OptionSpec");
+            entity.Property(e => e.DictionaryId).ValueGeneratedNever();
+            entity.Property(e => e.AssetCode).HasMaxLength(32);
+            entity.Property(e => e.OptionType).HasColumnType("char(1)");
+            entity.Property(e => e.Strike).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.ExpirationDate).HasColumnType("date");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+            entity.HasOne(d => d.Dictionary).WithOne()
+                .HasForeignKey<OptionSpec>(d => d.DictionaryId)
+                .HasConstraintName("FK_OptionSpec_Dictionary");
+        });
+
+        modelBuilder.Entity<SecurityLink>(entity =>
+        {
+            entity.HasKey(e => new { e.FromDictionaryId, e.ToDictionaryId, e.LinkType });
+            entity.ToTable("SecurityLink");
+            entity.Property(e => e.LinkType).HasColumnType("tinyint");
+            entity.Property(e => e.Source).HasMaxLength(32);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+            entity.HasIndex(e => e.ToDictionaryId);
+            entity.HasOne(d => d.FromDictionary).WithMany()
+                .HasForeignKey(d => d.FromDictionaryId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_SecurityLink_Dictionary_From");
+            entity.HasOne(d => d.ToDictionary).WithMany()
+                .HasForeignKey(d => d.ToDictionaryId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_SecurityLink_Dictionary_To");
+        });
+
+        modelBuilder.Entity<UnderlyingMap>(entity =>
+        {
+            entity.HasKey(e => e.AssetCode);
+            entity.ToTable("UnderlyingMap");
+            entity.Property(e => e.AssetCode).HasMaxLength(32);
+            entity.Property(e => e.SpotSecId).HasMaxLength(32);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+            entity.HasIndex(e => e.SpotSecId);
         });
 
         modelBuilder.Entity<ShareholderSnapshot>(entity =>

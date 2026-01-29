@@ -146,6 +146,8 @@ builder.Services.AddScoped<IFootprintLevelMarksRepository, FootprintLevelMarksRe
 builder.Services.AddScoped<IDividendsMoexService, DividendsMoexService>();
 builder.Services.AddScoped<IShareholdersRecommendationsService, ShareholdersRecommendationsService>();
 builder.Services.AddScoped<IFinancialStatementsService, FinancialStatementsService>();
+builder.Services.AddScoped<IMoexSyncService, MoexSyncService>();
+builder.Services.AddScoped<IInstrumentRelationsService, InstrumentRelationsService>();
 
 
 builder.Services.AddScoped<IReportsRepository, ReportsRepository>();
@@ -294,6 +296,7 @@ builder.Services.AddHostedService<TimedHostedService>();
 builder.Services.AddHostedService<YooMoneyHostedService>();
 builder.Services.AddHostedService<NightlyFunctionHostedService>();
 builder.Services.AddHostedService<DividendsMoexHostedService>();
+builder.Services.AddHostedService<MoexSyncHostedService>();
 
 
 

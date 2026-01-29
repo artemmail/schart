@@ -21,6 +21,9 @@ public partial class Dictionary
     public int? Scale { get; set; }
     public string? Isin { get; set; }
     public string? Fullname { get; set; }
+    public int? EmitentId { get; set; }
+    public string? EmitentTitle { get; set; }
+    public string? EmitentInn { get; set; }
     public virtual CategoryType? CategoryType { get; set; }
     public virtual Class? Class { get; set; }
     public virtual Market? MarketNavigation { get; set; }
