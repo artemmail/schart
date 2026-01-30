@@ -1,0 +1,163 @@
+<div class="smile-page">
+  <mat-card class="smile-card">
+    <mat-card-header>
+      <mat-card-title>Улыбка волатильности</mat-card-title>
+      <mat-card-subtitle>
+        Implied volatility по страйкам для выбранного ассета и экспирации.
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="smile-controls">
+        <mat-form-field appearance="outline">
+          <mat-label>Ассет</mat-label>
+          <mat-select [(ngModel)]="selectedAsset" (selectionChange)="onAssetChange()">
+            <mat-option *ngFor="let asset of assets" [value]="asset">
+              {{ asset }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Экспирация</mat-label>
+          <mat-select [(ngModel)]="selectedExpiration" (selectionChange)="onExpirationChange()">
+            <mat-option *ngFor="let exp of expirations" [value]="exp">
+              {{ exp }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Тип</mat-label>
+          <mat-select [(ngModel)]="optionType" (selectionChange)="onOptionTypeChange()">
+            <mat-option value="ALL">Calls + Puts</mat-option>
+            <mat-option value="C">Calls</mat-option>
+            <mat-option value="P">Puts</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-raised-button color="primary" (click)="refresh()" [disabled]="loading">
+          Обновить
+        </button>
+      </div>
+
+      <div class="smile-body">
+        <div class="chart-panel">
+          <div class="status" *ngIf="loading">
+            <mat-spinner diameter="36"></mat-spinner>
+            <span>Загружаем данные...</span>
+          </div>
+          <div class="status error" *ngIf="!loading && error">{{ error }}</div>
+
+          <svg
+            *ngIf="!loading && chart"
+            class="smile-chart"
+            [attr.viewBox]="'0 0 ' + chart.width + ' ' + chart.height"
+            role="img"
+            aria-label="Volatility smile chart"
+          >
+            <rect
+              class="plot-bg"
+              [attr.x]="chart.plotLeft"
+              [attr.y]="chart.plotTop"
+              [attr.width]="chart.plotWidth"
+              [attr.height]="chart.plotHeight"
+            ></rect>
+
+            <g class="grid">
+              <line
+                *ngFor="let tick of chart.yTicks"
+                [attr.x1]="chart.plotLeft"
+                [attr.x2]="chart.plotLeft + chart.plotWidth"
+                [attr.y1]="tick.position"
+                [attr.y2]="tick.position"
+              ></line>
+              <line
+                *ngFor="let tick of chart.xTicks"
+                [attr.y1]="chart.plotTop"
+                [attr.y2]="chart.plotTop + chart.plotHeight"
+                [attr.x1]="tick.position"
+                [attr.x2]="tick.position"
+              ></line>
+            </g>
+
+            <g class="axis">
+              <line
+                [attr.x1]="chart.plotLeft"
+                [attr.x2]="chart.plotLeft + chart.plotWidth"
+                [attr.y1]="chart.plotTop + chart.plotHeight"
+                [attr.y2]="chart.plotTop + chart.plotHeight"
+              ></line>
+              <line
+                [attr.x1]="chart.plotLeft"
+                [attr.x2]="chart.plotLeft"
+                [attr.y1]="chart.plotTop"
+                [attr.y2]="chart.plotTop + chart.plotHeight"
+              ></line>
+            </g>
+
+            <g class="series" *ngFor="let serie of chart.series">
+              <path [attr.d]="serie.path" [attr.stroke]="serie.color"></path>
+              <circle
+                *ngFor="let point of serie.points"
+                [attr.cx]="point.x"
+                [attr.cy]="point.y"
+                [attr.r]="3.5"
+                [attr.fill]="serie.color"
+              ></circle>
+            </g>
+
+            <g class="labels">
+              <text
+                *ngFor="let tick of chart.yTicks"
+                class="label-y"
+                [attr.x]="chart.plotLeft - 12"
+                [attr.y]="tick.position + 4"
+              >
+                {{ tick.value | number : '1.0-2' }}
+              </text>
+              <text
+                *ngFor="let tick of chart.xTicks"
+                class="label-x"
+                [attr.x]="tick.position"
+                [attr.y]="chart.plotTop + chart.plotHeight + 28"
+              >
+                {{ tick.value | number : '1.0-2' }}
+              </text>
+            </g>
+          </svg>
+
+          <div class="status" *ngIf="!loading && !chart && !error">
+            Нет данных для выбранных параметров.
+          </div>
+        </div>
+
+        <div class="summary-panel">
+          <div class="summary-item">
+            <span class="label">Ассет</span>
+            <span class="value">{{ selectedAsset || '—' }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Экспирация</span>
+            <span class="value">{{ selectedExpiration || '—' }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Серии</span>
+            <span class="value">{{ seriesCount }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Точек</span>
+            <span class="value">{{ pointCount }}</span>
+          </div>
+
+          <div class="legend" *ngIf="chart?.series?.length">
+            <div class="legend-item" *ngFor="let serie of chart?.series">
+              <span class="legend-dot" [style.background]="serie.color"></span>
+              <span>{{ serie.type === 'C' ? 'Calls' : 'Puts' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

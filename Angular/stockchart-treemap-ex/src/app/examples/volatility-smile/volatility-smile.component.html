@@ -1,0 +1,155 @@
+<section class="example-card">
+  <div class="example-header">
+    <h3>Volatility Smile</h3>
+    <p>
+      Implied volatility by strike for the selected option chain. Data is taken from the latest
+      MOEX options snapshot stored on the server.
+    </p>
+  </div>
+
+  <div class="controls">
+    <label class="control">
+      <span>Asset</span>
+      <select [(ngModel)]="selectedAsset" (change)="onAssetChange()">
+        <option value="" disabled>Choose asset</option>
+        <option *ngFor="let asset of assets" [value]="asset">{{ asset }}</option>
+      </select>
+    </label>
+
+    <label class="control">
+      <span>Expiration</span>
+      <select [(ngModel)]="selectedExpiration" (change)="onExpirationChange()">
+        <option value="" disabled>Choose expiration</option>
+        <option *ngFor="let exp of expirations" [value]="exp">{{ exp }}</option>
+      </select>
+    </label>
+
+    <label class="control">
+      <span>Type</span>
+      <select [(ngModel)]="optionType" (change)="onOptionTypeChange()">
+        <option value="ALL">Calls + Puts</option>
+        <option value="C">Calls only</option>
+        <option value="P">Puts only</option>
+      </select>
+    </label>
+
+    <button class="refresh" (click)="refresh()" [disabled]="loading || !selectedExpiration">
+      Refresh
+    </button>
+  </div>
+
+  <div class="example-body">
+    <div class="chart-panel">
+      <div class="status" *ngIf="loading">Loading data…</div>
+      <div class="status error" *ngIf="!loading && error">{{ error }}</div>
+
+      <svg
+        *ngIf="!loading && chart"
+        class="smile-chart"
+        [attr.viewBox]="'0 0 ' + chart.width + ' ' + chart.height"
+        role="img"
+        aria-label="Volatility smile chart"
+      >
+        <rect
+          class="plot-bg"
+          [attr.x]="chart.plotLeft"
+          [attr.y]="chart.plotTop"
+          [attr.width]="chart.plotWidth"
+          [attr.height]="chart.plotHeight"
+        ></rect>
+
+        <g class="grid">
+          <line
+            *ngFor="let tick of chart.yTicks"
+            [attr.x1]="chart.plotLeft"
+            [attr.x2]="chart.plotLeft + chart.plotWidth"
+            [attr.y1]="tick.position"
+            [attr.y2]="tick.position"
+          ></line>
+          <line
+            *ngFor="let tick of chart.xTicks"
+            [attr.y1]="chart.plotTop"
+            [attr.y2]="chart.plotTop + chart.plotHeight"
+            [attr.x1]="tick.position"
+            [attr.x2]="tick.position"
+          ></line>
+        </g>
+
+        <g class="axis">
+          <line
+            [attr.x1]="chart.plotLeft"
+            [attr.x2]="chart.plotLeft + chart.plotWidth"
+            [attr.y1]="chart.plotTop + chart.plotHeight"
+            [attr.y2]="chart.plotTop + chart.plotHeight"
+          ></line>
+          <line
+            [attr.x1]="chart.plotLeft"
+            [attr.x2]="chart.plotLeft"
+            [attr.y1]="chart.plotTop"
+            [attr.y2]="chart.plotTop + chart.plotHeight"
+          ></line>
+        </g>
+
+        <g class="series" *ngFor="let serie of chart.series">
+          <path [attr.d]="serie.path" [attr.stroke]="serie.color"></path>
+          <circle
+            *ngFor="let point of serie.points"
+            [attr.cx]="point.x"
+            [attr.cy]="point.y"
+            [attr.r]="3.5"
+            [attr.fill]="serie.color"
+          ></circle>
+        </g>
+
+        <g class="labels">
+          <text
+            *ngFor="let tick of chart.yTicks"
+            class="label-y"
+            [attr.x]="chart.plotLeft - 12"
+            [attr.y]="tick.position + 4"
+          >
+            {{ tick.value | number : '1.0-2' }}
+          </text>
+          <text
+            *ngFor="let tick of chart.xTicks"
+            class="label-x"
+            [attr.x]="tick.position"
+            [attr.y]="chart.plotTop + chart.plotHeight + 28"
+          >
+            {{ tick.value | number : '1.0-2' }}
+          </text>
+        </g>
+      </svg>
+
+      <div class="status" *ngIf="!loading && !chart && !error">
+        Нет данных для выбранных параметров.
+      </div>
+    </div>
+
+    <aside class="example-sidebar">
+      <div class="metric">
+        <span class="metric-label">Asset</span>
+        <span class="metric-value">{{ selectedAsset || '—' }}</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Expiration</span>
+        <span class="metric-value">{{ selectedExpiration || '—' }}</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Series</span>
+        <span class="metric-value">{{ seriesCount }}</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Points</span>
+        <span class="metric-value">{{ pointCount }}</span>
+      </div>
+
+      <div class="legend" *ngIf="chart?.series?.length">
+        <div class="legend-item" *ngFor="let serie of chart?.series">
+          <span class="legend-dot" [style.background]="serie.color"></span>
+          <span>{{ serie.type === 'C' ? 'Calls' : 'Puts' }}</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>

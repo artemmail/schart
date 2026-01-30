@@ -54,6 +54,7 @@ import { UserPaymentsStatComponent } from './components/pages/users-pay-stats/us
 import { PaymentsTableComponent } from './components/tables/payments-table/payments-table.component';
 import { ProfitChartsComponent } from './components/pages/profit-charts/profit-charts.component';
 import { VolumeDashboardComponent } from './components/Reports/volume-dashboard/volume-dashboard.component';
+import { VolatilitySmileComponent } from './components/pages/volatility-smile/volatility-smile.component';
 
 
 const routes: Routes = [
@@ -100,6 +101,9 @@ const routes: Routes = [
   { path: 'OpenPositions', component: ContractChartComponent 
     //,    canActivate: [AuthGuard] 
   },
+
+  { path: 'VolatilitySmile', component: VolatilitySmileComponent },
+  { path: 'volatility-smile', redirectTo: 'VolatilitySmile', pathMatch: 'full' },
 
   
 

@@ -41,11 +41,11 @@ public sealed class MoexSyncService : IMoexSyncService
         var futures = await SyncFuturesInternalAsync(cancellationToken);
         summary.UpdatedFutures = futures.Updated;
         summary.LinksUpserted += futures.LinksUpserted;
-            */
+            
         var options = await SyncOptionsInternalAsync(cancellationToken);
         summary.UpdatedOptions = options.Updated;
         summary.LinksUpserted += options.LinksUpserted;
-
+            */
         return summary;
     }
 
