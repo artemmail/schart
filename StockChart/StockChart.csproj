@@ -48,6 +48,7 @@
     <PackageReference Include="NumSharp" Version="0.30.0" />
     <PackageReference Include="SciSharp.TensorFlow.Redist" Version="2.16.0" />
     <PackageReference Include="SendGrid" Version="9.29.3" />
+    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.7.1" />
     <PackageReference Include="Telerik.UI.for.AspNet.Core" Version="2023.1.117" />
     <PackageReference Include="TensorFlow.NET" Version="0.150.0" />
   

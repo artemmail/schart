@@ -94,6 +94,7 @@ public partial class ApplicationDbContext
     public virtual DbSet<BondSpec> BondSpecs { get; set; }
     public virtual DbSet<FutureSpec> FutureSpecs { get; set; }
     public virtual DbSet<OptionSpec> OptionSpecs { get; set; }
+    public virtual DbSet<OptionMarketSnapshot> OptionMarketSnapshots { get; set; }
     public virtual DbSet<SecurityLink> SecurityLinks { get; set; }
     public virtual DbSet<UnderlyingMap> UnderlyingMaps { get; set; }
     public virtual DbSet<ShareholderSnapshot> ShareholderSnapshots { get; set; }
@@ -588,12 +589,42 @@ public partial class ApplicationDbContext
             entity.Property(e => e.DictionaryId).ValueGeneratedNever();
             entity.Property(e => e.AssetCode).HasMaxLength(32);
             entity.Property(e => e.OptionType).HasColumnType("char(1)");
+            entity.Property(e => e.BoardId).HasMaxLength(16);
             entity.Property(e => e.Strike).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.TheorPrice).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.Volat).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.Last).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.Bid).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.Offer).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.VolToday).HasColumnType("bigint");
+            entity.Property(e => e.OpenPosition).HasColumnType("bigint");
             entity.Property(e => e.ExpirationDate).HasColumnType("date");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
             entity.HasOne(d => d.Dictionary).WithOne()
                 .HasForeignKey<OptionSpec>(d => d.DictionaryId)
                 .HasConstraintName("FK_OptionSpec_Dictionary");
+        });
+
+        modelBuilder.Entity<OptionMarketSnapshot>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("OptionMarketSnapshots");
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.ImportedAt).HasColumnType("datetime2");
+            entity.Property(e => e.BoardId).HasMaxLength(16);
+            entity.Property(e => e.OptionType).HasColumnType("char(1)");
+            entity.Property(e => e.Strike).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.TheorPrice).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.Volat).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.Last).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.Bid).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.Offer).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.VolToday).HasColumnType("bigint");
+            entity.Property(e => e.OpenPosition).HasColumnType("bigint");
+            entity.HasIndex(e => new { e.DictionaryId, e.ImportedAt });
+            entity.HasOne(d => d.Dictionary).WithMany()
+                .HasForeignKey(d => d.DictionaryId)
+                .HasConstraintName("FK_OptionMarketSnapshots_Dictionary");
         });
 
         modelBuilder.Entity<SecurityLink>(entity =>

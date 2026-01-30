@@ -31,16 +31,17 @@ public sealed class MoexSyncService : IMoexSyncService
     {
         var summary = new MoexSyncSummary();
 
-        summary.UpdatedStocks = await SyncStocksEmitentsAsync(cancellationToken);
+        //summary.UpdatedStocks = await SyncStocksEmitentsAsync(cancellationToken);
 
+            /*
         var bonds = await SyncBondsInternalAsync(cancellationToken);
         summary.UpdatedBonds = bonds.Updated;
         summary.LinksUpserted += bonds.LinksUpserted;
-
+            
         var futures = await SyncFuturesInternalAsync(cancellationToken);
         summary.UpdatedFutures = futures.Updated;
         summary.LinksUpserted += futures.LinksUpserted;
-
+            */
         var options = await SyncOptionsInternalAsync(cancellationToken);
         summary.UpdatedOptions = options.Updated;
         summary.LinksUpserted += options.LinksUpserted;
@@ -128,8 +129,8 @@ public sealed class MoexSyncService : IMoexSyncService
     {
         var updated = 0;
         var linksUpserted = 0;
-        var start = 0;
-        const int limit = 1000;
+        var start = 1700;
+        const int limit = 100;
 
         while (true)
         {
@@ -141,7 +142,7 @@ public sealed class MoexSyncService : IMoexSyncService
 
             var secids = page.Select(p => p.SecId).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             var existing = await _dbContext.Dictionaries
-                .Where(d => d.Market == MarketBonds && secids.Contains(d.Securityid))
+                .Where(d => /* d.Market == MarketBonds &&*/ secids.Contains(d.Securityid))
                 .ToListAsync(cancellationToken);
 
             var dictMap = existing.ToDictionary(d => d.Securityid, d => d, StringComparer.OrdinalIgnoreCase);
@@ -199,7 +200,15 @@ public sealed class MoexSyncService : IMoexSyncService
 
             if (_dbContext.ChangeTracker.HasChanges())
             {
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                    try
+                    {
+
+                        await _dbContext.SaveChangesAsync(cancellationToken);
+                    }
+                    catch(Exception e)
+                    {
+
+                    }
             }
 
             if (touchedBonds.Count > 0)
@@ -319,6 +328,7 @@ public sealed class MoexSyncService : IMoexSyncService
 
         foreach (var asset in assets)
         {
+            var importedAt = DateTime.UtcNow;
             var rows = await FetchOptionsAsync(asset, cancellationToken);
             if (rows.Count == 0)
             {
@@ -386,6 +396,30 @@ public sealed class MoexSyncService : IMoexSyncService
                     updated++;
                     touchedOptions.Add(optionSpec);
                 }
+
+                var snapshotOptionType = string.IsNullOrWhiteSpace(row.OptionType)
+                    ? null
+                    : row.OptionType.Trim().ToUpperInvariant();
+                if (!string.IsNullOrWhiteSpace(snapshotOptionType) && snapshotOptionType.Length > 1)
+                {
+                    snapshotOptionType = snapshotOptionType.Substring(0, 1);
+                }
+
+                _dbContext.OptionMarketSnapshots.Add(new OptionMarketSnapshot
+                {
+                    Dictionary = dic,
+                    ImportedAt = importedAt,
+                    BoardId = row.BoardId,
+                    OptionType = snapshotOptionType,
+                    Strike = row.Strike,
+                    TheorPrice = row.TheorPrice,
+                    Volat = row.Volat,
+                    Last = row.Last,
+                    Bid = row.Bid,
+                    Offer = row.Offer,
+                    VolToday = row.VolToday,
+                    OpenPosition = row.OpenPosition
+                });
             }
 
             if (_dbContext.ChangeTracker.HasChanges())
@@ -832,9 +866,57 @@ public sealed class MoexSyncService : IMoexSyncService
             }
         }
 
+        if (!string.IsNullOrWhiteSpace(row.BoardId) && spec.BoardId != row.BoardId)
+        {
+            spec.BoardId = row.BoardId;
+            changed = true;
+        }
+
         if (row.Strike.HasValue && spec.Strike != row.Strike)
         {
             spec.Strike = row.Strike;
+            changed = true;
+        }
+
+        if (row.TheorPrice.HasValue && spec.TheorPrice != row.TheorPrice)
+        {
+            spec.TheorPrice = row.TheorPrice;
+            changed = true;
+        }
+
+        if (row.Volat.HasValue && spec.Volat != row.Volat)
+        {
+            spec.Volat = row.Volat;
+            changed = true;
+        }
+
+        if (row.Last.HasValue && spec.Last != row.Last)
+        {
+            spec.Last = row.Last;
+            changed = true;
+        }
+
+        if (row.Bid.HasValue && spec.Bid != row.Bid)
+        {
+            spec.Bid = row.Bid;
+            changed = true;
+        }
+
+        if (row.Offer.HasValue && spec.Offer != row.Offer)
+        {
+            spec.Offer = row.Offer;
+            changed = true;
+        }
+
+        if (row.VolToday.HasValue && spec.VolToday != row.VolToday)
+        {
+            spec.VolToday = row.VolToday;
+            changed = true;
+        }
+
+        if (row.OpenPosition.HasValue && spec.OpenPosition != row.OpenPosition)
+        {
+            spec.OpenPosition = row.OpenPosition;
             changed = true;
         }
 

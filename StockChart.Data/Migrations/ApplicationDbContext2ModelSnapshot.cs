@@ -1789,8 +1789,33 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.Property<string>("OptionType")
                         .HasColumnType("char(1)");
 
+                    b.Property<string>("BoardId")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
                     b.Property<decimal?>("Strike")
                         .HasColumnType("decimal(28, 10)");
+
+                    b.Property<decimal?>("TheorPrice")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<decimal?>("Volat")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<decimal?>("Last")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<decimal?>("Bid")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<decimal?>("Offer")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<long?>("VolToday")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("OpenPosition")
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -1798,6 +1823,58 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.HasKey("DictionaryId");
 
                     b.ToTable("OptionSpec", (string)null);
+                });
+
+            modelBuilder.Entity("StockChart.Model.OptionMarketSnapshot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DictionaryId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ImportedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("BoardId")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("OptionType")
+                        .HasColumnType("char(1)");
+
+                    b.Property<decimal?>("Strike")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<decimal?>("TheorPrice")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<decimal?>("Volat")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<decimal?>("Last")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<decimal?>("Bid")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<decimal?>("Offer")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<long?>("VolToday")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("OpenPosition")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DictionaryId", "ImportedAt");
+
+                    b.ToTable("OptionMarketSnapshots", (string)null);
                 });
 
             modelBuilder.Entity("StockChart.Model.Payment", b =>
@@ -2884,6 +2961,18 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK_OptionSpec_Dictionary");
+
+                    b.Navigation("Dictionary");
+                });
+
+            modelBuilder.Entity("StockChart.Model.OptionMarketSnapshot", b =>
+                {
+                    b.HasOne("StockChart.Model.Dictionary", "Dictionary")
+                        .WithMany()
+                        .HasForeignKey("DictionaryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_OptionMarketSnapshots_Dictionary");
 
                     b.Navigation("Dictionary");
                 });
