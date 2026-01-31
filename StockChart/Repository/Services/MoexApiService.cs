@@ -364,8 +364,10 @@ namespace StockChart.Repository.Services
 
         public async Task<IReadOnlyList<MoexOptionRow>> GetOptionsAsync(string asset, CancellationToken cancellationToken = default)
         {
+            var optionboardColumns = Uri.EscapeDataString("SECID,SHORTNAME,ASSETCODE,OPTIONTYPE,STRIKE,EXPIRATIONDATE,LASTDELDATE,LASTTRADINGDATE,LOTSIZE");
             var url =
-                $"https://iss.moex.com/iss/statistics/engines/futures/markets/options/assets/{Uri.EscapeDataString(asset)}/optionboard.json?iss.meta=off&iss.only=call,put,asset";
+                $"https://iss.moex.com/iss/statistics/engines/futures/markets/options/assets/{Uri.EscapeDataString(asset)}/optionboard.json" +
+                $"?iss.meta=off&iss.only=call,put,asset,optionboard&optionboard.columns={optionboardColumns}";
 
             using var doc = await GetJsonAsync(url, cancellationToken);
             if (doc == null)
@@ -391,9 +393,33 @@ namespace StockChart.Repository.Services
                 underlyingPrice = ReadDecimal(assetRow, GetColumnIndex(assetIndex, "UNDERLYINGSETTLEPRICE", "UNDERLYINGPRICE", "SETTLEPRICE"));
             }
 
+            var optionBoardLookup = BuildOptionBoardLookup(ReadTable(doc.RootElement, "optionboard"));
+
             var rows = new List<MoexOptionRow>();
             AppendOptionRows(rows, ReadTable(doc.RootElement, "call"), "C", assetCode, expiration, lotSize, underlyingPrice);
             AppendOptionRows(rows, ReadTable(doc.RootElement, "put"), "P", assetCode, expiration, lotSize, underlyingPrice);
+
+            if (optionBoardLookup.Count > 0)
+            {
+                for (var i = 0; i < rows.Count; i++)
+                {
+                    var row = rows[i];
+                    if (!optionBoardLookup.TryGetValue(row.SecId, out var board))
+                    {
+                        continue;
+                    }
+
+                    rows[i] = row with
+                    {
+                        Shortname = string.IsNullOrWhiteSpace(row.Shortname) ? board.Shortname : row.Shortname,
+                        AssetCode = string.IsNullOrWhiteSpace(row.AssetCode) ? board.AssetCode : row.AssetCode,
+                        OptionType = string.IsNullOrWhiteSpace(row.OptionType) ? board.OptionType : row.OptionType,
+                        Strike = row.Strike ?? board.Strike,
+                        ExpirationDate = row.ExpirationDate ?? board.ExpirationDate,
+                        LotSize = row.LotSize ?? board.LotSize
+                    };
+                }
+            }
 
             return rows;
         }
@@ -629,6 +655,49 @@ namespace StockChart.Repository.Services
             }
         }
 
+        private static Dictionary<string, OptionBoardSnapshot> BuildOptionBoardLookup(MoexTable? table)
+        {
+            var result = new Dictionary<string, OptionBoardSnapshot>(StringComparer.OrdinalIgnoreCase);
+            if (table == null || table.Rows.Count == 0)
+            {
+                return result;
+            }
+
+            var columnIndex = BuildColumnIndex(table.Columns);
+            var secidIndex = GetColumnIndex(columnIndex, "SECID", "secid");
+            if (!secidIndex.HasValue)
+            {
+                return result;
+            }
+
+            var shortnameIndex = GetColumnIndex(columnIndex, "SHORTNAME", "shortname");
+            var assetIndex = GetColumnIndex(columnIndex, "ASSETCODE", "UNDERLYINGASSET", "assetcode");
+            var optionTypeIndex = GetColumnIndex(columnIndex, "OPTIONTYPE", "optiontype");
+            var strikeIndex = GetColumnIndex(columnIndex, "STRIKE", "strike");
+            var expirationIndex = GetColumnIndex(columnIndex, "EXPIRATIONDATE", "LASTDELDATE", "LASTTRADINGDATE", "LASTTRADEDATE");
+            var lotSizeIndex = GetColumnIndex(columnIndex, "LOTSIZE", "lotsize");
+
+            foreach (var row in table.Rows)
+            {
+                var secid = ReadString(row, secidIndex.Value);
+                if (string.IsNullOrWhiteSpace(secid))
+                {
+                    continue;
+                }
+
+                var normalizedSecid = NormalizeCode(secid) ?? secid;
+                result[normalizedSecid] = new OptionBoardSnapshot(
+                    Shortname: ReadString(row, shortnameIndex),
+                    AssetCode: NormalizeCode(ReadString(row, assetIndex)),
+                    OptionType: ReadString(row, optionTypeIndex),
+                    Strike: ReadDecimal(row, strikeIndex),
+                    ExpirationDate: ReadDate(row, expirationIndex),
+                    LotSize: ReadInt(row, lotSizeIndex));
+            }
+
+            return result;
+        }
+
         private static string? ReadCell(JsonElement element)
         {
             return element.ValueKind switch
@@ -816,5 +885,13 @@ namespace StockChart.Repository.Services
             public IReadOnlyList<string> Columns { get; }
             public IReadOnlyList<IReadOnlyList<string?>> Rows { get; }
         }
+
+        private sealed record OptionBoardSnapshot(
+            string? Shortname,
+            string? AssetCode,
+            string? OptionType,
+            decimal? Strike,
+            DateTime? ExpirationDate,
+            int? LotSize);
     }
 }

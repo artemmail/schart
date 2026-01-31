@@ -335,6 +335,7 @@ public sealed class MoexSyncService : IMoexSyncService
                 continue;
             }
 
+            var fallbackLotSize = await ResolveFutureLotSizeAsync(asset, cancellationToken);
             var secids = rows.Select(r => r.SecId).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             var existing = await _dbContext.Dictionaries
                 .Where(d => d.Market == MarketOptions && secids.Contains(d.Securityid))
@@ -378,7 +379,7 @@ public sealed class MoexSyncService : IMoexSyncService
                     ? existingSpec
                     : new OptionSpec { Dictionary = dic };
 
-                var specChanged = UpdateOptionSpec(optionSpec, row);
+                var specChanged = UpdateOptionSpec(optionSpec, row, fallbackLotSize);
 
                 if (existingSpec == null)
                 {
@@ -840,7 +841,7 @@ public sealed class MoexSyncService : IMoexSyncService
         return changed;
     }
 
-    private bool UpdateOptionSpec(OptionSpec spec, MoexOptionRow row)
+    private bool UpdateOptionSpec(OptionSpec spec, MoexOptionRow row, int? fallbackLotSize)
     {
         var changed = false;
         var now = DateTime.UtcNow;
@@ -926,9 +927,10 @@ public sealed class MoexSyncService : IMoexSyncService
             changed = true;
         }
 
-        if (row.LotSize.HasValue && spec.LotSize != row.LotSize)
+        var resolvedLotSize = row.LotSize ?? fallbackLotSize;
+        if (resolvedLotSize.HasValue && spec.LotSize != resolvedLotSize)
         {
-            spec.LotSize = row.LotSize;
+            spec.LotSize = resolvedLotSize;
             changed = true;
         }
 
@@ -942,6 +944,27 @@ public sealed class MoexSyncService : IMoexSyncService
         }
 
         return changed;
+    }
+
+    private async Task<int?> ResolveFutureLotSizeAsync(string assetCode, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(assetCode))
+        {
+            return null;
+        }
+
+        var normalized = NormalizeCode(assetCode);
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return null;
+        }
+
+        return await _dbContext.FutureSpecs
+            .AsNoTracking()
+            .Where(f => f.AssetCode == normalized && f.LotSize.HasValue)
+            .OrderByDescending(f => f.ExpirationDate)
+            .Select(f => f.LotSize)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     private Task<EmitentInfo?> FetchEmitentAsync(string secid, CancellationToken cancellationToken)
