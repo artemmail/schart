@@ -77,7 +77,8 @@ namespace StockChart.Model
         decimal? Bid,
         decimal? Offer,
         long? VolToday,
-        long? OpenPosition);
+        long? OpenPosition,
+        decimal? UnderlyingPrice);
 
     public sealed record MoexDividendRow(DateTime Date, decimal Value);
 

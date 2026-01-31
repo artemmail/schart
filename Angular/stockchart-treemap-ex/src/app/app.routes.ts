@@ -16,5 +16,12 @@ export const routes: Routes = [
         (m) => m.SelfColoredTreemapExampleComponent
       )
   },
+  {
+    path: 'volatility-smile',
+    loadComponent: () =>
+      import('./examples/volatility-smile/volatility-smile.component').then(
+        (m) => m.VolatilitySmileComponent
+      )
+  },
   { path: '**', redirectTo: 'market-map' }
 ];

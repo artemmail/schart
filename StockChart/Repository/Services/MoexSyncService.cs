@@ -31,9 +31,9 @@ public sealed class MoexSyncService : IMoexSyncService
     {
         var summary = new MoexSyncSummary();
 
-        //summary.UpdatedStocks = await SyncStocksEmitentsAsync(cancellationToken);
+        summary.UpdatedStocks = await SyncStocksEmitentsAsync(cancellationToken);
 
-            /*
+            
         var bonds = await SyncBondsInternalAsync(cancellationToken);
         summary.UpdatedBonds = bonds.Updated;
         summary.LinksUpserted += bonds.LinksUpserted;
@@ -45,7 +45,7 @@ public sealed class MoexSyncService : IMoexSyncService
         var options = await SyncOptionsInternalAsync(cancellationToken);
         summary.UpdatedOptions = options.Updated;
         summary.LinksUpserted += options.LinksUpserted;
-            */
+            
         return summary;
     }
 
@@ -129,7 +129,7 @@ public sealed class MoexSyncService : IMoexSyncService
     {
         var updated = 0;
         var linksUpserted = 0;
-        var start = 1700;
+        var start = 0;
         const int limit = 100;
 
         while (true)

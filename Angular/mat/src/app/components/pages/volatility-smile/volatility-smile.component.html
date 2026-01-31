@@ -36,6 +36,41 @@
           </mat-select>
         </mat-form-field>
 
+        <mat-form-field appearance="outline">
+          <mat-label>View preset</mat-label>
+          <mat-select [(ngModel)]="viewPresetId" (selectionChange)="onPresetChange()">
+            <mat-option *ngFor="let preset of viewPresets" [value]="preset.id">
+              {{ preset.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>X axis</mat-label>
+          <mat-select [(ngModel)]="xAxis" (selectionChange)="onAxisChange()">
+            <mat-option value="strike">Strike</mat-option>
+            <mat-option value="moneyness">Moneyness</mat-option>
+            <mat-option value="log_moneyness">Log moneyness</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Normalize</mat-label>
+          <mat-select [(ngModel)]="normalizeMode" (selectionChange)="onNormalizeChange()">
+            <mat-option value="none">None</mat-option>
+            <mat-option value="per_contract">Per contract</mat-option>
+            <mat-option value="money">Money</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-slide-toggle [(ngModel)]="crosshairEnabled" (change)="onCrosshairToggle()">
+          Crosshair sync
+        </mat-slide-toggle>
+
+        <mat-checkbox class="smile-toggle" [(ngModel)]="useMoex" (change)="onSourceChange()">
+          Данные MOEX
+        </mat-checkbox>
+
         <button mat-raised-button color="primary" (click)="refresh()" [disabled]="loading">
           Обновить
         </button>
@@ -49,85 +84,119 @@
           </div>
           <div class="status error" *ngIf="!loading && error">{{ error }}</div>
 
-          <svg
-            *ngIf="!loading && chart"
-            class="smile-chart"
-            [attr.viewBox]="'0 0 ' + chart.width + ' ' + chart.height"
-            role="img"
-            aria-label="Volatility smile chart"
+          <div class="chart-grid" *ngIf="!loading && charts.length" [class.scrollable]="isScrollableCharts">
+          <div class="chart-item" *ngFor="let chart of charts">
+            <div class="chart-title">{{ chart.title }}</div>
+            <svg
+              class="smile-chart"
+              [attr.viewBox]="'0 0 ' + chart.width + ' ' + chart.height"
+              [style.height.px]="chart.height"
+              role="img"
+              [attr.aria-label]="chart.title"
+            >
+              <rect
+                class="plot-bg"
+                [attr.x]="chart.plotLeft"
+                [attr.y]="chart.plotTop"
+                [attr.width]="chart.plotWidth"
+                [attr.height]="chart.plotHeight"
+              ></rect>
+
+              <g class="grid">
+                <line
+                  *ngFor="let tick of chart.yTicks"
+                  [attr.x1]="chart.plotLeft"
+                  [attr.x2]="chart.plotLeft + chart.plotWidth"
+                  [attr.y1]="tick.position"
+                  [attr.y2]="tick.position"
+                ></line>
+                <line
+                  *ngFor="let tick of chart.xTicks"
+                  [attr.y1]="chart.plotTop"
+                  [attr.y2]="chart.plotTop + chart.plotHeight"
+                  [attr.x1]="tick.position"
+                  [attr.x2]="tick.position"
+                ></line>
+              </g>
+
+              <g class="axis">
+                <line
+                  [attr.x1]="chart.plotLeft"
+                  [attr.x2]="chart.plotLeft + chart.plotWidth"
+                  [attr.y1]="chart.plotTop + chart.plotHeight"
+                  [attr.y2]="chart.plotTop + chart.plotHeight"
+                ></line>
+                <line
+                  [attr.x1]="chart.plotLeft"
+                  [attr.x2]="chart.plotLeft"
+                  [attr.y1]="chart.plotTop"
+                  [attr.y2]="chart.plotTop + chart.plotHeight"
+                ></line>
+              </g>
+
+              <line
+                *ngIf="getCrosshairX(chart) as crossX"
+                class="crosshair"
+                [attr.x1]="crossX"
+                [attr.x2]="crossX"
+                [attr.y1]="chart.plotTop"
+                [attr.y2]="chart.plotTop + chart.plotHeight"
+              ></line>
+
+              <g class="series" *ngFor="let serie of chart.series">
+                <path [attr.d]="serie.path" [attr.stroke]="serie.color" [attr.stroke-dasharray]="serie.dasharray"></path>
+                <circle
+                  *ngFor="let point of serie.points"
+                  [attr.cx]="point.x"
+                  [attr.cy]="point.y"
+                  [attr.r]="3.5"
+                  [attr.fill]="serie.color"
+                  (mouseenter)="onPointHover($event, point, serie, chart)"
+                  (mousemove)="onPointHover($event, point, serie, chart)"
+                  (mouseleave)="onPointLeave()"
+                ></circle>
+              </g>
+
+              <g class="labels">
+                <text
+                  *ngFor="let tick of chart.yTicks"
+                  class="label-y"
+                  [attr.x]="chart.plotLeft - 12"
+                  [attr.y]="tick.position + 4"
+                >
+                  {{ tick.value | number : '1.0-2' }}
+                </text>
+                <text
+                  *ngFor="let tick of chart.xTicks"
+                  class="label-x"
+                  [attr.x]="tick.position"
+                  [attr.y]="chart.plotTop + chart.plotHeight + 24"
+                >
+                  {{ tick.value | number : '1.0-2' }}
+                </text>
+              </g>
+            </svg>
+
+            <div class="status small" *ngIf="!chart.hasData">
+              Нет данных для выбранного пресета.
+            </div>
+          </div>
+        </div>
+
+          <div
+            class="smile-tooltip"
+            *ngIf="tooltip"
+            [style.left.px]="tooltip.left"
+            [style.top.px]="tooltip.top"
           >
-            <rect
-              class="plot-bg"
-              [attr.x]="chart.plotLeft"
-              [attr.y]="chart.plotTop"
-              [attr.width]="chart.plotWidth"
-              [attr.height]="chart.plotHeight"
-            ></rect>
+            <div class="tooltip-title">{{ tooltip.title }}</div>
+            <div class="tooltip-row" *ngFor="let row of tooltip.rows">
+              <span class="label">{{ row.label }}</span>
+              <span class="value">{{ row.value }}</span>
+            </div>
+          </div>
 
-            <g class="grid">
-              <line
-                *ngFor="let tick of chart.yTicks"
-                [attr.x1]="chart.plotLeft"
-                [attr.x2]="chart.plotLeft + chart.plotWidth"
-                [attr.y1]="tick.position"
-                [attr.y2]="tick.position"
-              ></line>
-              <line
-                *ngFor="let tick of chart.xTicks"
-                [attr.y1]="chart.plotTop"
-                [attr.y2]="chart.plotTop + chart.plotHeight"
-                [attr.x1]="tick.position"
-                [attr.x2]="tick.position"
-              ></line>
-            </g>
-
-            <g class="axis">
-              <line
-                [attr.x1]="chart.plotLeft"
-                [attr.x2]="chart.plotLeft + chart.plotWidth"
-                [attr.y1]="chart.plotTop + chart.plotHeight"
-                [attr.y2]="chart.plotTop + chart.plotHeight"
-              ></line>
-              <line
-                [attr.x1]="chart.plotLeft"
-                [attr.x2]="chart.plotLeft"
-                [attr.y1]="chart.plotTop"
-                [attr.y2]="chart.plotTop + chart.plotHeight"
-              ></line>
-            </g>
-
-            <g class="series" *ngFor="let serie of chart.series">
-              <path [attr.d]="serie.path" [attr.stroke]="serie.color"></path>
-              <circle
-                *ngFor="let point of serie.points"
-                [attr.cx]="point.x"
-                [attr.cy]="point.y"
-                [attr.r]="3.5"
-                [attr.fill]="serie.color"
-              ></circle>
-            </g>
-
-            <g class="labels">
-              <text
-                *ngFor="let tick of chart.yTicks"
-                class="label-y"
-                [attr.x]="chart.plotLeft - 12"
-                [attr.y]="tick.position + 4"
-              >
-                {{ tick.value | number : '1.0-2' }}
-              </text>
-              <text
-                *ngFor="let tick of chart.xTicks"
-                class="label-x"
-                [attr.x]="tick.position"
-                [attr.y]="chart.plotTop + chart.plotHeight + 28"
-              >
-                {{ tick.value | number : '1.0-2' }}
-              </text>
-            </g>
-          </svg>
-
-          <div class="status" *ngIf="!loading && !chart && !error">
+          <div class="status" *ngIf="!loading && !charts.length && !error">
             Нет данных для выбранных параметров.
           </div>
         </div>
@@ -142,6 +211,10 @@
             <span class="value">{{ selectedExpiration || '—' }}</span>
           </div>
           <div class="summary-item">
+            <span class="label">Источник</span>
+            <span class="value">{{ useMoex ? 'MOEX' : 'База данных' }}</span>
+          </div>
+          <div class="summary-item">
             <span class="label">Серии</span>
             <span class="value">{{ seriesCount }}</span>
           </div>
@@ -150,8 +223,45 @@
             <span class="value">{{ pointCount }}</span>
           </div>
 
-          <div class="legend" *ngIf="chart?.series?.length">
-            <div class="legend-item" *ngFor="let serie of chart?.series">
+
+          <div class="greeks-panel" *ngIf="tableRows.length">
+            <div class="greeks-title">Greeks</div>
+            <div class="greeks-table-wrap">
+              <table class="greeks-table">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Strike</th>
+                    <th>IV</th>
+                    <th>Δ ({{ greekUnitLabel }})</th>
+                    <th>Γ ({{ greekUnitLabel }})</th>
+                    <th>Vega ({{ greekUnitLabel }})</th>
+                    <th>Theta ({{ greekUnitLabel }})</th>
+                    <th>Rho ({{ greekUnitLabel }})</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of tableRows">
+                    <td>
+                      <span class="type-pill" [class.call]="row.type === 'C'" [class.put]="row.type === 'P'">
+                        {{ row.type }}
+                      </span>
+                    </td>
+                    <td>{{ row.strike | number : '1.0-2' }}</td>
+                    <td>{{ row.iv == null ? '—' : (row.iv | number : '1.2-2') }}</td>
+                    <td>{{ row.delta == null ? '—' : (row.delta | number : '1.3-4') }}</td>
+                    <td>{{ row.gamma == null ? '—' : (row.gamma | number : '1.3-4') }}</td>
+                    <td>{{ row.vega == null ? '—' : (row.vega | number : '1.2-2') }}</td>
+                    <td>{{ row.theta == null ? '—' : (row.theta | number : '1.2-2') }}</td>
+                    <td>{{ row.rho == null ? '—' : (row.rho | number : '1.2-2') }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="legend" *ngIf="charts[0]?.series?.length">
+            <div class="legend-item" *ngFor="let serie of charts[0]?.series">
               <span class="legend-dot" [style.background]="serie.color"></span>
               <span>{{ serie.type === 'C' ? 'Calls' : 'Puts' }}</span>
             </div>

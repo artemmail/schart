@@ -365,8 +365,7 @@ namespace StockChart.Repository.Services
         public async Task<IReadOnlyList<MoexOptionRow>> GetOptionsAsync(string asset, CancellationToken cancellationToken = default)
         {
             var url =
-                $"https://iss.moex.com/iss/statistics/engines/futures/markets/options/assets/{Uri.EscapeDataString(asset)}/optionboard.json" +
-                "?iss.meta=off&iss.only=call,put,asset";
+                $"https://iss.moex.com/iss/statistics/engines/futures/markets/options/assets/{Uri.EscapeDataString(asset)}/optionboard.json?iss.meta=off&iss.only=call,put,asset";
 
             using var doc = await GetJsonAsync(url, cancellationToken);
             if (doc == null)
@@ -377,6 +376,7 @@ namespace StockChart.Repository.Services
             var assetCode = NormalizeCode(asset) ?? asset;
             DateTime? expiration = null;
             int? lotSize = null;
+            decimal? underlyingPrice = null;
 
             var assetTable = ReadTable(doc.RootElement, "asset");
             if (assetTable != null && assetTable.Rows.Count > 0)
@@ -388,11 +388,12 @@ namespace StockChart.Repository.Services
                 assetCode = NormalizeCode(underlying) ?? assetCode;
                 expiration = ReadDate(assetRow, GetColumnIndex(assetIndex, "LASTDELDATE", "EXPIRATIONDATE", "LASTTRADINGDATE", "LASTTRADEDATE"));
                 lotSize = ReadInt(assetRow, GetColumnIndex(assetIndex, "LOTSIZE"));
+                underlyingPrice = ReadDecimal(assetRow, GetColumnIndex(assetIndex, "UNDERLYINGSETTLEPRICE", "UNDERLYINGPRICE", "SETTLEPRICE"));
             }
 
             var rows = new List<MoexOptionRow>();
-            AppendOptionRows(rows, ReadTable(doc.RootElement, "call"), "C", assetCode, expiration, lotSize);
-            AppendOptionRows(rows, ReadTable(doc.RootElement, "put"), "P", assetCode, expiration, lotSize);
+            AppendOptionRows(rows, ReadTable(doc.RootElement, "call"), "C", assetCode, expiration, lotSize, underlyingPrice);
+            AppendOptionRows(rows, ReadTable(doc.RootElement, "put"), "P", assetCode, expiration, lotSize, underlyingPrice);
 
             return rows;
         }
@@ -548,7 +549,8 @@ namespace StockChart.Repository.Services
             string fallbackOptionType,
             string? fallbackAssetCode,
             DateTime? fallbackExpiration,
-            int? fallbackLotSize)
+            int? fallbackLotSize,
+            decimal? fallbackUnderlyingPrice)
         {
             if (table == null || table.Rows.Count == 0)
             {
@@ -576,6 +578,7 @@ namespace StockChart.Repository.Services
             var openPositionIndex = GetColumnIndex(columnIndex, "OPENPOSITION", "openposition");
             var expirationIndex = GetColumnIndex(columnIndex, "EXPIRATIONDATE", "LASTDELDATE", "LASTTRADINGDATE", "LASTTRADEDATE");
             var lotSizeIndex = GetColumnIndex(columnIndex, "LOTSIZE", "lotsize");
+            var underlyingPriceIndex = GetColumnIndex(columnIndex, "UNDERLYINGSETTLEPRICE", "UNDERLYINGPRICE", "SETTLEPRICE");
 
             foreach (var row in table.Rows)
             {
@@ -604,6 +607,7 @@ namespace StockChart.Repository.Services
                 var openPosition = ReadLong(row, openPositionIndex);
                 var expiration = ReadDate(row, expirationIndex) ?? fallbackExpiration;
                 var lotSize = ReadInt(row, lotSizeIndex) ?? fallbackLotSize;
+                var underlyingPrice = ReadDecimal(row, underlyingPriceIndex) ?? fallbackUnderlyingPrice;
 
                 rows.Add(new MoexOptionRow(
                     NormalizeCode(secid) ?? secid,
@@ -620,7 +624,8 @@ namespace StockChart.Repository.Services
                     bid,
                     offer,
                     volToday,
-                    openPosition));
+                    openPosition,
+                    underlyingPrice));
             }
         }
 

@@ -1,9 +1,46 @@
+:host {
+  display: block;
+  color: var(--smile-text, #1f2937);
+}
+
 .smile-page {
+  --smile-bg: var(--mat-sys-background, #e2e2e2);
+  --smile-surface: var(--mat-sys-surface, #ffffff);
+  --smile-panel: var(--sc-panel, #ffffff);
+  --smile-panel-alt: color-mix(in srgb, var(--smile-panel) 92%, #f8fafc);
+  --smile-border: var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+  --smile-grid: var(--sc-grid-faint, #e5e7eb);
+  --smile-axis: var(--sc-axis, #94a3b8);
+  --smile-text: var(--mat-sys-on-surface, #1f2937);
+  --smile-text-muted: var(--sc-text-muted, #64748b);
+  --smile-tooltip-bg: color-mix(in srgb, var(--smile-panel) 92%, #0b0f19);
+  --smile-tooltip-text: var(--sc-text, #f8fafc);
+  --smile-call: var(--sc-bid, #1565c0);
+  --smile-put: var(--sc-ask, #c62828);
+  --smile-crosshair: var(--sc-crosshair, rgba(15, 23, 42, 0.6));
+  --smile-plot: var(--mat-sys-surface, #ffffff);
   padding: 16px 20px;
+}
+
+:host-context(.mat-dark-theme) .smile-page {
+  --smile-bg: var(--mat-sys-background, #0b0f19);
+  --smile-surface: var(--mat-sys-surface, #0f172a);
+  --smile-panel: var(--sc-panel, #121826);
+  --smile-panel-alt: color-mix(in srgb, var(--smile-panel) 92%, #0b0f19);
+  --smile-border: color-mix(in srgb, var(--smile-panel) 70%, #ffffff);
+  --smile-grid: var(--sc-grid-faint, rgba(255, 255, 255, 0.08));
+  --smile-axis: var(--sc-axis, rgba(255, 255, 255, 0.55));
+  --smile-text: var(--sc-text, rgba(255, 255, 255, 0.9));
+  --smile-text-muted: var(--sc-text-muted, rgba(255, 255, 255, 0.65));
+  --smile-tooltip-bg: color-mix(in srgb, var(--smile-panel) 84%, #000);
+  --smile-tooltip-text: var(--sc-text, #f8fafc);
+  --smile-crosshair: var(--sc-crosshair, rgba(255, 255, 255, 0.45));
+  --smile-plot: color-mix(in srgb, var(--smile-panel) 88%, #000);
 }
 
 .smile-card {
   padding: 8px 8px 16px;
+  color: var(--smile-text);
 }
 
 .smile-controls {
@@ -28,10 +65,11 @@
 .chart-panel {
   position: relative;
   min-height: 420px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--smile-border);
   border-radius: 12px;
-  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  background: linear-gradient(180deg, var(--smile-panel-alt) 0%, var(--smile-panel) 100%);
   padding: 12px;
+  color: var(--smile-text);
 }
 
 .smile-chart {
@@ -41,18 +79,18 @@
 }
 
 .plot-bg {
-  fill: #ffffff;
-  stroke: rgba(0, 0, 0, 0.08);
+  fill: var(--smile-plot);
+  stroke: var(--smile-border);
   stroke-width: 1;
 }
 
 .grid line {
-  stroke: #e5e7eb;
+  stroke: var(--smile-grid);
   stroke-dasharray: 4 4;
 }
 
 .axis line {
-  stroke: #94a3b8;
+  stroke: var(--smile-axis);
   stroke-width: 1;
 }
 
@@ -63,7 +101,7 @@
 
 .labels text {
   font-size: 11px;
-  fill: #64748b;
+  fill: var(--smile-text-muted);
 }
 
 .labels .label-x {
@@ -83,20 +121,21 @@
   align-items: center;
   justify-content: center;
   font-weight: 500;
-  color: #546e7a;
+  color: var(--smile-text-muted);
 }
 
 .status.error {
-  color: #c62828;
+  color: var(--mat-sys-error, #c62828);
 }
 
 .summary-panel {
-  border: 1px dashed rgba(0, 0, 0, 0.15);
+  border: 1px dashed var(--smile-border);
   border-radius: 12px;
   padding: 12px;
-  background: #fafafa;
+  background: var(--smile-panel);
   display: grid;
   gap: 12px;
+  color: var(--smile-text);
 }
 
 .summary-item {
@@ -107,12 +146,12 @@
 
 .summary-item .label {
   font-size: 12px;
-  color: #607d8b;
+  color: var(--smile-text-muted);
 }
 
 .summary-item .value {
   font-weight: 600;
-  color: #263238;
+  color: var(--smile-text);
 }
 
 .legend {
@@ -127,7 +166,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #374151;
+  color: var(--smile-text);
 }
 
 .legend-dot {
@@ -144,4 +183,159 @@
   .chart-panel {
     min-height: 360px;
   }
+}
+
+.smile-toggle {
+  margin: 0 4px;
+}
+
+.smile-tooltip {
+  position: absolute;
+  z-index: 3;
+  min-width: 140px;
+  max-width: 220px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--smile-tooltip-bg);
+  color: var(--smile-tooltip-text);
+  font-size: 12px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+  pointer-events: none;
+}
+
+.smile-tooltip .tooltip-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.smile-tooltip .tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  line-height: 1.3;
+}
+
+.smile-tooltip .tooltip-row .label {
+  color: color-mix(in srgb, var(--smile-tooltip-text) 70%, transparent);
+}
+
+.greeks-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.greeks-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--smile-text);
+}
+
+.greeks-table-wrap {
+  border: 1px solid var(--smile-border);
+  border-radius: 10px;
+  overflow: auto;
+  max-height: 360px;
+  background: var(--smile-plot);
+}
+
+.greeks-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.greeks-table thead {
+  position: sticky;
+  top: 0;
+  background: var(--smile-panel-alt);
+  z-index: 1;
+}
+
+.greeks-table th,
+.greeks-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--smile-border);
+  text-align: right;
+  white-space: nowrap;
+  color: var(--smile-text);
+}
+
+.greeks-table th:first-child,
+.greeks-table td:first-child {
+  text-align: left;
+}
+
+.greeks-table tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--smile-panel) 94%, var(--smile-bg));
+}
+
+.type-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.type-pill.call {
+  background: color-mix(in srgb, var(--smile-call) 18%, transparent);
+  color: var(--smile-call);
+}
+
+.type-pill.put {
+  background: color-mix(in srgb, var(--smile-put) 18%, transparent);
+  color: var(--smile-put);
+}
+
+.chart-grid {
+  display: grid;
+  gap: 12px;
+  grid-auto-rows: minmax(190px, auto);
+}
+
+.chart-grid.scrollable {
+  max-height: 860px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.chart-item {
+  position: relative;
+  border: 1px solid var(--smile-border);
+  border-radius: 12px;
+  background: var(--smile-plot);
+  padding: 8px 8px 12px;
+}
+
+.chart-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--smile-text);
+  margin: 4px 6px 0;
+}
+
+.chart-item .smile-chart {
+  width: 100%;
+  height: auto;
+}
+
+.crosshair {
+  stroke: var(--smile-crosshair);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.6;
+}
+
+.chart-item .status.small {
+  position: absolute;
+  inset: 36px 8px 8px;
+  font-size: 12px;
+  color: var(--smile-text-muted);
+}
+
+.smile-controls mat-slide-toggle {
+  margin: 0 4px;
 }
