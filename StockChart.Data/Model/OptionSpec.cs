@@ -14,6 +14,7 @@ public partial class OptionSpec
     public decimal? Offer { get; set; }
     public long? VolToday { get; set; }
     public long? OpenPosition { get; set; }
+    public decimal? UnderlyingPrice { get; set; }
     public DateTime? ExpirationDate { get; set; }
     public int? LotSize { get; set; }
     public DateTime UpdatedAt { get; set; }

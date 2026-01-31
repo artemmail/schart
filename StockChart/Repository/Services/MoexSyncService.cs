@@ -125,6 +125,12 @@ public sealed class MoexSyncService : IMoexSyncService
         var result = await SyncOptionsInternalAsync(cancellationToken);
         return result.Updated;
     }
+
+    public async Task<int> SyncOptionsForAssetAsync(string asset, CancellationToken cancellationToken = default)
+    {
+        var result = await SyncOptionsForAssetInternalAsync(asset, cancellationToken);
+        return result.Updated;
+    }
     private async Task<(int Updated, int LinksUpserted)> SyncBondsInternalAsync(CancellationToken cancellationToken)
     {
         var updated = 0;
@@ -328,112 +334,133 @@ public sealed class MoexSyncService : IMoexSyncService
 
         foreach (var asset in assets)
         {
-            var importedAt = DateTime.UtcNow;
-            var rows = await FetchOptionsAsync(asset, cancellationToken);
-            if (rows.Count == 0)
+            var result = await SyncOptionsForAssetInternalAsync(asset, cancellationToken);
+            updated += result.Updated;
+            linksUpserted += result.LinksUpserted;
+        }
+
+        return (updated, linksUpserted);
+    }
+
+    private async Task<(int Updated, int LinksUpserted)> SyncOptionsForAssetInternalAsync(
+        string asset,
+        CancellationToken cancellationToken)
+    {
+        var updated = 0;
+        var linksUpserted = 0;
+
+        var normalizedAsset = NormalizeCode(asset);
+        if (string.IsNullOrWhiteSpace(normalizedAsset))
+        {
+            return (0, 0);
+        }
+
+        var importedAt = DateTime.UtcNow;
+        var rows = await FetchOptionsAsync(normalizedAsset, cancellationToken);
+        if (rows.Count == 0)
+        {
+            return (0, 0);
+        }
+
+        var fallbackLotSize = await ResolveFutureLotSizeAsync(normalizedAsset, cancellationToken);
+        var secids = rows.Select(r => r.SecId).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var existing = await _dbContext.Dictionaries
+            .Where(d => d.Market == MarketOptions && secids.Contains(d.Securityid))
+            .ToListAsync(cancellationToken);
+
+        var dictMap = existing.ToDictionary(d => d.Securityid, d => d, StringComparer.OrdinalIgnoreCase);
+        var optionIds = existing.Select(d => d.Id).ToList();
+        var specMap = optionIds.Count == 0
+            ? new Dictionary<int, OptionSpec>()
+            : await _dbContext.OptionSpecs
+                .Where(o => optionIds.Contains(o.DictionaryId))
+                .ToDictionaryAsync(o => o.DictionaryId, cancellationToken);
+
+        var touchedOptions = new List<OptionSpec>();
+        var linkTargets = new List<(DictionaryEntity Dic, string? AssetCode)>();
+
+        foreach (var row in rows)
+        {
+            if (string.IsNullOrWhiteSpace(row.SecId))
             {
                 continue;
             }
 
-            var fallbackLotSize = await ResolveFutureLotSizeAsync(asset, cancellationToken);
-            var secids = rows.Select(r => r.SecId).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-            var existing = await _dbContext.Dictionaries
-                .Where(d => d.Market == MarketOptions && secids.Contains(d.Securityid))
-                .ToListAsync(cancellationToken);
-
-            var dictMap = existing.ToDictionary(d => d.Securityid, d => d, StringComparer.OrdinalIgnoreCase);
-            var optionIds = existing.Select(d => d.Id).ToList();
-            var specMap = optionIds.Count == 0
-                ? new Dictionary<int, OptionSpec>()
-                : await _dbContext.OptionSpecs
-                    .Where(o => optionIds.Contains(o.DictionaryId))
-                    .ToDictionaryAsync(o => o.DictionaryId, cancellationToken);
-
-            var touchedOptions = new List<OptionSpec>();
-            var linkTargets = new List<(DictionaryEntity Dic, string? AssetCode)>();
-
-            foreach (var row in rows)
+            if (!dictMap.TryGetValue(row.SecId, out var dic))
             {
-                if (string.IsNullOrWhiteSpace(row.SecId))
+                dic = new DictionaryEntity
                 {
-                    continue;
-                }
-
-                if (!dictMap.TryGetValue(row.SecId, out var dic))
-                {
-                    dic = new DictionaryEntity
-                    {
-                        Securityid = row.SecId,
-                        Shortname = string.IsNullOrWhiteSpace(row.Shortname) ? row.SecId : row.Shortname,
-                        Market = MarketOptions,
-                        Minstep = 0m,
-                        Volperqnt = 0m
-                    };
-                    _dbContext.Dictionaries.Add(dic);
-                    dictMap[row.SecId] = dic;
-                }
-
-                var dictChanged = UpdateDictionaryBase(dic, row.Shortname, null, null, MarketOptions);
-
-                var optionSpec = specMap.TryGetValue(dic.Id, out var existingSpec)
-                    ? existingSpec
-                    : new OptionSpec { Dictionary = dic };
-
-                var specChanged = UpdateOptionSpec(optionSpec, row, fallbackLotSize);
-
-                if (existingSpec == null)
-                {
-                    _dbContext.OptionSpecs.Add(optionSpec);
-                    specChanged = true;
-                }
-
-                if (!string.IsNullOrWhiteSpace(optionSpec.AssetCode))
-                {
-                    linkTargets.Add((dic, optionSpec.AssetCode));
-                }
-
-                if (dictChanged || specChanged)
-                {
-                    updated++;
-                    touchedOptions.Add(optionSpec);
-                }
-
-                var snapshotOptionType = string.IsNullOrWhiteSpace(row.OptionType)
-                    ? null
-                    : row.OptionType.Trim().ToUpperInvariant();
-                if (!string.IsNullOrWhiteSpace(snapshotOptionType) && snapshotOptionType.Length > 1)
-                {
-                    snapshotOptionType = snapshotOptionType.Substring(0, 1);
-                }
-
-                _dbContext.OptionMarketSnapshots.Add(new OptionMarketSnapshot
-                {
-                    Dictionary = dic,
-                    ImportedAt = importedAt,
-                    BoardId = row.BoardId,
-                    OptionType = snapshotOptionType,
-                    Strike = row.Strike,
-                    TheorPrice = row.TheorPrice,
-                    Volat = row.Volat,
-                    Last = row.Last,
-                    Bid = row.Bid,
-                    Offer = row.Offer,
-                    VolToday = row.VolToday,
-                    OpenPosition = row.OpenPosition
-                });
+                    Securityid = row.SecId,
+                    Shortname = string.IsNullOrWhiteSpace(row.Shortname) ? row.SecId : row.Shortname,
+                    Market = MarketOptions,
+                    Minstep = 0m,
+                    Volperqnt = 0m
+                };
+                _dbContext.Dictionaries.Add(dic);
+                dictMap[row.SecId] = dic;
             }
 
-            if (_dbContext.ChangeTracker.HasChanges())
+            var dictChanged = UpdateDictionaryBase(dic, row.Shortname, null, null, MarketOptions);
+
+            var optionSpec = specMap.TryGetValue(dic.Id, out var existingSpec)
+                ? existingSpec
+                : new OptionSpec { Dictionary = dic };
+
+            var specChanged = UpdateOptionSpec(optionSpec, row, fallbackLotSize);
+
+            if (existingSpec == null)
             {
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                _dbContext.OptionSpecs.Add(optionSpec);
+                specChanged = true;
             }
 
-            if (linkTargets.Count > 0)
+            if (!string.IsNullOrWhiteSpace(optionSpec.AssetCode))
             {
-                linksUpserted += await BuildUnderlyingLinksAsync(
-                    linkTargets.Select(t => new UnderlyingTarget(t.Dic.Id, t.AssetCode)),
-                    cancellationToken);
+                linkTargets.Add((dic, optionSpec.AssetCode));
             }
+
+            if (dictChanged || specChanged)
+            {
+                updated++;
+                touchedOptions.Add(optionSpec);
+            }
+
+            var snapshotOptionType = string.IsNullOrWhiteSpace(row.OptionType)
+                ? null
+                : row.OptionType.Trim().ToUpperInvariant();
+            if (!string.IsNullOrWhiteSpace(snapshotOptionType) && snapshotOptionType.Length > 1)
+            {
+                snapshotOptionType = snapshotOptionType.Substring(0, 1);
+            }
+
+            _dbContext.OptionMarketSnapshots.Add(new OptionMarketSnapshot
+            {
+                Dictionary = dic,
+                ImportedAt = importedAt,
+                BoardId = row.BoardId,
+                OptionType = snapshotOptionType,
+                Strike = row.Strike,
+                TheorPrice = row.TheorPrice,
+                Volat = row.Volat,
+                Last = row.Last,
+                Bid = row.Bid,
+                Offer = row.Offer,
+                VolToday = row.VolToday,
+                OpenPosition = row.OpenPosition,
+                UnderlyingPrice = row.UnderlyingPrice
+            });
+        }
+
+        if (_dbContext.ChangeTracker.HasChanges())
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        if (linkTargets.Count > 0)
+        {
+            linksUpserted += await BuildUnderlyingLinksAsync(
+                linkTargets.Select(t => new UnderlyingTarget(t.Dic.Id, t.AssetCode)),
+                cancellationToken);
         }
 
         return (updated, linksUpserted);
@@ -918,6 +945,12 @@ public sealed class MoexSyncService : IMoexSyncService
         if (row.OpenPosition.HasValue && spec.OpenPosition != row.OpenPosition)
         {
             spec.OpenPosition = row.OpenPosition;
+            changed = true;
+        }
+
+        if (row.UnderlyingPrice.HasValue && spec.UnderlyingPrice != row.UnderlyingPrice)
+        {
+            spec.UnderlyingPrice = row.UnderlyingPrice;
             changed = true;
         }
 

@@ -22,11 +22,13 @@ namespace StockChart.Controllers
 
         private readonly ApplicationDbContext _dbContext;
         private readonly IMoexApiService _moexApiService;
+        private readonly IMoexSyncService _moexSyncService;
 
-        public OptionsController(ApplicationDbContext dbContext, IMoexApiService moexApiService)
+        public OptionsController(ApplicationDbContext dbContext, IMoexApiService moexApiService, IMoexSyncService moexSyncService)
         {
             _dbContext = dbContext;
             _moexApiService = moexApiService;
+            _moexSyncService = moexSyncService;
         }
 
         [HttpGet("assets")]
@@ -73,6 +75,7 @@ namespace StockChart.Controllers
             string expiration,
             string? optionType,
             DateTime? asOf,
+            bool? refresh,
             CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(asset))
@@ -97,6 +100,10 @@ namespace StockChart.Controllers
             }
 
             var assetCode = asset.Trim().ToUpperInvariant();
+            if (refresh == true)
+            {
+                await _moexSyncService.SyncOptionsForAssetAsync(assetCode, cancellationToken);
+            }
             var specQuery = _dbContext.OptionSpecs
                 .AsNoTracking()
                 .Where(o => o.AssetCode != null && o.AssetCode == assetCode && o.ExpirationDate == expirationDate.Date);
@@ -117,34 +124,49 @@ namespace StockChart.Controllers
                     .GroupBy(s => s.DictionaryId)
                     .Select(g => g.OrderByDescending(x => x.ImportedAt).First());
 
-                var points = await (from spec in specQuery
+                var pointRows = await (from spec in specQuery
                         join dic in dictQuery on spec.DictionaryId equals dic.Id
                         join snap in snapshotQuery on spec.DictionaryId equals snap.DictionaryId
-                        select new OptionSmilePoint
+                        select new
                         {
-                            SecurityId = dic.Securityid,
-                            OptionType = !string.IsNullOrWhiteSpace(snap.OptionType) ? snap.OptionType : spec.OptionType,
-                            BoardId = snap.BoardId ?? spec.BoardId,
-                            Strike = snap.Strike ?? spec.Strike,
-                            LotSize = spec.LotSize,
-                            ImpliedVolatility = snap.Volat ?? spec.Volat,
-                            TheorPrice = snap.TheorPrice ?? spec.TheorPrice,
-                            Last = snap.Last ?? spec.Last,
-                            Bid = snap.Bid ?? spec.Bid,
-                            Offer = snap.Offer ?? spec.Offer,
-                            VolToday = snap.VolToday ?? spec.VolToday,
-                            OpenPosition = snap.OpenPosition ?? spec.OpenPosition
+                            Point = new OptionSmilePoint
+                            {
+                                SecurityId = dic.Securityid,
+                                OptionType = !string.IsNullOrWhiteSpace(snap.OptionType) ? snap.OptionType : spec.OptionType,
+                                BoardId = snap.BoardId ?? spec.BoardId,
+                                Strike = snap.Strike ?? spec.Strike,
+                                LotSize = spec.LotSize,
+                                ImpliedVolatility = snap.Volat ?? spec.Volat,
+                                TheorPrice = snap.TheorPrice ?? spec.TheorPrice,
+                                Last = snap.Last ?? spec.Last,
+                                Bid = snap.Bid ?? spec.Bid,
+                                Offer = snap.Offer ?? spec.Offer,
+                                VolToday = snap.VolToday ?? spec.VolToday,
+                                OpenPosition = snap.OpenPosition ?? spec.OpenPosition
+                            },
+                            UnderlyingPrice = snap.UnderlyingPrice ?? spec.UnderlyingPrice
                         })
-                    .OrderBy(p => p.OptionType)
-                    .ThenBy(p => p.Strike)
+                    .OrderBy(p => p.Point.OptionType)
+                    .ThenBy(p => p.Point.Strike)
                     .ToListAsync(cancellationToken);
 
-                if (points.Count == 0)
+                if (pointRows.Count == 0)
                 {
                     return NotFound();
                 }
 
-                var underlyingPrice = await ResolveUnderlyingPriceAsync(assetCode, expirationDate.Date, cancellationToken);
+                var points = new List<OptionSmilePoint>(pointRows.Count);
+                decimal? storedUnderlyingAsOf = null;
+                foreach (var row in pointRows)
+                {
+                    points.Add(row.Point);
+                    if (!storedUnderlyingAsOf.HasValue && row.UnderlyingPrice.HasValue)
+                    {
+                        storedUnderlyingAsOf = row.UnderlyingPrice;
+                    }
+                }
+
+                var underlyingPrice = storedUnderlyingAsOf ?? await ResolveUnderlyingPriceAsync(assetCode, expirationDate.Date, cancellationToken);
                 var impliedForward = ResolveForwardPriceFromPoints(points, asOfUtc, expirationDate.Date, DefaultRiskFreeRate);
                 var pricingForwardAsOf = underlyingPrice ?? impliedForward;
 
@@ -160,34 +182,53 @@ namespace StockChart.Controllers
                 });
             }
 
-            var currentPoints = await (from spec in specQuery
+            var currentRows = await (from spec in specQuery
                     join dic in dictQuery on spec.DictionaryId equals dic.Id
-                    select new OptionSmilePoint
+                    select new
                     {
-                        SecurityId = dic.Securityid,
-                        OptionType = spec.OptionType,
-                        BoardId = spec.BoardId,
-                        Strike = spec.Strike,
-                        LotSize = spec.LotSize,
-                        ImpliedVolatility = spec.Volat,
-                        TheorPrice = spec.TheorPrice,
-                        Last = spec.Last,
-                        Bid = spec.Bid,
-                        Offer = spec.Offer,
-                        VolToday = spec.VolToday,
-                        OpenPosition = spec.OpenPosition
+                        Point = new OptionSmilePoint
+                        {
+                            SecurityId = dic.Securityid,
+                            OptionType = spec.OptionType,
+                            BoardId = spec.BoardId,
+                            Strike = spec.Strike,
+                            LotSize = spec.LotSize,
+                            ImpliedVolatility = spec.Volat,
+                            TheorPrice = spec.TheorPrice,
+                            Last = spec.Last,
+                            Bid = spec.Bid,
+                            Offer = spec.Offer,
+                            VolToday = spec.VolToday,
+                            OpenPosition = spec.OpenPosition
+                        },
+                        UnderlyingPrice = spec.UnderlyingPrice
                     })
-                .OrderBy(p => p.OptionType)
-                .ThenBy(p => p.Strike)
+                .OrderBy(p => p.Point.OptionType)
+                .ThenBy(p => p.Point.Strike)
                 .ToListAsync(cancellationToken);
 
-            if (currentPoints.Count == 0)
+            if (currentRows.Count == 0)
             {
                 return NotFound();
             }
 
-            var currentUnderlyingPrice = await ResolveUnderlyingPriceAsync(assetCode, expirationDate.Date, cancellationToken);
+            var currentPoints = new List<OptionSmilePoint>(currentRows.Count);
+            decimal? storedUnderlying = null;
+            foreach (var row in currentRows)
+            {
+                currentPoints.Add(row.Point);
+                if (!storedUnderlying.HasValue && row.UnderlyingPrice.HasValue)
+                {
+                    storedUnderlying = row.UnderlyingPrice;
+                }
+            }
+
+            var currentUnderlyingPrice = storedUnderlying ?? await ResolveUnderlyingPriceAsync(assetCode, expirationDate.Date, cancellationToken);
             var currentForward = ResolveForwardPriceFromPoints(currentPoints, DateTime.UtcNow, expirationDate.Date, DefaultRiskFreeRate);
+            if (!currentUnderlyingPrice.HasValue && !currentForward.HasValue)
+            {
+                currentUnderlyingPrice = await ResolveMoexUnderlyingPriceAsync(assetCode, cancellationToken);
+            }
             var pricingForward = currentUnderlyingPrice ?? currentForward;
 
             ApplyGreeks(currentPoints, pricingForward, DateTime.UtcNow, expirationDate.Date, DefaultRiskFreeRate);
@@ -477,6 +518,24 @@ namespace StockChart.Controllers
             }
 
             return null;
+        }
+
+        private async Task<decimal?> ResolveMoexUnderlyingPriceAsync(string assetCode, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(assetCode))
+            {
+                return null;
+            }
+
+            var rows = await _moexApiService.GetOptionsAsync(assetCode, cancellationToken);
+            if (rows.Count == 0)
+            {
+                return null;
+            }
+
+            return rows
+                .Select(r => r.UnderlyingPrice)
+                .FirstOrDefault(p => p.HasValue);
         }
 
         private async Task<decimal?> ResolveUnderlyingPriceAsync(

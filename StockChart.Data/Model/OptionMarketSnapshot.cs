@@ -15,6 +15,7 @@ public partial class OptionMarketSnapshot
     public decimal? Offer { get; set; }
     public long? VolToday { get; set; }
     public long? OpenPosition { get; set; }
+    public decimal? UnderlyingPrice { get; set; }
 
     public virtual Dictionary? Dictionary { get; set; }
 }

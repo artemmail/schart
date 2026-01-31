@@ -598,6 +598,7 @@ public partial class ApplicationDbContext
             entity.Property(e => e.Offer).HasColumnType("decimal(28, 10)");
             entity.Property(e => e.VolToday).HasColumnType("bigint");
             entity.Property(e => e.OpenPosition).HasColumnType("bigint");
+            entity.Property(e => e.UnderlyingPrice).HasColumnType("decimal(28, 10)");
             entity.Property(e => e.ExpirationDate).HasColumnType("date");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
             entity.HasOne(d => d.Dictionary).WithOne()
@@ -621,6 +622,7 @@ public partial class ApplicationDbContext
             entity.Property(e => e.Offer).HasColumnType("decimal(28, 10)");
             entity.Property(e => e.VolToday).HasColumnType("bigint");
             entity.Property(e => e.OpenPosition).HasColumnType("bigint");
+            entity.Property(e => e.UnderlyingPrice).HasColumnType("decimal(28, 10)");
             entity.HasIndex(e => new { e.DictionaryId, e.ImportedAt });
             entity.HasOne(d => d.Dictionary).WithMany()
                 .HasForeignKey(d => d.DictionaryId)

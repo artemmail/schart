@@ -8,6 +8,7 @@ namespace StockChart.Repository.Interfaces
         Task<int> SyncBondsAsync(CancellationToken cancellationToken = default);
         Task<int> SyncFuturesAsync(CancellationToken cancellationToken = default);
         Task<int> SyncOptionsAsync(CancellationToken cancellationToken = default);
+        Task<int> SyncOptionsForAssetAsync(string asset, CancellationToken cancellationToken = default);
         Task<MoexSyncSummary> SyncAllAsync(CancellationToken cancellationToken = default);
     }
 }
