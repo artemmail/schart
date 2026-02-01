@@ -17,6 +17,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>aspnet-StockChart-17668cf8-5b85-45f9-a2b3-df2dc7d600e5</UserSecretsId>
     <OutputType>WinExe</OutputType>
+    <DefaultItemExcludes>$(DefaultItemExcludes);UpdateService\**\*;CommonApi\**\*</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
     <Protobuf Include="Protos\greet.proto" GrpcServices="Client" />
@@ -65,10 +66,40 @@
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="CommonApi\CommonApi.csproj" />
     <ProjectReference Include="..\StockChart.EventBus.RabbitMQ.DependencyInjection\StockChart.EventBus.RabbitMQ.DependencyInjection.csproj" />
     <ProjectReference Include="..\StockChart.EventBus.RabbitMQ\StockChart.EventBus.RabbitMQ.csproj" />
     <ProjectReference Include="..\StockChart.EventBus\StockChart.EventBus.csproj" />
     <ProjectReference Include="..\StockChart.Data\StockChart.Data.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="CommonApi\**\*.cs" />
+    <Compile Remove="UpdateService\**\*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Model\DividendsDtos.cs" />
+    <Compile Remove="Model\FinancialStatementsDtos.cs" />
+    <Compile Remove="Model\MoexApiDtos.cs" />
+    <Compile Remove="Model\MoexSyncDtos.cs" />
+    <Compile Remove="Model\RecommendationDtos.cs" />
+    <Compile Remove="Model\ShareholdersDtos.cs" />
+    <Compile Remove="Repository\Interfaces\IBillingRepository.cs" />
+    <Compile Remove="Repository\Interfaces\IDividendsMoexService.cs" />
+    <Compile Remove="Repository\Interfaces\IFinancialStatementsService.cs" />
+    <Compile Remove="Repository\Interfaces\IMoexApiService.cs" />
+    <Compile Remove="Repository\Interfaces\IMoexSyncService.cs" />
+    <Compile Remove="Repository\Interfaces\IShareholdersRecommendationsService.cs" />
+    <Compile Remove="Repository\Interfaces\IYooMoneyRepository.cs" />
+    <Compile Remove="Repository\Moex\MoexOpenPositionsDeserializer.cs" />
+    <Compile Remove="Repository\Services\BatchImportOpenPositionsServiceNew.cs" />
+    <Compile Remove="Repository\Services\BillingRepository.cs" />
+    <Compile Remove="Repository\Services\DividendsMoexService.cs" />
+    <Compile Remove="Repository\Services\FinancialStatementsService.cs" />
+    <Compile Remove="Repository\Services\MoexApiService.cs" />
+    <Compile Remove="Repository\Services\MoexSyncService.cs" />
+    <Compile Remove="Repository\Services\ShareholdersRecommendationsService.cs" />
+    <Compile Remove="Repository\Services\YooMoneyOptions.cs" />
+    <Compile Remove="Repository\Services\YooMoneyRepository.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Messages\" />

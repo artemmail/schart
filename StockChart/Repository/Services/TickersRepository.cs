@@ -1,46 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using StockChart.Model;
 using System.Collections.Concurrent;
-using System.Globalization;
 using System.Text;
 
 namespace StockChart.Repository
 {
-    public class QuickDictionary
-    {
-        public string Code { get; set; }
-        public string Name { get; set; }
-        public string ShortName { get; set; }
-        public string ClassCode { get; set; }
-        public string ClassName { get; set; }
-        public decimal FaceValue { get; set; }
-        public string FaceUnit { get; set; }
-        public int Scale { get; set; }
-        public int MatDate { get; set; }
-        public string IsinCode { get; set; }
-        public int LotSize { get; set; }
-        public decimal MinPriceStep { get; set; }
-
-        public QuickDictionary(string[] values)
-        {
-            if (values == null || values.Length < 12)
-                throw new ArgumentException("Input array must have at least 12 elements", nameof(values));
-
-            Code = values[0];
-            Name = values[1];
-            ShortName = values[2];
-            ClassCode = values[3];
-            ClassName = values[4];
-            FaceValue = decimal.Parse(values[5], CultureInfo.InvariantCulture);
-            FaceUnit = values[6];
-            Scale = int.Parse(values[7], CultureInfo.InvariantCulture);
-            MatDate = int.Parse(values[8], CultureInfo.InvariantCulture);
-            IsinCode = values[9];
-            LotSize = (int)decimal.Parse(values[10], CultureInfo.InvariantCulture);
-            MinPriceStep = decimal.Parse(values[11], CultureInfo.InvariantCulture);
-        }
-    }
-
     public class TickersRepository : ITickersRepository
     {
         private ConcurrentDictionary<string, Model.Dictionary> tickers;
@@ -55,7 +19,6 @@ namespace StockChart.Repository
 
         public TickersRepository()
         {
-            UpdateData();
             using (var dbContext = new ApplicationDbContext())
             {
                 markets = new ConcurrentDictionary<byte, Model.Market>(
@@ -72,131 +35,6 @@ namespace StockChart.Repository
                 tickersById = new ConcurrentDictionary<int, Model.Dictionary>(
                     tickers.Values.ToDictionary(x => x.Id, x => x));
             }
-        }
-
-        public void UpdateData()
-        {
-            const string folderPath = @"C:\zip";
-            var files = Directory.GetFiles(folderPath, "*lot_size.txt");
-
-            if (files.Any())
-            {
-                var latestFile = files.OrderByDescending(x => x).First();
-                Load(latestFile);
-            }
-
-            foreach (var file in files)
-                File.Delete(file);
-        }
-
-        private DateTime ConvertToDate(int dateInt)
-        {
-            int year = dateInt / 10000;
-            int month = (dateInt / 100) % 100;
-            int day = dateInt % 100;
-
-            return new DateTime(year, month, day);
-        }
-
-        private bool IsValidDate(int dateInt)
-        {
-            int year = dateInt / 10000;
-            int month = (dateInt / 100) % 100;
-            int day = dateInt % 100;
-
-            if (year < 2000 || year > 2040)
-                return false;
-
-            if (month < 1 || month > 12)
-                return false;
-
-            if (day < 1 || day > 31)
-                return false;
-
-            try
-            {
-                _ = new DateTime(year, month, day);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public void Load(string fileName)
-        {
-            var quickDict = LoadDictionary(fileName);
-            var updatedList = new List<StockChart.Model.Dictionary>();
-
-            using (var dbContext = new ApplicationDbContext())
-            {
-                var dictionaries = dbContext.Dictionaries.ToArray();
-                var classes = dbContext.Classes.ToDictionary(x => x.Name, x => x);
-
-                foreach (var dict in dictionaries)
-                {
-                    if (quickDict.TryGetValue(dict.Securityid, out var lotInfo))
-                    {
-                        dict.Minstep = lotInfo.MinPriceStep;
-                        dict.ClassName = lotInfo.ClassCode;
-                        dict.Shortname = lotInfo.ShortName;
-                        dict.Fullname = lotInfo.Name;
-                        dict.Scale = lotInfo.Scale;
-                        dict.Currency = lotInfo.FaceUnit;
-                        dict.Isin = lotInfo.IsinCode;
-
-                        if (IsValidDate(lotInfo.MatDate))
-                            dict.ToDate = ConvertToDate(lotInfo.MatDate);
-
-                        dict.Lotsize = lotInfo.LotSize;
-
-                        if (classes.TryGetValue(dict.ClassName, out var classInfo))
-                            dict.ClassId = classInfo.Id;
-
-                        updatedList.Add(dict);
-                    }
-                }
-
-                dbContext.UpdateRange(updatedList);
-                dbContext.SaveChanges();
-            }
-        }
-
-        private Dictionary<string, QuickDictionary> LoadDictionary(string fileName)
-        {
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            var encoding = Encoding.GetEncoding(1251);
-
-            var lines = File.ReadAllLines(fileName, encoding)
-                .Skip(1)
-                .Where(line => !line.Contains("face_value"))
-                .ToArray();
-
-            var quickDictionaries = lines
-                .Select(line => new QuickDictionary(line.Split(';')))
-                .Where(IsValidQuickDictionary)
-                .ToDictionary(x => x.Code, x => x);
-
-            return quickDictionaries;
-        }
-
-        private bool IsValidQuickDictionary(QuickDictionary qd)
-        {
-            if (qd.Code.Contains(".US") || qd.Code.Contains(".SPB"))
-                return false;
-
-            var invalidClassCodes = new[] { "RTSIDX", "EQRP_INFO", "SMAL", "SBPND", "BEST" };
-            if (invalidClassCodes.Any(code => qd.ClassCode.Contains(code)))
-                return false;
-
-            if (qd.ClassName.Contains("SPB:") || qd.ClassName.Contains("Повышенный инвестиционный"))
-                return false;
-
-            if (qd.ClassCode.Length == 4 && "YED".Contains(qd.ClassCode.Last()))
-                return false;
-
-            return true;
         }
 
         public string[] TickersFromFormula(string formula)

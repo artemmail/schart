@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\StockChart.Data\StockChart.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Repository\Interfaces\IBillingRepository.cs" />
+    <Compile Include="..\Repository\Interfaces\IDividendsMoexService.cs" />
+    <Compile Include="..\Repository\Interfaces\IFinancialStatementsService.cs" />
+    <Compile Include="..\Repository\Interfaces\IMoexApiService.cs" />
+    <Compile Include="..\Repository\Interfaces\IMoexSyncService.cs" />
+    <Compile Include="..\Repository\Interfaces\IShareholdersRecommendationsService.cs" />
+    <Compile Include="..\Repository\Interfaces\IYooMoneyRepository.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Repository\Services\BatchImportOpenPositionsServiceNew.cs" />
+    <Compile Include="..\Repository\Services\BillingRepository.cs" />
+    <Compile Include="..\Repository\Services\DividendsMoexService.cs" />
+    <Compile Include="..\Repository\Services\FinancialStatementsService.cs" />
+    <Compile Include="..\Repository\Services\MoexApiService.cs" />
+    <Compile Include="..\Repository\Services\MoexSyncService.cs" />
+    <Compile Include="..\Repository\Services\ShareholdersRecommendationsService.cs" />
+    <Compile Include="..\Repository\Services\YooMoneyOptions.cs" />
+    <Compile Include="..\Repository\Services\YooMoneyRepository.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Repository\Moex\MoexOpenPositionsDeserializer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Model\DividendsDtos.cs" />
+    <Compile Include="..\Model\FinancialStatementsDtos.cs" />
+    <Compile Include="..\Model\MoexApiDtos.cs" />
+    <Compile Include="..\Model\MoexSyncDtos.cs" />
+    <Compile Include="..\Model\RecommendationDtos.cs" />
+    <Compile Include="..\Model\ShareholdersDtos.cs" />
+  </ItemGroup>
+</Project>
