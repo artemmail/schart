@@ -1,0 +1,348 @@
+:host {
+  display: block;
+  color: var(--portfolio-text, #1f2937);
+}
+
+.portfolio-page {
+  --portfolio-bg: var(--mat-sys-background, #e2e2e2);
+  --portfolio-surface: var(--mat-sys-surface, #ffffff);
+  --portfolio-panel: var(--sc-panel, #ffffff);
+  --portfolio-panel-alt: color-mix(in srgb, var(--portfolio-panel) 92%, #f8fafc);
+  --portfolio-border: var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+  --portfolio-grid: var(--sc-grid-faint, #e5e7eb);
+  --portfolio-axis: var(--sc-axis, #94a3b8);
+  --portfolio-text: var(--mat-sys-on-surface, #1f2937);
+  --portfolio-text-muted: var(--sc-text-muted, #64748b);
+  --portfolio-tooltip-bg: color-mix(in srgb, var(--portfolio-panel) 92%, #0b0f19);
+  --portfolio-tooltip-text: var(--sc-text, #f8fafc);
+  --portfolio-now: #1565c0;
+  --portfolio-expiration: #c62828;
+  --portfolio-whatif: #2e7d32;
+  --portfolio-crosshair: var(--sc-crosshair, rgba(15, 23, 42, 0.6));
+  --portfolio-plot: var(--mat-sys-surface, #ffffff);
+  padding: 16px 20px;
+}
+
+:host-context(.mat-dark-theme) .portfolio-page {
+  --portfolio-bg: var(--mat-sys-background, #0b0f19);
+  --portfolio-surface: var(--mat-sys-surface, #0f172a);
+  --portfolio-panel: var(--sc-panel, #121826);
+  --portfolio-panel-alt: color-mix(in srgb, var(--portfolio-panel) 92%, #0b0f19);
+  --portfolio-border: color-mix(in srgb, var(--portfolio-panel) 70%, #ffffff);
+  --portfolio-grid: var(--sc-grid-faint, rgba(255, 255, 255, 0.08));
+  --portfolio-axis: var(--sc-axis, rgba(255, 255, 255, 0.55));
+  --portfolio-text: var(--sc-text, rgba(255, 255, 255, 0.9));
+  --portfolio-text-muted: var(--sc-text-muted, rgba(255, 255, 255, 0.65));
+  --portfolio-tooltip-bg: color-mix(in srgb, var(--portfolio-panel) 84%, #000);
+  --portfolio-tooltip-text: var(--sc-text, #f8fafc);
+  --portfolio-crosshair: var(--sc-crosshair, rgba(255, 255, 255, 0.45));
+  --portfolio-plot: color-mix(in srgb, var(--portfolio-panel) 88%, #000);
+}
+
+.portfolio-card {
+  padding: 8px 8px 16px;
+  color: var(--portfolio-text);
+}
+
+.portfolio-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.portfolio-controls mat-form-field {
+  min-width: 180px;
+}
+
+.editor-panel,
+.chain-panel {
+  border: 1px solid var(--portfolio-border);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--portfolio-panel);
+  margin-bottom: 16px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--portfolio-text);
+}
+
+.panel-subtitle {
+  font-size: 12px;
+  color: var(--portfolio-text-muted);
+}
+
+.panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.positions-table-wrap,
+.chain-table-wrap {
+  overflow: auto;
+}
+
+.positions-table,
+.chain-table,
+.positions-result-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.positions-table th,
+.positions-table td,
+.chain-table th,
+.chain-table td,
+.positions-result-table th,
+.positions-result-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--portfolio-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table-input,
+.table-select {
+  width: 100%;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--portfolio-border);
+  background: var(--portfolio-plot);
+  color: var(--portfolio-text);
+}
+
+.portfolio-body {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.chart-panel {
+  position: relative;
+  min-height: 420px;
+  border: 1px solid var(--portfolio-border);
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--portfolio-panel-alt) 0%, var(--portfolio-panel) 100%);
+  padding: 12px;
+  color: var(--portfolio-text);
+}
+
+.portfolio-chart {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.plot-bg {
+  fill: var(--portfolio-plot);
+  stroke: var(--portfolio-border);
+  stroke-width: 1;
+}
+
+.grid line {
+  stroke: var(--portfolio-grid);
+  stroke-dasharray: 4 4;
+}
+
+.axis line {
+  stroke: var(--portfolio-axis);
+  stroke-width: 1;
+}
+
+.series path {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+.labels text {
+  font-size: 11px;
+  fill: var(--portfolio-text-muted);
+}
+
+.labels .label-x {
+  text-anchor: middle;
+}
+
+.labels .label-y {
+  text-anchor: end;
+}
+
+.status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  color: var(--portfolio-text-muted);
+}
+
+.status.error {
+  color: var(--mat-sys-error, #c62828);
+}
+
+.summary-panel {
+  border: 1px dashed var(--portfolio-border);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--portfolio-panel);
+  display: grid;
+  gap: 12px;
+  color: var(--portfolio-text);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-item .label {
+  font-size: 12px;
+  color: var(--portfolio-text-muted);
+}
+
+.summary-item .value {
+  font-weight: 600;
+  color: var(--portfolio-text);
+}
+
+.totals-panel {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.totals-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--portfolio-text);
+}
+
+.totals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.totals-item {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--portfolio-plot);
+  border: 1px solid var(--portfolio-border);
+}
+
+.totals-item .label {
+  display: block;
+  font-size: 11px;
+  color: var(--portfolio-text-muted);
+}
+
+.totals-item .value {
+  font-weight: 600;
+  color: var(--portfolio-text);
+}
+
+.positions-result-wrap {
+  border: 1px solid var(--portfolio-border);
+  border-radius: 10px;
+  overflow: auto;
+  max-height: 320px;
+  background: var(--portfolio-plot);
+}
+
+.chart-grid {
+  display: grid;
+  gap: 12px;
+  grid-auto-rows: minmax(190px, auto);
+}
+
+.chart-item {
+  position: relative;
+  border: 1px solid var(--portfolio-border);
+  border-radius: 12px;
+  background: var(--portfolio-plot);
+  padding: 8px 8px 12px;
+}
+
+.chart-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--portfolio-text);
+  margin: 4px 6px 0;
+}
+
+.chart-item .portfolio-chart {
+  width: 100%;
+  height: auto;
+}
+
+.crosshair {
+  stroke: var(--portfolio-crosshair);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.6;
+}
+
+.chart-item .status.small {
+  position: absolute;
+  inset: 36px 8px 8px;
+  font-size: 12px;
+  color: var(--portfolio-text-muted);
+}
+
+.portfolio-tooltip {
+  position: absolute;
+  z-index: 3;
+  min-width: 140px;
+  max-width: 220px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--portfolio-tooltip-bg);
+  color: var(--portfolio-tooltip-text);
+  font-size: 12px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+  pointer-events: none;
+}
+
+.portfolio-tooltip .tooltip-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.portfolio-tooltip .tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  line-height: 1.3;
+}
+
+.portfolio-tooltip .tooltip-row .label {
+  color: color-mix(in srgb, var(--portfolio-tooltip-text) 70%, transparent);
+}
+
+@media (max-width: 960px) {
+  .portfolio-body {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-panel {
+    min-height: 360px;
+  }
+}

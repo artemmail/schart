@@ -277,6 +277,10 @@
         <mat-icon>calculate</mat-icon>
         Дериативы
       </button>
+      <button mat-menu-item [matMenuTriggerFor]="submenuOptions">
+        <mat-icon>stacked_line_chart</mat-icon>
+        Опционы
+      </button>
       <button mat-menu-item [matMenuTriggerFor]="addMenu">
         <mat-icon>menu</mat-icon> Служебное
       </button>
@@ -382,9 +386,55 @@
         <mat-icon>show_chart</mat-icon>
         Список фьючерсов
       </button>   
+      <button mat-menu-item [matMenuTriggerFor]="moexOptionsMenu">
+        <mat-icon>stacked_line_chart</mat-icon>
+        MOEX Options API
+      </button>
+    </mat-menu>
+
+    <mat-menu #submenuOptions="matMenu">
       <button mat-menu-item routerLink="/VolatilitySmile">
         <mat-icon>stacked_line_chart</mat-icon>
         Улыбка волатильности
+      </button>
+      <button mat-menu-item routerLink="/OptionBoard">
+        <mat-icon>table_view</mat-icon>
+        Доска опционов
+      </button>
+      <button mat-menu-item routerLink="/VolatilityGraph">
+        <mat-icon>show_chart</mat-icon>
+        Кривая волатильности
+      </button>
+      <button mat-menu-item routerLink="/OptionCalcPortfolio">
+        <mat-icon>show_chart</mat-icon>
+        Опционный портфель (конструктор)
+      </button>
+      <button mat-menu-item routerLink="/OptionCalcUserPortfolio">
+        <mat-icon>stacked_line_chart</mat-icon>
+        Опционный портфель (из базы)
+      </button>
+    </mat-menu>
+
+    <mat-menu #moexOptionsMenu="matMenu">
+      <button mat-menu-item routerLink="/VolatilitySmile">
+        <mat-icon>stacked_line_chart</mat-icon>
+        Улыбка волатильности
+      </button>
+      <button mat-menu-item routerLink="/OptionBoard">
+        <mat-icon>table_view</mat-icon>
+        Доска опционов
+      </button>
+      <button mat-menu-item routerLink="/VolatilityGraph">
+        <mat-icon>show_chart</mat-icon>
+        Кривая волатильности
+      </button>
+      <button mat-menu-item routerLink="/OptionCalcPortfolio">
+        <mat-icon>show_chart</mat-icon>
+        Опционный портфель (конструктор)
+      </button>
+      <button mat-menu-item routerLink="/OptionCalcUserPortfolio">
+        <mat-icon>stacked_line_chart</mat-icon>
+        Опционный портфель (из базы)
       </button>
     </mat-menu>
   
@@ -429,3 +479,5 @@
     <router-outlet></router-outlet>
   </div>
 </div>
+
+

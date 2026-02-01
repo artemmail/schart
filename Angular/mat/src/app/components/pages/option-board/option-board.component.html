@@ -1,0 +1,216 @@
+<div class="board-page">
+  <mat-card class="board-card">
+    <mat-card-header>
+      <mat-card-title>Доска опционов</mat-card-title>
+      <mat-card-subtitle>
+        Таблицы CALL/PUT вокруг центрального страйка.
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="board-controls">
+        <mat-form-field appearance="outline">
+          <mat-label>Базовый актив</mat-label>
+          <mat-select [(ngModel)]="selectedAsset" (selectionChange)="onAssetChange()">
+            <mat-option *ngFor="let asset of assets" [value]="asset.code">
+              {{ asset.code }} — {{ asset.title || 'MOEX asset' }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Тип актива</mat-label>
+          <mat-select [(ngModel)]="selectedAssetType" (selectionChange)="onAssetTypeChange()">
+            <mat-option *ngFor="let type of assetTypes" [value]="type">
+              {{ type }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Серия</mat-label>
+          <mat-select [(ngModel)]="selectedSeries" (selectionChange)="onSeriesChange()">
+            <mat-option *ngFor="let s of series" [value]="s.code">
+              {{ s.code }} <span *ngIf="s.expirationDate">({{ s.expirationDate }})</span>
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Rows</mat-label>
+          <input matInput type="number" min="2" max="40" [(ngModel)]="rows" (ngModelChange)="onRowsChange()">
+        </mat-form-field>
+
+        <mat-slide-toggle [(ngModel)]="autoRefresh" (change)="toggleAutoRefresh()">
+          Auto-refresh
+        </mat-slide-toggle>
+
+        <button mat-stroked-button (click)="refresh()">Refresh</button>
+      </div>
+
+      <div class="board-meta">
+        <div class="meta-item">
+          <span class="label">Central strike</span>
+          <span class="value">{{ centralStrike == null ? '—' : (centralStrike | number : '1.2-2') }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="label">Expiration</span>
+          <span class="value">{{ expirationDate || '—' }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="label">Last updated</span>
+          <span class="value">{{ lastUpdated ? (lastUpdated | date : 'HH:mm:ss') : '—' }}</span>
+        </div>
+      </div>
+
+      <div class="board-filters">
+        <mat-slide-toggle [(ngModel)]="onlyTradable">Only tradable</mat-slide-toggle>
+        <mat-slide-toggle [(ngModel)]="onlyWithTrades">Only with trades</mat-slide-toggle>
+        <mat-slide-toggle [(ngModel)]="onlyNearAtm">Only near ATM</mat-slide-toggle>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Sort</mat-label>
+          <mat-select [(ngModel)]="sortKey">
+            <mat-option value="strike">Strike</mat-option>
+            <mat-option value="volatility">IV</mat-option>
+            <mat-option value="numtrades">Trades</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Direction</mat-label>
+          <mat-select [(ngModel)]="sortDir">
+            <mat-option value="asc">Asc</mat-option>
+            <mat-option value="desc">Desc</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div class="status error" *ngIf="error">
+        {{ error }} <button mat-button color="primary" (click)="refresh()">Retry</button>
+      </div>
+
+      <div class="board-content">
+        <div class="table-panel">
+          <div class="panel-title">CALL</div>
+          <div class="table-wrap" *ngIf="callRows.length; else noCall">
+            <table>
+              <thead>
+                <tr>
+                  <th>SECID</th>
+                  <th>Strike</th>
+                  <th>Bid</th>
+                  <th>Ask</th>
+                  <th>Last</th>
+                  <th>IV</th>
+                  <th>Δ</th>
+                  <th>Γ</th>
+                  <th>Vega</th>
+                  <th>Theta</th>
+                  <th>Rho</th>
+                  <th>Theor</th>
+                  <th>Intrinsic</th>
+                  <th>Time</th>
+                  <th>Trades</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  *ngFor="let row of callRows"
+                  (click)="openOption(row)"
+                  [class.central]="isCentral(row)"
+                >
+                  <td>
+                    <div class="secid-cell">
+                      <span>{{ row.secid }}</span>
+                      <button mat-icon-button (click)="copySecid(row, $event)">
+                        <mat-icon>content_copy</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                  <td>{{ row.strike == null ? '—' : (row.strike | number : '1.2-2') }}</td>
+                  <td [class.active]="(row.bid ?? 0) > 0">{{ row.bid == null ? '—' : (row.bid | number : '1.2-4') }}</td>
+                  <td [class.active]="(row.offer ?? 0) > 0">{{ row.offer == null ? '—' : (row.offer | number : '1.2-4') }}</td>
+                  <td>{{ row.last == null ? '—' : (row.last | number : '1.2-4') }}</td>
+                  <td>{{ row.volatility == null ? '—' : (row.volatility | number : '1.2-2') + '%' }}</td>
+                  <td>{{ row.delta == null ? '—' : (row.delta | number : '1.4-6') }}</td>
+                  <td>{{ row.gamma == null ? '—' : (row.gamma | number : '1.4-6') }}</td>
+                  <td>{{ row.vega == null ? '—' : (row.vega | number : '1.4-6') }}</td>
+                  <td>{{ row.theta == null ? '—' : (row.theta | number : '1.4-6') }}</td>
+                  <td>{{ row.rho == null ? '—' : (row.rho | number : '1.4-6') }}</td>
+                  <td>{{ row.theorprice == null ? '—' : (row.theorprice | number : '1.2-4') }}</td>
+                  <td>{{ row.intrinsic_value == null ? '—' : (row.intrinsic_value | number : '1.2-4') }}</td>
+                  <td>{{ row.timed_value == null ? '—' : (row.timed_value | number : '1.2-4') }}</td>
+                  <td>{{ row.numtrades == null ? '—' : row.numtrades }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #noCall>
+            <div class="empty-state">No CALL data for selected series.</div>
+          </ng-template>
+        </div>
+
+        <div class="table-panel">
+          <div class="panel-title">PUT</div>
+          <div class="table-wrap" *ngIf="putRows.length; else noPut">
+            <table>
+              <thead>
+                <tr>
+                  <th>SECID</th>
+                  <th>Strike</th>
+                  <th>Bid</th>
+                  <th>Ask</th>
+                  <th>Last</th>
+                  <th>IV</th>
+                  <th>Δ</th>
+                  <th>Γ</th>
+                  <th>Vega</th>
+                  <th>Theta</th>
+                  <th>Rho</th>
+                  <th>Theor</th>
+                  <th>Intrinsic</th>
+                  <th>Time</th>
+                  <th>Trades</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  *ngFor="let row of putRows"
+                  (click)="openOption(row)"
+                  [class.central]="isCentral(row)"
+                >
+                  <td>
+                    <div class="secid-cell">
+                      <span>{{ row.secid }}</span>
+                      <button mat-icon-button (click)="copySecid(row, $event)">
+                        <mat-icon>content_copy</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                  <td>{{ row.strike == null ? '—' : (row.strike | number : '1.2-2') }}</td>
+                  <td [class.active]="(row.bid ?? 0) > 0">{{ row.bid == null ? '—' : (row.bid | number : '1.2-4') }}</td>
+                  <td [class.active]="(row.offer ?? 0) > 0">{{ row.offer == null ? '—' : (row.offer | number : '1.2-4') }}</td>
+                  <td>{{ row.last == null ? '—' : (row.last | number : '1.2-4') }}</td>
+                  <td>{{ row.volatility == null ? '—' : (row.volatility | number : '1.2-2') + '%' }}</td>
+                  <td>{{ row.delta == null ? '—' : (row.delta | number : '1.4-6') }}</td>
+                  <td>{{ row.gamma == null ? '—' : (row.gamma | number : '1.4-6') }}</td>
+                  <td>{{ row.vega == null ? '—' : (row.vega | number : '1.4-6') }}</td>
+                  <td>{{ row.theta == null ? '—' : (row.theta | number : '1.4-6') }}</td>
+                  <td>{{ row.rho == null ? '—' : (row.rho | number : '1.4-6') }}</td>
+                  <td>{{ row.theorprice == null ? '—' : (row.theorprice | number : '1.2-4') }}</td>
+                  <td>{{ row.intrinsic_value == null ? '—' : (row.intrinsic_value | number : '1.2-4') }}</td>
+                  <td>{{ row.timed_value == null ? '—' : (row.timed_value | number : '1.2-4') }}</td>
+                  <td>{{ row.numtrades == null ? '—' : row.numtrades }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #noPut>
+            <div class="empty-state">No PUT data for selected series.</div>
+          </ng-template>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

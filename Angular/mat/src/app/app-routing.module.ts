@@ -55,6 +55,10 @@ import { PaymentsTableComponent } from './components/tables/payments-table/payme
 import { ProfitChartsComponent } from './components/pages/profit-charts/profit-charts.component';
 import { VolumeDashboardComponent } from './components/Reports/volume-dashboard/volume-dashboard.component';
 import { VolatilitySmileComponent } from './components/pages/volatility-smile/volatility-smile.component';
+import { OptionCalcPortfolioComponent } from './components/pages/option-calc-portfolio/option-calc-portfolio.component';
+import { OptionCalcUserPortfolioComponent } from './components/pages/option-calc-user-portfolio/option-calc-user-portfolio.component';
+import { OptionBoardComponent } from './components/pages/option-board/option-board.component';
+import { VolatilityGraphComponent } from './components/pages/volatility-graph/volatility-graph.component';
 
 
 const routes: Routes = [
@@ -104,6 +108,14 @@ const routes: Routes = [
 
   { path: 'VolatilitySmile', component: VolatilitySmileComponent },
   { path: 'volatility-smile', redirectTo: 'VolatilitySmile', pathMatch: 'full' },
+  { path: 'OptionBoard', component: OptionBoardComponent },
+  { path: 'option-board', redirectTo: 'OptionBoard', pathMatch: 'full' },
+  { path: 'VolatilityGraph', component: VolatilityGraphComponent },
+  { path: 'volatility-graph', redirectTo: 'VolatilityGraph', pathMatch: 'full' },
+  { path: 'OptionCalcPortfolio', component: OptionCalcPortfolioComponent },
+  { path: 'option-calc-portfolio', redirectTo: 'OptionCalcPortfolio', pathMatch: 'full' },
+  { path: 'OptionCalcUserPortfolio', component: OptionCalcUserPortfolioComponent },
+  { path: 'option-calc-user-portfolio', redirectTo: 'OptionCalcUserPortfolio', pathMatch: 'full' },
 
   
 
@@ -227,3 +239,6 @@ const routes: Routes = [
   providers: [],
 })
 export class AppRoutingModule {}
+
+
+

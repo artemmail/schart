@@ -1,0 +1,408 @@
+<div class="portfolio-page">
+  <mat-card class="portfolio-card">
+    <mat-card-header>
+      <mat-card-title>Опционный портфель (конструктор)</mat-card-title>
+      <mat-card-subtitle>
+        Ручная сборка портфеля и графики PnL/греков через Options Calculator API.
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="portfolio-controls">
+        <mat-form-field appearance="outline">
+          <mat-label>Базовый актив</mat-label>
+          <mat-select [(ngModel)]="selectedAsset" (selectionChange)="onAssetChange()">
+            <mat-option *ngFor="let asset of assets" [value]="asset.code">
+              {{ asset.code }} — {{ asset.title || 'MOEX asset' }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Тип актива</mat-label>
+          <mat-select [(ngModel)]="selectedAssetType" (selectionChange)="onAssetTypeChange()">
+            <mat-option *ngFor="let type of assetTypes" [value]="type">
+              {{ type }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Экспирация</mat-label>
+          <mat-select [(ngModel)]="selectedExpiration" (selectionChange)="onExpirationChange()">
+            <mat-option *ngFor="let exp of expirations" [value]="exp">
+              {{ exp }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Фильтр цепочки</mat-label>
+          <mat-select [(ngModel)]="optionFilter" (selectionChange)="onOptionFilterChange()">
+            <mat-option value="ALL">Calls + Puts</mat-option>
+            <mat-option value="C">Calls</mat-option>
+            <mat-option value="P">Puts</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>View preset</mat-label>
+          <mat-select [(ngModel)]="viewPresetId" (selectionChange)="onPresetChange()">
+            <mat-option *ngFor="let preset of viewPresets" [value]="preset.id">
+              {{ preset.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>What-if Δσ</mat-label>
+          <input matInput type="number" [(ngModel)]="whatIfDeltaSigma" placeholder="Напр. -10">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>What-if дата</mat-label>
+          <input matInput type="date" [(ngModel)]="whatIfDate">
+        </mat-form-field>
+
+        <mat-slide-toggle [(ngModel)]="crosshairEnabled" (change)="onCrosshairToggle()">
+          Crosshair sync
+        </mat-slide-toggle>
+
+        <button mat-raised-button color="primary" (click)="calculate()" [disabled]="loading">
+          Рассчитать
+        </button>
+      </div>
+
+      <div class="editor-panel">
+        <div class="panel-header">
+          <span class="panel-title">Позиции портфеля</span>
+          <div class="panel-actions">
+            <button mat-stroked-button (click)="addPositionRow()">Добавить</button>
+            <button mat-button (click)="clearPositions()">Очистить</button>
+          </div>
+        </div>
+
+        <div class="positions-table-wrap">
+          <table class="positions-table">
+            <thead>
+              <tr>
+                <th>SECID</th>
+                <th>Type</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>IV</th>
+                <th>Netting</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of positions; let i = index">
+                <td>
+                  <input
+                    class="table-input"
+                    [name]="'secid_' + i"
+                    [(ngModel)]="row.secid"
+                    placeholder="SECID"
+                  />
+                </td>
+                <td>
+                  <select class="table-select" [name]="'type_' + i" [(ngModel)]="row.type">
+                    <option value="option">option</option>
+                    <option value="futures">futures</option>
+                    <option value="share">share</option>
+                    <option value="currency">currency</option>
+                    <option value="commodity">commodity</option>
+                  </select>
+                </td>
+                <td>
+                  <input
+                    class="table-input"
+                    type="number"
+                    [name]="'qty_' + i"
+                    [(ngModel)]="row.quantity"
+                  />
+                </td>
+                <td>
+                  <input
+                    class="table-input"
+                    type="number"
+                    [name]="'price_' + i"
+                    [(ngModel)]="row.price"
+                  />
+                </td>
+                <td>
+                  <input
+                    class="table-input"
+                    type="number"
+                    [name]="'vol_' + i"
+                    [(ngModel)]="row.volatility"
+                  />
+                </td>
+                <td>
+                  <mat-checkbox [name]="'net_' + i" [(ngModel)]="row.nettedIm"></mat-checkbox>
+                </td>
+                <td>
+                  <button mat-icon-button color="warn" (click)="removePosition(i)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="chain-panel">
+        <div class="panel-header">
+          <span class="panel-title">Цепочка опционов</span>
+          <span class="panel-subtitle">Добавляй позиции кликом по строке.</span>
+        </div>
+
+        <div class="chain-table-wrap">
+          <table class="chain-table">
+            <thead>
+              <tr>
+                <th>SECID</th>
+                <th>Type</th>
+                <th>Strike</th>
+                <th>Expiration</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let opt of optionChain">
+                <td>{{ opt.secid }}</td>
+                <td>{{ opt.optionType || '—' }}</td>
+                <td>{{ opt.strike == null ? '—' : (opt.strike | number : '1.0-2') }}</td>
+                <td>{{ opt.expirationDate || '—' }}</td>
+                <td>
+                  <button mat-button color="primary" (click)="addOptionToPortfolio(opt)">
+                    Добавить
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="status" *ngIf="!loadingChain && optionChain.length === 0">
+            Нет данных по выбранным фильтрам.
+          </div>
+        </div>
+      </div>
+
+      <div class="portfolio-body">
+        <div class="chart-panel">
+          <div class="status" *ngIf="loading">
+            <mat-spinner diameter="36"></mat-spinner>
+            <span>Считаем портфель...</span>
+          </div>
+          <div class="status error" *ngIf="!loading && error">{{ error }}</div>
+
+          <div class="chart-grid" *ngIf="!loading && charts.length">
+            <div class="chart-item" *ngFor="let chart of charts">
+              <div class="chart-title">{{ chart.title }}</div>
+              <svg
+                class="portfolio-chart"
+                [attr.viewBox]="'0 0 ' + chart.width + ' ' + chart.height"
+                [style.height.px]="chart.height"
+                role="img"
+                [attr.aria-label]="chart.title"
+              >
+                <rect
+                  class="plot-bg"
+                  [attr.x]="chart.plotLeft"
+                  [attr.y]="chart.plotTop"
+                  [attr.width]="chart.plotWidth"
+                  [attr.height]="chart.plotHeight"
+                ></rect>
+
+                <g class="grid">
+                  <line
+                    *ngFor="let tick of chart.yTicks"
+                    [attr.x1]="chart.plotLeft"
+                    [attr.x2]="chart.plotLeft + chart.plotWidth"
+                    [attr.y1]="tick.position"
+                    [attr.y2]="tick.position"
+                  ></line>
+                  <line
+                    *ngFor="let tick of chart.xTicks"
+                    [attr.y1]="chart.plotTop"
+                    [attr.y2]="chart.plotTop + chart.plotHeight"
+                    [attr.x1]="tick.position"
+                    [attr.x2]="tick.position"
+                  ></line>
+                </g>
+
+                <g class="axis">
+                  <line
+                    [attr.x1]="chart.plotLeft"
+                    [attr.x2]="chart.plotLeft + chart.plotWidth"
+                    [attr.y1]="chart.plotTop + chart.plotHeight"
+                    [attr.y2]="chart.plotTop + chart.plotHeight"
+                  ></line>
+                  <line
+                    [attr.x1]="chart.plotLeft"
+                    [attr.x2]="chart.plotLeft"
+                    [attr.y1]="chart.plotTop"
+                    [attr.y2]="chart.plotTop + chart.plotHeight"
+                  ></line>
+                </g>
+
+                <line
+                  *ngIf="getCrosshairX(chart) as crossX"
+                  class="crosshair"
+                  [attr.x1]="crossX"
+                  [attr.x2]="crossX"
+                  [attr.y1]="chart.plotTop"
+                  [attr.y2]="chart.plotTop + chart.plotHeight"
+                ></line>
+
+                <g class="series" *ngFor="let serie of chart.series">
+                  <path [attr.d]="serie.path" [attr.stroke]="serie.color" [attr.stroke-dasharray]="serie.dasharray"></path>
+                  <circle
+                    *ngFor="let point of serie.points"
+                    [attr.cx]="point.x"
+                    [attr.cy]="point.y"
+                    [attr.r]="3.5"
+                    [attr.fill]="serie.color"
+                    (mouseenter)="onPointHover($event, point, serie, chart)"
+                    (mousemove)="onPointHover($event, point, serie, chart)"
+                    (mouseleave)="onPointLeave()"
+                  ></circle>
+                </g>
+
+                <g class="labels">
+                  <text
+                    *ngFor="let tick of chart.yTicks"
+                    class="label-y"
+                    [attr.x]="chart.plotLeft - 12"
+                    [attr.y]="tick.position + 4"
+                  >
+                    {{ tick.value | number : '1.0-2' }}
+                  </text>
+                  <text
+                    *ngFor="let tick of chart.xTicks"
+                    class="label-x"
+                    [attr.x]="tick.position"
+                    [attr.y]="chart.plotTop + chart.plotHeight + 24"
+                  >
+                    {{ tick.value | number : '1.0-2' }}
+                  </text>
+                </g>
+              </svg>
+
+              <div class="status small" *ngIf="!chart.hasData">
+                Нет данных для выбранного пресета.
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="portfolio-tooltip"
+            *ngIf="tooltip"
+            [style.left.px]="tooltip.left"
+            [style.top.px]="tooltip.top"
+          >
+            <div class="tooltip-title">{{ tooltip.title }}</div>
+            <div class="tooltip-row" *ngFor="let row of tooltip.rows">
+              <span class="label">{{ row.label }}</span>
+              <span class="value">{{ row.value }}</span>
+            </div>
+          </div>
+
+          <div class="status" *ngIf="!loading && !charts.length && !error">
+            Нет данных для выбранных параметров.
+          </div>
+        </div>
+
+        <div class="summary-panel">
+          <div class="summary-item">
+            <span class="label">Asset</span>
+            <span class="value">{{ selectedAsset || '—' }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Expiration</span>
+            <span class="value">{{ selectedExpiration || '—' }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Positions</span>
+            <span class="value">{{ positionCount }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Series</span>
+            <span class="value">{{ seriesCount }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Initial margin</span>
+            <span class="value">
+              {{ calcResult?.initialMargin == null ? '—' : (calcResult?.initialMargin | number : '1.0-2') }}
+            </span>
+          </div>
+
+          <div class="totals-panel" *ngIf="calcResult?.total">
+            <div class="totals-title">Total greeks</div>
+            <div class="totals-grid">
+              <div class="totals-item">
+                <span class="label">Δ</span>
+                <span class="value">{{ calcResult?.total?.delta | number : '1.3-4' }}</span>
+              </div>
+              <div class="totals-item">
+                <span class="label">Γ</span>
+                <span class="value">{{ calcResult?.total?.gamma | number : '1.3-4' }}</span>
+              </div>
+              <div class="totals-item">
+                <span class="label">Vega</span>
+                <span class="value">{{ calcResult?.total?.vega | number : '1.2-2' }}</span>
+              </div>
+              <div class="totals-item">
+                <span class="label">Theta</span>
+                <span class="value">{{ calcResult?.total?.theta | number : '1.2-2' }}</span>
+              </div>
+              <div class="totals-item">
+                <span class="label">Rho</span>
+                <span class="value">{{ calcResult?.total?.rho | number : '1.2-2' }}</span>
+              </div>
+              <div class="totals-item">
+                <span class="label">PnL</span>
+                <span class="value">{{ calcResult?.total?.profitAndLoss | number : '1.0-2' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="positions-result" *ngIf="calcResult?.positions?.length">
+            <div class="totals-title">Positions (calc)</div>
+            <div class="positions-result-wrap">
+              <table class="positions-result-table">
+                <thead>
+                  <tr>
+                    <th>SECID</th>
+                    <th>Type</th>
+                    <th>Qty</th>
+                    <th>Δ</th>
+                    <th>Γ</th>
+                    <th>Vega</th>
+                    <th>Theta</th>
+                    <th>PnL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let pos of calcResult?.positions">
+                    <td>{{ pos.secid }}</td>
+                    <td>{{ pos.type }}</td>
+                    <td>{{ pos.quantity }}</td>
+                    <td>{{ pos.delta == null ? '—' : (pos.delta | number : '1.3-4') }}</td>
+                    <td>{{ pos.gamma == null ? '—' : (pos.gamma | number : '1.3-4') }}</td>
+                    <td>{{ pos.vega == null ? '—' : (pos.vega | number : '1.2-2') }}</td>
+                    <td>{{ pos.theta == null ? '—' : (pos.theta | number : '1.2-2') }}</td>
+                    <td>{{ pos.profitAndLoss == null ? '—' : (pos.profitAndLoss | number : '1.0-2') }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
+
