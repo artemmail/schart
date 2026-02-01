@@ -66,42 +66,42 @@ static async Task ConfigureQuartzSchedulesAsync(IServiceProvider services)
     var schedulerFactory = scope.ServiceProvider.GetRequiredService<ISchedulerFactory>();
     var scheduler = await schedulerFactory.GetScheduler();
 
-    await ScheduleSimpleJob<DividendsMoexJob>(
+    await ScheduleJobAsync<DividendsMoexJob>(
         scheduler,
         new JobKey("DividendsMoexJob"),
         "DividendsMoexJob.Trigger",
         options.DividendsMoexInterval);
 
-    await ScheduleSimpleJob<MoexSyncJob>(
+    await ScheduleJobAsync<MoexSyncJob>(
         scheduler,
         new JobKey("MoexSyncJob"),
         "MoexSyncJob.Trigger",
         options.MoexSyncInterval);
 
-    await ScheduleSimpleJob<YooMoneyJob>(
+    await ScheduleJobAsync<YooMoneyJob>(
         scheduler,
         new JobKey("YooMoneyJob"),
         "YooMoneyJob.Trigger",
         options.YooMoneyInterval);
 
-    await ScheduleSimpleJob<LotSizeFileUpdateJob>(
+    await ScheduleJobAsync<LotSizeFileUpdateJob>(
         scheduler,
         new JobKey("LotSizeFileUpdateJob"),
         "LotSizeFileUpdateJob.Trigger",
         options.LotSizeFileInterval);
 
-    await ScheduleCronJob<NightlyBatchImportJob>(
+    await ScheduleJobAsync<NightlyBatchImportJob>(
         scheduler,
         new JobKey("NightlyBatchImportJob"),
         "NightlyBatchImportJob.Trigger",
         options.NightlyBatchImportCron);
 }
 
-static async Task ScheduleSimpleJob<TJob>(
+static async Task ScheduleJobAsync<TJob>(
     IScheduler scheduler,
     JobKey jobKey,
     string triggerKeyName,
-    TimeSpan interval)
+    string scheduleExpression)
     where TJob : IJob
 {
     if (await scheduler.CheckExists(jobKey))
@@ -109,41 +109,33 @@ static async Task ScheduleSimpleJob<TJob>(
         await scheduler.DeleteJob(jobKey);
     }
 
-    var job = JobBuilder.Create<TJob>()
-        .WithIdentity(jobKey)
-        .Build();
-
-    var trigger = TriggerBuilder.Create()
-        .WithIdentity(triggerKeyName)
-        .ForJob(jobKey)
-        .StartNow()
-        .WithSimpleSchedule(x => x.WithInterval(interval).RepeatForever())
-        .Build();
-
-    await scheduler.ScheduleJob(job, trigger);
-}
-
-static async Task ScheduleCronJob<TJob>(
-    IScheduler scheduler,
-    JobKey jobKey,
-    string triggerKeyName,
-    string cronExpression)
-    where TJob : IJob
-{
-    if (await scheduler.CheckExists(jobKey))
+    if (!ScheduleParsing.TryParseSchedule(scheduleExpression, out var schedule))
     {
-        await scheduler.DeleteJob(jobKey);
+        throw new FormatException($"Schedule '{scheduleExpression}' is not a valid TimeSpan or Quartz cron expression.");
     }
 
     var job = JobBuilder.Create<TJob>()
         .WithIdentity(jobKey)
         .Build();
 
-    var trigger = TriggerBuilder.Create()
+    var triggerBuilder = TriggerBuilder.Create()
         .WithIdentity(triggerKeyName)
-        .ForJob(jobKey)
-        .WithCronSchedule(cronExpression, x => x.WithMisfireHandlingInstructionDoNothing())
-        .Build();
+        .ForJob(jobKey);
+
+    if (schedule.IsCron)
+    {
+        triggerBuilder = triggerBuilder.WithCronSchedule(
+            schedule.Cron,
+            x => x.WithMisfireHandlingInstructionDoNothing());
+    }
+    else
+    {
+        triggerBuilder = triggerBuilder
+            .StartNow()
+            .WithSimpleSchedule(x => x.WithInterval(schedule.Interval).RepeatForever());
+    }
+
+    var trigger = triggerBuilder.Build();
 
     await scheduler.ScheduleJob(job, trigger);
 }

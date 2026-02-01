@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using StockChart.Model;
 using System.Collections.Concurrent;
 using System.Text;
@@ -303,7 +303,7 @@ namespace StockChart.Repository
             {
                 var matchingTicker = tickers.Keys
                     .FirstOrDefault(t => t.StartsWith(upperTicker)
-                                         && t.Length == 4 &&  tickers[t].Market == 1);
+                                         && t.Length == 4 && tickers[t].Market == 1);
 
                 if (matchingTicker != null)
                 {
