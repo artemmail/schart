@@ -142,18 +142,18 @@ export class DateRangePickerComponent implements AfterViewInit {
     if (!date) return null;
 
     const dateCopy = new Date(date);
+    const hasExplicitTime =
+      this.timeRange.controls['startTime'].value !== '00:00' ||
+      this.timeRange.controls['endTime'].value !== '23:59';
 
-    if (
-      this.setTime &&
-      this.isSameDay() &&
-      (this.timeRange.controls['startTime'].value !== '00:00' ||
-        this.timeRange.controls['endTime'].value !== '23:59')
-    ) {
+    if (this.setTime && this.isSameDay() && hasExplicitTime) {
       const startTime = this.timeRange.controls['startTime'].value || '00:00';
       const [hours, minutes] = startTime.split(':').map(Number);
       dateCopy.setHours(hours, minutes, 0, 0);
+      return dateCopy;
     }
 
+    dateCopy.setHours(0, 0, 0, 0);
     return dateCopy;
   }
 
@@ -162,18 +162,18 @@ export class DateRangePickerComponent implements AfterViewInit {
     if (!date) return null;
 
     const dateCopy = new Date(date);
+    const hasExplicitTime =
+      this.timeRange.controls['startTime'].value !== '00:00' ||
+      this.timeRange.controls['endTime'].value !== '23:59';
 
-    if (
-      this.setTime &&
-      this.isSameDay() &&
-      (this.timeRange.controls['startTime'].value !== '00:00' ||
-        this.timeRange.controls['endTime'].value !== '23:59')
-    ) {
+    if (this.setTime && this.isSameDay() && hasExplicitTime) {
       const endTime = this.timeRange.controls['endTime'].value || '23:59';
       const [hours, minutes] = endTime.split(':').map(Number);
       dateCopy.setHours(hours, minutes, 0, 0);
+      return dateCopy;
     }
 
+    dateCopy.setHours(0, 0, 0, 0);
     return dateCopy;
   }
 
