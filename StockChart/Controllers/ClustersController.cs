@@ -587,9 +587,13 @@ namespace StockChart.Controllers
             var end = endDate ?? DateTime.Now.AddDays(2);
 
             if (start.Date == start || end.Date == end)
+            {
                 end = end.AddDays(1);
-            else
+            }
+            else if (end.Second == 0 && end.Millisecond == 0)
+            {
                 end = end.AddMinutes(1);
+            }
 
             return new DateTimePair(start, end);
         }

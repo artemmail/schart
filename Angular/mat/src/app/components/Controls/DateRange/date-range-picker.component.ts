@@ -169,7 +169,8 @@ export class DateRangePickerComponent implements AfterViewInit {
     if (this.setTime && this.isSameDay() && hasExplicitTime) {
       const endTime = this.timeRange.controls['endTime'].value || '23:59';
       const [hours, minutes] = endTime.split(':').map(Number);
-      dateCopy.setHours(hours, minutes, 0, 0);
+      // Mark explicit time ranges as inclusive to the minute.
+      dateCopy.setHours(hours, minutes, 59, 999);
       return dateCopy;
     }
 
