@@ -2,6 +2,7 @@ import { ElementRef, Injectable, OnDestroy } from '@angular/core';
 import { Subject, Subscription } from 'rxjs';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { SignalRService } from 'src/app/service/FootPrint/signalr.service';
+import { addUTC } from 'src/app/service/FootPrint/Formating/formatting.service';
 import { FootprintDataLoaderService } from './footprint-data-loader.service';
 import {
   FootprintInitOptions,
@@ -99,16 +100,60 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
       return false;
     }
 
-    const normalize = (date: Date) => {
-      const copy = new Date(date);
-      copy.setHours(0, 0, 0, 0);
-      return copy.getTime();
-    };
-
     const now = new Date();
-    const endDate = params.endDate ? new Date(params.endDate) : null;
-    const isEndDateInPast = !!endDate && normalize(endDate) < normalize(now);
-    return !isEndDateInPast;
+    const startDate = this.parseLocalDate(params.startDate);
+    const endDate = this.parseLocalDate(params.endDate);
+    if (!endDate) {
+      return true;
+    }
+
+    const hasExplicitTime = this.hasExplicitTime(startDate, endDate);
+    if (hasExplicitTime) {
+      return endDate.getTime() >= now.getTime();
+    }
+
+    return this.normalizeDay(endDate) >= this.normalizeDay(now);
+  }
+
+  private parseLocalDate(value: unknown): Date | null {
+    if (!value) {
+      return null;
+    }
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : value;
+    }
+    if (typeof value === 'string') {
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) {
+        return null;
+      }
+      return value.endsWith('Z') ? addUTC(parsed) : parsed;
+    }
+    if (typeof value === 'number') {
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+    return null;
+  }
+
+  private hasExplicitTime(...dates: Array<Date | null>): boolean {
+    return dates.some((date) => {
+      if (!date) {
+        return false;
+      }
+      return (
+        date.getHours() !== 0 ||
+        date.getMinutes() !== 0 ||
+        date.getSeconds() !== 0 ||
+        date.getMilliseconds() !== 0
+      );
+    });
+  }
+
+  private normalizeDay(date: Date): number {
+    const copy = new Date(date);
+    copy.setHours(0, 0, 0, 0);
+    return copy.getTime();
   }
 
   private async subscribeToRealtime(params: FootPrintParameters) {
