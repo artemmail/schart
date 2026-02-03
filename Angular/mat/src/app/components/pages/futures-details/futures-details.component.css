@@ -1,21 +1,100 @@
 .card-row-container {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between; /* Распределяет карточки по горизонтали */
-    gap: 12px; /* Отступ между карточками */
-    flex-wrap: nowrap; /* Не переносить карточки на следующий ряд */
-    margin-left: 12px;
-    margin-right: 12px;
-    margin-bottom: 12px;
-  }
-  
-  mat-card {
-    width: 300px; /* Устанавливаем фиксированную ширину для карточек */
-    flex-grow: 1; /* Позволяет карточкам занимать одинаковое пространство */   
-    margin-top: 12px;
-  }
-  
-  .container {
-    margin: 12px;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12px;
+}
+
+mat-card {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e0e0e0;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.data-table th:first-child,
+.data-table td:first-child {
+  text-align: left;
+}
+
+.option-group {
+  margin-bottom: 16px;
+}
+
+.option-group-title {
+  font-weight: 600;
+  margin: 8px 0;
+}
+
+.board-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.board-asset {
+  font-size: 13px;
+}
+
+.series-block {
+  margin-top: 16px;
+}
+
+.series-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.series-updated {
+  color: #64748b;
+  font-weight: 400;
+}
+
+.option-table {
+  margin-top: 8px;
+}
+
+.option-table-title {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 6px 0;
+}
+
+.data-table tbody tr.central {
+  background: #fff7d6;
+}
+
+.status.error {
+  color: #c62828;
+  margin: 8px 0;
+}
+
+.status {
+  color: #64748b;
+  margin: 8px 0;
+}
+
+.empty-state {
+  padding: 12px;
+  color: #64748b;
+  font-size: 12px;
+}
   

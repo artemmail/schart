@@ -31,58 +31,347 @@ namespace StockChart.Repository
             var expriation = info.ToDate;
 
             var res = await _dbContext.DayCandles
-                        .Where(x => x.Id == info.Id)
-                        .OrderByDescending(x => x.Period)
-                        .Select(x => x)
-                        .Take(2)
-                        .ToArrayAsync();
+                .Where(x => x.Id == info.Id)
+                .OrderByDescending(x => x.Period)
+                .Select(x => new { x.Period, x.ClsPrice, x.Oi, x.Volume })
+                .Take(2)
+                .ToArrayAsync();
 
-            var lastPrice = res[0].ClsPrice;
-            var oi = res[0].Oi;
-            var oiDelta = res[0].Oi - res[1].Oi;
-            var volume = res[0].Volume;
-            var code = shortName.Substring(0, 2);
-            var fam =  _dic.Tickers.Values.Where(x => x.Securityid.StartsWith(code) && x.Securityid.Length == 4 && x.Market == 1 &&
-               x.ToDate > DateTime.Now && x.ToDate != null).
-               OrderBy(x=>x.ToDate).
-               Select(x =>  new { x.Securityid, x.Id }   ).ToArray();
+            var lastPrice = res.Length > 0 ? res[0].ClsPrice : 0m;
+            var oi = res.Length > 0 ? res[0].Oi : 0;
+            var oiDelta = res.Length > 1 ? res[0].Oi - res[1].Oi : 0;
+            var volume = res.Length > 0 ? res[0].Volume : 0m;
 
+            var today = DateTime.Today;
 
-            var another_futures = fam.Select(y =>
-             new
-             {
-                 y.Securityid,
-                 lastPrice = _dbContext.DayCandles
-                      .Where(x => x.Id == y.Id)
-                      .OrderByDescending(x => x.Period)
-                      .Take(1)
-                      .Select(x => x.ClsPrice).FirstOrDefault()
-             }
-            ).ToArray();
+            var futureSpec = await _dbContext.FutureSpecs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(f => f.DictionaryId == info.Id);
 
-            object[] options = _dic.Tickers.Values.Where(x => x.Securityid.StartsWith(code) && x.Market == 7
-             &&  x.ToDate > DateTime.Now && x.ToDate != null
-             ).
-               Select(x =>  x.Fullname).ToArray();
+            var assetCode = NormalizeCode(futureSpec?.AssetCode);
 
-            return
-                new
+            var underlyingInfo = await ResolveUnderlyingAsync(info.Id, assetCode);
+            var underlyingId = underlyingInfo?.Id;
+
+            DateTime? spotLastDate = null;
+            if (underlyingId.HasValue)
+            {
+                spotLastDate = await _dbContext.DayCandles
+                    .Where(c => c.Id == underlyingId.Value)
+                    .MaxAsync(c => (DateTime?)c.Period);
+            }
+
+            var series = await LoadFutureSeriesAsync(info, assetCode, today);
+            var seriesResult = new List<object>();
+
+            foreach (var item in series)
+            {
+                DateTime? futureLastDate = await _dbContext.DayCandles
+                    .Where(c => c.Id == item.DictionaryId)
+                    .MaxAsync(c => (DateTime?)c.Period);
+
+                DateTime? valuationDate = null;
+                if (futureLastDate.HasValue && spotLastDate.HasValue)
                 {
-                    fullName,
-                    shortName,
-                    minStep,
-                    expriation,
-                    lastPrice,
-                    volume,
-                    oi,
-                    oiDelta,                    
-                //    res,
-                    another_futures,
-                    options
-                   
-                };
+                    valuationDate = futureLastDate.Value <= spotLastDate.Value ? futureLastDate.Value : spotLastDate.Value;
+                }
+                else if (futureLastDate.HasValue)
+                {
+                    valuationDate = futureLastDate.Value;
+                }
+                else if (spotLastDate.HasValue)
+                {
+                    valuationDate = spotLastDate.Value;
+                }
 
+                decimal? futurePrice = null;
+                if (valuationDate.HasValue)
+                {
+                    futurePrice = await _dbContext.DayCandles
+                        .Where(c => c.Id == item.DictionaryId && c.Period <= valuationDate.Value)
+                        .OrderByDescending(c => c.Period)
+                        .Select(c => (decimal?)c.ClsPrice)
+                        .FirstOrDefaultAsync();
+                }
 
+                decimal? spotPrice = null;
+                if (valuationDate.HasValue && underlyingId.HasValue)
+                {
+                    spotPrice = await _dbContext.DayCandles
+                        .Where(c => c.Id == underlyingId.Value && c.Period <= valuationDate.Value)
+                        .OrderByDescending(c => c.Period)
+                        .Select(c => (decimal?)c.ClsPrice)
+                        .FirstOrDefaultAsync();
+                }
+
+                decimal? spreadAbs = null;
+                decimal? spreadPct = null;
+                string? contango = null;
+                if (futurePrice.HasValue && spotPrice.HasValue && spotPrice.Value != 0)
+                {
+                    spreadAbs = futurePrice.Value - spotPrice.Value;
+                    spreadPct = spreadAbs.Value / spotPrice.Value;
+                    contango = spreadAbs.Value > 0 ? "contango" : spreadAbs.Value < 0 ? "backwardation" : "flat";
+                }
+
+                int? daysToExpiration = null;
+                decimal? impliedRate = null;
+                if (valuationDate.HasValue && item.ExpirationDate.HasValue && futurePrice.HasValue && spotPrice.HasValue && spotPrice.Value != 0)
+                {
+                    var days = (item.ExpirationDate.Value.Date - valuationDate.Value.Date).TotalDays;
+                    if (days > 0)
+                    {
+                        daysToExpiration = (int)days;
+                        impliedRate = ((futurePrice.Value / spotPrice.Value) - 1m) * (360m / (decimal)days);
+                    }
+                }
+
+                seriesResult.Add(new
+                {
+                    securityid = item.Securityid,
+                    shortname = item.Shortname,
+                    expirationDate = item.ExpirationDate,
+                    lotSize = item.LotSize,
+                    minStep = item.MinStep,
+                    stepPrice = item.StepPrice,
+                    futuresPrice = futurePrice,
+                    spotPrice = spotPrice,
+                    valuationDate = valuationDate,
+                    spreadAbs = spreadAbs,
+                    spreadPct = spreadPct,
+                    contango = contango,
+                    impliedRate = impliedRate,
+                    daysToExpiration = daysToExpiration
+                });
+            }
+
+            var options = new List<object>();
+            var optionAssetCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (!string.IsNullOrWhiteSpace(assetCode))
+            {
+                optionAssetCodes.Add(assetCode);
+            }
+
+            var baseCode = info.Securityid.Length >= 2 ? info.Securityid.Substring(0, 2) : info.Securityid;
+            var normalizedBase = NormalizeCode(baseCode);
+            if (!string.IsNullOrWhiteSpace(normalizedBase))
+            {
+                optionAssetCodes.Add(normalizedBase);
+            }
+
+            if (optionAssetCodes.Count > 0)
+            {
+                var optionRows = await (from o in _dbContext.OptionSpecs.AsNoTracking()
+                                        join d in _dbContext.Dictionaries.AsNoTracking() on o.DictionaryId equals d.Id
+                                        where optionAssetCodes.Contains(o.AssetCode!)
+                                              && o.ExpirationDate.HasValue
+                                              && o.ExpirationDate.Value >= today
+                                        orderby o.ExpirationDate, o.Strike, o.OptionType
+                                        select new
+                                        {
+                                            d.Securityid,
+                                            d.Shortname,
+                                            o.AssetCode,
+                                            o.OptionType,
+                                            o.Strike,
+                                            o.TheorPrice,
+                                            o.Volat,
+                                            o.Last,
+                                            o.Bid,
+                                            o.Offer,
+                                            o.VolToday,
+                                            o.OpenPosition,
+                                            o.UnderlyingPrice,
+                                            o.ExpirationDate,
+                                            o.LotSize,
+                                            o.BoardId
+                                        }).ToListAsync();
+
+                if (optionRows.Count == 0 && !string.IsNullOrWhiteSpace(baseCode))
+                {
+                    optionRows = await (from o in _dbContext.OptionSpecs.AsNoTracking()
+                                        join d in _dbContext.Dictionaries.AsNoTracking() on o.DictionaryId equals d.Id
+                                        where d.Securityid.StartsWith(baseCode)
+                                              && o.ExpirationDate.HasValue
+                                              && o.ExpirationDate.Value >= today
+                                        orderby o.ExpirationDate, o.Strike, o.OptionType
+                                        select new
+                                        {
+                                            d.Securityid,
+                                            d.Shortname,
+                                            o.AssetCode,
+                                            o.OptionType,
+                                            o.Strike,
+                                            o.TheorPrice,
+                                            o.Volat,
+                                            o.Last,
+                                            o.Bid,
+                                            o.Offer,
+                                            o.VolToday,
+                                            o.OpenPosition,
+                                            o.UnderlyingPrice,
+                                            o.ExpirationDate,
+                                            o.LotSize,
+                                            o.BoardId
+                                        }).ToListAsync();
+                }
+
+                if (string.IsNullOrWhiteSpace(assetCode))
+                {
+                    var assetFromOptions = optionRows
+                        .Where(o => !string.IsNullOrWhiteSpace(o.AssetCode))
+                        .GroupBy(o => o.AssetCode!, StringComparer.OrdinalIgnoreCase)
+                        .OrderByDescending(g => g.Count())
+                        .Select(g => g.Key)
+                        .FirstOrDefault();
+
+                    if (!string.IsNullOrWhiteSpace(assetFromOptions))
+                    {
+                        assetCode = assetFromOptions;
+                    }
+                }
+
+                options.AddRange(optionRows.Select(o => new
+                {
+                    securityid = o.Securityid,
+                    shortname = o.Shortname,
+                    optionType = o.OptionType,
+                    strike = o.Strike,
+                    theorPrice = o.TheorPrice,
+                    volat = o.Volat,
+                    last = o.Last,
+                    bid = o.Bid,
+                    offer = o.Offer,
+                    volToday = o.VolToday,
+                    openPosition = o.OpenPosition,
+                    underlyingPrice = o.UnderlyingPrice,
+                    expirationDate = o.ExpirationDate,
+                    lotSize = o.LotSize,
+                    boardId = o.BoardId
+                }));
+            }
+
+            return new
+            {
+                fullName,
+                shortName,
+                minStep,
+                expriation,
+                lastPrice,
+                volume,
+                oi,
+                oiDelta,
+                assetCode,
+                underlying = underlyingInfo == null
+                    ? null
+                    : new
+                    {
+                        securityid = underlyingInfo.Securityid,
+                        shortname = underlyingInfo.Shortname,
+                        fullname = underlyingInfo.Fullname
+                    },
+                another_futures = seriesResult.ToArray(),
+                options
+            };
+        }
+
+        private static string? NormalizeCode(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+            return value.Trim().ToUpperInvariant();
+        }
+
+        private async Task<Dictionary?> ResolveUnderlyingAsync(int futureDictionaryId, string? assetCode)
+        {
+            Dictionary? stock = null;
+
+            if (!string.IsNullOrWhiteSpace(assetCode))
+            {
+                var map = await _dbContext.UnderlyingMaps
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(m => m.AssetCode == assetCode);
+
+                if (map != null)
+                {
+                    stock = await _dbContext.Dictionaries
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(d => d.Securityid == map.SpotSecId);
+                }
+            }
+
+            if (stock != null)
+            {
+                return stock;
+            }
+
+            var link = await _dbContext.SecurityLinks
+                .AsNoTracking()
+                .FirstOrDefaultAsync(l => l.ToDictionaryId == futureDictionaryId && l.LinkType == 2);
+
+            if (link == null)
+            {
+                return null;
+            }
+
+            return await _dbContext.Dictionaries
+                .AsNoTracking()
+                .FirstOrDefaultAsync(d => d.Id == link.FromDictionaryId);
+        }
+
+        private async Task<List<FutureSeriesRow>> LoadFutureSeriesAsync(StockChart.Model.Dictionary info, string? assetCode, DateTime today)
+        {
+            if (!string.IsNullOrWhiteSpace(assetCode))
+            {
+                return await (from f in _dbContext.FutureSpecs.AsNoTracking()
+                              join d in _dbContext.Dictionaries.AsNoTracking() on f.DictionaryId equals d.Id
+                              where f.AssetCode == assetCode
+                                    && f.ExpirationDate.HasValue
+                                    && f.ExpirationDate.Value >= today
+                              orderby f.ExpirationDate
+                              select new FutureSeriesRow
+                              {
+                                  DictionaryId = d.Id,
+                                  Securityid = d.Securityid,
+                                  Shortname = d.Shortname,
+                                  ExpirationDate = f.ExpirationDate,
+                                  LotSize = f.LotSize,
+                                  MinStep = f.MinStep,
+                                  StepPrice = f.StepPrice
+                              }).ToListAsync();
+            }
+
+            var code = info.Securityid.Length >= 2 ? info.Securityid.Substring(0, 2) : info.Securityid;
+            return await (from f in _dbContext.FutureSpecs.AsNoTracking()
+                          join d in _dbContext.Dictionaries.AsNoTracking() on f.DictionaryId equals d.Id
+                          where d.Market == 1
+                                && d.Securityid.StartsWith(code)
+                                && f.ExpirationDate.HasValue
+                                && f.ExpirationDate.Value >= today
+                          orderby f.ExpirationDate
+                          select new FutureSeriesRow
+                          {
+                              DictionaryId = d.Id,
+                              Securityid = d.Securityid,
+                              Shortname = d.Shortname,
+                              ExpirationDate = f.ExpirationDate,
+                              LotSize = f.LotSize,
+                              MinStep = f.MinStep,
+                              StepPrice = f.StepPrice
+                          }).ToListAsync();
+        }
+
+        private sealed class FutureSeriesRow
+        {
+            public int DictionaryId { get; set; }
+            public string Securityid { get; set; } = string.Empty;
+            public string Shortname { get; set; } = string.Empty;
+            public DateTime? ExpirationDate { get; set; }
+            public int? LotSize { get; set; }
+            public decimal? MinStep { get; set; }
+            public decimal? StepPrice { get; set; }
         }
 
         public async Task<decimal> GetLastPriceAsync(string ticker, DateTime startdate, DateTime enddate)

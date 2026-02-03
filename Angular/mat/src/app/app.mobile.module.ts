@@ -19,8 +19,8 @@ import { LeadersComponent } from './mobile/Leaders/leaders.component';
 import { AppRoutingModule } from './mobile/app.routes'; // Импортируем модуль маршрутизации
 import { MaterialModule } from './material.module';
 import { NavService } from './service/nav.service';
-import { MAT_DATE_FORMATS, provideNativeDateAdapter } from '@angular/material/core';
-import { MY_DATE_FORMATS } from './service/date-formats';
+import { DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE } from '@angular/material/core';
+import { CustomDateAdapter, MY_DATE_FORMATS } from './service/date-formats';
 //import { MetrikaModule } from 'ng-yandex-metrika';
 import { FirstComponent1 } from './mobile/first/first.component';
 import { LeadersBinanceComponent } from './mobile/BinanceLeaders/leaders.component';
@@ -43,6 +43,7 @@ export class MyHammerConfig extends HammerGestureConfig {
   declarations: [],
   providers: [
     { provide: LOCALE_ID, useValue: 'ru-RU' },
+    { provide: MAT_DATE_LOCALE, useValue: 'ru-RU' },
     {
       provide: HAMMER_GESTURE_CONFIG,
       useClass: MyHammerConfig,
@@ -54,7 +55,7 @@ export class MyHammerConfig extends HammerGestureConfig {
     NavService,
     LevelMarksService,
     { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS },
-    provideNativeDateAdapter(),
+    { provide: DateAdapter, useClass: CustomDateAdapter },
   ],
   imports: [
    

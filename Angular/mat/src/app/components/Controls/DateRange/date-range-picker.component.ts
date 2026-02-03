@@ -8,10 +8,11 @@ import {
   Input,
 } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
-import { DateAdapter } from '@angular/material/core';
+import { DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE } from '@angular/material/core';
 import { NgxMaterialTimepickerComponent } from 'ngx-material-timepicker';
 import { NgxMaterialTimepickerModule } from 'ngx-material-timepicker';
 import { MaterialModule } from 'src/app/material.module';
+import { CustomDateAdapter, MY_DATE_FORMATS } from 'src/app/service/date-formats';
 
 @Component({
   selector: 'app-date-range-picker',
@@ -19,6 +20,11 @@ import { MaterialModule } from 'src/app/material.module';
   styleUrls: ['./date-range-picker.component.css'],
   standalone: true,
   imports: [MaterialModule, NgxMaterialTimepickerModule],
+  providers: [
+    { provide: MAT_DATE_LOCALE, useValue: 'ru-RU' },
+    { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS },
+    { provide: DateAdapter, useClass: CustomDateAdapter },
+  ],
 })
 export class DateRangePickerComponent implements AfterViewInit {
   @Output() selectionChange = new EventEmitter<{ start: Date | null; end: Date | null }>();
@@ -138,7 +144,7 @@ export class DateRangePickerComponent implements AfterViewInit {
   }
 
   getStart(): Date | null {
-    const date = this.range.controls['start'].value;
+    const date = this.coerceDate(this.range.controls['start'].value);
     if (!date) return null;
 
     const dateCopy = new Date(date);
@@ -158,7 +164,7 @@ export class DateRangePickerComponent implements AfterViewInit {
   }
 
   getEnd(): Date | null {
-    const date = this.range.controls['end'].value;
+    const date = this.coerceDate(this.range.controls['end'].value);
     if (!date) return null;
 
     const dateCopy = new Date(date);
@@ -264,4 +270,73 @@ export class DateRangePickerComponent implements AfterViewInit {
 
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   }
+
+  private coerceDate(value: unknown): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? null : value;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = this.dateAdapter.parse(value, 'DD.MM.YYYY');
+      if (parsed && !isNaN(parsed.getTime())) {
+        return parsed;
+      }
+      return this.parseDateInput(value);
+    }
+
+    const fallback = new Date(value as any);
+    return isNaN(fallback.getTime()) ? null : fallback;
+  }
+
+  private parseDateInput(value: string): Date | null {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    let match = /^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/.exec(trimmed);
+    if (match) {
+      const day = Number(match[1]);
+      const month = Number(match[2]);
+      const year = Number(match[3]);
+      return this.buildDate(year, month, day);
+    }
+
+    match = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(trimmed);
+    if (match) {
+      const year = Number(match[1]);
+      const month = Number(match[2]);
+      const day = Number(match[3]);
+      return this.buildDate(year, month, day);
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}T/.test(trimmed)) {
+      const parsed = new Date(trimmed);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    return null;
+  }
+
+  private buildDate(year: number, month: number, day: number): Date | null {
+    if (!year || !month || !day) {
+      return null;
+    }
+
+    const date = new Date(year, month - 1, day);
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day
+    ) {
+      return null;
+    }
+
+    return date;
+  }
+
 }

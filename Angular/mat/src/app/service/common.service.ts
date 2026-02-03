@@ -9,22 +9,60 @@ import { SelectListItemNumber, SelectListItemParams, SelectListItemText } from '
 import { addUTC, removeUTC } from './FootPrint/Formating/formatting.service';
 
 
-export interface AnotherFuture {
-  Securityid: string;
-  lastPrice: number;
+export interface UnderlyingInfo {
+  securityid: string;
+  shortname: string;
+  fullname: string;
+}
+
+export interface FutureSeriesItem {
+  securityid: string;
+  shortname: string;
+  expirationDate?: string;
+  lotSize?: number;
+  minStep?: number;
+  stepPrice?: number;
+  futuresPrice?: number;
+  spotPrice?: number;
+  valuationDate?: string;
+  spreadAbs?: number;
+  spreadPct?: number;
+  contango?: string;
+  impliedRate?: number;
+  daysToExpiration?: number;
+}
+
+export interface OptionItem {
+  securityid: string;
+  shortname: string;
+  optionType?: string;
+  strike?: number;
+  theorPrice?: number;
+  volat?: number;
+  last?: number;
+  bid?: number;
+  offer?: number;
+  volToday?: number;
+  openPosition?: number;
+  underlyingPrice?: number;
+  expirationDate?: string;
+  lotSize?: number;
+  boardId?: string;
 }
 
 export interface FutInfo {
   fullName: string;
   shortName: string;
   minStep: number;
-  expriation: Date;  // Изменено с string на Date
+  expriation: Date | null;
   lastPrice: number;
   volume: number;
   oi: number;
   oiDelta: number;
-  another_futures: AnotherFuture[];
-  options: string[];
+  assetCode?: string;
+  underlying?: UnderlyingInfo | null;
+  another_futures: FutureSeriesItem[];
+  options: OptionItem[];
 }
 
 
@@ -58,7 +96,9 @@ export class CommonService {
     return this.http.get<FutInfo>(`${environment.apiUrl}/api/common/futinfo/${ticker}`).pipe(
       map(data => ({
         ...data,
-        expriation: new Date(data.expriation)  // Парсинг строки в Date
+        expriation: data.expriation ? new Date(data.expriation) : data.expriation,
+        another_futures: data.another_futures ?? [],
+        options: data.options ?? []
       }))
     );
   }

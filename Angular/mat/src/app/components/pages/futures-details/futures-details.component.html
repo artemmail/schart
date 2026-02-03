@@ -17,9 +17,7 @@
     </mat-card-header>
 
     <mat-card-content>
-      <!-- Основная информация о фьючерсе -->
       <mat-list>
-
         <mat-list-item>
           <strong>Группа фьючерсов:</strong> {{ group }}
         </mat-list-item>
@@ -28,25 +26,69 @@
           <strong>Базовый актив:</strong> {{ name }}
         </mat-list-item>
 
+        <mat-list-item *ngIf="futInfo.underlying">
+          <strong>Базовый актив (акция):</strong>
+          <a [routerLink]="['/statements', futInfo.underlying.securityid]">
+            {{ futInfo.underlying.shortname || futInfo.underlying.securityid }}
+          </a>
+          <span *ngIf="futInfo.underlying.fullname"> — {{ futInfo.underlying.fullname }}</span>
+        </mat-list-item>
+
+        <mat-list-item *ngIf="!futInfo.underlying && futInfo.assetCode">
+          <strong>Базовый актив:</strong>
+          <a [routerLink]="['/statements', futInfo.assetCode]">{{ futInfo.assetCode }}</a>
+        </mat-list-item>
+
         <mat-list-item>
-          <strong>Короткое название (кластерный график):</strong> 
-          <a [routerLink]="['/FootPrint']" [queryParams]="{ ticker: futInfo.shortName, period: 1440, rperiod: 'year' }">{{futInfo.shortName}}</a>          
+          <strong>Короткое название (кластерный график):</strong>
+          <a [routerLink]="['/FootPrint']" [queryParams]="{ ticker: futInfo.shortName, period: 1440, rperiod: 'year' }">{{futInfo.shortName}}</a>
         </mat-list-item>
 
         <mat-list-item>
           <strong>Полное название:</strong> {{ futInfo.fullName }}
         </mat-list-item>
 
+        <mat-list-item *ngIf="currentSeries?.lotSize != null">
+          <strong>Размер лота:</strong> {{ currentSeries?.lotSize }}
+        </mat-list-item>
+
+        <mat-list-item *ngIf="currentSeries?.stepPrice != null">
+          <strong>Стоимость шага:</strong> {{ currentSeries?.stepPrice }}
+        </mat-list-item>
+
         <mat-list-item>
-          <strong>Шаг цены:</strong> {{ futInfo.minStep }}
+          <strong>Шаг цены:</strong> {{ currentSeries?.minStep ?? futInfo.minStep }}
         </mat-list-item>
 
         <mat-list-item>
           <strong>Дата истечения:</strong> {{ futInfo.expriation | date: 'dd.MM.yyyy' }}
         </mat-list-item>
 
+        <mat-list-item *ngIf="currentSeries?.futuresPrice != null">
+          <strong>Цена фьючерса (F):</strong> {{ currentSeries?.futuresPrice | number:'1.2-2' }}
+        </mat-list-item>
+
+        <mat-list-item *ngIf="currentSeries?.spotPrice != null">
+          <strong>Цена спота (S):</strong> {{ currentSeries?.spotPrice | number:'1.2-2' }}
+        </mat-list-item>
+
+        <mat-list-item *ngIf="currentSeries?.contango">
+          <strong>Контанго/бэквордация:</strong> {{ contangoLabel(currentSeries?.contango) }}
+          <span *ngIf="currentSeries?.spreadAbs != null"> ({{ currentSeries?.spreadAbs | number:'1.2-2' }})</span>
+          <span *ngIf="currentSeries?.spreadPct != null"> ({{ currentSeries?.spreadPct | percent:'1.2-2' }})</span>
+        </mat-list-item>
+
+        <mat-list-item *ngIf="currentSeries?.impliedRate != null">
+          <strong>Учетная ставка (A/360):</strong> {{ currentSeries?.impliedRate | percent:'1.2-2' }}
+          <span *ngIf="currentSeries?.daysToExpiration"> ({{ currentSeries?.daysToExpiration }} дн.)</span>
+        </mat-list-item>
+
+        <mat-list-item *ngIf="currentSeries?.valuationDate">
+          <strong>Дата оценки:</strong> {{ currentSeries?.valuationDate | date:'dd.MM.yyyy' }}
+        </mat-list-item>
+
         <mat-list-item>
-          <strong>Последняя цена:</strong> {{ futInfo.lastPrice }}
+          <strong>Последняя цена:</strong> {{ futInfo.lastPrice | number:'1.2-2' }}
         </mat-list-item>
 
         <mat-list-item>
@@ -60,33 +102,194 @@
     </mat-card-content>
   </mat-card>
 
-  <!-- Карточка для других фьючерсов -->
+  <!-- Карточка для фьючерсов серии -->
   <mat-card *ngIf="futInfo?.another_futures?.length > 0">
     <mat-card-header>
-      <mat-card-title>Другие фьючерсы из серии</mat-card-title>
+      <mat-card-title>Фьючерсы серии</mat-card-title>
     </mat-card-header>
 
     <mat-card-content>
-      <mat-list>
-        <mat-list-item *ngFor="let future of futInfo.another_futures">
-          <a [routerLink]="['/futures', future.Securityid]">{{ future.Securityid }}</a>: {{ future.lastPrice }}
-        </mat-list-item>
-      </mat-list>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Контракт</th>
+              <th>Экспирация</th>
+              <th>Лот</th>
+              <th>Шаг</th>
+              <th>Стоимость шага</th>
+              <th>F</th>
+              <th>S</th>
+              <th>Дата оценки</th>
+              <th>Контанго/бэквордация</th>
+              <th>Спред %</th>
+              <th>Учетная ставка</th>
+              <th>Дней до эксп.</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let future of futInfo.another_futures">
+              <td>
+                <a [routerLink]="['/futures', future.securityid]">{{ future.securityid }}</a>
+              </td>
+              <td>{{ future.expirationDate | date: 'dd.MM.yyyy' }}</td>
+              <td>{{ future.lotSize }}</td>
+              <td>{{ future.minStep }}</td>
+              <td>{{ future.stepPrice }}</td>
+              <td>{{ future.futuresPrice | number:'1.2-2' }}</td>
+              <td>{{ future.spotPrice | number:'1.2-2' }}</td>
+              <td>{{ future.valuationDate | date: 'dd.MM.yyyy' }}</td>
+              <td>{{ contangoLabel(future.contango) }}</td>
+              <td>{{ future.spreadPct | percent:'1.2-2' }}</td>
+              <td>{{ future.impliedRate | percent:'1.2-2' }}</td>
+              <td>{{ future.daysToExpiration }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </mat-card-content>
   </mat-card>
 
-  <!-- Карточка для опционов -->
-  <mat-card *ngIf="futInfo?.options?.length > 0">
+  <!-- Доска опционов (все серии) -->
+  <mat-card *ngIf="optionAssetCode">
     <mat-card-header>
-      <mat-card-title>Опционы</mat-card-title>
+      <mat-card-title>Доска опционов</mat-card-title>
     </mat-card-header>
 
     <mat-card-content>
-      <mat-list>
-        <mat-list-item *ngFor="let option of futInfo.options">
-          <a [routerLink]="['/option', option]">{{ option }}</a>
-        </mat-list-item>
-      </mat-list>
+      <div class="board-controls">
+        <div class="board-asset">
+          <strong>Актив:</strong> {{ optionAssetCode }}
+          <span *ngIf="optionAssetTitle"> — {{ optionAssetTitle }}</span>
+          <span *ngIf="optionAssetType"> ({{ optionAssetType }})</span>
+        </div>
+
+        <button mat-stroked-button (click)="refreshBoards()">Обновить</button>
+      </div>
+
+      <div *ngIf="seriesBoards.length === 0" class="status">
+        Серии не найдены.
+      </div>
+
+      <div *ngFor="let series of seriesBoards" class="series-block">
+        <div class="series-title">
+          Серия: {{ series.code }}
+          <span *ngIf="series.seriesType"> ({{ seriesTypeLabel(series.seriesType) }})</span>
+          <span *ngIf="series.expirationDate"> — Экспирация: {{ series.expirationDate }}</span>
+          <span *ngIf="series.centralStrike != null"> — Central strike: {{ series.centralStrike | number:'1.2-2' }}</span>
+          <span *ngIf="series.futuresCode"> — Futures: {{ series.futuresCode }}</span>
+          <span class="series-updated" *ngIf="series.lastUpdated"> — обновлено {{ series.lastUpdated | date:'HH:mm:ss' }}</span>
+        </div>
+
+        <div class="status error" *ngIf="series.error">
+          {{ series.error }}
+        </div>
+        <div class="status" *ngIf="series.loading">
+          Загрузка доски...
+        </div>
+
+        <div class="option-table">
+          <div class="option-table-title">CALL</div>
+          <div class="table-wrap" *ngIf="getCallRows(series).length; else noCall">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>SECID</th>
+                  <th>Strike</th>
+                  <th>Bid</th>
+                  <th>Ask</th>
+                  <th>Last</th>
+                  <th>IV</th>
+                  <th>Δ</th>
+                  <th>Γ</th>
+                  <th>Vega</th>
+                  <th>Theta</th>
+                  <th>Rho</th>
+                  <th>Theor</th>
+                  <th>Intrinsic</th>
+                  <th>Time</th>
+                  <th>Trades</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of getCallRows(series)" [class.central]="isCentral(series, row)">
+                  <td>
+                    <a [routerLink]="['/option', row.secid]">{{ row.secid }}</a>
+                  </td>
+                  <td>{{ row.strike == null ? '—' : (row.strike | number : '1.2-2') }}</td>
+                  <td>{{ row.bid == null ? '—' : (row.bid | number : '1.2-4') }}</td>
+                  <td>{{ row.offer == null ? '—' : (row.offer | number : '1.2-4') }}</td>
+                  <td>{{ row.last == null ? '—' : (row.last | number : '1.2-4') }}</td>
+                  <td>{{ row.volatility == null ? '—' : (row.volatility | number : '1.2-2') + '%' }}</td>
+                  <td>{{ row.delta == null ? '—' : (row.delta | number : '1.4-6') }}</td>
+                  <td>{{ row.gamma == null ? '—' : (row.gamma | number : '1.4-6') }}</td>
+                  <td>{{ row.vega == null ? '—' : (row.vega | number : '1.4-6') }}</td>
+                  <td>{{ row.theta == null ? '—' : (row.theta | number : '1.4-6') }}</td>
+                  <td>{{ row.rho == null ? '—' : (row.rho | number : '1.4-6') }}</td>
+                  <td>{{ row.theorprice == null ? '—' : (row.theorprice | number : '1.2-4') }}</td>
+                  <td>{{ row.intrinsic_value == null ? '—' : (row.intrinsic_value | number : '1.2-4') }}</td>
+                  <td>{{ row.timed_value == null ? '—' : (row.timed_value | number : '1.2-4') }}</td>
+                  <td>{{ row.numtrades == null ? '—' : row.numtrades }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #noCall>
+            <div class="empty-state">Нет данных по CALL.</div>
+          </ng-template>
+        </div>
+
+        <div class="option-table">
+          <div class="option-table-title">PUT</div>
+          <div class="table-wrap" *ngIf="getPutRows(series).length; else noPut">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>SECID</th>
+                  <th>Strike</th>
+                  <th>Bid</th>
+                  <th>Ask</th>
+                  <th>Last</th>
+                  <th>IV</th>
+                  <th>Δ</th>
+                  <th>Γ</th>
+                  <th>Vega</th>
+                  <th>Theta</th>
+                  <th>Rho</th>
+                  <th>Theor</th>
+                  <th>Intrinsic</th>
+                  <th>Time</th>
+                  <th>Trades</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of getPutRows(series)" [class.central]="isCentral(series, row)">
+                  <td>
+                    <a [routerLink]="['/option', row.secid]">{{ row.secid }}</a>
+                  </td>
+                  <td>{{ row.strike == null ? '—' : (row.strike | number : '1.2-2') }}</td>
+                  <td>{{ row.bid == null ? '—' : (row.bid | number : '1.2-4') }}</td>
+                  <td>{{ row.offer == null ? '—' : (row.offer | number : '1.2-4') }}</td>
+                  <td>{{ row.last == null ? '—' : (row.last | number : '1.2-4') }}</td>
+                  <td>{{ row.volatility == null ? '—' : (row.volatility | number : '1.2-2') + '%' }}</td>
+                  <td>{{ row.delta == null ? '—' : (row.delta | number : '1.4-6') }}</td>
+                  <td>{{ row.gamma == null ? '—' : (row.gamma | number : '1.4-6') }}</td>
+                  <td>{{ row.vega == null ? '—' : (row.vega | number : '1.4-6') }}</td>
+                  <td>{{ row.theta == null ? '—' : (row.theta | number : '1.4-6') }}</td>
+                  <td>{{ row.rho == null ? '—' : (row.rho | number : '1.4-6') }}</td>
+                  <td>{{ row.theorprice == null ? '—' : (row.theorprice | number : '1.2-4') }}</td>
+                  <td>{{ row.intrinsic_value == null ? '—' : (row.intrinsic_value | number : '1.2-4') }}</td>
+                  <td>{{ row.timed_value == null ? '—' : (row.timed_value | number : '1.2-4') }}</td>
+                  <td>{{ row.numtrades == null ? '—' : row.numtrades }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #noPut>
+            <div class="empty-state">Нет данных по PUT.</div>
+          </ng-template>
+        </div>
+      </div>
     </mat-card-content>
   </mat-card>
 </div>
