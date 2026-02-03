@@ -91,6 +91,18 @@ export class FootPrintParamsComponent
     }
   }
 
+  onDateRangeSelectionChange(range: { start: Date | null; end: Date | null }) {
+    if (!this.params || !this.presetSelector) {
+      return;
+    }
+
+    const matched = this.findPresetByRange(range.start, range.end);
+    const next = matched ?? 'custom';
+
+    this.params.rperiod = next;
+    this.presetSelector.marketControl.setValue(next, { emitEvent: false });
+  }
+
   applyPreset(foundPreset: FootPrintRequestParams) {
     if (!this.params || !foundPreset) {
       return;
@@ -181,6 +193,60 @@ export class FootPrintParamsComponent
     }
 
     this.loadMode = this.params.candlesOnly ? 'candles' : 'clusters';
+  }
+
+  private findPresetByRange(start: Date | null, end: Date | null): string | null {
+    if (!start || !end || !this.presetSelector?.Dic) {
+      return null;
+    }
+
+    if (this.hasExplicitTime(start) || this.hasExplicitTime(end)) {
+      return null;
+    }
+
+    const startKey = this.toDateKey(start);
+    const endKey = this.toDateKey(end);
+
+    for (const [rperiod, preset] of Object.entries(this.presetSelector.Dic)) {
+      const presetStart = this.coerceDate(preset?.startDate);
+      const presetEnd = this.coerceDate(preset?.endDate);
+      if (!presetStart || !presetEnd) {
+        continue;
+      }
+
+      if (startKey === this.toDateKey(presetStart) && endKey === this.toDateKey(presetEnd)) {
+        return rperiod;
+      }
+    }
+
+    return null;
+  }
+
+  private toDateKey(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private hasExplicitTime(date: Date): boolean {
+    return (
+      date.getHours() !== 0 ||
+      date.getMinutes() !== 0 ||
+      date.getSeconds() !== 0 ||
+      date.getMilliseconds() !== 0
+    );
+  }
+
+  private coerceDate(value: unknown): Date | null {
+    if (!value) {
+      return null;
+    }
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? null : value;
+    }
+    const parsed = new Date(value as any);
+    return isNaN(parsed.getTime()) ? null : parsed;
   }
 
   private applyArbitrageDefaults() {
