@@ -1,0 +1,42 @@
+<div class="table-wrap" *ngIf="futures?.length; else emptyState">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Контракт</th>
+        <th>Экспирация</th>
+        <th>Лот</th>
+        <th>Шаг</th>
+        <th>Стоимость шага</th>
+        <th>F</th>
+        <th>S</th>
+        <th>Дата оценки</th>
+        <th>Контанго/бэквордация</th>
+        <th>Спред %</th>
+        <th>Учетная ставка</th>
+        <th>Дней до эксп.</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let future of futures">
+        <td>
+          <a [routerLink]="['/futures', future.securityid]">{{ future.securityid }}</a>
+        </td>
+        <td>{{ future.expirationDate | date: 'dd.MM.yyyy' }}</td>
+        <td>{{ future.lotSize }}</td>
+        <td>{{ future.minStep }}</td>
+        <td>{{ future.stepPrice }}</td>
+        <td>{{ future.futuresPrice | number:'1.2-2' }}</td>
+        <td>{{ future.spotPrice | number:'1.2-2' }}</td>
+        <td>{{ future.valuationDate | date: 'dd.MM.yyyy' }}</td>
+        <td>{{ contangoLabel(future.contango) }}</td>
+        <td>{{ future.spreadPct | percent:'1.2-2' }}</td>
+        <td>{{ future.impliedRate | percent:'1.2-2' }}</td>
+        <td>{{ future.daysToExpiration }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<ng-template #emptyState>
+  <div class="empty-state">Нет данных по серии.</div>
+</ng-template>

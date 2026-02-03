@@ -9,11 +9,12 @@ import { environment } from 'src/app/environment';
 import { OptionCodeService } from 'src/app/service/OptionCodeParserService.service';
 import { MaterialModule } from 'src/app/material.module';
 import { OptionBoardResponse, OptionBoardRow, OptionBoardService } from 'src/app/service/option-board.service';
+import { FuturesSeriesTableComponent } from 'src/app/components/Controls/futures-series-table/futures-series-table.component';
 
 @Component({
   standalone: true,
   selector: 'app-futures-details',
-  imports: [CommonModule, MaterialModule, MoneyToStrPipe],
+  imports: [CommonModule, MaterialModule, MoneyToStrPipe, FuturesSeriesTableComponent],
   templateUrl: './futures-details.component.html',
   styleUrls: ['./futures-details.component.css']
 })

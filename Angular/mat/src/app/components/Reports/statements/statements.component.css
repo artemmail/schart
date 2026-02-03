@@ -25,3 +25,80 @@
     font-family: Roboto, "Helvetica Neue", sans-serif;
     padding: 0;
   }
+
+  .mini-chart {
+    margin: 12px 0;
+    height: 312px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mini-chart-title {
+    padding: 0 0 6px 0;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .mini-chart app-footprint-widget {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .mini-loading {
+    margin: 8px 0;
+    color: #64748b;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  .relation-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .relation-table th,
+  .relation-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #e0e0e0;
+    white-space: nowrap;
+    text-align: left;
+  }
+
+  .relation-table th {
+    font-weight: 600;
+  }
+
+  .relation-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 4px;
+  }
+
+  .relation-item {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: baseline;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .relation-code {
+    font-weight: 600;
+  }
+
+  .relation-isin {
+    color: #64748b;
+  }
+
+  .series-status {
+    margin: 8px 4px;
+    color: #64748b;
+  }
+
+  .series-status.error {
+    color: #c62828;
+  }

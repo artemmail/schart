@@ -7,6 +7,8 @@ namespace StockChart.Repository
 {
     public class StockMarketServiceRepository : IStockMarketServiceRepository
     {
+        private const byte MarketStocks = 0;
+        private const byte MarketFutures = 1;
         private ApplicationDbContext _dbContext;
         private Func<CacheTech, ICacheService> _cacheService;
         ITickersRepository _dic;
@@ -49,9 +51,15 @@ namespace StockChart.Repository
                 .FirstOrDefaultAsync(f => f.DictionaryId == info.Id);
 
             var assetCode = NormalizeCode(futureSpec?.AssetCode);
+            var baseCode = ResolveBaseCode(info.Securityid);
+            if (string.IsNullOrWhiteSpace(assetCode))
+            {
+                assetCode = NormalizeCode(await ResolveAssetCodeFromSeriesAsync(baseCode, today));
+            }
 
-            var underlyingInfo = await ResolveUnderlyingAsync(info.Id, assetCode);
+            var underlyingInfo = await ResolveUnderlyingAsync(info.Id, assetCode, baseCode);
             var underlyingId = underlyingInfo?.Id;
+            var underlyingLotSize = underlyingInfo?.Lotsize;
 
             DateTime? spotLastDate = null;
             if (underlyingId.HasValue)
@@ -107,22 +115,25 @@ namespace StockChart.Repository
                 decimal? spreadAbs = null;
                 decimal? spreadPct = null;
                 string? contango = null;
+                decimal? calcFuturePrice = futurePrice;
                 if (futurePrice.HasValue && spotPrice.HasValue && spotPrice.Value != 0)
                 {
-                    spreadAbs = futurePrice.Value - spotPrice.Value;
+                    calcFuturePrice = NormalizeFuturePrice(futurePrice.Value, spotPrice.Value, item.LotSize, underlyingLotSize);
+
+                    spreadAbs = calcFuturePrice.Value - spotPrice.Value;
                     spreadPct = spreadAbs.Value / spotPrice.Value;
                     contango = spreadAbs.Value > 0 ? "contango" : spreadAbs.Value < 0 ? "backwardation" : "flat";
                 }
 
                 int? daysToExpiration = null;
                 decimal? impliedRate = null;
-                if (valuationDate.HasValue && item.ExpirationDate.HasValue && futurePrice.HasValue && spotPrice.HasValue && spotPrice.Value != 0)
+                if (valuationDate.HasValue && item.ExpirationDate.HasValue && calcFuturePrice.HasValue && spotPrice.HasValue && spotPrice.Value != 0)
                 {
                     var days = (item.ExpirationDate.Value.Date - valuationDate.Value.Date).TotalDays;
                     if (days > 0)
                     {
                         daysToExpiration = (int)days;
-                        impliedRate = ((futurePrice.Value / spotPrice.Value) - 1m) * (360m / (decimal)days);
+                        impliedRate = ((calcFuturePrice.Value / spotPrice.Value) - 1m) * (360m / (decimal)days);
                     }
                 }
 
@@ -134,7 +145,7 @@ namespace StockChart.Repository
                     lotSize = item.LotSize,
                     minStep = item.MinStep,
                     stepPrice = item.StepPrice,
-                    futuresPrice = futurePrice,
+                    futuresPrice = calcFuturePrice,
                     spotPrice = spotPrice,
                     valuationDate = valuationDate,
                     spreadAbs = spreadAbs,
@@ -152,7 +163,6 @@ namespace StockChart.Repository
                 optionAssetCodes.Add(assetCode);
             }
 
-            var baseCode = info.Securityid.Length >= 2 ? info.Securityid.Substring(0, 2) : info.Securityid;
             var normalizedBase = NormalizeCode(baseCode);
             if (!string.IsNullOrWhiteSpace(normalizedBase))
             {
@@ -284,27 +294,49 @@ namespace StockChart.Repository
             return value.Trim().ToUpperInvariant();
         }
 
-        private async Task<Dictionary?> ResolveUnderlyingAsync(int futureDictionaryId, string? assetCode)
+        private async Task<Dictionary?> ResolveUnderlyingAsync(int futureDictionaryId, string? assetCode, string? baseCode)
         {
             Dictionary? stock = null;
 
+            var candidates = new List<string>();
             if (!string.IsNullOrWhiteSpace(assetCode))
+            {
+                candidates.Add(assetCode);
+            }
+            if (!string.IsNullOrWhiteSpace(baseCode) && !string.Equals(baseCode, assetCode, StringComparison.OrdinalIgnoreCase))
+            {
+                candidates.Add(baseCode);
+            }
+
+            foreach (var code in candidates)
             {
                 var map = await _dbContext.UnderlyingMaps
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(m => m.AssetCode == assetCode);
+                    .FirstOrDefaultAsync(m => m.AssetCode == code);
 
                 if (map != null)
                 {
                     stock = await _dbContext.Dictionaries
                         .AsNoTracking()
                         .FirstOrDefaultAsync(d => d.Securityid == map.SpotSecId);
+
+                    if (stock != null)
+                    {
+                        return stock;
+                    }
                 }
             }
 
-            if (stock != null)
+            foreach (var code in candidates)
             {
-                return stock;
+                stock = await _dbContext.Dictionaries
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(d => d.Market == MarketStocks && d.Securityid == code);
+
+                if (stock != null)
+                {
+                    return stock;
+                }
             }
 
             var link = await _dbContext.SecurityLinks
@@ -319,6 +351,107 @@ namespace StockChart.Repository
             return await _dbContext.Dictionaries
                 .AsNoTracking()
                 .FirstOrDefaultAsync(d => d.Id == link.FromDictionaryId);
+        }
+
+        private async Task<string?> ResolveAssetCodeFromSeriesAsync(string? baseCode, DateTime today)
+        {
+            if (string.IsNullOrWhiteSpace(baseCode))
+            {
+                return null;
+            }
+
+            return await (from f in _dbContext.FutureSpecs.AsNoTracking()
+                          join d in _dbContext.Dictionaries.AsNoTracking() on f.DictionaryId equals d.Id
+                          where d.Market == MarketFutures
+                                && d.Securityid.StartsWith(baseCode)
+                                && f.AssetCode != null
+                                && (!f.ExpirationDate.HasValue || f.ExpirationDate.Value >= today)
+                          orderby f.ExpirationDate
+                          select f.AssetCode)
+                .FirstOrDefaultAsync();
+        }
+
+        private static string? ResolveBaseCode(string? securityId)
+        {
+            if (string.IsNullOrWhiteSpace(securityId))
+            {
+                return null;
+            }
+
+            var trimmed = securityId.Trim().ToUpperInvariant();
+            if (trimmed.Length <= 2)
+            {
+                return trimmed;
+            }
+
+            return trimmed.Substring(0, 2);
+        }
+
+        private static decimal NormalizeFuturePrice(decimal futurePrice, decimal spotPrice, int? lotSize, int? underlyingLotSize)
+        {
+            if (spotPrice <= 0)
+            {
+                return futurePrice;
+            }
+
+            var ratio = futurePrice / spotPrice;
+            if (ratio >= 0.3m && ratio <= 3m)
+            {
+                return futurePrice;
+            }
+
+            var candidates = new List<int>();
+            if (lotSize.HasValue && lotSize.Value > 1)
+            {
+                candidates.Add(lotSize.Value);
+            }
+            if (underlyingLotSize.HasValue && underlyingLotSize.Value > 1 && !candidates.Contains(underlyingLotSize.Value))
+            {
+                candidates.Add(underlyingLotSize.Value);
+            }
+
+            candidates.AddRange(new[] { 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000, 10000 });
+
+            double bestScore = ScoreRatio(ratio);
+            int bestMultiplier = 1;
+
+            foreach (var candidate in candidates.Distinct())
+            {
+                if (candidate <= 1)
+                {
+                    continue;
+                }
+
+                var normalizedRatio = ratio / candidate;
+                if (normalizedRatio < 0.3m || normalizedRatio > 3m)
+                {
+                    continue;
+                }
+
+                var score = ScoreRatio(normalizedRatio);
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    bestMultiplier = candidate;
+                }
+            }
+
+            if (bestMultiplier > 1)
+            {
+                return futurePrice / bestMultiplier;
+            }
+
+            return futurePrice;
+        }
+
+        private static double ScoreRatio(decimal ratio)
+        {
+            if (ratio <= 0)
+            {
+                return double.PositiveInfinity;
+            }
+
+            return Math.Abs(Math.Log((double)ratio));
         }
 
         private async Task<List<FutureSeriesRow>> LoadFutureSeriesAsync(StockChart.Model.Dictionary info, string? assetCode, DateTime today)

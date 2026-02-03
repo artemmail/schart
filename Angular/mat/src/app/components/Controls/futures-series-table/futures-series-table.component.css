@@ -1,0 +1,27 @@
+.table-wrap {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e0e0e0;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.data-table th:first-child,
+.data-table td:first-child {
+  text-align: left;
+}
+
+.empty-state {
+  padding: 12px;
+  color: #64748b;
+  font-size: 12px;
+}

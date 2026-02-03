@@ -7,6 +7,11 @@ namespace StockChart.Model
         public string? Shortname { get; set; }
         public byte? Market { get; set; }
         public string? Isin { get; set; }
+        public string? RegNumber { get; set; }
+        public DateTime? MaturityDate { get; set; }
+        public decimal? FaceValue { get; set; }
+        public string? Currency { get; set; }
+        public string? PrimaryBoardId { get; set; }
     }
 
     public sealed class InstrumentRelationsDto

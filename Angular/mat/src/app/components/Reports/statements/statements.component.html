@@ -31,9 +31,18 @@
           </a>
         </p>
 
+        <div class="mini-chart" *ngIf="miniParams">
+          <div class="mini-chart-title">Дневной свечной график</div>
+          <app-footprint-widget
+            [params]="miniParams"
+            [minimode]="true"
+          ></app-footprint-widget>
+        </div>
+        <div class="mini-loading" *ngIf="miniLoading">Загрузка мини-графика...</div>
 
     
         <app-recommendation-list [ticker]="ticker"></app-recommendation-list>
+
         <mat-tab-group [(selectedIndex)]="selectedTabIndex" (selectedIndexChange)="onTabChange($event)">
           <mat-tab label="МСФО Годовые">
             <app-company-table [ticker]="ticker" standart="MSFO" period="y"></app-company-table>
@@ -46,6 +55,60 @@
           </mat-tab>
           <mat-tab label="РСБУ Квартальные">
             <app-company-table [ticker]="ticker" standart="RSBU" period="q"></app-company-table>
+          </mat-tab>
+          <mat-tab label="Облигации" *ngIf="hasBonds">
+            <div class="table-wrap">
+              <table class="relation-table">
+                <thead>
+                  <tr>
+                    <th>Код</th>
+                    <th>Название</th>
+                    <th>ISIN</th>
+                    <th>Рег. №</th>
+                    <th>Погашение</th>
+                    <th>Номинал</th>
+                    <th>Валюта</th>
+                    <th>Board</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let bond of relations?.bonds">
+                    <td>
+                      <a [routerLink]="['/FootPrint']" [queryParams]="{ ticker: bond.securityId }">
+                        {{ bond.securityId }}
+                      </a>
+                    </td>
+                    <td>{{ bond.shortname || '—' }}</td>
+                    <td>{{ bond.isin || '—' }}</td>
+                    <td>{{ bond.regNumber || '—' }}</td>
+                    <td>{{ bond.maturityDate ? (bond.maturityDate | date:'dd.MM.yyyy') : '—' }}</td>
+                    <td>{{ bond.faceValue == null ? '—' : (bond.faceValue | number:'1.0-4') }}</td>
+                    <td>{{ bond.currency || '—' }}</td>
+                    <td>{{ bond.primaryBoardId || '—' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </mat-tab>
+          <mat-tab label="Фьючерсы" *ngIf="hasFutures">
+            <div class="series-status" *ngIf="futuresSeriesLoading">Загрузка фьючерсов серии...</div>
+            <div class="series-status error" *ngIf="futuresSeriesError">{{ futuresSeriesError }}</div>
+            <app-futures-series-table
+              *ngIf="!futuresSeriesLoading"
+              [futures]="futuresSeries"
+            ></app-futures-series-table>
+          </mat-tab>
+          <mat-tab label="Опционы" *ngIf="hasOptions">
+            <div class="relation-list">
+              <a
+                class="relation-item"
+                *ngFor="let option of relations?.options"
+                [routerLink]="['/option', option.securityId]"
+              >
+                <span class="relation-code">{{ option.securityId }}</span>
+                <span class="relation-name" *ngIf="option.shortname">— {{ option.shortname }}</span>
+              </a>
+            </div>
           </mat-tab>
         </mat-tab-group>
         <app-dividends-table [ticker]="ticker"></app-dividends-table>
