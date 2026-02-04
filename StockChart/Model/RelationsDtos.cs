@@ -12,6 +12,8 @@ namespace StockChart.Model
         public decimal? FaceValue { get; set; }
         public string? Currency { get; set; }
         public string? PrimaryBoardId { get; set; }
+        public decimal? CurrentYield { get; set; }
+        public decimal? CurrentPrice { get; set; }
     }
 
     public sealed class InstrumentRelationsDto

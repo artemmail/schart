@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -310,6 +311,251 @@ namespace StockChart.Repository.Services
             }
 
             return null;
+        }
+
+        public async Task<IReadOnlyList<MoexBondMarketRow>> GetBondMarketDataAsync(IEnumerable<string> secids, CancellationToken cancellationToken = default)
+        {
+            if (secids == null)
+            {
+                return Array.Empty<MoexBondMarketRow>();
+            }
+
+            var normalized = secids
+                .Select(NormalizeCode)
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (normalized.Count == 0)
+            {
+                return Array.Empty<MoexBondMarketRow>();
+            }
+
+            var result = new List<MoexBondMarketRow>();
+            const int chunkSize = 50;
+
+            for (var offset = 0; offset < normalized.Count; offset += chunkSize)
+            {
+                var chunk = normalized.Skip(offset).Take(chunkSize).ToList();
+                var joined = string.Join(",", chunk);
+                var url =
+                    "https://iss.moex.com/iss/engines/stock/markets/bonds/securities.json" +
+                    $"?iss.meta=off&iss.only=securities,marketdata,marketdata_yields&securities={Uri.EscapeDataString(joined)}";
+
+                using var doc = await GetJsonAsync(url, cancellationToken);
+                if (doc == null)
+                {
+                    continue;
+                }
+
+                var secTable = ReadTable(doc.RootElement, "securities");
+                var mktTable = ReadTable(doc.RootElement, "marketdata");
+                var yldTable = ReadTable(doc.RootElement, "marketdata_yields");
+
+                var secRows = BuildSecidRowMap(secTable, out var secIndex);
+                var mktRows = BuildSecidRowMap(mktTable, out var mktIndex);
+                var yldRows = BuildSecidRowMap(yldTable, out var yldIndex);
+
+                var prevAdmittedIndex = GetColumnIndex(secIndex, "PREVADMITTEDQUOTE", "prevadmittedquote");
+                var prevWapIndex = GetColumnIndex(secIndex, "PREVWAPRICE", "prevwaprice");
+                var prevPriceIndex = GetColumnIndex(secIndex, "PREVPRICE", "prevprice");
+                var prevLegalIndex = GetColumnIndex(secIndex, "PREVLEGALCLOSEPRICE", "prevlegalcloseprice");
+                var yieldAtPrevWapIndex = GetColumnIndex(secIndex, "YIELDATPREVWAPRICE", "yieldatprevwaprice");
+                var statusIndex = GetColumnIndex(secIndex, "STATUS", "status");
+                var accruedIndex = GetColumnIndex(secIndex, "ACCRUEDINT", "accruedint");
+                var nextCouponIndex = GetColumnIndex(secIndex, "NEXTCOUPON", "nextcoupon");
+                var couponValueIndex = GetColumnIndex(secIndex, "COUPONVALUE", "couponvalue");
+                var offerIndex = GetColumnIndex(secIndex, "OFFERDATE", "offerdate");
+                var issueDateIndex = GetColumnIndex(secIndex, "ISSUEDATE", "issuedate");
+                var issueSizeIndex = GetColumnIndex(secIndex, "ISSUESIZE", "issuesize");
+                var issuePlacedIndex = GetColumnIndex(secIndex, "ISSUESIZEPLACED", "issuesizeplaced");
+                var listLevelIndex = GetColumnIndex(secIndex, "LISTLEVEL", "listlevel");
+                var qualifiedIndex = GetColumnIndex(secIndex, "ISQUALIFIEDINVESTORS", "isqualifiedinvestors", "qualifiedonly", "isqualified");
+                var couponPeriodIndex = GetColumnIndex(secIndex, "COUPONPERIOD", "couponperiod");
+                var couponRateIndex = GetColumnIndex(secIndex, "COUPONRATE", "couponrate", "COUPONPERCENT", "couponpercent");
+                var couponTypeIndex = GetColumnIndex(secIndex, "COUPONTYPE", "coupontype");
+                var secBoardIndex = GetColumnIndex(secIndex, "BOARDID", "boardid");
+
+                var marketPrice2Index = GetColumnIndex(mktIndex, "MARKETPRICE2", "marketprice2");
+                var marketPriceIndex = GetColumnIndex(mktIndex, "MARKETPRICE", "marketprice");
+                var marketPriceTodayIndex = GetColumnIndex(mktIndex, "MARKETPRICETODAY", "marketpricetoday");
+                var marketPrice3Index = GetColumnIndex(mktIndex, "MARKETPRICE3", "marketprice3");
+                var admittedIndex = GetColumnIndex(mktIndex, "ADMITTEDQUOTE", "admittedquote");
+                var lastIndex = GetColumnIndex(mktIndex, "LAST", "last");
+                var wapPriceIndex = GetColumnIndex(mktIndex, "WAPRICE", "waprice");
+                var closePriceIndex = GetColumnIndex(mktIndex, "CLOSEPRICE", "closeprice");
+                var dayVolumeIndex = GetColumnIndex(mktIndex, "VALUE", "value");
+                var volTodayIndex = GetColumnIndex(mktIndex, "VOLTODAY", "voltoday");
+                var numTradesIndex = GetColumnIndex(mktIndex, "NUMTRADES", "numtrades");
+                var dayChangeIndex = GetColumnIndex(mktIndex, "LASTCHANGEPRCNT", "lastchangeprcnt", "changeprcnt", "pctchange", "percent");
+                var tradingStatusIndex = GetColumnIndex(mktIndex, "TRADINGSTATUS", "tradingstatus", "status");
+                var mktBoardIndex = GetColumnIndex(mktIndex, "BOARDID", "boardid");
+                var yieldMarketIndex = GetColumnIndex(mktIndex, "YIELD", "yield");
+                var yieldAtWapIndex = GetColumnIndex(mktIndex, "YIELDATWAPRICE", "yieldatwaprice");
+
+                var yieldIndex = GetColumnIndex(yldIndex, "EFFECTIVEYIELD", "effectiveyield");
+
+                foreach (var secid in chunk)
+                {
+                    secRows.TryGetValue(secid, out var secRow);
+                    mktRows.TryGetValue(secid, out var mktRow);
+                    yldRows.TryGetValue(secid, out var yldRow);
+
+                    var pricePct = FirstNonNull(
+                        ReadDecimal(mktRow, marketPrice2Index),
+                        ReadDecimal(mktRow, marketPriceIndex),
+                        ReadDecimal(mktRow, marketPriceTodayIndex),
+                        ReadDecimal(mktRow, marketPrice3Index),
+                        ReadDecimal(mktRow, wapPriceIndex),
+                        ReadDecimal(mktRow, closePriceIndex),
+                        ReadDecimal(mktRow, admittedIndex),
+                        ReadDecimal(mktRow, lastIndex),
+                        ReadDecimal(secRow, prevWapIndex),
+                        ReadDecimal(secRow, prevPriceIndex),
+                        ReadDecimal(secRow, prevLegalIndex),
+                        ReadDecimal(secRow, prevAdmittedIndex));
+
+                    var dayVolume = ReadDecimal(mktRow, dayVolumeIndex);
+                    var dayVolumeQty = ReadLong(mktRow, volTodayIndex) ?? ReadLong(mktRow, numTradesIndex);
+                    var dayChange = ReadDecimal(mktRow, dayChangeIndex);
+                    var yield = FirstNonNull(
+                        ReadDecimal(yldRow, yieldIndex),
+                        ReadDecimal(mktRow, yieldMarketIndex),
+                        ReadDecimal(mktRow, yieldAtWapIndex),
+                        ReadDecimal(secRow, yieldAtPrevWapIndex));
+
+                    var boardId = ReadString(mktRow, mktBoardIndex) ?? ReadString(secRow, secBoardIndex);
+                    var tradingStatus = ReadString(mktRow, tradingStatusIndex) ?? ReadString(secRow, statusIndex);
+
+                    var row = new MoexBondMarketRow(
+                        SecId: secid,
+                        BoardId: boardId,
+                        PricePct: pricePct,
+                        YieldPct: yield,
+                        DayChangePct: dayChange,
+                        DayVolume: dayVolume,
+                        DayVolumeQty: dayVolumeQty,
+                        AccruedInterest: ReadDecimal(secRow, accruedIndex),
+                        NextCouponDate: ReadDate(secRow, nextCouponIndex),
+                        OfferDate: ReadDate(secRow, offerIndex),
+                        CouponValue: ReadDecimal(secRow, couponValueIndex),
+                        CouponPeriodDays: ReadInt(secRow, couponPeriodIndex),
+                        CouponRate: ReadDecimal(secRow, couponRateIndex),
+                        CouponType: ReadString(secRow, couponTypeIndex),
+                        PlacementDate: ReadDate(secRow, issueDateIndex),
+                        IssueSize: ReadLong(secRow, issueSizeIndex),
+                        IssueSizePlaced: ReadLong(secRow, issuePlacedIndex),
+                        ListingLevel: ReadInt(secRow, listLevelIndex),
+                        QualifiedOnly: ReadBool(secRow, qualifiedIndex),
+                        TradingStatus: tradingStatus);
+
+                    result.Add(row);
+                }
+            }
+
+            return result;
+        }
+
+        public async Task<IReadOnlyList<MoexBondCouponRow>> GetBondCouponsAsync(string secid, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(secid))
+            {
+                return Array.Empty<MoexBondCouponRow>();
+            }
+
+            var url =
+                $"https://iss.moex.com/iss/statistics/engines/stock/markets/bonds/bondization/{Uri.EscapeDataString(secid)}.json" +
+                "?iss.meta=off&iss.only=coupons";
+
+            var table = await GetTableAsync(url, "coupons", cancellationToken);
+            if (table == null || table.Rows.Count == 0)
+            {
+                return Array.Empty<MoexBondCouponRow>();
+            }
+
+            var columnIndex = BuildColumnIndex(table.Columns);
+            var numberIndex = GetColumnIndex(columnIndex, "COUPONNUMBER", "COUPONNUM", "NUMBER", "number", "n");
+            var dateIndex = GetColumnIndex(columnIndex, "COUPONDATE", "coupondate", "date");
+            var valueIndex = GetColumnIndex(columnIndex, "VALUE", "value", "couponvalue");
+            var yieldIndex = GetColumnIndex(columnIndex, "COUPONPRC", "couponprc", "yield", "yieldpct", "yieldpercent", "couponrate");
+            var percentParIndex = GetColumnIndex(columnIndex, "VALUEPRC", "valueprc", "percent", "percentofpar", "pctofpar", "couponpercent");
+            var percentMarketIndex = GetColumnIndex(columnIndex, "PCTOFMKT", "pctofmkt", "percentofmarket", "pctofmarket");
+
+            var result = new List<MoexBondCouponRow>();
+            foreach (var row in table.Rows)
+            {
+                result.Add(new MoexBondCouponRow(
+                    SecId: secid.Trim().ToUpperInvariant(),
+                    Number: ReadInt(row, numberIndex),
+                    CouponDate: ReadDate(row, dateIndex),
+                    CouponValue: ReadDecimal(row, valueIndex),
+                    CouponYieldPct: ReadDecimal(row, yieldIndex),
+                    PercentOfPar: ReadDecimal(row, percentParIndex),
+                    PercentOfMarket: ReadDecimal(row, percentMarketIndex)));
+            }
+
+            return result;
+        }
+
+        public async Task<Dictionary<string, decimal>> GetBondEffectiveYieldsAsync(IEnumerable<string> secids, CancellationToken cancellationToken = default)
+        {
+            if (secids == null)
+            {
+                return new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            var normalized = secids
+                .Select(NormalizeCode)
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (normalized.Count == 0)
+            {
+                return new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            var result = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            const int chunkSize = 50;
+
+            for (var offset = 0; offset < normalized.Count; offset += chunkSize)
+            {
+                var chunk = normalized.Skip(offset).Take(chunkSize).ToList();
+                var joined = string.Join(",", chunk);
+                var url =
+                    "https://iss.moex.com/iss/engines/stock/markets/bonds/securities.json" +
+                    $"?iss.meta=off&iss.only=marketdata_yields&securities={Uri.EscapeDataString(joined)}" +
+                    "&marketdata_yields.columns=SECID,EFFECTIVEYIELD";
+
+                var table = await GetTableAsync(url, "marketdata_yields", cancellationToken);
+                if (table == null || table.Rows.Count == 0)
+                {
+                    continue;
+                }
+
+                var columnIndex = BuildColumnIndex(table.Columns);
+                var secidIndex = GetColumnIndex(columnIndex, "SECID", "secid");
+                var yieldIndex = GetColumnIndex(columnIndex, "EFFECTIVEYIELD", "effectiveyield");
+                if (!secidIndex.HasValue || !yieldIndex.HasValue)
+                {
+                    continue;
+                }
+
+                foreach (var row in table.Rows)
+                {
+                    var secid = ReadString(row, secidIndex.Value);
+                    var effectiveYield = ReadDecimal(row, yieldIndex);
+                    if (string.IsNullOrWhiteSpace(secid) || !effectiveYield.HasValue)
+                    {
+                        continue;
+                    }
+
+                    var normalizedSecid = NormalizeCode(secid) ?? secid;
+                    result[normalizedSecid] = effectiveYield.Value;
+                }
+            }
+
+            return result;
         }
 
         public async Task<IReadOnlyList<MoexFutureRow>> GetFuturesAsync(CancellationToken cancellationToken = default)
@@ -738,8 +984,13 @@ namespace StockChart.Repository.Services
             return null;
         }
 
-        private static string? ReadString(IReadOnlyList<string?> row, int index)
+        private static string? ReadString(IReadOnlyList<string?>? row, int index)
         {
+            if (row == null)
+            {
+                return null;
+            }
+
             if (index < 0 || index >= row.Count)
             {
                 return null;
@@ -748,7 +999,7 @@ namespace StockChart.Repository.Services
             return row[index];
         }
 
-        private static string? ReadString(IReadOnlyList<string?> row, int? index)
+        private static string? ReadString(IReadOnlyList<string?>? row, int? index)
         {
             if (!index.HasValue)
             {
@@ -758,7 +1009,7 @@ namespace StockChart.Repository.Services
             return ReadString(row, index.Value);
         }
 
-        private static int? ReadInt(IReadOnlyList<string?> row, int? index)
+        private static int? ReadInt(IReadOnlyList<string?>? row, int? index)
         {
             var str = ReadString(row, index);
             if (string.IsNullOrWhiteSpace(str))
@@ -791,7 +1042,7 @@ namespace StockChart.Repository.Services
             return null;
         }
 
-        private static long? ReadLong(IReadOnlyList<string?> row, int? index)
+        private static long? ReadLong(IReadOnlyList<string?>? row, int? index)
         {
             var str = ReadString(row, index);
             if (string.IsNullOrWhiteSpace(str))
@@ -816,7 +1067,7 @@ namespace StockChart.Repository.Services
             return null;
         }
 
-        private static decimal? ReadDecimal(IReadOnlyList<string?> row, int? index)
+        private static decimal? ReadDecimal(IReadOnlyList<string?>? row, int? index)
         {
             var str = ReadString(row, index);
             if (string.IsNullOrWhiteSpace(str))
@@ -837,7 +1088,29 @@ namespace StockChart.Repository.Services
             return null;
         }
 
-        private static DateTime? ReadDate(IReadOnlyList<string?> row, int? index)
+        private static bool? ReadBool(IReadOnlyList<string?>? row, int? index)
+        {
+            var str = ReadString(row, index);
+            if (string.IsNullOrWhiteSpace(str))
+            {
+                return null;
+            }
+
+            if (bool.TryParse(str, out var b))
+            {
+                return b;
+            }
+
+            if (decimal.TryParse(str, NumberStyles.Any, CultureInfo.InvariantCulture, out var dec) ||
+                decimal.TryParse(str, NumberStyles.Any, CultureInfo.GetCultureInfo("ru-RU"), out dec))
+            {
+                return dec != 0;
+            }
+
+            return null;
+        }
+
+        private static DateTime? ReadDate(IReadOnlyList<string?>? row, int? index)
         {
             var str = ReadString(row, index);
             if (string.IsNullOrWhiteSpace(str) || str == "0000-00-00")
@@ -872,6 +1145,52 @@ namespace StockChart.Repository.Services
         {
             var joined = string.Join(",", columns);
             return Uri.EscapeDataString(joined);
+        }
+
+        private static Dictionary<string, IReadOnlyList<string?>> BuildSecidRowMap(
+            MoexTable? table,
+            out Dictionary<string, int> columnIndex)
+        {
+            columnIndex = table == null ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) : BuildColumnIndex(table.Columns);
+
+            var result = new Dictionary<string, IReadOnlyList<string?>>(StringComparer.OrdinalIgnoreCase);
+            if (table == null || table.Rows.Count == 0)
+            {
+                return result;
+            }
+
+            var secidIndex = GetColumnIndex(columnIndex, "SECID", "secid");
+            if (!secidIndex.HasValue)
+            {
+                return result;
+            }
+
+            foreach (var row in table.Rows)
+            {
+                var secid = ReadString(row, secidIndex.Value);
+                if (string.IsNullOrWhiteSpace(secid))
+                {
+                    continue;
+                }
+
+                var normalized = NormalizeCode(secid) ?? secid;
+                result[normalized] = row;
+            }
+
+            return result;
+        }
+
+        private static decimal? FirstNonNull(params decimal?[] values)
+        {
+            foreach (var value in values)
+            {
+                if (value.HasValue)
+                {
+                    return value;
+                }
+            }
+
+            return null;
         }
 
         private sealed class MoexTable

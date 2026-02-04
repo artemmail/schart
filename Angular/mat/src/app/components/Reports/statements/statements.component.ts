@@ -27,6 +27,8 @@ interface InstrumentRelationItem {
   faceValue?: number | null;
   currency?: string;
   primaryBoardId?: string;
+  currentYield?: number | null;
+  currentPrice?: number | null;
 }
 
 interface InstrumentRelationsDto {
@@ -238,7 +240,9 @@ export class StatementsComponent implements OnInit {
       maturityDate: item?.maturityDate ?? item?.MaturityDate ?? null,
       faceValue: item?.faceValue ?? item?.FaceValue ?? null,
       currency: item?.currency ?? item?.Currency ?? '',
-      primaryBoardId: item?.primaryBoardId ?? item?.PrimaryBoardId ?? ''
+      primaryBoardId: item?.primaryBoardId ?? item?.PrimaryBoardId ?? '',
+      currentYield: item?.currentYield ?? item?.CurrentYield ?? null,
+      currentPrice: item?.currentPrice ?? item?.CurrentPrice ?? null
     });
 
     const bondsRaw = raw?.bonds ?? raw?.Bonds ?? [];

@@ -402,10 +402,121 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.ToTable("Bill");
                 });
 
+            modelBuilder.Entity("StockChart.Model.BondCoupon", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CouponDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal?>("CouponValue")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<decimal?>("CouponYieldPct")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<int>("DictionaryId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Number")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("PercentOfMarket")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<decimal?>("PercentOfPar")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DictionaryId", "CouponDate");
+
+                    b.ToTable("BondCoupons", (string)null);
+                });
+
+            modelBuilder.Entity("StockChart.Model.BondMarketSnapshot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("AccruedInterest")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<string>("BoardId")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<decimal?>("CouponValue")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<decimal?>("DayChangePct")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<decimal?>("DayVolume")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<long?>("DayVolumeQty")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("DictionaryId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ImportedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("NextCouponDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("OfferDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal?>("PricePctOfPar")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<decimal?>("PriceRub")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<string>("TradingStatus")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<decimal?>("YieldPct")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DictionaryId", "ImportedAt");
+
+                    b.ToTable("BondMarketSnapshots", (string)null);
+                });
+
             modelBuilder.Entity("StockChart.Model.BondSpec", b =>
                 {
                     b.Property<int>("DictionaryId")
                         .HasColumnType("int");
+
+                    b.Property<decimal?>("AccruedInterest")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<int?>("CouponPeriodDays")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("CouponRate")
+                        .HasColumnType("decimal(28, 10)");
+
+                    b.Property<string>("CouponType")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<decimal?>("CouponValue")
+                        .HasColumnType("decimal(28, 10)");
 
                     b.Property<string>("Currency")
                         .HasMaxLength(8)
@@ -418,12 +529,33 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
 
+                    b.Property<long?>("IssueSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("IssueSizePlaced")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("ListingLevel")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("MaturityDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("NextCouponDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("OfferDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("PlacementDate")
                         .HasColumnType("date");
 
                     b.Property<string>("PrimaryBoardId")
                         .HasMaxLength(16)
                         .HasColumnType("nvarchar(16)");
+
+                    b.Property<bool?>("QualifiedOnly")
+                        .HasColumnType("bit");
 
                     b.Property<string>("RegNumber")
                         .HasMaxLength(64)
@@ -2743,6 +2875,30 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("StockChart.Model.BondCoupon", b =>
+                {
+                    b.HasOne("StockChart.Model.Dictionary", "Dictionary")
+                        .WithMany()
+                        .HasForeignKey("DictionaryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_BondCoupons_Dictionary");
+
+                    b.Navigation("Dictionary");
+                });
+
+            modelBuilder.Entity("StockChart.Model.BondMarketSnapshot", b =>
+                {
+                    b.HasOne("StockChart.Model.Dictionary", "Dictionary")
+                        .WithMany()
+                        .HasForeignKey("DictionaryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_BondMarketSnapshots_Dictionary");
+
+                    b.Navigation("Dictionary");
                 });
 
             modelBuilder.Entity("StockChart.Model.BondSpec", b =>

@@ -220,5 +220,6 @@ namespace DataProvider.Models
                     marketcode = marketInfo.Name;
             }
         }
+
     }
 }

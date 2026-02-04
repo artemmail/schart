@@ -151,6 +151,12 @@ public sealed class MoexSyncService : IMoexSyncService
                 .Where(d => /* d.Market == MarketBonds &&*/ secids.Contains(d.Securityid))
                 .ToListAsync(cancellationToken);
 
+            var marketData = await FetchBondMarketDataAsync(secids, cancellationToken);
+            var marketMap = marketData.ToDictionary(m => m.SecId, m => m, StringComparer.OrdinalIgnoreCase);
+            var importedAt = DateTime.UtcNow;
+            var marketSnapshots = new List<BondMarketSnapshot>();
+            var couponPayload = new List<BondCoupon>();
+
             var dictMap = existing.ToDictionary(d => d.Securityid, d => d, StringComparer.OrdinalIgnoreCase);
             var touchedBonds = new List<DictionaryEntity>();
 
@@ -185,16 +191,47 @@ public sealed class MoexSyncService : IMoexSyncService
                 var dictChanged = UpdateDictionaryBase(dic, row.Shortname, row.Isin, row.Currency, MarketBonds);
                 dictChanged |= ApplyEmitent(dic, row.Emitent);
 
+                var marketRow = marketMap.TryGetValue(row.SecId, out var foundMarket) ? foundMarket : null;
+
                 var bondSpec = specMap.TryGetValue(dic.Id, out var existingSpec)
                     ? existingSpec
                     : new BondSpec { Dictionary = dic };
 
-                var specChanged = UpdateBondSpec(bondSpec, row);
+                var specChanged = UpdateBondSpec(bondSpec, row, marketRow);
 
                 if (existingSpec == null)
                 {
                     _dbContext.BondSpecs.Add(bondSpec);
+                    specMap[dic.Id] = bondSpec;
                     specChanged = true;
+                }
+
+                if (marketRow != null)
+                {
+                    var faceValue = bondSpec.FaceValue ?? row.FaceValue;
+                    decimal? priceRub = null;
+                    if (marketRow.PricePct.HasValue && faceValue.HasValue && faceValue.Value > 0)
+                    {
+                        priceRub = marketRow.PricePct.Value / 100m * faceValue.Value;
+                    }
+
+                    marketSnapshots.Add(new BondMarketSnapshot
+                    {
+                        Dictionary = dic,
+                        ImportedAt = importedAt,
+                        BoardId = marketRow.BoardId ?? bondSpec.PrimaryBoardId,
+                        TradingStatus = marketRow.TradingStatus,
+                        PricePctOfPar = marketRow.PricePct,
+                        PriceRub = priceRub,
+                        YieldPct = marketRow.YieldPct,
+                        DayChangePct = marketRow.DayChangePct,
+                        DayVolume = marketRow.DayVolume,
+                        DayVolumeQty = marketRow.DayVolumeQty,
+                        AccruedInterest = marketRow.AccruedInterest,
+                        CouponValue = marketRow.CouponValue,
+                        NextCouponDate = marketRow.NextCouponDate,
+                        OfferDate = marketRow.OfferDate
+                    });
                 }
 
                 if (dictChanged || specChanged)
@@ -202,6 +239,102 @@ public sealed class MoexSyncService : IMoexSyncService
                     updated++;
                     touchedBonds.Add(dic);
                 }
+            }
+
+            if (marketSnapshots.Count > 0)
+            {
+                _dbContext.BondMarketSnapshots.AddRange(marketSnapshots);
+            }
+
+            if (dictMap.Count > 0)
+            {
+                foreach (var row in page)
+                {
+                    if (!dictMap.TryGetValue(row.SecId, out var dic))
+                    {
+                        continue;
+                    }
+
+                    var coupons = await FetchBondCouponsAsync(row.SecId, cancellationToken);
+                    if (coupons.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    var bondSpec = specMap.TryGetValue(dic.Id, out var spec) ? spec : null;
+                    var marketRow = marketMap.TryGetValue(row.SecId, out var foundMarket) ? foundMarket : null;
+
+                    var faceValue = bondSpec?.FaceValue ?? row.FaceValue;
+                    decimal? priceRub = null;
+                    if (marketRow?.PricePct.HasValue == true && faceValue.HasValue && faceValue.Value > 0)
+                    {
+                        priceRub = marketRow.PricePct.Value / 100m * faceValue.Value;
+                    }
+
+                    var periodDays = bondSpec?.CouponPeriodDays ?? marketRow?.CouponPeriodDays;
+
+                    var couponList = coupons
+                        .OrderBy(c => c.CouponDate ?? DateTime.MaxValue)
+                        .ToList();
+
+                    for (var i = 0; i < couponList.Count; i++)
+                    {
+                        var coupon = couponList[i];
+                        if (!coupon.Number.HasValue || coupon.Number.Value <= 0)
+                        {
+                            couponList[i] = coupon with { Number = i + 1 };
+                        }
+                    }
+
+                    foreach (var coupon in couponList)
+                    {
+                        var percentOfPar = coupon.PercentOfPar;
+                        if (!percentOfPar.HasValue && coupon.CouponValue.HasValue && faceValue.HasValue && faceValue.Value > 0)
+                        {
+                            percentOfPar = coupon.CouponValue.Value / faceValue.Value * 100m;
+                        }
+
+                        var percentOfMarket = coupon.PercentOfMarket;
+                        if (!percentOfMarket.HasValue && coupon.CouponValue.HasValue && priceRub.HasValue && priceRub.Value > 0)
+                        {
+                            percentOfMarket = coupon.CouponValue.Value / priceRub.Value * 100m;
+                        }
+
+                        var yieldPct = coupon.CouponYieldPct;
+                        if (!yieldPct.HasValue && coupon.CouponValue.HasValue && priceRub.HasValue && priceRub.Value > 0)
+                        {
+                            if (periodDays.HasValue && periodDays.Value > 0)
+                            {
+                                yieldPct = coupon.CouponValue.Value / priceRub.Value * 365m / periodDays.Value * 100m;
+                            }
+                            else
+                            {
+                                yieldPct = coupon.CouponValue.Value / priceRub.Value * 100m;
+                            }
+                        }
+
+                        couponPayload.Add(new BondCoupon
+                        {
+                            DictionaryId = dic.Id,
+                            Number = coupon.Number,
+                            CouponDate = coupon.CouponDate,
+                            CouponValue = coupon.CouponValue,
+                            CouponYieldPct = yieldPct,
+                            PercentOfPar = percentOfPar,
+                            PercentOfMarket = percentOfMarket
+                        });
+                    }
+                }
+            }
+
+            if (couponPayload.Count > 0)
+            {
+                var couponIds = couponPayload.Select(c => c.DictionaryId).Distinct().ToList();
+                var existingCoupons = await _dbContext.BondCoupons
+                    .Where(c => couponIds.Contains(c.DictionaryId))
+                    .ToListAsync(cancellationToken);
+                _dbContext.BondCoupons.RemoveRange(existingCoupons);
+                _dbContext.BondCoupons.AddRange(couponPayload);
             }
 
             if (_dbContext.ChangeTracker.HasChanges())
@@ -496,6 +629,28 @@ public sealed class MoexSyncService : IMoexSyncService
     {
         return _moexApiService.GetBondDetailsAsync(secid, cancellationToken);
     }
+    private Task<IReadOnlyList<MoexBondMarketRow>> FetchBondMarketDataAsync(IEnumerable<string> secids, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return _moexApiService.GetBondMarketDataAsync(secids, cancellationToken);
+        }
+        catch
+        {
+            return Task.FromResult<IReadOnlyList<MoexBondMarketRow>>(Array.Empty<MoexBondMarketRow>());
+        }
+    }
+    private Task<IReadOnlyList<MoexBondCouponRow>> FetchBondCouponsAsync(string secid, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return _moexApiService.GetBondCouponsAsync(secid, cancellationToken);
+        }
+        catch
+        {
+            return Task.FromResult<IReadOnlyList<MoexBondCouponRow>>(Array.Empty<MoexBondCouponRow>());
+        }
+    }
     private Task<IReadOnlyList<MoexFutureRow>> FetchFuturesAsync(CancellationToken cancellationToken)
     {
         return _moexApiService.GetFuturesAsync(cancellationToken);
@@ -768,7 +923,7 @@ public sealed class MoexSyncService : IMoexSyncService
         return changed;
     }
 
-    private bool UpdateBondSpec(BondSpec spec, MoexBondRow row)
+    private bool UpdateBondSpec(BondSpec spec, MoexBondRow row, MoexBondMarketRow? marketRow)
     {
         var changed = false;
         var now = DateTime.UtcNow;
@@ -807,6 +962,81 @@ public sealed class MoexSyncService : IMoexSyncService
         {
             spec.PrimaryBoardId = row.PrimaryBoardId;
             changed = true;
+        }
+
+        if (marketRow != null)
+        {
+            if (marketRow.PlacementDate.HasValue && spec.PlacementDate != marketRow.PlacementDate)
+            {
+                spec.PlacementDate = marketRow.PlacementDate;
+                changed = true;
+            }
+
+            if (marketRow.OfferDate.HasValue && spec.OfferDate != marketRow.OfferDate)
+            {
+                spec.OfferDate = marketRow.OfferDate;
+                changed = true;
+            }
+
+            if (marketRow.NextCouponDate.HasValue && spec.NextCouponDate != marketRow.NextCouponDate)
+            {
+                spec.NextCouponDate = marketRow.NextCouponDate;
+                changed = true;
+            }
+
+            if (marketRow.CouponValue.HasValue && spec.CouponValue != marketRow.CouponValue)
+            {
+                spec.CouponValue = marketRow.CouponValue;
+                changed = true;
+            }
+
+            if (marketRow.CouponPeriodDays.HasValue && spec.CouponPeriodDays != marketRow.CouponPeriodDays)
+            {
+                spec.CouponPeriodDays = marketRow.CouponPeriodDays;
+                changed = true;
+            }
+
+            if (marketRow.CouponRate.HasValue && spec.CouponRate != marketRow.CouponRate)
+            {
+                spec.CouponRate = marketRow.CouponRate;
+                changed = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(marketRow.CouponType) && spec.CouponType != marketRow.CouponType)
+            {
+                spec.CouponType = marketRow.CouponType;
+                changed = true;
+            }
+
+            if (marketRow.AccruedInterest.HasValue && spec.AccruedInterest != marketRow.AccruedInterest)
+            {
+                spec.AccruedInterest = marketRow.AccruedInterest;
+                changed = true;
+            }
+
+            if (marketRow.IssueSize.HasValue && spec.IssueSize != marketRow.IssueSize)
+            {
+                spec.IssueSize = marketRow.IssueSize;
+                changed = true;
+            }
+
+            if (marketRow.IssueSizePlaced.HasValue && spec.IssueSizePlaced != marketRow.IssueSizePlaced)
+            {
+                spec.IssueSizePlaced = marketRow.IssueSizePlaced;
+                changed = true;
+            }
+
+            if (marketRow.ListingLevel.HasValue && spec.ListingLevel != marketRow.ListingLevel)
+            {
+                spec.ListingLevel = marketRow.ListingLevel;
+                changed = true;
+            }
+
+            if (marketRow.QualifiedOnly.HasValue && spec.QualifiedOnly != marketRow.QualifiedOnly)
+            {
+                spec.QualifiedOnly = marketRow.QualifiedOnly;
+                changed = true;
+            }
         }
 
         if (changed || spec.UpdatedAt == default)

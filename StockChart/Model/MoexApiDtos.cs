@@ -82,6 +82,37 @@ namespace StockChart.Model
 
     public sealed record MoexDividendRow(DateTime Date, decimal Value);
 
+    public sealed record MoexBondMarketRow(
+        string SecId,
+        string? BoardId,
+        decimal? PricePct,
+        decimal? YieldPct,
+        decimal? DayChangePct,
+        decimal? DayVolume,
+        long? DayVolumeQty,
+        decimal? AccruedInterest,
+        DateTime? NextCouponDate,
+        DateTime? OfferDate,
+        decimal? CouponValue,
+        int? CouponPeriodDays,
+        decimal? CouponRate,
+        string? CouponType,
+        DateTime? PlacementDate,
+        long? IssueSize,
+        long? IssueSizePlaced,
+        int? ListingLevel,
+        bool? QualifiedOnly,
+        string? TradingStatus);
+
+    public sealed record MoexBondCouponRow(
+        string SecId,
+        int? Number,
+        DateTime? CouponDate,
+        decimal? CouponValue,
+        decimal? CouponYieldPct,
+        decimal? PercentOfPar,
+        decimal? PercentOfMarket);
+
     public readonly record struct OpenPositionsImportData(
         DateTime TradeDate,
         long PhysicalLong,

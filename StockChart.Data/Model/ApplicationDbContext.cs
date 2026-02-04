@@ -92,6 +92,8 @@ public partial class ApplicationDbContext
     public virtual DbSet<DividendsMoex> DividendsMoex { get; set; }
     public virtual DbSet<DividendsMoexUpdateLog> DividendsMoexUpdateLogs { get; set; }
     public virtual DbSet<BondSpec> BondSpecs { get; set; }
+    public virtual DbSet<BondMarketSnapshot> BondMarketSnapshots { get; set; }
+    public virtual DbSet<BondCoupon> BondCoupons { get; set; }
     public virtual DbSet<FutureSpec> FutureSpecs { get; set; }
     public virtual DbSet<OptionSpec> OptionSpecs { get; set; }
     public virtual DbSet<OptionMarketSnapshot> OptionMarketSnapshots { get; set; }
@@ -557,14 +559,62 @@ public partial class ApplicationDbContext
             entity.Property(e => e.DictionaryId).ValueGeneratedNever();
             entity.Property(e => e.Isin).HasMaxLength(32);
             entity.Property(e => e.RegNumber).HasMaxLength(64);
+            entity.Property(e => e.PlacementDate).HasColumnType("date");
             entity.Property(e => e.MaturityDate).HasColumnType("date");
+            entity.Property(e => e.OfferDate).HasColumnType("date");
+            entity.Property(e => e.NextCouponDate).HasColumnType("date");
             entity.Property(e => e.FaceValue).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.CouponValue).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.CouponRate).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.CouponType).HasMaxLength(32);
+            entity.Property(e => e.AccruedInterest).HasColumnType("decimal(28, 10)");
             entity.Property(e => e.Currency).HasMaxLength(8);
             entity.Property(e => e.PrimaryBoardId).HasMaxLength(16);
+            entity.Property(e => e.IssueSize).HasColumnType("bigint");
+            entity.Property(e => e.IssueSizePlaced).HasColumnType("bigint");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
             entity.HasOne(d => d.Dictionary).WithOne()
                 .HasForeignKey<BondSpec>(d => d.DictionaryId)
                 .HasConstraintName("FK_BondSpec_Dictionary");
+        });
+
+        modelBuilder.Entity<BondMarketSnapshot>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("BondMarketSnapshots");
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.ImportedAt).HasColumnType("datetime2");
+            entity.Property(e => e.BoardId).HasMaxLength(16);
+            entity.Property(e => e.TradingStatus).HasMaxLength(32);
+            entity.Property(e => e.PricePctOfPar).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.PriceRub).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.YieldPct).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.DayChangePct).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.DayVolume).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.AccruedInterest).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.CouponValue).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.NextCouponDate).HasColumnType("date");
+            entity.Property(e => e.OfferDate).HasColumnType("date");
+            entity.HasIndex(e => new { e.DictionaryId, e.ImportedAt });
+            entity.HasOne(d => d.Dictionary).WithMany()
+                .HasForeignKey(d => d.DictionaryId)
+                .HasConstraintName("FK_BondMarketSnapshots_Dictionary");
+        });
+
+        modelBuilder.Entity<BondCoupon>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("BondCoupons");
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.CouponDate).HasColumnType("date");
+            entity.Property(e => e.CouponValue).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.CouponYieldPct).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.PercentOfPar).HasColumnType("decimal(28, 10)");
+            entity.Property(e => e.PercentOfMarket).HasColumnType("decimal(28, 10)");
+            entity.HasIndex(e => new { e.DictionaryId, e.CouponDate });
+            entity.HasOne(d => d.Dictionary).WithMany()
+                .HasForeignKey(d => d.DictionaryId)
+                .HasConstraintName("FK_BondCoupons_Dictionary");
         });
 
         modelBuilder.Entity<FutureSpec>(entity =>
