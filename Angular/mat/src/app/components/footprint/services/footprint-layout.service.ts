@@ -316,7 +316,9 @@ export class FootprintLayoutService {
 
     const x1 = matrix.applyToPoint(0, 0).x;
     const x2 = matrix.applyToPoint(data.clusterData.length, 0).x;
-    const dp = (data.maxPrice - data.minPrice) / 10;
+    const scale = Number.isFinite(data.priceScale) && data.priceScale > 0 ? data.priceScale : 1e-6;
+    const priceRange = data.maxPrice - data.minPrice;
+    const dp = Math.max(Math.abs(priceRange) / 10, scale);
     const y1 = matrix.applyToPoint(0, data.maxPrice + dp).y;
     const y2 = matrix.applyToPoint(0, data.minPrice - dp).y;
     let deltaX = 0;
@@ -352,7 +354,8 @@ export class FootprintLayoutService {
       const local = data.local ?? { maxPrice: data.maxPrice, minPrice: data.minPrice };
 
       if (local.maxPrice !== undefined && local.minPrice !== undefined) {
-        const localDelta = (local.maxPrice - local.minPrice) / 10;
+        const localRange = local.maxPrice - local.minPrice;
+        const localDelta = Math.max(Math.abs(localRange) / 10, scale);
         matrix = matrix.reassignY(
           { y1: local.maxPrice + localDelta, y2: local.minPrice - localDelta },
           { y1: view.y, y2: view.y + view.h }

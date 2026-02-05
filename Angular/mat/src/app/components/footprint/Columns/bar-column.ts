@@ -8,8 +8,10 @@ export class BarColumn extends ClusterColumnBase {
 
   draw(column: ColumnEx, number: number, mtx: Matrix) {
     var ctx = this.ctx;
+    const minPx = Math.max(1, Math.round(this.colorsService.sscale()));
     var r1 = mtx.price2Height(column.h, number);
     var r2 = mtx.price2Height(column.l, number);
+    const wickRange = this.normalizeYRange(r1.y, r2.y, minPx);
     let w = this.getBar(mtx).w;
     ctx.strokeStyle =
       column.o > column.c ? this.palette.down : this.palette.up;
@@ -18,11 +20,12 @@ export class BarColumn extends ClusterColumnBase {
     ctx.lineWidth = ww;
     ctx.beginPath();
     let cent = r1.x + w / 2;
-    ctx.myLine(cent, r1.y, cent, r2.y);
+    ctx.myLine(cent, wickRange.y1, cent, wickRange.y2);
     var r1 = mtx.price2Height(column.o, number);
     var r2 = mtx.price2Height(column.c, number);
-    ctx.myLine(r1.x, r1.y, cent, r1.y);
-    ctx.myLine(r1.x + w, r2.y, cent, r2.y);
+    const bodyRange = this.normalizeYRange(r1.y, r2.y, minPx);
+    ctx.myLine(r1.x, bodyRange.y1, cent, bodyRange.y1);
+    ctx.myLine(r1.x + w, bodyRange.y2, cent, bodyRange.y2);
     ctx.stroke();
     ctx.lineWidth = 1;
     if (!!column.cl)

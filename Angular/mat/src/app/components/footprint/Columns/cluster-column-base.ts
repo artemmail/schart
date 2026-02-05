@@ -146,6 +146,7 @@ export class ClusterColumnBase {
   ) {
     const settings: ChartSettings = this.settings;
     if (settings.OpenClose && 'o' in column && column.o > 0) {
+      const minPx = Math.max(1, Math.round(this.colorsService.sscale()));
       let wide =
         settings.style != 'ASKxBID' &&
         !(settings.style == 'VolumeDelta' && settings.deltaStyle == 'Delta');
@@ -161,7 +162,10 @@ export class ClusterColumnBase {
             : this.palette.up;
       var r1 = mtx.price2Height(column.o, number);
       var r2 = mtx.price2Height(column.c, number);
-      ctx.fillRect(r1.x, r1.y, !wide ? 2 : this.getBar(mtx).w, r2.y - r1.y);
+      const yRange = this.normalizeYRange(r1.y, r2.y, minPx);
+      const top = Math.min(yRange.y1, yRange.y2);
+      const height = Math.abs(yRange.y2 - yRange.y1);
+      ctx.fillRect(r1.x, top, !wide ? 2 : this.getBar(mtx).w, height);
     }
   }
 
@@ -194,6 +198,18 @@ export class ClusterColumnBase {
     var h = Math.abs(rect.h);
     const rawSize = Math.min(h - 1, w / textLen, this.colorsService.maxFontSize());
     return Math.max(0, Math.floor(rawSize));
+  }
+
+  protected normalizeYRange(y1: number, y2: number, minPixels: number) {
+    if (!isFinite(y1) || !isFinite(y2)) {
+      return { y1, y2 };
+    }
+    if (Math.abs(y1 - y2) >= minPixels) {
+      return { y1, y2 };
+    }
+    const mid = (y1 + y2) / 2;
+    const half = minPixels / 2;
+    return { y1: mid - half, y2: mid + half };
   }
 
   drawColumnText(

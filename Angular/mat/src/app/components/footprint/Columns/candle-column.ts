@@ -14,6 +14,7 @@ export class CandleColumn extends ClusterColumnBase {
 
   draw(column: ColumnEx, number: number, mtx: Matrix) {
     var ctx = this.ctx;
+    const minPx = Math.max(1, Math.round(this.colorsService.sscale()));
     const isDown = column.o > column.c;
     const isSelected = column === this.getSelectedColumn();
     const candleColor = isDown
@@ -28,8 +29,9 @@ export class CandleColumn extends ClusterColumnBase {
     ctx.beginPath();
     var r1 = mtx.price2Height(column.h, number);
     var r2 = mtx.price2Height(column.l, number);
+    const wickRange = this.normalizeYRange(r1.y, r2.y, minPx);
     let w = this.getBar(mtx).w;
-    ctx.myLine(r1.x + w / 2, r1.y, r1.x + w / 2, r2.y);
+    ctx.myLine(r1.x + w / 2, wickRange.y1, r1.x + w / 2, wickRange.y2);
     ctx.stroke();
     var r1 = mtx.price2Height(column.o, number);
     w = this.getBar(mtx).w;
@@ -38,7 +40,10 @@ export class CandleColumn extends ClusterColumnBase {
       column.o > column.c
         ? this.palette.downBorder
         : this.palette.upBorder;
-    var nr = { x: r1.x + w * 0.15, w: w * 0.7, y: r2.y, h: r1.y - r2.y };
+    const bodyRange = this.normalizeYRange(r1.y, r2.y, minPx);
+    const top = Math.min(bodyRange.y1, bodyRange.y2);
+    const height = Math.abs(bodyRange.y2 - bodyRange.y1);
+    var nr = { x: r1.x + w * 0.15, w: w * 0.7, y: top, h: height };
     ctx.myFillRect(nr);
     ctx.myStrokeRect(nr);
     if (!!column.cl)

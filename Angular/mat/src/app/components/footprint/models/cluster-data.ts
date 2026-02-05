@@ -65,7 +65,10 @@ export class ClusterData {
 
   constructor(data: ClusterDataInit) {
     this.lastPrice = data.clusterData[data.clusterData.length - 1].c;
-    this.priceScale = data.priceScale;
+    this.priceScale = ClusterData.resolvePriceScale(
+      data.priceScale,
+      data.clusterData
+    );
     this.oiDeltaDivideBy2 = data.oiDeltaDivideBy2 ?? false;
 
     this.volumePerQuantity =
@@ -75,6 +78,38 @@ export class ClusterData {
     this.clusterData = data.clusterData.map((column) => this.addColumnInfo(column));
 
     this.calcPrices();
+  }
+
+  private static resolvePriceScale(
+    priceScale: number | null | undefined,
+    clusterData: ClusterDataColumn[]
+  ): number {
+    if (priceScale !== undefined && priceScale !== null && isFinite(priceScale) && priceScale > 0) {
+      return priceScale;
+    }
+
+    const sample = clusterData?.[0];
+    const fallbackPrice =
+      sample?.c ?? sample?.o ?? sample?.h ?? sample?.l ?? 0;
+
+    return ClusterData.guessScaleFromPrice(fallbackPrice);
+  }
+
+  private static guessScaleFromPrice(price: number): number {
+    if (!isFinite(price) || price === 0) {
+      return 1;
+    }
+
+    const abs = Math.abs(price);
+    for (let n = 0; n <= 6; n++) {
+      const factor = Math.pow(10, n);
+      const rounded = Math.round(abs * factor);
+      if (Math.abs(rounded - abs * factor) < 1e-6) {
+        return 1 / factor;
+      }
+    }
+
+    return Math.max(1e-6, abs * 0.001);
   }
 
   setOiDeltaDivideBy2(value: boolean): void {
