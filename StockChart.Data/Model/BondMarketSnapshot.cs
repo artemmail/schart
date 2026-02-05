@@ -7,6 +7,8 @@ public partial class BondMarketSnapshot
     public DateTime ImportedAt { get; set; }
     public string? BoardId { get; set; }
     public string? TradingStatus { get; set; }
+    public string? PriceUnit { get; set; }
+    public string? CurrencyId { get; set; }
     public decimal? PricePctOfPar { get; set; }
     public decimal? PriceRub { get; set; }
     public decimal? YieldPct { get; set; }

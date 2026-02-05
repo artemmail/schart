@@ -456,6 +456,10 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.Property<decimal?>("CouponValue")
                         .HasColumnType("decimal(28, 10)");
 
+                    b.Property<string>("CurrencyId")
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
+
                     b.Property<decimal?>("DayChangePct")
                         .HasColumnType("decimal(28, 10)");
 
@@ -482,6 +486,10 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
 
                     b.Property<decimal?>("PriceRub")
                         .HasColumnType("decimal(28, 10)");
+
+                    b.Property<string>("PriceUnit")
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
 
                     b.Property<string>("TradingStatus")
                         .HasMaxLength(32)

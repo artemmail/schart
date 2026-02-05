@@ -102,7 +102,9 @@ namespace StockChart.Model
         long? IssueSizePlaced,
         int? ListingLevel,
         bool? QualifiedOnly,
-        string? TradingStatus);
+        string? TradingStatus,
+        string? PriceUnit,
+        string? CurrencyId);
 
     public sealed record MoexBondCouponRow(
         string SecId,

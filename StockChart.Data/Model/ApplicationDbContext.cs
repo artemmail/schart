@@ -586,6 +586,8 @@ public partial class ApplicationDbContext
             entity.Property(e => e.ImportedAt).HasColumnType("datetime2");
             entity.Property(e => e.BoardId).HasMaxLength(16);
             entity.Property(e => e.TradingStatus).HasMaxLength(32);
+            entity.Property(e => e.PriceUnit).HasMaxLength(8);
+            entity.Property(e => e.CurrencyId).HasMaxLength(8);
             entity.Property(e => e.PricePctOfPar).HasColumnType("decimal(28, 10)");
             entity.Property(e => e.PriceRub).HasColumnType("decimal(28, 10)");
             entity.Property(e => e.YieldPct).HasColumnType("decimal(28, 10)");

@@ -340,7 +340,9 @@ namespace StockChart.Repository.Services
                 var joined = string.Join(",", chunk);
                 var url =
                     "https://iss.moex.com/iss/engines/stock/markets/bonds/securities.json" +
-                    $"?iss.meta=off&iss.only=securities,marketdata,marketdata_yields&securities={Uri.EscapeDataString(joined)}";
+                    $"?iss.meta=off&iss.only=securities,marketdata,marketdata_yields,boards" +
+                    $"&securities={Uri.EscapeDataString(joined)}" +
+                    "&boards.columns=SECID,BOARDID,UNIT,CURRENCYID";
 
                 using var doc = await GetJsonAsync(url, cancellationToken);
                 if (doc == null)
@@ -351,10 +353,68 @@ namespace StockChart.Repository.Services
                 var secTable = ReadTable(doc.RootElement, "securities");
                 var mktTable = ReadTable(doc.RootElement, "marketdata");
                 var yldTable = ReadTable(doc.RootElement, "marketdata_yields");
+                var brdTable = ReadTable(doc.RootElement, "boards");
 
                 var secRows = BuildSecidRowMap(secTable, out var secIndex);
                 var mktRows = BuildSecidRowMap(mktTable, out var mktIndex);
                 var yldRows = BuildSecidRowMap(yldTable, out var yldIndex);
+
+                var boardLookup = new Dictionary<string, (string? Unit, string? CurrencyId)>(StringComparer.OrdinalIgnoreCase);
+                var boardByBoard = new Dictionary<string, (string? Unit, string? CurrencyId)>(StringComparer.OrdinalIgnoreCase);
+                var boardFallback = new Dictionary<string, (string? Unit, string? CurrencyId)>(StringComparer.OrdinalIgnoreCase);
+
+                if (brdTable != null && brdTable.Rows.Count > 0)
+                {
+                    var brdIndex = BuildColumnIndex(brdTable.Columns);
+                    var brdSecidIndex = GetColumnIndex(brdIndex, "SECID", "secid");
+                    var brdBoardIndex = GetColumnIndex(brdIndex, "BOARDID", "boardid");
+                    var brdUnitIndex = GetColumnIndex(brdIndex, "UNIT", "unit");
+                    var brdCurrencyIndex = GetColumnIndex(brdIndex, "CURRENCYID", "currencyid");
+
+                    foreach (var row in brdTable.Rows)
+                    {
+                        var boardIdRaw = ReadString(row, brdBoardIndex);
+                        if (string.IsNullOrWhiteSpace(boardIdRaw))
+                        {
+                            continue;
+                        }
+
+                        var secidRaw = ReadString(row, brdSecidIndex);
+                        if (string.IsNullOrWhiteSpace(secidRaw))
+                        {
+                            if (chunk.Count == 1)
+                            {
+                                secidRaw = chunk[0];
+                            }
+                        }
+
+                        var unit = ReadString(row, brdUnitIndex);
+                        var currency = ReadString(row, brdCurrencyIndex);
+
+                        if (!string.IsNullOrWhiteSpace(secidRaw))
+                        {
+                            var secidKey = NormalizeCode(secidRaw) ?? secidRaw;
+                            var boardKey = NormalizeCode(boardIdRaw) ?? boardIdRaw;
+                            var key = $"{secidKey}|{boardKey}";
+
+                            boardLookup[key] = (unit, currency);
+
+                            if (!boardFallback.ContainsKey(secidKey) &&
+                                (!string.IsNullOrWhiteSpace(unit) || !string.IsNullOrWhiteSpace(currency)))
+                            {
+                                boardFallback[secidKey] = (unit, currency);
+                            }
+                        }
+                        else
+                        {
+                            var boardKey = NormalizeCode(boardIdRaw) ?? boardIdRaw;
+                            if (!boardByBoard.ContainsKey(boardKey))
+                            {
+                                boardByBoard[boardKey] = (unit, currency);
+                            }
+                        }
+                    }
+                }
 
                 var prevAdmittedIndex = GetColumnIndex(secIndex, "PREVADMITTEDQUOTE", "prevadmittedquote");
                 var prevWapIndex = GetColumnIndex(secIndex, "PREVWAPRICE", "prevwaprice");
@@ -375,6 +435,8 @@ namespace StockChart.Repository.Services
                 var couponRateIndex = GetColumnIndex(secIndex, "COUPONRATE", "couponrate", "COUPONPERCENT", "couponpercent");
                 var couponTypeIndex = GetColumnIndex(secIndex, "COUPONTYPE", "coupontype");
                 var secBoardIndex = GetColumnIndex(secIndex, "BOARDID", "boardid");
+                var unitIndex = GetColumnIndex(secIndex, "UNIT", "unit");
+                var currencyIndex = GetColumnIndex(secIndex, "CURRENCYID", "currencyid");
 
                 var marketPrice2Index = GetColumnIndex(mktIndex, "MARKETPRICE2", "marketprice2");
                 var marketPriceIndex = GetColumnIndex(mktIndex, "MARKETPRICE", "marketprice");
@@ -426,6 +488,28 @@ namespace StockChart.Repository.Services
 
                     var boardId = ReadString(mktRow, mktBoardIndex) ?? ReadString(secRow, secBoardIndex);
                     var tradingStatus = ReadString(mktRow, tradingStatusIndex) ?? ReadString(secRow, statusIndex);
+                    string? priceUnit = null;
+                    string? currencyId = null;
+                    if (!string.IsNullOrWhiteSpace(boardId))
+                    {
+                        var boardKey = NormalizeCode(boardId) ?? boardId;
+                        var key = $"{secid}|{boardKey}";
+                        if (boardLookup.TryGetValue(key, out var boardInfo))
+                        {
+                            priceUnit = boardInfo.Unit;
+                            currencyId = boardInfo.CurrencyId;
+                        }
+                        else if (boardByBoard.TryGetValue(boardKey, out var boardOnly))
+                        {
+                            priceUnit = boardOnly.Unit;
+                            currencyId = boardOnly.CurrencyId;
+                        }
+                    }
+                    if (boardFallback.TryGetValue(secid, out var fallbackInfo))
+                    {
+                        priceUnit ??= fallbackInfo.Unit;
+                        currencyId ??= fallbackInfo.CurrencyId;
+                    }
 
                     var row = new MoexBondMarketRow(
                         SecId: secid,
@@ -447,7 +531,9 @@ namespace StockChart.Repository.Services
                         IssueSizePlaced: ReadLong(secRow, issuePlacedIndex),
                         ListingLevel: ReadInt(secRow, listLevelIndex),
                         QualifiedOnly: ReadBool(secRow, qualifiedIndex),
-                        TradingStatus: tradingStatus);
+                        TradingStatus: tradingStatus,
+                        PriceUnit: priceUnit ?? ReadString(secRow, unitIndex),
+                        CurrencyId: currencyId ?? ReadString(secRow, currencyIndex));
 
                     result.Add(row);
                 }

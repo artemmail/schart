@@ -214,6 +214,11 @@ public sealed class MoexSyncService : IMoexSyncService
                     {
                         priceRub = marketRow.PricePct.Value / 100m * faceValue.Value;
                     }
+                    var currencyId = marketRow.CurrencyId;
+                    if (string.IsNullOrWhiteSpace(currencyId))
+                    {
+                        currencyId = bondSpec.Currency ?? row.Currency;
+                    }
 
                     marketSnapshots.Add(new BondMarketSnapshot
                     {
@@ -221,6 +226,8 @@ public sealed class MoexSyncService : IMoexSyncService
                         ImportedAt = importedAt,
                         BoardId = marketRow.BoardId ?? bondSpec.PrimaryBoardId,
                         TradingStatus = marketRow.TradingStatus,
+                        PriceUnit = marketRow.PriceUnit,
+                        CurrencyId = currencyId,
                         PricePctOfPar = marketRow.PricePct,
                         PriceRub = priceRub,
                         YieldPct = marketRow.YieldPct,
