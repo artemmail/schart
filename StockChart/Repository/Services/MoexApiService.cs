@@ -36,10 +36,15 @@ namespace StockChart.Repository.Services
             "shortname",
             "isin",
             "regnumber",
+            "type",
+            "group",
+            "faceunit",
             "emitent_id",
             "emitent_title",
             "emitent_inn",
             "primary_boardid",
+            "issuedate",
+            "startdatemoex",
             "matdate",
             "facevalue",
             "currencyid"
@@ -52,6 +57,7 @@ namespace StockChart.Repository.Services
             "MATDATE",
             "FACEVALUE",
             "CURRENCYID",
+            "FACEUNIT",
             "ISIN",
             "REGNUMBER",
             "PRIMARY_BOARDID"
@@ -219,7 +225,7 @@ namespace StockChart.Repository.Services
         {
             var columnsParam = BuildColumns(BondColumns);
             var url =
-                $"https://iss.moex.com/iss/securities.json?iss.meta=off&group_by=type&group_by_filter=corporate_bond" +
+                $"https://iss.moex.com/iss/securities.json?iss.meta=off&group_by=group&group_by_filter=stock_bonds" +
                 $"&limit={limit}&start={start}&securities.columns={columnsParam}";
 
             var table = await GetTableAsync(url, "securities", cancellationToken);
@@ -248,13 +254,40 @@ namespace StockChart.Repository.Services
                 var shortname = ReadString(row, GetColumnIndex(columnIndex, "shortname"));
                 var isin = ReadString(row, GetColumnIndex(columnIndex, "isin"));
                 var regnumber = ReadString(row, GetColumnIndex(columnIndex, "regnumber"));
+                var moexType = NormalizeCode(ReadString(row, GetColumnIndex(columnIndex, "type", "TYPE")));
+                var moexGroup = NormalizeCode(ReadString(row, GetColumnIndex(columnIndex, "group", "GROUP")));
                 var emitentId = ReadInt(row, GetColumnIndex(columnIndex, "emitent_id"));
                 var emitentTitle = ReadString(row, GetColumnIndex(columnIndex, "emitent_title"));
                 var emitentInn = ReadString(row, GetColumnIndex(columnIndex, "emitent_inn"));
                 var primaryBoard = ReadString(row, GetColumnIndex(columnIndex, "primary_boardid"));
+                var issuedate = ReadDate(row, GetColumnIndex(columnIndex, "issuedate", "ISSUEDATE"));
+                var startMoex = ReadDate(row, GetColumnIndex(columnIndex, "startdatemoex", "STARTDATEMOEX"));
                 var maturity = ReadDate(row, GetColumnIndex(columnIndex, "matdate"));
+
+                if ((!issuedate.HasValue && !startMoex.HasValue) || !maturity.HasValue)
+                {
+                    var fallback = await GetBondDatesFallbackAsync(secid, cancellationToken);
+                    if (fallback.HasValue)
+                    {
+                        if (!issuedate.HasValue)
+                        {
+                            issuedate = fallback.Value.IssueDate;
+                        }
+                        if (!startMoex.HasValue)
+                        {
+                            startMoex = fallback.Value.StartDateMoex;
+                        }
+                        if (!maturity.HasValue)
+                        {
+                            maturity = fallback.Value.MaturityDate;
+                        }
+                    }
+                }
+
+                var startDate = startMoex ?? issuedate;
                 var faceValue = ReadDecimal(row, GetColumnIndex(columnIndex, "facevalue"));
                 var currency = ReadString(row, GetColumnIndex(columnIndex, "currencyid"));
+                var faceUnit = NormalizeCode(ReadString(row, GetColumnIndex(columnIndex, "faceunit", "FACEUNIT")));
 
                 var emitent = new EmitentInfo(emitentId, emitentTitle, emitentInn);
                 result.Add(new MoexBondRow(
@@ -264,9 +297,13 @@ namespace StockChart.Repository.Services
                     regnumber,
                     emitent,
                     primaryBoard,
+                    startDate,
                     maturity,
                     faceValue,
-                    currency));
+                    currency,
+                    faceUnit,
+                    moexType,
+                    moexGroup));
             }
 
             return result;
@@ -303,14 +340,60 @@ namespace StockChart.Repository.Services
                 var maturity = ReadDate(row, GetColumnIndex(columnIndex, "MATDATE", "matdate"));
                 var faceValue = ReadDecimal(row, GetColumnIndex(columnIndex, "FACEVALUE", "facevalue"));
                 var currency = ReadString(row, GetColumnIndex(columnIndex, "CURRENCYID", "currencyid"));
+                var faceUnit = NormalizeCode(ReadString(row, GetColumnIndex(columnIndex, "FACEUNIT", "faceunit")));
                 var isin = ReadString(row, GetColumnIndex(columnIndex, "ISIN", "isin"));
                 var regNumber = ReadString(row, GetColumnIndex(columnIndex, "REGNUMBER", "regnumber"));
                 var primaryBoard = ReadString(row, GetColumnIndex(columnIndex, "PRIMARY_BOARDID", "primary_boardid"));
 
-                return new BondDetails(maturity, faceValue, currency, isin, regNumber, primaryBoard);
+                return new BondDetails(maturity, faceValue, currency, faceUnit, isin, regNumber, primaryBoard);
             }
 
             return null;
+        }
+
+        public async Task<DateTime?> GetBondListedTillAsync(string secid, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(secid))
+            {
+                return null;
+            }
+
+            var url =
+                $"https://iss.moex.com/iss/securities/{Uri.EscapeDataString(secid)}.json" +
+                "?iss.meta=off&iss.only=boards&boards.columns=BOARDID,LISTED_TILL,IS_PRIMARY,IS_TRADED";
+
+            var table = await GetTableAsync(url, "boards", cancellationToken);
+            if (table == null || table.Rows.Count == 0)
+            {
+                return null;
+            }
+
+            var columnIndex = BuildColumnIndex(table.Columns);
+            var listedTillIndex = GetColumnIndex(columnIndex, "LISTED_TILL", "listed_till");
+            var isPrimaryIndex = GetColumnIndex(columnIndex, "IS_PRIMARY", "is_primary");
+
+            DateTime? fallback = null;
+            foreach (var row in table.Rows)
+            {
+                var listedTill = ReadDate(row, listedTillIndex);
+                if (!listedTill.HasValue)
+                {
+                    continue;
+                }
+
+                var isPrimary = ReadBool(row, isPrimaryIndex) == true;
+                if (isPrimary)
+                {
+                    return listedTill;
+                }
+
+                if (!fallback.HasValue || listedTill > fallback)
+                {
+                    fallback = listedTill;
+                }
+            }
+
+            return fallback;
         }
 
         public async Task<IReadOnlyList<MoexBondMarketRow>> GetBondMarketDataAsync(IEnumerable<string> secids, CancellationToken cancellationToken = default)
@@ -342,7 +425,7 @@ namespace StockChart.Repository.Services
                     "https://iss.moex.com/iss/engines/stock/markets/bonds/securities.json" +
                     $"?iss.meta=off&iss.only=securities,marketdata,marketdata_yields,boards" +
                     $"&securities={Uri.EscapeDataString(joined)}" +
-                    "&boards.columns=SECID,BOARDID,UNIT,CURRENCYID";
+                    "&boards.columns=SECID,BOARDID,UNIT,CURRENCYID,LISTED_TILL,IS_PRIMARY,IS_TRADED";
 
                 using var doc = await GetJsonAsync(url, cancellationToken);
                 if (doc == null)
@@ -359,9 +442,9 @@ namespace StockChart.Repository.Services
                 var mktRows = BuildSecidRowMap(mktTable, out var mktIndex);
                 var yldRows = BuildSecidRowMap(yldTable, out var yldIndex);
 
-                var boardLookup = new Dictionary<string, (string? Unit, string? CurrencyId)>(StringComparer.OrdinalIgnoreCase);
-                var boardByBoard = new Dictionary<string, (string? Unit, string? CurrencyId)>(StringComparer.OrdinalIgnoreCase);
-                var boardFallback = new Dictionary<string, (string? Unit, string? CurrencyId)>(StringComparer.OrdinalIgnoreCase);
+                var boardLookup = new Dictionary<string, BondBoardSnapshot>(StringComparer.OrdinalIgnoreCase);
+                var boardByBoard = new Dictionary<string, BondBoardSnapshot>(StringComparer.OrdinalIgnoreCase);
+                var boardFallback = new Dictionary<string, BondBoardSnapshot>(StringComparer.OrdinalIgnoreCase);
 
                 if (brdTable != null && brdTable.Rows.Count > 0)
                 {
@@ -370,6 +453,9 @@ namespace StockChart.Repository.Services
                     var brdBoardIndex = GetColumnIndex(brdIndex, "BOARDID", "boardid");
                     var brdUnitIndex = GetColumnIndex(brdIndex, "UNIT", "unit");
                     var brdCurrencyIndex = GetColumnIndex(brdIndex, "CURRENCYID", "currencyid");
+                    var brdListedTillIndex = GetColumnIndex(brdIndex, "LISTED_TILL", "listed_till");
+                    var brdIsPrimaryIndex = GetColumnIndex(brdIndex, "IS_PRIMARY", "is_primary");
+                    var brdIsTradedIndex = GetColumnIndex(brdIndex, "IS_TRADED", "is_traded");
 
                     foreach (var row in brdTable.Rows)
                     {
@@ -390,6 +476,10 @@ namespace StockChart.Repository.Services
 
                         var unit = ReadString(row, brdUnitIndex);
                         var currency = ReadString(row, brdCurrencyIndex);
+                        var listedTill = ReadDate(row, brdListedTillIndex);
+                        var isPrimary = ReadBool(row, brdIsPrimaryIndex);
+                        var isTraded = ReadBool(row, brdIsTradedIndex);
+                        var snapshot = new BondBoardSnapshot(unit, currency, listedTill, isPrimary, isTraded);
 
                         if (!string.IsNullOrWhiteSpace(secidRaw))
                         {
@@ -397,12 +487,12 @@ namespace StockChart.Repository.Services
                             var boardKey = NormalizeCode(boardIdRaw) ?? boardIdRaw;
                             var key = $"{secidKey}|{boardKey}";
 
-                            boardLookup[key] = (unit, currency);
+                            boardLookup[key] = snapshot;
 
-                            if (!boardFallback.ContainsKey(secidKey) &&
-                                (!string.IsNullOrWhiteSpace(unit) || !string.IsNullOrWhiteSpace(currency)))
+                            if (!boardFallback.TryGetValue(secidKey, out var fallback) ||
+                                ShouldPreferBondBoard(snapshot, fallback))
                             {
-                                boardFallback[secidKey] = (unit, currency);
+                                boardFallback[secidKey] = snapshot;
                             }
                         }
                         else
@@ -410,7 +500,7 @@ namespace StockChart.Repository.Services
                             var boardKey = NormalizeCode(boardIdRaw) ?? boardIdRaw;
                             if (!boardByBoard.ContainsKey(boardKey))
                             {
-                                boardByBoard[boardKey] = (unit, currency);
+                                boardByBoard[boardKey] = snapshot;
                             }
                         }
                     }
@@ -490,6 +580,7 @@ namespace StockChart.Repository.Services
                     var tradingStatus = ReadString(mktRow, tradingStatusIndex) ?? ReadString(secRow, statusIndex);
                     string? priceUnit = null;
                     string? currencyId = null;
+                    DateTime? listedTill = null;
                     if (!string.IsNullOrWhiteSpace(boardId))
                     {
                         var boardKey = NormalizeCode(boardId) ?? boardId;
@@ -498,22 +589,26 @@ namespace StockChart.Repository.Services
                         {
                             priceUnit = boardInfo.Unit;
                             currencyId = boardInfo.CurrencyId;
+                            listedTill = boardInfo.ListedTill;
                         }
                         else if (boardByBoard.TryGetValue(boardKey, out var boardOnly))
                         {
                             priceUnit = boardOnly.Unit;
                             currencyId = boardOnly.CurrencyId;
+                            listedTill = boardOnly.ListedTill;
                         }
                     }
                     if (boardFallback.TryGetValue(secid, out var fallbackInfo))
                     {
                         priceUnit ??= fallbackInfo.Unit;
                         currencyId ??= fallbackInfo.CurrencyId;
+                        listedTill ??= fallbackInfo.ListedTill;
                     }
 
                     var row = new MoexBondMarketRow(
                         SecId: secid,
                         BoardId: boardId,
+                        ListedTill: listedTill,
                         PricePct: pricePct,
                         YieldPct: yield,
                         DayChangePct: dayChange,
@@ -542,6 +637,99 @@ namespace StockChart.Repository.Services
             return result;
         }
 
+        public async Task<MoexBondRow?> GetBondBySecidAsync(string secid, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(secid))
+            {
+                return null;
+            }
+
+            var columnsParam = BuildColumns(BondColumns);
+            var url =
+                $"https://iss.moex.com/iss/securities.json?iss.meta=off&group_by=group&group_by_filter=stock_bonds" +
+                $"&q={Uri.EscapeDataString(secid)}&limit=20&start=0&securities.columns={columnsParam}";
+
+            var table = await GetTableAsync(url, "securities", cancellationToken);
+            if (table == null || table.Rows.Count == 0)
+            {
+                return await GetBondBySecidFallbackAsync(secid, cancellationToken);
+            }
+
+            var columnIndex = BuildColumnIndex(table.Columns);
+            var secidIndex = GetColumnIndex(columnIndex, "secid");
+            if (!secidIndex.HasValue)
+            {
+                return null;
+            }
+
+            var normalizedTarget = NormalizeCode(secid) ?? secid;
+            foreach (var row in table.Rows)
+            {
+                var rowSecid = ReadString(row, secidIndex.Value);
+                var normalized = NormalizeCode(rowSecid) ?? rowSecid;
+                if (!string.Equals(normalized, normalizedTarget, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var shortname = ReadString(row, GetColumnIndex(columnIndex, "shortname"));
+                var isin = ReadString(row, GetColumnIndex(columnIndex, "isin"));
+                var regnumber = ReadString(row, GetColumnIndex(columnIndex, "regnumber"));
+                var moexType = NormalizeCode(ReadString(row, GetColumnIndex(columnIndex, "type", "TYPE")));
+                var moexGroup = NormalizeCode(ReadString(row, GetColumnIndex(columnIndex, "group", "GROUP")));
+                var emitentId = ReadInt(row, GetColumnIndex(columnIndex, "emitent_id"));
+                var emitentTitle = ReadString(row, GetColumnIndex(columnIndex, "emitent_title"));
+                var emitentInn = ReadString(row, GetColumnIndex(columnIndex, "emitent_inn"));
+                var primaryBoard = ReadString(row, GetColumnIndex(columnIndex, "primary_boardid"));
+                var issuedate = ReadDate(row, GetColumnIndex(columnIndex, "issuedate", "ISSUEDATE"));
+                var startMoex = ReadDate(row, GetColumnIndex(columnIndex, "startdatemoex", "STARTDATEMOEX"));
+                var maturity = ReadDate(row, GetColumnIndex(columnIndex, "matdate"));
+
+                if ((!issuedate.HasValue && !startMoex.HasValue) || !maturity.HasValue)
+                {
+                    var fallback = await GetBondDatesFallbackAsync(normalized, cancellationToken);
+                    if (fallback.HasValue)
+                    {
+                        if (!issuedate.HasValue)
+                        {
+                            issuedate = fallback.Value.IssueDate;
+                        }
+                        if (!startMoex.HasValue)
+                        {
+                            startMoex = fallback.Value.StartDateMoex;
+                        }
+                        if (!maturity.HasValue)
+                        {
+                            maturity = fallback.Value.MaturityDate;
+                        }
+                    }
+                }
+
+                var startDate = startMoex ?? issuedate;
+                var faceValue = ReadDecimal(row, GetColumnIndex(columnIndex, "facevalue"));
+                var currency = ReadString(row, GetColumnIndex(columnIndex, "currencyid"));
+                var faceUnit = NormalizeCode(ReadString(row, GetColumnIndex(columnIndex, "faceunit", "FACEUNIT")));
+
+                var emitent = new EmitentInfo(emitentId, emitentTitle, emitentInn);
+                return new MoexBondRow(
+                    normalized,
+                    shortname,
+                    isin,
+                    regnumber,
+                    emitent,
+                    primaryBoard,
+                    startDate,
+                    maturity,
+                    faceValue,
+                    currency,
+                    faceUnit,
+                    moexType,
+                    moexGroup);
+            }
+
+            return await GetBondBySecidFallbackAsync(secid, cancellationToken);
+        }
+
         public async Task<IReadOnlyList<MoexBondCouponRow>> GetBondCouponsAsync(string secid, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(secid))
@@ -562,6 +750,7 @@ namespace StockChart.Repository.Services
             var columnIndex = BuildColumnIndex(table.Columns);
             var numberIndex = GetColumnIndex(columnIndex, "COUPONNUMBER", "COUPONNUM", "NUMBER", "number", "n");
             var dateIndex = GetColumnIndex(columnIndex, "COUPONDATE", "coupondate", "date");
+            var startDateIndex = GetColumnIndex(columnIndex, "STARTDATE", "startdate");
             var valueIndex = GetColumnIndex(columnIndex, "VALUE", "value", "couponvalue");
             var yieldIndex = GetColumnIndex(columnIndex, "COUPONPRC", "couponprc", "yield", "yieldpct", "yieldpercent", "couponrate");
             var percentParIndex = GetColumnIndex(columnIndex, "VALUEPRC", "valueprc", "percent", "percentofpar", "pctofpar", "couponpercent");
@@ -574,6 +763,7 @@ namespace StockChart.Repository.Services
                     SecId: secid.Trim().ToUpperInvariant(),
                     Number: ReadInt(row, numberIndex),
                     CouponDate: ReadDate(row, dateIndex),
+                    StartDate: ReadDate(row, startDateIndex),
                     CouponValue: ReadDecimal(row, valueIndex),
                     CouponYieldPct: ReadDecimal(row, yieldIndex),
                     PercentOfPar: ReadDecimal(row, percentParIndex),
@@ -581,6 +771,192 @@ namespace StockChart.Repository.Services
             }
 
             return result;
+        }
+
+        private async Task<(DateTime? IssueDate, DateTime? StartDateMoex, DateTime? MaturityDate)?> GetBondDatesFallbackAsync(
+            string secid,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(secid))
+            {
+                return null;
+            }
+
+            var columnsParam = BuildColumns(new[] { "SECID", "ISSUEDATE", "STARTDATEMOEX", "MATDATE" });
+            var url =
+                $"https://iss.moex.com/iss/securities/{Uri.EscapeDataString(secid)}.json" +
+                $"?iss.meta=off&iss.only=securities&securities.columns={columnsParam}";
+
+            using var doc = await GetJsonAsync(url, cancellationToken);
+            if (doc == null)
+            {
+                return null;
+            }
+
+            var table = ReadTable(doc.RootElement, "securities");
+            if (table != null && table.Rows.Count > 0)
+            {
+                var columnIndex = BuildColumnIndex(table.Columns);
+                var secidIndex = GetColumnIndex(columnIndex, "SECID", "secid");
+                var issueIndex = GetColumnIndex(columnIndex, "ISSUEDATE", "issuedate");
+                var startIndex = GetColumnIndex(columnIndex, "STARTDATEMOEX", "startdatemoex");
+                var matIndex = GetColumnIndex(columnIndex, "MATDATE", "matdate");
+
+                var normalizedTarget = NormalizeCode(secid) ?? secid;
+                foreach (var row in table.Rows)
+                {
+                    if (secidIndex.HasValue)
+                    {
+                        var rowSecid = ReadString(row, secidIndex.Value);
+                        var normalizedRow = NormalizeCode(rowSecid) ?? rowSecid;
+                        if (!string.Equals(normalizedRow, normalizedTarget, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+                    }
+
+                    return (
+                        ReadDate(row, issueIndex),
+                        ReadDate(row, startIndex),
+                        ReadDate(row, matIndex)
+                    );
+                }
+            }
+
+            var description = ReadTable(doc.RootElement, "description");
+            if (description == null || description.Rows.Count == 0)
+            {
+                return null;
+            }
+
+            var issueValue = GetDescriptionValue(description, "ISSUEDATE");
+            var startValue = GetDescriptionValue(description, "STARTDATEMOEX");
+            var matValue = GetDescriptionValue(description, "MATDATE");
+
+            var issueDate = ReadDate(new[] { issueValue }, 0);
+            var startDate = ReadDate(new[] { startValue }, 0);
+            var matDate = ReadDate(new[] { matValue }, 0);
+
+            if (!issueDate.HasValue && !startDate.HasValue && !matDate.HasValue)
+            {
+                return null;
+            }
+
+            return (issueDate, startDate, matDate);
+        }
+
+        private static string? GetDescriptionValue(MoexTable table, string fieldName)
+        {
+            var columnIndex = BuildColumnIndex(table.Columns);
+            var nameIndex = GetColumnIndex(columnIndex, "name", "NAME");
+            var valueIndex = GetColumnIndex(columnIndex, "value", "VALUE");
+            if (!nameIndex.HasValue || !valueIndex.HasValue)
+            {
+                return null;
+            }
+
+            foreach (var row in table.Rows)
+            {
+                var name = ReadString(row, nameIndex.Value);
+                if (string.Equals(name, fieldName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return ReadString(row, valueIndex.Value);
+                }
+            }
+
+            return null;
+        }
+
+        private async Task<MoexBondRow?> GetBondBySecidFallbackAsync(string secid, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(secid))
+            {
+                return null;
+            }
+
+            var columnsParam = BuildColumns(BondColumns);
+            var url =
+                $"https://iss.moex.com/iss/securities/{Uri.EscapeDataString(secid)}.json" +
+                $"?iss.meta=off&iss.only=securities&securities.columns={columnsParam}";
+
+            var table = await GetTableAsync(url, "securities", cancellationToken);
+            if (table == null || table.Rows.Count == 0)
+            {
+                return null;
+            }
+
+            var columnIndex = BuildColumnIndex(table.Columns);
+            var secidIndex = GetColumnIndex(columnIndex, "secid", "SECID");
+            if (!secidIndex.HasValue)
+            {
+                return null;
+            }
+
+            var normalizedTarget = NormalizeCode(secid) ?? secid;
+            foreach (var row in table.Rows)
+            {
+                var rowSecid = ReadString(row, secidIndex.Value);
+                var normalized = NormalizeCode(rowSecid) ?? rowSecid;
+                if (!string.Equals(normalized, normalizedTarget, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var shortname = ReadString(row, GetColumnIndex(columnIndex, "shortname", "SHORTNAME"));
+                var isin = ReadString(row, GetColumnIndex(columnIndex, "isin", "ISIN"));
+                var regnumber = ReadString(row, GetColumnIndex(columnIndex, "regnumber", "REGNUMBER"));
+                var moexType = NormalizeCode(ReadString(row, GetColumnIndex(columnIndex, "type", "TYPE")));
+                var moexGroup = NormalizeCode(ReadString(row, GetColumnIndex(columnIndex, "group", "GROUP")));
+                var emitentId = ReadInt(row, GetColumnIndex(columnIndex, "emitent_id", "EMITENT_ID"));
+                var emitentTitle = ReadString(row, GetColumnIndex(columnIndex, "emitent_title", "EMITENT_TITLE"));
+                var emitentInn = ReadString(row, GetColumnIndex(columnIndex, "emitent_inn", "EMITENT_INN"));
+                var primaryBoard = ReadString(row, GetColumnIndex(columnIndex, "primary_boardid", "PRIMARY_BOARDID"));
+                var issuedate = ReadDate(row, GetColumnIndex(columnIndex, "issuedate", "ISSUEDATE"));
+                var startMoex = ReadDate(row, GetColumnIndex(columnIndex, "startdatemoex", "STARTDATEMOEX"));
+                var maturity = ReadDate(row, GetColumnIndex(columnIndex, "matdate", "MATDATE"));
+                var faceValue = ReadDecimal(row, GetColumnIndex(columnIndex, "facevalue", "FACEVALUE"));
+                var currency = ReadString(row, GetColumnIndex(columnIndex, "currencyid", "CURRENCYID"));
+                var faceUnit = NormalizeCode(ReadString(row, GetColumnIndex(columnIndex, "faceunit", "FACEUNIT")));
+
+                if ((!issuedate.HasValue && !startMoex.HasValue) || !maturity.HasValue)
+                {
+                    var fallback = await GetBondDatesFallbackAsync(normalized, cancellationToken);
+                    if (fallback.HasValue)
+                    {
+                        if (!issuedate.HasValue)
+                        {
+                            issuedate = fallback.Value.IssueDate;
+                        }
+                        if (!startMoex.HasValue)
+                        {
+                            startMoex = fallback.Value.StartDateMoex;
+                        }
+                        if (!maturity.HasValue)
+                        {
+                            maturity = fallback.Value.MaturityDate;
+                        }
+                    }
+                }
+
+                var startDate = startMoex ?? issuedate;
+                var emitent = new EmitentInfo(emitentId, emitentTitle, emitentInn);
+                return new MoexBondRow(
+                    normalized,
+                    shortname,
+                    isin,
+                    regnumber,
+                    emitent,
+                    primaryBoard,
+                    startDate,
+                    maturity,
+                    faceValue,
+                    currency,
+                    faceUnit,
+                    moexType,
+                    moexGroup);
+            }
+
+            return null;
         }
 
         public async Task<Dictionary<string, decimal>> GetBondEffectiveYieldsAsync(IEnumerable<string> secids, CancellationToken cancellationToken = default)
@@ -1217,6 +1593,23 @@ namespace StockChart.Repository.Services
             return null;
         }
 
+        private static bool ShouldPreferBondBoard(BondBoardSnapshot candidate, BondBoardSnapshot existing)
+        {
+            var candPrimary = candidate.IsPrimary == true;
+            var existPrimary = existing.IsPrimary == true;
+            if (candPrimary != existPrimary)
+            {
+                return candPrimary;
+            }
+
+            if (candidate.ListedTill.HasValue && (!existing.ListedTill.HasValue || candidate.ListedTill > existing.ListedTill))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         private static string? NormalizeCode(string? value)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -1290,6 +1683,13 @@ namespace StockChart.Repository.Services
             public IReadOnlyList<string> Columns { get; }
             public IReadOnlyList<IReadOnlyList<string?>> Rows { get; }
         }
+
+        private sealed record BondBoardSnapshot(
+            string? Unit,
+            string? CurrencyId,
+            DateTime? ListedTill,
+            bool? IsPrimary,
+            bool? IsTraded);
 
         private sealed record OptionBoardSnapshot(
             string? Shortname,

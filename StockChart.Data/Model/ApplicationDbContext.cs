@@ -569,6 +569,12 @@ public partial class ApplicationDbContext
             entity.Property(e => e.CouponType).HasMaxLength(32);
             entity.Property(e => e.AccruedInterest).HasColumnType("decimal(28, 10)");
             entity.Property(e => e.Currency).HasMaxLength(8);
+            entity.Property(e => e.FaceUnit).HasMaxLength(8);
+            entity.Property(e => e.MoexType).HasMaxLength(64);
+            entity.Property(e => e.MoexGroup).HasMaxLength(64);
+            entity.Property(e => e.BondClass).HasMaxLength(32);
+            entity.Property(e => e.IsCouponed).HasColumnType("bit");
+            entity.Property(e => e.IsForeignCurrency).HasColumnType("bit");
             entity.Property(e => e.PrimaryBoardId).HasMaxLength(16);
             entity.Property(e => e.IssueSize).HasColumnType("bigint");
             entity.Property(e => e.IssueSizePlaced).HasColumnType("bigint");

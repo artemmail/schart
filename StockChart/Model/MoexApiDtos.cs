@@ -20,6 +20,7 @@ namespace StockChart.Model
         DateTime? MaturityDate,
         decimal? FaceValue,
         string? Currency,
+        string? FaceUnit,
         string? Isin,
         string? RegNumber,
         string? PrimaryBoardId);
@@ -31,12 +32,17 @@ namespace StockChart.Model
         string? RegNumber,
         EmitentInfo Emitent,
         string? PrimaryBoardId,
+        DateTime? StartDate,
         DateTime? MaturityDate,
         decimal? FaceValue,
-        string? Currency)
+        string? Currency,
+        string? FaceUnit,
+        string? MoexType,
+        string? MoexGroup)
     {
         public bool HasDetails =>
-            MaturityDate.HasValue || FaceValue.HasValue || !string.IsNullOrWhiteSpace(Currency);
+            MaturityDate.HasValue || FaceValue.HasValue || !string.IsNullOrWhiteSpace(Currency) ||
+            !string.IsNullOrWhiteSpace(FaceUnit);
 
         public MoexBondRow WithDetails(BondDetails details)
         {
@@ -47,9 +53,13 @@ namespace StockChart.Model
                 string.IsNullOrWhiteSpace(RegNumber) ? details.RegNumber : RegNumber,
                 Emitent,
                 string.IsNullOrWhiteSpace(PrimaryBoardId) ? details.PrimaryBoardId : PrimaryBoardId,
+                StartDate,
                 MaturityDate ?? details.MaturityDate,
                 FaceValue ?? details.FaceValue,
-                string.IsNullOrWhiteSpace(Currency) ? details.Currency : Currency);
+                string.IsNullOrWhiteSpace(Currency) ? details.Currency : Currency,
+                string.IsNullOrWhiteSpace(FaceUnit) ? details.FaceUnit : FaceUnit,
+                MoexType,
+                MoexGroup);
         }
     }
 
@@ -85,6 +95,7 @@ namespace StockChart.Model
     public sealed record MoexBondMarketRow(
         string SecId,
         string? BoardId,
+        DateTime? ListedTill,
         decimal? PricePct,
         decimal? YieldPct,
         decimal? DayChangePct,
@@ -110,6 +121,7 @@ namespace StockChart.Model
         string SecId,
         int? Number,
         DateTime? CouponDate,
+        DateTime? StartDate,
         decimal? CouponValue,
         decimal? CouponYieldPct,
         decimal? PercentOfPar,

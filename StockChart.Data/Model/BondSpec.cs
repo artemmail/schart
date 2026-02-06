@@ -16,6 +16,12 @@ public partial class BondSpec
     public string? CouponType { get; set; }
     public decimal? AccruedInterest { get; set; }
     public string? Currency { get; set; }
+    public string? FaceUnit { get; set; }
+    public string? MoexType { get; set; }
+    public string? MoexGroup { get; set; }
+    public string? BondClass { get; set; }
+    public bool? IsCouponed { get; set; }
+    public bool? IsForeignCurrency { get; set; }
     public string? PrimaryBoardId { get; set; }
     public long? IssueSize { get; set; }
     public long? IssueSizePlaced { get; set; }

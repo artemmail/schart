@@ -286,7 +286,8 @@ namespace StockChart.Repository.Services
                     .ToDictionaryAsync(o => o.DictionaryId, cancellationToken);
 
             var bondsForOutput = bondDicts.Values
-                .Where(dic => bondsKeep.Contains(dic.Id))
+                .Where(dic => bondsKeep.Contains(dic.Id)
+                              && (!dic.ToDate.HasValue || dic.ToDate.Value.Date >= today.Date))
                 .ToList();
 
             var bondPriceMap = await LoadBondLastPricesAsync(bondsForOutput, cancellationToken);
@@ -304,6 +305,7 @@ namespace StockChart.Repository.Services
 
                     var spec = bondSpecMap.TryGetValue(dic.Id, out var specRow) ? specRow : null;
                     var coupon = ResolveCouponInfo(dic.Id, bondCouponsMap, today, out var couponPeriodDays);
+                    var couponSchedule = bondCouponsMap.TryGetValue(dic.Id, out var schedule) ? schedule : null;
                     decimal? currentYield = null;
                     if (bondYieldMap.TryGetValue(dic.Id, out var marketYield) && marketYield > 0)
                     {
@@ -314,7 +316,19 @@ namespace StockChart.Repository.Services
                         currentYield = CalculateCurrentYield(spec, coupon, couponPeriodDays, currentPrice);
                     }
 
-                    return MapBondItem(dic, spec, currentYield, currentPrice);
+                    var isCouponed = spec?.IsCouponed;
+                    if (!isCouponed.HasValue && couponSchedule != null)
+                    {
+                        isCouponed = couponSchedule.Any(c => c.Value.HasValue && c.Value.Value > 0m);
+                    }
+
+                    var nextCouponDate = ResolveNextCouponDate(couponSchedule, today);
+                    if (!nextCouponDate.HasValue)
+                    {
+                        nextCouponDate = spec?.NextCouponDate;
+                    }
+
+                    return MapBondItem(dic, spec, currentYield, currentPrice, isCouponed, nextCouponDate);
                 })
                 .OrderBy(b => b.SecurityId)
                 .ToList();
@@ -453,11 +467,19 @@ namespace StockChart.Repository.Services
             };
         }
 
-        private static InstrumentRelationItemDto MapBondItem(DictionaryEntity dic, BondSpec? spec, decimal? currentYield, decimal? currentPrice)
+        private static InstrumentRelationItemDto MapBondItem(
+            DictionaryEntity dic,
+            BondSpec? spec,
+            decimal? currentYield,
+            decimal? currentPrice,
+            bool? isCouponed,
+            DateTime? nextCouponDate)
         {
             var dto = MapItem(dic);
             dto.CurrentYield = currentYield;
             dto.CurrentPrice = currentPrice;
+            dto.IsCouponed = isCouponed;
+            dto.NextCouponDate = nextCouponDate;
             if (spec == null)
             {
                 return dto;
@@ -468,6 +490,14 @@ namespace StockChart.Repository.Services
             dto.FaceValue = spec.FaceValue;
             dto.Currency = spec.Currency;
             dto.PrimaryBoardId = spec.PrimaryBoardId;
+            if (!dto.IsCouponed.HasValue)
+            {
+                dto.IsCouponed = spec.IsCouponed;
+            }
+            if (!dto.NextCouponDate.HasValue && spec.NextCouponDate.HasValue)
+            {
+                dto.NextCouponDate = spec.NextCouponDate;
+            }
             if (!string.IsNullOrWhiteSpace(spec.Isin))
             {
                 dto.Isin = spec.Isin;
@@ -517,6 +547,19 @@ namespace StockChart.Repository.Services
             }
 
             return next;
+        }
+
+        private static DateTime? ResolveNextCouponDate(
+            IReadOnlyList<BondCouponInfo>? coupons,
+            DateTime today)
+        {
+            if (coupons == null || coupons.Count == 0)
+            {
+                return null;
+            }
+
+            var next = coupons.FirstOrDefault(c => c.Date.Date >= today.Date);
+            return next?.Date;
         }
 
         private static decimal? CalculateCurrentYield(

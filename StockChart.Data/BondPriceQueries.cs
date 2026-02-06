@@ -74,10 +74,20 @@ public static class BondPriceQueries
             .Where(d => ids.Contains(d.Id))
             .ToDictionaryAsync(d => d.Id, d => d.Lotsize ?? 1, cancellationToken);
 
-        var tradeMap = tradeRows.ToDictionary(
-            x => x.Id,
-            x => new TradeSnapshot(x.Price, x.Volume, x.Quantity));
-        var candleMap = candleRows.ToDictionary(x => x.Id, x => x.Price);
+        var tradeMap = tradeRows
+            .GroupBy(x => x.Id)
+            .ToDictionary(
+                g => g.Key,
+                g =>
+                {
+                    var row = g.OrderByDescending(x => x.Volume)
+                        .ThenByDescending(x => x.Quantity)
+                        .First();
+                    return new TradeSnapshot(row.Price, row.Volume, row.Quantity);
+                });
+        var candleMap = candleRows
+            .GroupBy(x => x.Id)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Price).First());
 
         var result = new Dictionary<int, decimal>();
         foreach (var id in ids)

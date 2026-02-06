@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StockChart.Model;
 
 #nullable disable
 
-namespace StockChart.Migrations.ApplicationDbContext2Migrations
+namespace StockChart.Data.Migrations.ApplicationDbContext2Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContext2ModelSnapshot : ModelSnapshot
+    [Migration("20260205172109_newf")]
+    partial class newf
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -513,10 +516,6 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.Property<decimal?>("AccruedInterest")
                         .HasColumnType("decimal(28, 10)");
 
-                    b.Property<string>("BondClass")
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
                     b.Property<int?>("CouponPeriodDays")
                         .HasColumnType("int");
 
@@ -534,18 +533,8 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .HasMaxLength(8)
                         .HasColumnType("nvarchar(8)");
 
-                    b.Property<string>("FaceUnit")
-                        .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)");
-
                     b.Property<decimal?>("FaceValue")
                         .HasColumnType("decimal(28, 10)");
-
-                    b.Property<bool?>("IsCouponed")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsForeignCurrency")
-                        .HasColumnType("bit");
 
                     b.Property<string>("Isin")
                         .HasMaxLength(32)
@@ -562,14 +551,6 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
 
                     b.Property<DateTime?>("MaturityDate")
                         .HasColumnType("date");
-
-                    b.Property<string>("MoexGroup")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("MoexType")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
 
                     b.Property<DateTime?>("NextCouponDate")
                         .HasColumnType("date");

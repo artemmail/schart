@@ -11,6 +11,8 @@ namespace StockChart.Model
         public DateTime? MaturityDate { get; set; }
         public decimal? FaceValue { get; set; }
         public string? Currency { get; set; }
+        public bool? IsCouponed { get; set; }
+        public DateTime? NextCouponDate { get; set; }
         public string? PrimaryBoardId { get; set; }
         public decimal? CurrentYield { get; set; }
         public decimal? CurrentPrice { get; set; }

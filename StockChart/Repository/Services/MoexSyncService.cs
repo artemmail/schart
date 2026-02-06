@@ -137,10 +137,24 @@ public sealed class MoexSyncService : IMoexSyncService
         var linksUpserted = 0;
         var start = 0;
         const int limit = 100;
+        var today = DateTime.Today;
+            var testOnlySecid = "";// "RU000A103U77";
+        var useTestFilter = !string.IsNullOrWhiteSpace(testOnlySecid);
+        List<MoexBondRow>? testPage = null;
+        if (useTestFilter)
+        {
+            var single = await _moexApiService.GetBondBySecidAsync(testOnlySecid, cancellationToken);
+            if (single == null)
+            {
+                return (0, 0);
+            }
+
+            testPage = new List<MoexBondRow> { single };
+        }
 
         while (true)
         {
-            var page = await FetchBondPageAsync(start, limit, cancellationToken);
+            var page = testPage ?? await FetchBondPageAsync(start, limit, cancellationToken);
             if (page.Count == 0)
             {
                 break;
@@ -151,13 +165,32 @@ public sealed class MoexSyncService : IMoexSyncService
                 .Where(d => /* d.Market == MarketBonds &&*/ secids.Contains(d.Securityid))
                 .ToListAsync(cancellationToken);
 
-            var marketData = await FetchBondMarketDataAsync(secids, cancellationToken);
+            var dictMap = existing.ToDictionary(d => d.Securityid, d => d, StringComparer.OrdinalIgnoreCase);
+
+            var inactiveSecids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var row in page)
+            {
+                if (row.MaturityDate.HasValue && row.MaturityDate.Value.Date < today.Date)
+                {
+                    inactiveSecids.Add(row.SecId);
+                    continue;
+                }
+
+                if (dictMap.TryGetValue(row.SecId, out var existingDic) &&
+                    existingDic.ToDate.HasValue &&
+                    existingDic.ToDate.Value.Date < today.Date)
+                {
+                    inactiveSecids.Add(row.SecId);
+                }
+            }
+
+            var activeSecids = secids.Where(id => !inactiveSecids.Contains(id)).ToList();
+            var marketData = await FetchBondMarketDataAsync(activeSecids, cancellationToken);
             var marketMap = marketData.ToDictionary(m => m.SecId, m => m, StringComparer.OrdinalIgnoreCase);
             var importedAt = DateTime.UtcNow;
             var marketSnapshots = new List<BondMarketSnapshot>();
             var couponPayload = new List<BondCoupon>();
 
-            var dictMap = existing.ToDictionary(d => d.Securityid, d => d, StringComparer.OrdinalIgnoreCase);
             var touchedBonds = new List<DictionaryEntity>();
 
             var bondIds = existing.Select(d => d.Id).ToList();
@@ -174,6 +207,8 @@ public sealed class MoexSyncService : IMoexSyncService
                     continue;
                 }
 
+                var resolvedRow = row;
+
                 if (!dictMap.TryGetValue(row.SecId, out var dic))
                 {
                     dic = new DictionaryEntity
@@ -188,16 +223,41 @@ public sealed class MoexSyncService : IMoexSyncService
                     dictMap[row.SecId] = dic;
                 }
 
-                var dictChanged = UpdateDictionaryBase(dic, row.Shortname, row.Isin, row.Currency, MarketBonds);
-                dictChanged |= ApplyEmitent(dic, row.Emitent);
+                if (!resolvedRow.HasDetails)
+                {
+                    var specHasDetails = specMap.TryGetValue(dic.Id, out var knownSpec) &&
+                                         (knownSpec.MaturityDate.HasValue ||
+                                          knownSpec.FaceValue.HasValue ||
+                                          !string.IsNullOrWhiteSpace(knownSpec.Currency) ||
+                                          !string.IsNullOrWhiteSpace(knownSpec.FaceUnit));
+                    var needsMaturity = !resolvedRow.MaturityDate.HasValue &&
+                                        !dic.ToDate.HasValue &&
+                                        (!knownSpec?.MaturityDate.HasValue ?? true);
+                    if (!specHasDetails || needsMaturity)
+                    {
+                        var details = await FetchBondDetailsAsync(resolvedRow.SecId, cancellationToken);
+                        if (details != null)
+                        {
+                            resolvedRow = resolvedRow.WithDetails(details);
+                        }
+                    }
+                }
 
                 var marketRow = marketMap.TryGetValue(row.SecId, out var foundMarket) ? foundMarket : null;
+                var dictChanged = UpdateDictionaryBase(dic, resolvedRow.Shortname, resolvedRow.Isin, resolvedRow.Currency, MarketBonds);
+                var listedTill = marketRow?.ListedTill;
+                if (!listedTill.HasValue && !resolvedRow.MaturityDate.HasValue && !dic.ToDate.HasValue)
+                {
+                    listedTill = await _moexApiService.GetBondListedTillAsync(resolvedRow.SecId, cancellationToken);
+                }
+                var lastDate = listedTill ?? resolvedRow.MaturityDate ?? dic.ToDate;
+                dictChanged |= ApplyEmitent(dic, resolvedRow.Emitent, lastDate, resolvedRow.StartDate);
 
                 var bondSpec = specMap.TryGetValue(dic.Id, out var existingSpec)
                     ? existingSpec
                     : new BondSpec { Dictionary = dic };
 
-                var specChanged = UpdateBondSpec(bondSpec, row, marketRow);
+                var specChanged = UpdateBondSpec(bondSpec, resolvedRow, marketRow);
 
                 if (existingSpec == null)
                 {
@@ -208,7 +268,7 @@ public sealed class MoexSyncService : IMoexSyncService
 
                 if (marketRow != null)
                 {
-                    var faceValue = bondSpec.FaceValue ?? row.FaceValue;
+                    var faceValue = bondSpec.FaceValue ?? resolvedRow.FaceValue;
                     decimal? priceRub = null;
                     if (marketRow.PricePct.HasValue && faceValue.HasValue && faceValue.Value > 0)
                     {
@@ -217,7 +277,7 @@ public sealed class MoexSyncService : IMoexSyncService
                     var currencyId = marketRow.CurrencyId;
                     if (string.IsNullOrWhiteSpace(currencyId))
                     {
-                        currencyId = bondSpec.Currency ?? row.Currency;
+                        currencyId = bondSpec.Currency ?? resolvedRow.Currency;
                     }
 
                     marketSnapshots.Add(new BondMarketSnapshot
@@ -253,6 +313,15 @@ public sealed class MoexSyncService : IMoexSyncService
                 _dbContext.BondMarketSnapshots.AddRange(marketSnapshots);
             }
 
+            var hasNewDictionary = dictMap.Values.Any(d => d.Id <= 0);
+            if (hasNewDictionary && _dbContext.ChangeTracker.HasChanges())
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                specMap = specMap.Values
+                    .GroupBy(s => s.DictionaryId)
+                    .ToDictionary(g => g.Key, g => g.First());
+            }
+
             if (dictMap.Count > 0)
             {
                 foreach (var row in page)
@@ -262,14 +331,28 @@ public sealed class MoexSyncService : IMoexSyncService
                         continue;
                     }
 
-                    var coupons = await FetchBondCouponsAsync(row.SecId, cancellationToken);
-                    if (coupons.Count == 0)
+                    var bondSpec = specMap.TryGetValue(dic.Id, out var spec) ? spec : null;
+                    var marketRow = marketMap.TryGetValue(row.SecId, out var foundMarket) ? foundMarket : null;
+                    var lastDate = dic.ToDate ?? row.MaturityDate;
+                    if (lastDate.HasValue && lastDate.Value.Date < today.Date)
                     {
                         continue;
                     }
 
-                    var bondSpec = specMap.TryGetValue(dic.Id, out var spec) ? spec : null;
-                    var marketRow = marketMap.TryGetValue(row.SecId, out var foundMarket) ? foundMarket : null;
+                    var coupons = await FetchBondCouponsAsync(row.SecId, cancellationToken);
+                    if (coupons.Count == 0)
+                    {
+                        if (bondSpec != null && (!bondSpec.IsCouponed.HasValue || bondSpec.IsCouponed.Value))
+                        {
+                            bondSpec.IsCouponed = false;
+                            var now = DateTime.UtcNow;
+                            if (bondSpec.UpdatedAt != now)
+                            {
+                                bondSpec.UpdatedAt = now;
+                            }
+                        }
+                        continue;
+                    }
 
                     var faceValue = bondSpec?.FaceValue ?? row.FaceValue;
                     decimal? priceRub = null;
@@ -290,6 +373,67 @@ public sealed class MoexSyncService : IMoexSyncService
                         if (!coupon.Number.HasValue || coupon.Number.Value <= 0)
                         {
                             couponList[i] = coupon with { Number = i + 1 };
+                        }
+                    }
+
+                    if (!dic.FromDate.HasValue || !dic.ToDate.HasValue)
+                    {
+                        DateTime? earliestStart = null;
+                        DateTime? earliestCoupon = null;
+                        DateTime? latestCoupon = null;
+                        foreach (var coupon in couponList)
+                        {
+                            if (coupon.StartDate.HasValue &&
+                                (!earliestStart.HasValue || coupon.StartDate.Value < earliestStart.Value))
+                            {
+                                earliestStart = coupon.StartDate.Value;
+                            }
+
+                            if (coupon.CouponDate.HasValue &&
+                                (!earliestCoupon.HasValue || coupon.CouponDate.Value < earliestCoupon.Value))
+                            {
+                                earliestCoupon = coupon.CouponDate.Value;
+                            }
+
+                            if (coupon.CouponDate.HasValue &&
+                                (!latestCoupon.HasValue || coupon.CouponDate.Value > latestCoupon.Value))
+                            {
+                                latestCoupon = coupon.CouponDate.Value;
+                            }
+                        }
+
+                        if (!dic.FromDate.HasValue)
+                        {
+                            var from = earliestStart ?? earliestCoupon;
+                            if (from.HasValue)
+                            {
+                                dic.FromDate = from.Value;
+                            }
+                        }
+
+                        if (!dic.ToDate.HasValue &&
+                            !row.MaturityDate.HasValue &&
+                            !(bondSpec?.MaturityDate.HasValue ?? false) &&
+                            !(marketRow?.ListedTill.HasValue ?? false))
+                        {
+                            if (latestCoupon.HasValue)
+                            {
+                                dic.ToDate = latestCoupon.Value;
+                            }
+                        }
+                    }
+
+                    if (bondSpec != null)
+                    {
+                        var isCouponed = couponList.Any(c => c.CouponValue.HasValue && c.CouponValue.Value > 0m);
+                        if (!bondSpec.IsCouponed.HasValue || bondSpec.IsCouponed.Value != isCouponed)
+                        {
+                            bondSpec.IsCouponed = isCouponed;
+                            var now = DateTime.UtcNow;
+                            if (bondSpec.UpdatedAt != now)
+                            {
+                                bondSpec.UpdatedAt = now;
+                            }
                         }
                     }
 
@@ -360,6 +504,11 @@ public sealed class MoexSyncService : IMoexSyncService
             if (touchedBonds.Count > 0)
             {
                 linksUpserted += await BuildSameIssuerLinksAsync(touchedBonds, cancellationToken);
+            }
+
+            if (useTestFilter)
+            {
+                break;
             }
 
             if (page.Count < limit)
@@ -614,23 +763,7 @@ public sealed class MoexSyncService : IMoexSyncService
             return new List<MoexBondRow>();
         }
 
-        var rows = new List<MoexBondRow>(page.Count);
-        foreach (var bond in page)
-        {
-            var item = bond;
-            if (!item.HasDetails)
-            {
-                var details = await FetchBondDetailsAsync(item.SecId, cancellationToken);
-                if (details != null)
-                {
-                    item = item.WithDetails(details);
-                }
-            }
-
-            rows.Add(item);
-        }
-
-        return rows;
+        return new List<MoexBondRow>(page);
     }
     private Task<BondDetails?> FetchBondDetailsAsync(string secid, CancellationToken cancellationToken)
     {
@@ -691,7 +824,7 @@ public sealed class MoexSyncService : IMoexSyncService
     {
         var bondEmitents = bonds
             .Where(b => b.EmitentId.HasValue)
-            .Select(b => new { b.Id, EmitentId = b.EmitentId!.Value })
+            .Select(b => new { b.Id, EmitentId = b.EmitentId!.Value, b.Securityid })
             .Distinct()
             .ToList();
 
@@ -716,6 +849,25 @@ public sealed class MoexSyncService : IMoexSyncService
             .GroupBy(s => s.EmitentId)
             .ToDictionary(g => g.Key, g => g.Select(s => s.Id).ToList());
 
+        Dictionary<string, int> bondIdLookup = new(StringComparer.OrdinalIgnoreCase);
+        var missingSecids = bondEmitents
+            .Where(b => b.Id <= 0 && !string.IsNullOrWhiteSpace(b.Securityid))
+            .Select(b => b.Securityid!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (missingSecids.Count > 0)
+        {
+            var resolved = await _dbContext.Dictionaries
+                .AsNoTracking()
+                .Where(d => missingSecids.Contains(d.Securityid))
+                .Select(d => new { d.Securityid, d.Id })
+                .ToListAsync(cancellationToken);
+            foreach (var row in resolved)
+            {
+                bondIdLookup[row.Securityid] = row.Id;
+            }
+        }
+
         var now = DateTime.UtcNow;
         var links = new List<SecurityLink>();
 
@@ -726,12 +878,22 @@ public sealed class MoexSyncService : IMoexSyncService
                 continue;
             }
 
+            var bondId = bond.Id;
+            if (bondId <= 0 && !string.IsNullOrWhiteSpace(bond.Securityid))
+            {
+                bondIdLookup.TryGetValue(bond.Securityid, out bondId);
+            }
+            if (bondId <= 0)
+            {
+                continue;
+            }
+
             foreach (var stockId in stockIds)
             {
                 links.Add(new SecurityLink
                 {
                     FromDictionaryId = stockId,
-                    ToDictionaryId = bond.Id,
+                    ToDictionaryId = bondId,
                     LinkType = LinkSameIssuer,
                     Source = SourceIssSecurities,
                     UpdatedAt = now
@@ -821,6 +983,11 @@ public sealed class MoexSyncService : IMoexSyncService
         var unique = new Dictionary<(int From, int To, byte Type), SecurityLink>();
         foreach (var link in links)
         {
+            if (link.FromDictionaryId <= 0 || link.ToDictionaryId <= 0)
+            {
+                continue;
+            }
+
             var key = (link.FromDictionaryId, link.ToDictionaryId, link.LinkType);
             if (!unique.ContainsKey(key))
             {
@@ -900,14 +1067,26 @@ public sealed class MoexSyncService : IMoexSyncService
         return changed;
     }
 
-    private bool ApplyEmitent(DictionaryEntity dic, EmitentInfo? emitent)
+    private bool ApplyEmitent(DictionaryEntity dic, EmitentInfo? emitent, DateTime? lastDate = null, DateTime? fromDate = null)
     {
-        if (emitent == null || !emitent.EmitentId.HasValue)
+        var changed = false;
+
+        if (fromDate.HasValue && dic.FromDate != fromDate)
         {
-            return false;
+            dic.FromDate = fromDate;
+            changed = true;
         }
 
-        var changed = false;
+        if (lastDate.HasValue && dic.ToDate != lastDate)
+        {
+            dic.ToDate = lastDate;
+            changed = true;
+        }
+
+        if (emitent == null || !emitent.EmitentId.HasValue)
+        {
+            return changed;
+        }
 
         if (dic.EmitentId != emitent.EmitentId)
         {
@@ -962,6 +1141,43 @@ public sealed class MoexSyncService : IMoexSyncService
         if (!string.IsNullOrWhiteSpace(row.Currency) && spec.Currency != row.Currency)
         {
             spec.Currency = row.Currency;
+            changed = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(row.FaceUnit) &&
+            !string.Equals(spec.FaceUnit, row.FaceUnit, StringComparison.OrdinalIgnoreCase))
+        {
+            spec.FaceUnit = row.FaceUnit;
+            changed = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(row.MoexType) &&
+            !string.Equals(spec.MoexType, row.MoexType, StringComparison.OrdinalIgnoreCase))
+        {
+            spec.MoexType = row.MoexType;
+            changed = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(row.MoexGroup) &&
+            !string.Equals(spec.MoexGroup, row.MoexGroup, StringComparison.OrdinalIgnoreCase))
+        {
+            spec.MoexGroup = row.MoexGroup;
+            changed = true;
+        }
+
+        var bondClass = MapBondClass(row.MoexType ?? spec.MoexType);
+        if (!string.IsNullOrWhiteSpace(bondClass) &&
+            !string.Equals(spec.BondClass, bondClass, StringComparison.OrdinalIgnoreCase))
+        {
+            spec.BondClass = bondClass;
+            changed = true;
+        }
+
+        var isForeignCurrency = ComputeIsForeignCurrency(row.FaceUnit ?? spec.FaceUnit);
+        if (isForeignCurrency.HasValue &&
+            (!spec.IsForeignCurrency.HasValue || spec.IsForeignCurrency.Value != isForeignCurrency.Value))
+        {
+            spec.IsForeignCurrency = isForeignCurrency;
             changed = true;
         }
 
@@ -1056,6 +1272,36 @@ public sealed class MoexSyncService : IMoexSyncService
         }
 
         return changed;
+    }
+
+    private static string? MapBondClass(string? moexType)
+    {
+        if (string.IsNullOrWhiteSpace(moexType))
+        {
+            return null;
+        }
+
+        var key = moexType.Trim().ToUpperInvariant();
+        return key switch
+        {
+            "OFZ_BOND" => "ofz",
+            "CORPORATE_BOND" => "corp",
+            "SUBFEDERAL_BOND" => "subfed",
+            "MUNICIPAL_BOND" => "subfed",
+            "REGIONAL_BOND" => "subfed",
+            _ => "other"
+        };
+    }
+
+    private static bool? ComputeIsForeignCurrency(string? faceUnit)
+    {
+        if (string.IsNullOrWhiteSpace(faceUnit))
+        {
+            return null;
+        }
+
+        var unit = faceUnit.Trim().ToUpperInvariant();
+        return unit != "SUR" && unit != "RUB" && unit != "RUR";
     }
 
     private bool UpdateFutureSpec(FutureSpec spec, MoexFutureRow row)

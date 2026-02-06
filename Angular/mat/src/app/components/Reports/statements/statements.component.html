@@ -68,6 +68,8 @@
                     <th>Номинал</th>
                     <th>Цена</th>
                     <th>Валюта</th>
+                    <th>Купоны</th>
+                    <th>След. купон</th>
                     <th>Текущая доходность</th>
                     <th>Board</th>
                   </tr>
@@ -89,6 +91,12 @@
                     <td>{{ bond.faceValue == null ? '—' : (bond.faceValue | number:'1.0-4') }}</td>
                     <td>{{ bond.currentPrice == null ? '—' : (bond.currentPrice | number:'1.2-4') }}</td>
                     <td>{{ bond.currency || '—' }}</td>
+                    <td>
+                      <ng-container *ngIf="bond.isCouponed === true">да</ng-container>
+                      <ng-container *ngIf="bond.isCouponed === false">нет</ng-container>
+                      <ng-container *ngIf="bond.isCouponed == null">—</ng-container>
+                    </td>
+                    <td>{{ bond.nextCouponDate ? (bond.nextCouponDate | date:'dd.MM.yyyy') : '—' }}</td>
                     <td>{{ bond.currentYield == null ? '—' : (bond.currentYield | number:'1.2-2') + ' %' }}</td>
                     <td>{{ bond.primaryBoardId || '—' }}</td>
                   </tr>

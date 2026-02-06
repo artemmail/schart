@@ -26,6 +26,8 @@ interface InstrumentRelationItem {
   maturityDate?: string | Date | null;
   faceValue?: number | null;
   currency?: string;
+  isCouponed?: boolean | null;
+  nextCouponDate?: string | Date | null;
   primaryBoardId?: string;
   currentYield?: number | null;
   currentPrice?: number | null;
@@ -240,6 +242,8 @@ export class StatementsComponent implements OnInit {
       maturityDate: item?.maturityDate ?? item?.MaturityDate ?? null,
       faceValue: item?.faceValue ?? item?.FaceValue ?? null,
       currency: item?.currency ?? item?.Currency ?? '',
+      isCouponed: item?.isCouponed ?? item?.IsCouponed ?? null,
+      nextCouponDate: item?.nextCouponDate ?? item?.NextCouponDate ?? null,
       primaryBoardId: item?.primaryBoardId ?? item?.PrimaryBoardId ?? '',
       currentYield: item?.currentYield ?? item?.CurrentYield ?? null,
       currentPrice: item?.currentPrice ?? item?.CurrentPrice ?? null
