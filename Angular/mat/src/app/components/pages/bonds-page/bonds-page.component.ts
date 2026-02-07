@@ -41,6 +41,7 @@ interface BondsState {
   styleUrls: ['./bonds-page.component.scss'],
 })
 export class BondsPageComponent implements OnInit, OnDestroy {
+  readonly defaultMoexType = 'OFZ_BOND';
   readonly mapModes: { key: BondMapMode; label: string }[] = [
     { key: 'yield_by_duration', label: 'Доходность по сроку дюрации' },
     { key: 'coupon_yield_by_duration', label: 'Купонная доходность по сроку дюрации' },
@@ -157,6 +158,27 @@ export class BondsPageComponent implements OnInit, OnDestroy {
       return 'swap_vert';
     }
     return this.state.dir === 'asc' ? 'arrow_upward' : 'arrow_downward';
+  }
+
+  get selectedMoexTypeIndex(): number {
+    if (this.moexTypeOptions.length === 0) {
+      return 0;
+    }
+    const current = (this.state.moexType || '').trim().toUpperCase();
+    const idx = this.moexTypeOptions.findIndex((x) => (x.key || '').trim().toUpperCase() === current);
+    return idx >= 0 ? idx : 0;
+  }
+
+  onMoexTypeTabChanged(index: number): void {
+    if (index < 0 || index >= this.moexTypeOptions.length) {
+      return;
+    }
+    const nextType = (this.moexTypeOptions[index].key || '').trim().toUpperCase();
+    if (!nextType || nextType === this.state.moexType) {
+      return;
+    }
+    const nextState: BondsState = { ...this.state, moexType: nextType, page: 1 };
+    this.navigateWithState(nextState);
   }
 
   private load(): void {
@@ -341,7 +363,7 @@ export class BondsPageComponent implements OnInit, OnDestroy {
   }
 
   private readState(query: ParamMap): BondsState {
-    const moexType = this.parseStringList(query, 'moexType')[0] ?? '';
+    const moexType = (this.parseStringList(query, 'moexType')[0] ?? this.defaultMoexType).toUpperCase();
 
     return {
       yieldMin: this.parseNum(query.get('yieldMin')),
@@ -410,7 +432,7 @@ export class BondsPageComponent implements OnInit, OnDestroy {
       yearsToMaturityMin: null,
       yearsToMaturityMax: null,
       qualifiedOnly: false,
-      moexType: '',
+      moexType: this.defaultMoexType,
       couponFreq: [],
       orderBy: 'yieldPct',
       dir: 'desc',
@@ -426,12 +448,34 @@ export class BondsPageComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (options) => {
-          this.moexTypeOptions = options ?? [];
+          const normalized = (options ?? [])
+            .map((x) => ({
+              ...x,
+              key: (x.key || '').trim().toUpperCase(),
+            }))
+            .filter((x) => !!x.key);
+          this.moexTypeOptions = normalized;
+          this.ensureMoexTypeSelection(normalized);
         },
         error: () => {
           this.moexTypeOptions = [];
         },
       });
+  }
+
+  private ensureMoexTypeSelection(options: BondMoexTypeOption[]): void {
+    if (options.length === 0) {
+      return;
+    }
+
+    const current = (this.state.moexType || '').trim().toUpperCase();
+    if (current && options.some((x) => x.key === current)) {
+      return;
+    }
+
+    const fallback = options.find((x) => x.key === this.defaultMoexType)?.key ?? options[0].key;
+    const nextState: BondsState = { ...this.state, moexType: fallback, page: 1 };
+    this.navigateWithState(nextState);
   }
 
   private extractError(error: any): string {
