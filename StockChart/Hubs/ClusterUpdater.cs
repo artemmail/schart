@@ -1,55 +1,40 @@
-﻿using StockChart.EventBus.Models;
-using SignalRMvc.Hubs;
+using Microsoft.AspNetCore.SignalR;
+using StockChart.EventBus.Models;
 using StockChart.Repository;
+using System.Collections.Concurrent;
 
 namespace StockChart.Hubs
 {
     public class ClusterUpdater
     {
-        ICandlesRepository _candlesRepository;
-        HashSet<string> Connections = new HashSet<string>();
-        CandlesHub _hub;
+        private readonly ConcurrentDictionary<string, byte> _connections = new();
+        public string key;
 
-        IServiceProvider serviceProvider;
-        ILogger<CandlesUpdater> _logger;
         public ClusterUpdater(
-            IServiceProvider serviceProvider,
-            ILogger<CandlesUpdater> _logger,
-            CandlesHub hub,
             IStockMarketServiceRepository stockMarketServiceRepository,
             SubsCluster key)
         {
-            this._logger = _logger;
-            this.serviceProvider = serviceProvider;
-            _hub = hub;
             this.key = key.ToString();
-            realTicker = key.ticker;
+            var realTicker = key.ticker;
             stockMarketServiceRepository.UpdateAlias(ref realTicker);
             key.ticker = realTicker;
+        }
 
+        public async Task AddConnection(string connectionId, IGroupManager groups)
+        {
+            await groups.AddToGroupAsync(connectionId, key);
+            _connections[connectionId] = 0;
         }
-        string realTicker;
-        public string key;
 
-        public async Task AddConnection(string con)
+        public async Task RemoveConnectionAsync(string connectionId, IGroupManager groups)
         {
-            await _hub.Groups.AddToGroupAsync(con, key.ToString());
-            Connections.Add(con);
-            //   _logger.LogTrace($"connect {key.ToString()} {Connections.Count}");
+            await groups.RemoveFromGroupAsync(connectionId, key);
+            _connections.TryRemove(connectionId, out _);
         }
-        public async Task RemoveConnectionAsync(string con)
-        {
-            await _hub.Groups.RemoveFromGroupAsync(con, key.ToString());
-            if (Connections.Contains(con))
-                Connections.Remove(con);
-            // _logger.LogTrace($"disconnect {key.ToString()} {Connections.Count}");
-        }
+
         public bool Any()
         {
-            return Connections.Any();
+            return !_connections.IsEmpty;
         }
-
-
-
     }
 }

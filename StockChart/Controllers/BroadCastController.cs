@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
-using StockChart.EventBus.Models;
 using SignalRMvc.Hubs;
+using StockChart.EventBus.Models;
 using StockChart.Extentions;
 using StockChart.Model;
 using StockChart.Repository;
@@ -20,7 +21,7 @@ namespace StockChart.Controllers
         ITickersRepository _tickers;
         SignInManager<ApplicationUser> SignInManager;
         ApplicationDbContext dbContext;
-        CandlesHub _uptimeHub;
+        IHubContext<CandlesHub> _hubContext;
 
         public BroadCastController(
             ApplicationDbContext dbContext,
@@ -29,10 +30,10 @@ namespace StockChart.Controllers
             IStockMarketServiceRepository stockMarketServiceRepository,
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-             CandlesHub uptimeHub
+            IHubContext<CandlesHub> hubContext
             )
         {
-            _uptimeHub = uptimeHub;
+            _hubContext = hubContext;
             this.dbContext = dbContext;
             this.UserManager = userManager;
             SignInManager = signInManager;
@@ -44,9 +45,6 @@ namespace StockChart.Controllers
         [HttpPost("Post")]
         public async Task Post([FromBody] string? aaa)
         {
-            if (_uptimeHub.Clients == null)
-                return;
-
             var cp = JsonConvert.DeserializeObject<Dictionary<string, List<Candle>>>(aaa);
 
             //Dictionary<string, List<BaseCandle>> cp = new Dictionary<string, List<BaseCandle>>();
@@ -64,7 +62,7 @@ namespace StockChart.Controllers
                 {
                     var candles = rxx[k];
                     var res = new { key = new { k.ticker, k.period }, data = CandlePacker.PackCandlesResult(candles, false) };
-                    await _uptimeHub.Clients.Group(k.ToString()).SendCoreAsync("recieveCandle", new object[] { JsonConvert.SerializeObject(res) });
+                    await _hubContext.Clients.Group(k.ToString()).SendCoreAsync("recieveCandle", new object[] { JsonConvert.SerializeObject(res) });
                 }
             }
         }
@@ -74,10 +72,6 @@ namespace StockChart.Controllers
         public async Task PostCluster([FromBody] string? aaa)
         {
             return;
-
-            if (_uptimeHub.Clients == null)
-                return;
-
 
             var cp = JsonConvert.DeserializeObject<Dictionary<string, List<ClusterColumnWCF>>>(aaa);
 
@@ -95,7 +89,7 @@ namespace StockChart.Controllers
             {
                 if (rxx[k].Any())
                 {
-                    await _uptimeHub.Clients.Group(k.ToString()).SendCoreAsync("receiveCluster", new object[] { JsonConvert.SerializeObject(rxx[k]) });
+                    await _hubContext.Clients.Group(k.ToString()).SendCoreAsync("receiveCluster", new object[] { JsonConvert.SerializeObject(rxx[k]) });
                 }
             }
         }

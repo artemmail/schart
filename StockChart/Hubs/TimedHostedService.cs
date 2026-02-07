@@ -1,74 +1,33 @@
-﻿using SignalRMvc.Hubs;
+using Microsoft.AspNetCore.SignalR;
+using SignalRMvc.Hubs;
 using StockChart.Repository;
 
 namespace StockChart.Hubs
 {
-    /*
-    internal interface IScopedProcessingService
-    {
-        Task DoWork(CancellationToken stoppingToken);
-    }
-    internal class ScopedProcessingService : IScopedProcessingService
-    {
-        private int executionCount = 0;
-        CandlesHub _uptimeHub;
-        public ScopedProcessingService(CandlesHub candlesHub)
-        {
-            _uptimeHub = candlesHub;
-        }
-        public async Task DoWork(CancellationToken stoppingToken)
-        {
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                var count = Interlocked.Increment(ref executionCount);
-                HashSet<string> frozenTickers = new HashSet<string>();
-                foreach (var k in CandlesHub.CandlesUpd.Keys.ToArray())
-                    if (!frozenTickers.Contains(k.ticker))
-                    {
-                        var updater = _uptimeHub.GetCandleUpdater(k);
-                        object? res = await CandlesHub.CandlesUpd[k].GetUpd();
-                        if (res != null)
-                            await _uptimeHub.Clients.Group(k.ToString())
-                                .SendCoreAsync("recieveCandle", new object[] { JsonConvert.SerializeObject(res) });
-                        else
-                            frozenTickers.Add(k.ticker);
-                    }
-                await Task.Delay(500, stoppingToken);
-            }
-        }
-    }
-    */
     public class TimedHostedService : IHostedService, IDisposable
     {
         private int executionCount = 0;
         private Timer? _timer = null;
-        CandlesHub _uptimeHub;
-        ICandlesRepository _candlesRepository;
-        IServiceProvider serviceProvider;
-        ILogger<TimedHostedService> logger_;
+        private readonly IHubContext<CandlesHub> _hubContext;
+        private readonly ILogger<TimedHostedService> _logger;
 
         public static int counter = 0;
         public static int counter2 = 0;
 
-        public TimedHostedService(IServiceProvider serviceProvider, CandlesHub candlesHub,
+        public TimedHostedService(
+            IHubContext<CandlesHub> hubContext,
             ILogger<TimedHostedService> logger)
         {
-            logger_ = logger;
-            this.serviceProvider = serviceProvider;
-
-            //_candlesRepository = candlesRepository;
-            _uptimeHub = candlesHub;
-
-
+            _logger = logger;
+            _hubContext = hubContext;
         }
+
         public Task StartAsync(CancellationToken stoppingToken)
         {
-            /*
-            _timer = new Timer(DoWork, null, TimeSpan.Zero,
-            TimeSpan.FromMilliseconds(200));*/
             Task.Run(async () => await DoWorks(stoppingToken));
             return Task.CompletedTask;
         }
+
         public async Task DoWorks(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -80,56 +39,73 @@ namespace StockChart.Hubs
                 }
                 catch (Exception ex)
                 {
-                    logger_.LogError($"HUB{counter2} {ex.InnerException.Message} {ex.StackTrace}");
+                    _logger.LogError(ex, "HUB error {Counter}", counter2);
                     counter2++;
                 }
+
                 await Task.Delay(500, stoppingToken);
             }
         }
+
         private async Task DoWork()
         {
-            var count = Interlocked.Increment(ref executionCount);
-            HashSet<string> frozenTickers = new HashSet<string>();
+            Interlocked.Increment(ref executionCount);
 
-            var tasks = new List<Task>();
+            var tasks = CandlesHub.Ladders.Keys
+                .ToArray()
+                .Select(ProcessLadderAsync)
+                .ToArray();
 
-            foreach (var k in CandlesHub.Ladders.Keys.ToArray())
-            {
-                tasks.Add(ProcessLadderAsync(k));
-            }
-
-            Task.WhenAll(tasks);
+            await Task.WhenAll(tasks);
         }
 
-        private async Task ProcessLadderAsync(string k)
+        private async Task ProcessLadderAsync(string ticker)
         {
-            if (CandlesHub.Ladders.ContainsKey(k) && CandlesHub.Ladders[k].Any())
+            if (!CandlesHub.Ladders.TryGetValue(ticker, out var connections) || connections.IsEmpty)
             {
-                var r = LadderManager.getRawLadder(k);
-                if (r != null && r.Count > 0)
-                {
-                    if (r.Keys.Count < 2)
-                    {
-                        int a = 0;
-                        a++;
-                    }
-                    if (!CandlesHub.LaddersHash.ContainsKey(k) || r.GetHashCode() != CandlesHub.LaddersHash[k])
-                    {
-                        await _uptimeHub.Clients.Group(k.ToString()).SendCoreAsync("receiveLadder", new object[] { r });
-                    }
-                    CandlesHub.LaddersHash[k] = r.GetHashCode();
-                }
+                return;
+            }
+
+            var ladder = LadderManager.getRawLadder(ticker);
+            if (ladder == null || ladder.Count == 0)
+            {
+                return;
+            }
+
+            var nextHash = ComputeLadderHash(ladder);
+            if (!CandlesHub.LaddersHash.TryGetValue(ticker, out var currentHash) || currentHash != nextHash)
+            {
+                await Task.WhenAll(
+                    _hubContext.Clients.Group(ticker).SendCoreAsync("receiveLadder", new object[] { ladder }),
+                    _hubContext.Clients.Group(ticker).SendCoreAsync(
+                        "receiveLadderEnvelope",
+                        new object[] { new { ticker, data = ladder } })
+                );
+                CandlesHub.LaddersHash[ticker] = nextHash;
             }
         }
+
+        private static int ComputeLadderHash(Dictionary<decimal, int> ladder)
+        {
+            var hash = new HashCode();
+            foreach (var pair in ladder.OrderBy(x => x.Key))
+            {
+                hash.Add(pair.Key);
+                hash.Add(pair.Value);
+            }
+
+            return hash.ToHashCode();
+        }
+
         public Task StopAsync(CancellationToken stoppingToken)
         {
             _timer?.Change(Timeout.Infinite, 0);
             return Task.CompletedTask;
         }
+
         public void Dispose()
         {
             _timer?.Dispose();
         }
     }
-
 }

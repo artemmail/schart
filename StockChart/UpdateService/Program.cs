@@ -65,19 +65,19 @@ static async Task ConfigureQuartzSchedulesAsync(IServiceProvider services)
     var options = scope.ServiceProvider.GetRequiredService<IOptions<UpdateServiceScheduleOptions>>().Value;
     var schedulerFactory = scope.ServiceProvider.GetRequiredService<ISchedulerFactory>();
     var scheduler = await schedulerFactory.GetScheduler();
-
+    /*
     await ScheduleJobAsync<DividendsMoexJob>(
         scheduler,
         new JobKey("DividendsMoexJob"),
         "DividendsMoexJob.Trigger",
-        options.DividendsMoexInterval);
+        options.DividendsMoexInterval);*/
 
     await ScheduleJobAsync<MoexSyncJob>(
         scheduler,
         new JobKey("MoexSyncJob"),
         "MoexSyncJob.Trigger",
         options.MoexSyncInterval);
-
+    /*
     await ScheduleJobAsync<YooMoneyJob>(
         scheduler,
         new JobKey("YooMoneyJob"),
@@ -94,7 +94,7 @@ static async Task ConfigureQuartzSchedulesAsync(IServiceProvider services)
         scheduler,
         new JobKey("NightlyBatchImportJob"),
         "NightlyBatchImportJob.Trigger",
-        options.NightlyBatchImportCron);
+        options.NightlyBatchImportCron);*/
 }
 
 static async Task ScheduleJobAsync<TJob>(

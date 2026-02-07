@@ -1,7 +1,9 @@
-﻿using Newtonsoft.Json;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
+using SignalRMvc.Hubs;
 using StockChart.EventBus.Models;
 using StockChart.EventBus.Subscribers;
-using SignalRMvc.Hubs;
 using StockChart.Extentions;
 using StockChart.Messages;
 using StockChart.Repository;
@@ -11,22 +13,20 @@ namespace StockChart.Notification.WebApi.RabbitMQ.Subscriptions;
 
 public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsumer<CandleMessage>, IConsumer<TickerMessage>
 {
-    private readonly CandlesHub _uptimeHub;
-    private readonly IClusterRepository _clusterRepository;
-    private readonly ICandlesRepository _candlesRepository;
+    private readonly IHubContext<CandlesHub> _hubContext;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ITickersRepository _tickersRepository;
     private readonly ILogger<ClusterSubscriber> _logger;
 
     public ClusterSubscriber(
-        CandlesHub uptimeHub,
-        IServiceProvider serviceProvider,
+        IHubContext<CandlesHub> hubContext,
+        IServiceScopeFactory scopeFactory,
+        ITickersRepository tickersRepository,
         ILogger<ClusterSubscriber> logger)
     {
-        _uptimeHub = uptimeHub;
-        IServiceScope scope = serviceProvider.CreateScope();
-        _tickersRepository = scope.ServiceProvider.GetRequiredService<ITickersRepository>();
-        _candlesRepository = scope.ServiceProvider.GetRequiredService<ICandlesRepository>();
-        _clusterRepository = scope.ServiceProvider.GetRequiredService<IClusterRepository>();
+        _hubContext = hubContext;
+        _scopeFactory = scopeFactory;
+        _tickersRepository = tickersRepository;
         _logger = logger;
     }
 
@@ -63,9 +63,6 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
         string logMessage,
         CancellationToken cancellationToken)
     {
-        if (_uptimeHub.Clients == null)
-            return;
-
         var tasks = body.Select(kvp => processMethod(kvp.Key, kvp.Value));
 
         try
@@ -93,9 +90,12 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
 
         if ((ticker.Market == 20 && period > 60) || period > 1440)
         {
+            using var scope = _scopeFactory.CreateScope();
+
             if (subsCluster.step == 0)
             {
-                var candles = await _candlesRepository.GetLastCandles(ticker.Id, period, 3);
+                var candlesRepository = scope.ServiceProvider.GetRequiredService<ICandlesRepository>();
+                var candles = await candlesRepository.GetLastCandles(ticker.Id, period, 3);
                 var list = candles.Select(row => new ClusterColumnBase
                 {
                     x = row.Period,
@@ -110,17 +110,33 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
                     bv = row.BuyVolume
                 }).ToList();
 
-                await _uptimeHub.Clients.Group(groupName).SendCoreAsync("receiveCluster", new object[] { list });
+                await Task.WhenAll(
+                    _hubContext.Clients.Group(groupName).SendCoreAsync("receiveCluster", new object[] { list }),
+                    _hubContext.Clients.Group(groupName).SendCoreAsync(
+                        "receiveClusterEnvelope",
+                        new object[] { new { key = groupName, data = (object)list } })
+                );
             }
             else
             {
-                var clusters = await _clusterRepository.GetLastCluster(ticker.Id, (decimal)period, subsCluster.step, 3);
-                await _uptimeHub.Clients.Group(groupName).SendCoreAsync("receiveCluster", new object[] { clusters });
+                var clusterRepository = scope.ServiceProvider.GetRequiredService<IClusterRepository>();
+                var clusters = await clusterRepository.GetLastCluster(ticker.Id, (decimal)period, subsCluster.step, 3);
+                await Task.WhenAll(
+                    _hubContext.Clients.Group(groupName).SendCoreAsync("receiveCluster", new object[] { clusters }),
+                    _hubContext.Clients.Group(groupName).SendCoreAsync(
+                        "receiveClusterEnvelope",
+                        new object[] { new { key = groupName, data = (object)clusters } })
+                );
             }
         }
         else
         {
-            await _uptimeHub.Clients.Group(groupName).SendCoreAsync("receiveCluster", new object[] { body });
+            await Task.WhenAll(
+                _hubContext.Clients.Group(groupName).SendCoreAsync("receiveCluster", new object[] { body }),
+                _hubContext.Clients.Group(groupName).SendCoreAsync(
+                    "receiveClusterEnvelope",
+                    new object[] { new { key = groupName, data = (object)body } })
+            );
         }
     }
 
@@ -129,7 +145,12 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
         var subsCluster = SubsCluster.Parse(key);
         var groupName = subsCluster.ToString();
 
-        await _uptimeHub.Clients.Group(groupName).SendCoreAsync("receiveTicks", new object[] { body });
+        await Task.WhenAll(
+            _hubContext.Clients.Group(groupName).SendCoreAsync("receiveTicks", new object[] { body }),
+            _hubContext.Clients.Group(groupName).SendCoreAsync(
+                "receiveTicksEnvelope",
+                new object[] { new { key = groupName, data = (object)body } })
+        );
     }
 
     private async Task ProcessCandleAsync(string key, List<BaseCandle> body)
@@ -152,7 +173,9 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
 
         if ((ticker.Market == 20 && period > 60) || period > 1440)
         {
-            candles = (await _candlesRepository.GetLastCandles(ticker.Id, period, 3)).Cast<BaseCandle>().ToList();
+            using var scope = _scopeFactory.CreateScope();
+            var candlesRepository = scope.ServiceProvider.GetRequiredService<ICandlesRepository>();
+            candles = (await candlesRepository.GetLastCandles(ticker.Id, period, 3)).Cast<BaseCandle>().ToList();
         }
 
         var result = new
@@ -163,6 +186,6 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
 
         var groupName = subsCandle.ToString();
 
-        await _uptimeHub.Clients.Group(groupName).SendCoreAsync("recieveCandle", new object[] { JsonConvert.SerializeObject(result) });
+        await _hubContext.Clients.Group(groupName).SendCoreAsync("recieveCandle", new object[] { JsonConvert.SerializeObject(result) });
     }
 }

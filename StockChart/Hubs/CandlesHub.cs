@@ -77,7 +77,10 @@ namespace SignalRMvc.Hubs
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, ticker);
 
                 if (connections.IsEmpty)
+                {
                     Ladders.TryRemove(ticker, out _);
+                    LaddersHash.TryRemove(ticker, out _);
+                }
 
                 await UpdateLadderAsync();
             }
@@ -90,7 +93,6 @@ namespace SignalRMvc.Hubs
 
             using var scope = _serviceProvider.CreateScope();
             var stockMarketService = scope.ServiceProvider.GetRequiredService<IStockMarketServiceRepository>();
-            var candlesRepository = scope.ServiceProvider.GetRequiredService<ICandlesRepository>();
             var subscribeRepository = scope.ServiceProvider.GetRequiredService<ISubscribeRepository>();
 
             // Решение ошибки CS0206
@@ -101,9 +103,9 @@ namespace SignalRMvc.Hubs
             if (subscription.period.HasValue)
             {
                 var updater = CandlesUpd.GetOrAdd(subscription, key =>
-                    new CandlesUpdater(_serviceProvider, _logger, this, candlesRepository, stockMarketService, _tickersRepository, key));
+                    new CandlesUpdater(stockMarketService, _tickersRepository, key));
 
-                await updater.AddConnection(Context.ConnectionId);
+                await updater.AddConnection(Context.ConnectionId, Groups);
             }
 
             await subscribeRepository.Subscribe(CandlesUpd.Keys.ToArray());
@@ -125,7 +127,7 @@ namespace SignalRMvc.Hubs
 
             if (CandlesUpd.TryGetValue(subscription, out var updater))
             {
-                await updater.RemoveConnectionAsync(Context.ConnectionId);
+                await updater.RemoveConnectionAsync(Context.ConnectionId, Groups);
                 if (!updater.Any())
                 {
                     CandlesUpd.TryRemove(subscription, out _);
@@ -152,9 +154,9 @@ namespace SignalRMvc.Hubs
             if (subscription.period.HasValue)
             {
                 var updater = ClustersUpd.GetOrAdd(subscription, key =>
-                    new ClusterUpdater(_serviceProvider, _logger, this, stockMarketService, key));
+                    new ClusterUpdater(stockMarketService, key));
 
-                await updater.AddConnection(Context.ConnectionId);
+                await updater.AddConnection(Context.ConnectionId, Groups);
             }
 
             await subscribeRepository.Subscribe(ClustersUpd.Keys.ToArray());
@@ -176,7 +178,7 @@ namespace SignalRMvc.Hubs
 
             if (ClustersUpd.TryGetValue(subscription, out var updater))
             {
-                await updater.RemoveConnectionAsync(Context.ConnectionId);
+                await updater.RemoveConnectionAsync(Context.ConnectionId, Groups);
                 if (!updater.Any())
                 {
                     ClustersUpd.TryRemove(subscription, out _);
@@ -190,12 +192,12 @@ namespace SignalRMvc.Hubs
         {
             foreach (var updater in CandlesUpd.Values)
             {
-                await updater.RemoveConnectionAsync(Context.ConnectionId);
+                await updater.RemoveConnectionAsync(Context.ConnectionId, Groups);
             }
 
             foreach (var updater in ClustersUpd.Values)
             {
-                await updater.RemoveConnectionAsync(Context.ConnectionId);
+                await updater.RemoveConnectionAsync(Context.ConnectionId, Groups);
             }
 
             CleanUpDictionaries();
@@ -208,9 +210,14 @@ namespace SignalRMvc.Hubs
                     await Groups.RemoveFromGroupAsync(Context.ConnectionId, ticker);
 
                     if (connections.IsEmpty)
+                    {
                         Ladders.TryRemove(ticker, out _);
+                        LaddersHash.TryRemove(ticker, out _);
+                    }
                 }
             }
+
+            await UpdateLadderAsync();
 
             using var scope = _serviceProvider.CreateScope();
             var subscribeRepository = scope.ServiceProvider.GetRequiredService<ISubscribeRepository>();
@@ -236,6 +243,7 @@ namespace SignalRMvc.Hubs
             foreach (var key in Ladders.Where(x => x.Value.IsEmpty).Select(x => x.Key).ToList())
             {
                 Ladders.TryRemove(key, out _);
+                LaddersHash.TryRemove(key, out _);
             }
         }
     }

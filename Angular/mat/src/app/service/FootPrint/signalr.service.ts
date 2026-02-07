@@ -1,6 +1,6 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
-import { Subject } from 'rxjs';
+import { Observable, Subject, filter, map } from 'rxjs';
 import { environment } from 'src/app/environment';
 import { ColumnEx } from 'src/app/models/Column';
 
@@ -22,7 +22,24 @@ export interface FootprintTickData {
 
 export type FootprintLadderData = Record<string, number>;
 
-@Injectable()
+export interface SignalRClusterEnvelope {
+  key: string;
+  data: ColumnEx[];
+}
+
+export interface SignalRTicksEnvelope {
+  key: string;
+  data: FootprintTickData[];
+}
+
+export interface SignalRLadderEnvelope {
+  ticker: string;
+  data: FootprintLadderData;
+}
+
+@Injectable({
+  providedIn: 'root',
+})
 export class SignalRService implements OnDestroy {
   private hubConnection: signalR.HubConnection | undefined;
   private isConnecting: boolean = false;
@@ -35,36 +52,97 @@ export class SignalRService implements OnDestroy {
   private readonly reconnectMaxDelayMs = 30000;
 
   private activeSubscriptions = new Map<string, FootprintSubscribeParams>();
+  private activeDirectLadderSubscriptions = new Map<string, string>();
+  private activeLadderSubscriptions = new Map<string, number>();
+  private ladderSubscriptionSequence = 0;
 
   private readonly serverEventNames = {
-    cluster: ['receiveCluster', 'recieveCluster'],
-    ticks: ['receiveTicks', 'recieveTicks'],
-    ladder: ['receiveLadder', 'recieveLadder'],
+    clusterEnvelope: ['receiveClusterEnvelope', 'recieveClusterEnvelope'],
+    ticksEnvelope: ['receiveTicksEnvelope', 'recieveTicksEnvelope'],
+    ladderEnvelope: ['receiveLadderEnvelope', 'recieveLadderEnvelope'],
+    clusterLegacy: ['receiveCluster', 'recieveCluster'],
+    ticksLegacy: ['receiveTicks', 'recieveTicks'],
+    ladderLegacy: ['receiveLadder', 'recieveLadder'],
   } as const;
 
-  private receiveClusterSubject = new Subject<ColumnEx[]>();
-  receiveCluster$ = this.receiveClusterSubject.asObservable();
+  private receiveClusterEnvelopeSubject = new Subject<SignalRClusterEnvelope>();
+  receiveClusterEnvelope$ = this.receiveClusterEnvelopeSubject.asObservable();
 
-  private receiveTicksSubject = new Subject<FootprintTickData[]>();
-  receiveTicks$ = this.receiveTicksSubject.asObservable();
+  private receiveTicksEnvelopeSubject = new Subject<SignalRTicksEnvelope>();
+  receiveTicksEnvelope$ = this.receiveTicksEnvelopeSubject.asObservable();
 
-  private receiveLadderSubject = new Subject<FootprintLadderData>();
-  receiveLadder$ = this.receiveLadderSubject.asObservable();
+  private receiveLadderEnvelopeSubject = new Subject<SignalRLadderEnvelope>();
+  receiveLadderEnvelope$ = this.receiveLadderEnvelopeSubject.asObservable();
 
-  private clusterHandler = (answ: ColumnEx[]) => {
-    this.receiveClusterSubject.next(answ);
+  private clusterEnvelopeHandler = (payload: SignalRClusterEnvelope) => {
+    if (!payload || typeof payload.key !== 'string' || !Array.isArray(payload.data)) {
+      console.warn('Skip receiveClusterEnvelope: invalid payload');
+      return;
+    }
+    this.receiveClusterEnvelopeSubject.next(payload);
   };
 
-  private ticksHandler = (answ: FootprintTickData[]) => {
-    this.receiveTicksSubject.next(answ);
+  private ticksEnvelopeHandler = (payload: SignalRTicksEnvelope) => {
+    if (!payload || typeof payload.key !== 'string' || !Array.isArray(payload.data)) {
+      console.warn('Skip receiveTicksEnvelope: invalid payload');
+      return;
+    }
+    this.receiveTicksEnvelopeSubject.next(payload);
   };
 
-  private ladderHandler = (ladder: FootprintLadderData) => {
+  private ladderEnvelopeHandler = (payload: SignalRLadderEnvelope) => {
+    if (
+      !payload ||
+      typeof payload.ticker !== 'string' ||
+      !payload.data ||
+      typeof payload.data !== 'object'
+    ) {
+      console.warn('Skip receiveLadderEnvelope: invalid payload');
+      return;
+    }
+
+    this.receiveLadderEnvelopeSubject.next(payload);
+  };
+
+  private clusterLegacyHandler = (answ: ColumnEx[]) => {
+    const key = this.tryGetSingleActiveClusterHubKey();
+    if (!key) {
+      console.warn(
+        'Skip receiveCluster legacy payload: key is ambiguous. Use receiveClusterEnvelope.'
+      );
+      return;
+    }
+
+    this.receiveClusterEnvelopeSubject.next({ key, data: answ });
+  };
+
+  private ticksLegacyHandler = (answ: FootprintTickData[]) => {
+    const key = this.tryGetSingleActiveClusterHubKey();
+    if (!key) {
+      console.warn(
+        'Skip receiveTicks legacy payload: key is ambiguous. Use receiveTicksEnvelope.'
+      );
+      return;
+    }
+
+    this.receiveTicksEnvelopeSubject.next({ key, data: answ });
+  };
+
+  private ladderLegacyHandler = (ladder: FootprintLadderData) => {
     if (!ladder) {
       console.warn('Skip receiveLadder: payload is null or undefined');
       return;
     }
-    this.receiveLadderSubject.next(ladder);
+
+    const ticker = this.tryGetSingleActiveLadderTicker();
+    if (!ticker) {
+      console.warn(
+        'Skip receiveLadder legacy payload: ticker is ambiguous. Use receiveLadderEnvelope.'
+      );
+      return;
+    }
+
+    this.receiveLadderEnvelopeSubject.next({ ticker, data: ladder });
   };
 
   constructor() {}
@@ -105,7 +183,7 @@ export class SignalRService implements OnDestroy {
       this.startPromise = null;
       console.log('SignalR connection closed');
 
-      const hasSubscriptions = !!this.activeSubscriptions.size;
+      const hasSubscriptions = this.hasActiveSubscriptions();
       if (this.isStopping || !hasSubscriptions) return;
 
       console.warn('SignalR connection closed unexpectedly', error);
@@ -146,7 +224,7 @@ export class SignalRService implements OnDestroy {
           this.hubConnection = undefined;
         }
         this.startPromise = null;
-        if (!this.isStopping && this.activeSubscriptions.size) {
+        if (!this.isStopping && this.hasActiveSubscriptions()) {
           this.scheduleReconnect('start_failed');
         }
         throw err;
@@ -161,9 +239,12 @@ export class SignalRService implements OnDestroy {
   private registerOnServerEvents(): void {
     if (!this.hubConnection) return;
 
-    this.registerEventHandlers('cluster', this.clusterHandler);
-    this.registerEventHandlers('ticks', this.ticksHandler);
-    this.registerEventHandlers('ladder', this.ladderHandler);
+    this.registerEventHandlers('clusterEnvelope', this.clusterEnvelopeHandler);
+    this.registerEventHandlers('ticksEnvelope', this.ticksEnvelopeHandler);
+    this.registerEventHandlers('ladderEnvelope', this.ladderEnvelopeHandler);
+    this.registerEventHandlers('clusterLegacy', this.clusterLegacyHandler);
+    this.registerEventHandlers('ticksLegacy', this.ticksLegacyHandler);
+    this.registerEventHandlers('ladderLegacy', this.ladderLegacyHandler);
   }
 
   private registerEventHandlers(
@@ -196,8 +277,88 @@ export class SignalRService implements OnDestroy {
     return `${params.ticker}:${params.period}:${params.step}`;
   }
 
+  private buildHubClusterKey(params: FootprintSubscribeParams): string {
+    const periodInSeconds = Math.round(params.period * 60);
+    const step = Number(params.step);
+    const stepText = Number.isFinite(step) ? step.toString() : '0';
+    return `${params.ticker}_${periodInSeconds}_${stepText}`;
+  }
+
+  private getActiveClusterHubKeys(): string[] {
+    return Array.from(
+      new Set(
+        Array.from(this.activeSubscriptions.values()).map((subscription) =>
+          this.buildHubClusterKey(subscription)
+        )
+      )
+    );
+  }
+
+  private tryGetSingleActiveClusterHubKey(): string | null {
+    const keys = this.getActiveClusterHubKeys();
+    return keys.length === 1 ? keys[0] : null;
+  }
+
+  private tryGetSingleActiveLadderTicker(): string | null {
+    const tickers = Array.from(this.activeLadderSubscriptions.keys());
+    return tickers.length === 1 ? tickers[0] : null;
+  }
+
+  public receiveClusterFor(
+    params: FootprintSubscribeParams
+  ): Observable<ColumnEx[]> {
+    const key = this.buildHubClusterKey(params);
+    return this.receiveClusterEnvelope$.pipe(
+      filter((event) => event.key === key),
+      map((event) => event.data)
+    );
+  }
+
+  public receiveTicksFor(
+    params: FootprintSubscribeParams
+  ): Observable<FootprintTickData[]> {
+    const key = this.buildHubClusterKey(params);
+    return this.receiveTicksEnvelope$.pipe(
+      filter((event) => event.key === key),
+      map((event) => event.data)
+    );
+  }
+
+  public receiveLadderFor(ticker: string): Observable<FootprintLadderData> {
+    return this.receiveLadderEnvelope$.pipe(
+      filter((event) => event.ticker === ticker),
+      map((event) => event.data)
+    );
+  }
+
+  private hasActiveSubscriptions(): boolean {
+    return (
+      this.activeSubscriptions.size > 0 ||
+      this.activeDirectLadderSubscriptions.size > 0
+    );
+  }
+
+  private getLadderSubscriptionCount(ticker: string): number {
+    return this.activeLadderSubscriptions.get(ticker) ?? 0;
+  }
+
+  private incrementLadderSubscription(ticker: string): void {
+    const next = this.getLadderSubscriptionCount(ticker) + 1;
+    this.activeLadderSubscriptions.set(ticker, next);
+  }
+
+  private decrementLadderSubscription(ticker: string): void {
+    const current = this.getLadderSubscriptionCount(ticker);
+    if (current <= 1) {
+      this.activeLadderSubscriptions.delete(ticker);
+      return;
+    }
+
+    this.activeLadderSubscriptions.set(ticker, current - 1);
+  }
+
   private async resubscribeAll() {
-    if (!this.activeSubscriptions.size) return;
+    if (!this.hasActiveSubscriptions()) return;
 
     console.log('Resubscribing active SignalR subscriptions');
     const connected = await this.ensureConnected();
@@ -206,11 +367,25 @@ export class SignalRService implements OnDestroy {
       return;
     }
 
+    const ladderSubscribedTickers = new Set<string>();
     const resubscribeTasks = Array.from(this.activeSubscriptions.values()).map(
-      (subscription) => this.invokeSubscribe(subscription, false)
+      (subscription) => {
+        const subscribeLadder = !ladderSubscribedTickers.has(subscription.ticker);
+        if (subscribeLadder) {
+          ladderSubscribedTickers.add(subscription.ticker);
+        }
+        return this.invokeSubscribe(subscription, false, subscribeLadder);
+      }
     );
 
     await Promise.all(resubscribeTasks);
+
+    const directLadderTickers = new Set(this.activeDirectLadderSubscriptions.values());
+    const directLadderTasks = Array.from(directLadderTickers)
+      .filter((ticker) => !ladderSubscribedTickers.has(ticker))
+      .map((ticker) => this.hubConnection!.invoke('SubscribeLadder', ticker));
+
+    await Promise.all(directLadderTasks);
   }
 
   public async Subscribe(
@@ -228,9 +403,15 @@ export class SignalRService implements OnDestroy {
       return key;
     }
 
-    const subscribed = await this.invokeSubscribe(params, logParams);
+    const shouldSubscribeLadder = this.getLadderSubscriptionCount(params.ticker) === 0;
+    const subscribed = await this.invokeSubscribe(
+      params,
+      logParams,
+      shouldSubscribeLadder
+    );
     if (subscribed) {
       this.activeSubscriptions.set(key, { ...params });
+      this.incrementLadderSubscription(params.ticker);
       return key;
     }
 
@@ -249,16 +430,19 @@ export class SignalRService implements OnDestroy {
       return false;
     }
 
-    const ensureCleanupAfterRemoval = async () => {
+    const shouldUnsubscribeLadder = this.getLadderSubscriptionCount(params.ticker) <= 1;
+
+    const removeLocalTracking = async () => {
       this.activeSubscriptions.delete(key);
-      if (!this.activeSubscriptions.size) {
+      this.decrementLadderSubscription(params.ticker);
+      if (!this.hasActiveSubscriptions()) {
         await this.stopConnection();
       }
     };
 
     if (!this.hubConnection) {
       console.warn('Cannot unsubscribe, hubConnection is missing');
-      await ensureCleanupAfterRemoval();
+      await removeLocalTracking();
       return true;
     }
 
@@ -266,7 +450,7 @@ export class SignalRService implements OnDestroy {
       this.hubConnection.state === signalR.HubConnectionState.Connected;
     if (!isConnected) {
       console.warn('Cannot unsubscribe, hubConnection is not connected');
-      await ensureCleanupAfterRemoval();
+      await removeLocalTracking();
       return true;
     }
 
@@ -274,9 +458,11 @@ export class SignalRService implements OnDestroy {
       const subscriptionPayload = JSON.stringify(params);
 
       await this.hubConnection.invoke('UnSubscribeCluster', subscriptionPayload);
-      await this.hubConnection.invoke('UnSubscribeLadder', params.ticker);
+      if (shouldUnsubscribeLadder) {
+        await this.hubConnection.invoke('UnSubscribeLadder', params.ticker);
+      }
       console.log('Unsubscribed from ' + params.ticker);
-      await ensureCleanupAfterRemoval();
+      await removeLocalTracking();
       return true;
     } catch (err) {
       console.warn('Error while invoking UnSubscribe methods: ' + err);
@@ -285,9 +471,86 @@ export class SignalRService implements OnDestroy {
 
   }
 
+  public async subscribeLadder(ticker: string): Promise<string | null> {
+    if (!ticker) {
+      console.warn('Cannot subscribe ladder, ticker is required');
+      return null;
+    }
+
+    const connected = await this.ensureConnected();
+    if (!connected || !this.hubConnection) {
+      console.warn('Cannot subscribe ladder, hubConnection is not connected');
+      return null;
+    }
+
+    const shouldSubscribeLadder = this.getLadderSubscriptionCount(ticker) === 0;
+    if (shouldSubscribeLadder) {
+      try {
+        await this.hubConnection.invoke('SubscribeLadder', ticker);
+      } catch (err) {
+        console.warn('Error while invoking SubscribeLadder: ' + err);
+        return null;
+      }
+    }
+
+    this.incrementLadderSubscription(ticker);
+    this.ladderSubscriptionSequence += 1;
+    const key = `ladder:${ticker}:${this.ladderSubscriptionSequence}`;
+    this.activeDirectLadderSubscriptions.set(key, ticker);
+    return key;
+  }
+
+  public async unsubscrLadder(key: string | null): Promise<boolean> {
+    if (!key) {
+      console.warn('Cannot unsubscribe ladder, subscription key is required');
+      return false;
+    }
+
+    const ticker = this.activeDirectLadderSubscriptions.get(key);
+    if (!ticker) {
+      console.warn('Cannot unsubscribe ladder, subscription parameters are missing');
+      return false;
+    }
+
+    const shouldUnsubscribeLadder = this.getLadderSubscriptionCount(ticker) <= 1;
+    const removeLocalTracking = async () => {
+      this.activeDirectLadderSubscriptions.delete(key);
+      this.decrementLadderSubscription(ticker);
+      if (!this.hasActiveSubscriptions()) {
+        await this.stopConnection();
+      }
+    };
+
+    if (!this.hubConnection) {
+      console.warn('Cannot unsubscribe ladder, hubConnection is missing');
+      await removeLocalTracking();
+      return true;
+    }
+
+    const isConnected =
+      this.hubConnection.state === signalR.HubConnectionState.Connected;
+    if (!isConnected) {
+      console.warn('Cannot unsubscribe ladder, hubConnection is not connected');
+      await removeLocalTracking();
+      return true;
+    }
+
+    try {
+      if (shouldUnsubscribeLadder) {
+        await this.hubConnection.invoke('UnSubscribeLadder', ticker);
+      }
+      await removeLocalTracking();
+      return true;
+    } catch (err) {
+      console.warn('Error while invoking UnSubscribeLadder: ' + err);
+      return false;
+    }
+  }
+
   private async invokeSubscribe(
     params: FootprintSubscribeParams,
-    logParams: boolean
+    logParams: boolean,
+    subscribeLadder: boolean
   ): Promise<boolean> {
     if (!this.hubConnection) {
       console.warn('Cannot subscribe: hubConnection is missing');
@@ -297,7 +560,19 @@ export class SignalRService implements OnDestroy {
     try {
       const subscriptionPayload = JSON.stringify(params);
       await this.hubConnection.invoke('SubscribeCluster', subscriptionPayload);
-      await this.hubConnection.invoke('SubscribeLadder', params.ticker);
+      if (subscribeLadder) {
+        try {
+          await this.hubConnection.invoke('SubscribeLadder', params.ticker);
+        } catch (ladderError) {
+          try {
+            await this.hubConnection.invoke('UnSubscribeCluster', subscriptionPayload);
+          } catch (rollbackError) {
+            console.warn('Subscribe rollback failed for cluster: ' + rollbackError);
+          }
+          throw ladderError;
+        }
+      }
+
       if (logParams) {
         console.log(`Subscribed to ${params.ticker} (${params.period}/${params.step})`);
       }
@@ -333,7 +608,7 @@ export class SignalRService implements OnDestroy {
   }
 
   private scheduleReconnect(reason: string) {
-    if (this.isStopping || !this.activeSubscriptions.size) return;
+    if (this.isStopping || !this.hasActiveSubscriptions()) return;
     if (this.reconnectTimeoutId !== null) return;
 
     const delay = this.getReconnectDelay();
@@ -400,6 +675,8 @@ export class SignalRService implements OnDestroy {
       this.startPromise = null;
       this.hubConnection = undefined;
       this.activeSubscriptions.clear();
+      this.activeDirectLadderSubscriptions.clear();
+      this.activeLadderSubscriptions.clear();
       this.reconnectAttempt = 0;
     })()
       .catch((err) => console.warn('Error while stopping SignalR connection: ' + err))
@@ -414,8 +691,8 @@ export class SignalRService implements OnDestroy {
   ngOnDestroy() {
     // При уничтожении сервиса останавливаем подключение
     void this.stopConnection();
-    this.receiveClusterSubject.complete();
-    this.receiveTicksSubject.complete();
-    this.receiveLadderSubject.complete();
+    this.receiveClusterEnvelopeSubject.complete();
+    this.receiveTicksEnvelopeSubject.complete();
+    this.receiveLadderEnvelopeSubject.complete();
   }
 }

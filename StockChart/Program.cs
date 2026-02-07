@@ -74,7 +74,6 @@ builder.Services.AddScoped<IImageStoreRepository, ImageStoreRepository>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<SinglePageService>();
 builder.Services.AddScoped<BatchImportOpenPositionsService>();
-builder.Services.AddSingleton<CandlesHub>();
 builder.Services.AddSingleton<BatchImportOpenPositionsServiceNew>();
 builder.Services.Configure<CacheConfiguration>(builder.Configuration.GetSection("CacheConfiguration"));
 builder.Services.Configure<RecieverOptions>(builder.Configuration.GetSection("RecieverOptions"));
@@ -127,14 +126,6 @@ builder.Logging.AddNLog();
 //builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(
-        builder =>
-        {
-            builder.WithOrigins("http://localhost:4200")
-                    .AllowAnyOrigin()
-                   .AllowAnyMethod()
-                   .AllowAnyHeader();
-        });
     options.AddPolicy("AllowSpecificOrigin",
             builder => builder
                 .WithOrigins("http://localhost:4200")
@@ -149,8 +140,6 @@ builder.Services.AddSpaStaticFiles(configuration =>
     configuration.RootPath = spaOptions.SpaRootPath;
 });
 var app = builder.Build();
-//app.UseCors(builder => builder.AllowAnyOrigin());
-app.UseCors(MyAllowSpecificOrigins);
 app.MapHub<CandlesHub>("/CandlesHub");
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -167,6 +156,7 @@ else
 app.UseStaticFiles();
 app.UseDetection();
 app.UseRouting();
+app.UseCors(MyAllowSpecificOrigins);
 app.UseHttpsRedirection();
 app.UseSpaStaticFiles();
 app.UseAuthentication();
@@ -207,7 +197,6 @@ app.MapWhen(ShouldUseRazor, appBuilder =>
 {
     Console.WriteLine("Razor Pages (обычная логика)");
     appBuilder.UseRouting();
-    appBuilder.UseAuthorization();
     appBuilder.UseEndpoints(endpoints =>
     {
         endpoints.MapControllers();
@@ -216,6 +205,4 @@ app.MapWhen(ShouldUseRazor, appBuilder =>
 });
 app.UseHttpsRedirection();
 app.MapControllers();
-//app.UseCors();
-app.UseCors("AllowSpecificOrigin");
 app.Run();

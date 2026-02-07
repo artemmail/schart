@@ -157,6 +157,11 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
   }
 
   private async subscribeToRealtime(params: FootPrintParameters) {
+    if (!params.ticker) {
+      console.warn('Подписка пропущена: ticker не задан.');
+      return;
+    }
+
     const canSubscribe = this.shouldSubscribe(params);
     if (!canSubscribe) {
       console.log('Подписка пропущена: условия не выполнены.');
@@ -179,7 +184,7 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
       if (subscriptionKey) {
         this.activeSubscriptionKey = subscriptionKey;
         this.activeSubscriptionParams = { ...params };
-        this.registerRealtimeHandlers();
+        this.registerRealtimeHandlers(params);
       }
     } catch (err) {
       console.error('Ошибка при подписке к SignalRService', err);
@@ -209,21 +214,27 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     this.activeSubscriptionParams = null;
   }
 
-  private registerRealtimeHandlers() {
+  private registerRealtimeHandlers(params: FootPrintParameters) {
+    const scopedParams = {
+      ticker: params.ticker,
+      period: params.period,
+      step: params.priceStep,
+    };
+
     this.realtimeSubscriptions.add(
-      this.signalRService.receiveCluster$.subscribe((answ) => {
+      this.signalRService.receiveClusterFor(scopedParams).subscribe((answ) => {
         this.emitUpdate('cluster', answ);
       })
     );
 
     this.realtimeSubscriptions.add(
-      this.signalRService.receiveTicks$.subscribe((answ) => {
+      this.signalRService.receiveTicksFor(scopedParams).subscribe((answ) => {
         this.emitUpdate('ticks', answ);
       })
     );
 
     this.realtimeSubscriptions.add(
-      this.signalRService.receiveLadder$.subscribe((ladder) => {
+      this.signalRService.receiveLadderFor(params.ticker).subscribe((ladder) => {
         this.emitUpdate('ladder', ladder);
       })
     );

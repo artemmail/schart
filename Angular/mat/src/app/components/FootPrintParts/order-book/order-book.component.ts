@@ -26,7 +26,6 @@ interface OrderBookRow {
   imports: [CommonModule, MaterialModule],
   templateUrl: './order-book.component.html',
   styleUrls: ['./order-book.component.css'],
-  providers: [SignalRService],
 })
 export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
   @Input() params: FootPrintParameters | null = null;
@@ -84,14 +83,7 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
     this.isLoading = true;
     this.activeParamsKey = nextKey;
 
-    const subscriptionKey = await this.signalRService.Subscribe(
-      {
-        ticker: params.ticker,
-        period: params.period,
-        step: params.priceStep,
-      },
-      false
-    );
+    const subscriptionKey = await this.signalRService.subscribeLadder(params.ticker);
 
     if (!subscriptionKey) {
       this.isLoading = false;
@@ -99,7 +91,7 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
     }
 
     this.subscriptionKey = subscriptionKey;
-    this.ladderSubscription = this.signalRService.receiveLadder$.subscribe(
+    this.ladderSubscription = this.signalRService.receiveLadderFor(params.ticker).subscribe(
       (ladder) => {
         this.zone.run(() => this.applyLadder(ladder));
       }
@@ -111,7 +103,7 @@ export class FootprintOrderBookComponent implements OnChanges, OnDestroy {
     this.ladderSubscription = undefined;
 
     if (this.subscriptionKey) {
-      await this.signalRService.unsubscr(this.subscriptionKey);
+      await this.signalRService.unsubscrLadder(this.subscriptionKey);
     }
 
     this.subscriptionKey = null;
