@@ -63,6 +63,7 @@ builder.Services.AddScoped<IShareholdersRecommendationsService, ShareholdersReco
 builder.Services.AddScoped<IFinancialStatementsService, FinancialStatementsService>();
 builder.Services.AddScoped<IMoexSyncService, MoexSyncService>();
 builder.Services.AddScoped<IInstrumentRelationsService, InstrumentRelationsService>();
+builder.Services.AddScoped<IBondsQueryService, BondsQueryService>();
 builder.Services.AddMoexOptionCalc(options => builder.Configuration.GetSection("MoexOptionCalc").Bind(options));
 builder.Services.AddScoped<IOptionCalcPortfolioBuilder, OptionCalcPortfolioBuilder>();
 builder.Services.AddScoped<IReportsRepository, ReportsRepository>();

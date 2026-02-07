@@ -1,0 +1,185 @@
+<div class="bonds-page">
+  <mat-card class="bonds-card">
+    <mat-card-header>
+      <mat-card-title>Облигации</mat-card-title>
+      <mat-card-subtitle>Фильтры, карта доходности и таблица котировок</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <mat-tab-group [selectedIndex]="selectedTabIndex" (selectedIndexChange)="onTabChanged($event)">
+        <mat-tab *ngFor="let tab of tabs" [label]="tab.label"></mat-tab>
+      </mat-tab-group>
+
+      <section class="filters">
+        <div class="filters-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Доходность от, %</mat-label>
+            <input matInput type="number" [(ngModel)]="state.yieldMin" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Доходность до, %</mat-label>
+            <input matInput type="number" [(ngModel)]="state.yieldMax" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Дюрация от, лет</mat-label>
+            <input matInput type="number" [(ngModel)]="state.durationMin" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Дюрация до, лет</mat-label>
+            <input matInput type="number" [(ngModel)]="state.durationMax" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Лет до погашения от</mat-label>
+            <input matInput type="number" [(ngModel)]="state.yearsToMaturityMin" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Лет до погашения до</mat-label>
+            <input matInput type="number" [(ngModel)]="state.yearsToMaturityMax" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Тип MOEX</mat-label>
+            <mat-select multiple [(ngModel)]="state.moexType">
+              <mat-option *ngFor="let item of moexTypeFacets" [value]="item.key">
+                {{ item.label }} ({{ item.count }})
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Частота купона</mat-label>
+            <mat-select multiple [(ngModel)]="state.couponFreq">
+              <mat-option *ngFor="let item of couponFreqOptions" [value]="item.value">
+                {{ item.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Режим карты</mat-label>
+            <mat-select [(ngModel)]="state.mapMode" (selectionChange)="onMapModeChanged()">
+              <mat-option *ngFor="let mode of mapModes" [value]="mode.key">
+                {{ mode.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <div class="qualified-toggle">
+            <mat-checkbox [(ngModel)]="state.qualifiedOnly">Только для квалов</mat-checkbox>
+          </div>
+        </div>
+
+        <div class="filters-actions">
+          <button mat-flat-button color="primary" (click)="applyFilters()">Применить</button>
+          <button mat-stroked-button (click)="resetFilters()">Сбросить</button>
+        </div>
+      </section>
+
+      <section class="map-section">
+        <div class="section-head">
+          <h3>Карта доходности облигаций</h3>
+          <div class="map-hint">Выделяйте область zoom-инструментом и кликайте по точке для подсветки строки</div>
+        </div>
+        <div echarts class="yield-map" [options]="mapOptions" (chartClick)="onMapPointClick($event)"></div>
+      </section>
+
+      <section class="table-section">
+        <div class="table-head">
+          <h3>Котировки</h3>
+          <div class="status" *ngIf="loading">Загрузка...</div>
+          <div class="status error" *ngIf="!loading && error">{{ error }}</div>
+          <div class="status" *ngIf="!loading && !error">Всего: {{ total }}</div>
+        </div>
+
+        <div class="table-wrap" *ngIf="rows.length > 0; else emptyState">
+          <table>
+            <thead>
+              <tr>
+                <th>№</th>
+                <th class="sortable" (click)="onSort('name')">
+                  Имя
+                  <mat-icon>{{ sortIcon('name') }}</mat-icon>
+                </th>
+                <th class="sortable" (click)="onSort('secid')">
+                  SECID
+                  <mat-icon>{{ sortIcon('secid') }}</mat-icon>
+                </th>
+                <th>ISIN</th>
+                <th class="sortable" (click)="onSort('maturityDate')">
+                  Погашение
+                  <mat-icon>{{ sortIcon('maturityDate') }}</mat-icon>
+                </th>
+                <th class="sortable" (click)="onSort('yearsToMaturity')">
+                  Лет до пог.
+                  <mat-icon>{{ sortIcon('yearsToMaturity') }}</mat-icon>
+                </th>
+                <th class="sortable" (click)="onSort('yieldPct')">
+                  Доходн., %
+                  <mat-icon>{{ sortIcon('yieldPct') }}</mat-icon>
+                </th>
+                <th class="sortable" (click)="onSort('couponAnnualYieldPct')">
+                  Куп. дох., %
+                  <mat-icon>{{ sortIcon('couponAnnualYieldPct') }}</mat-icon>
+                </th>
+                <th class="sortable" (click)="onSort('pricePctOfPar')">
+                  Цена, %
+                  <mat-icon>{{ sortIcon('pricePctOfPar') }}</mat-icon>
+                </th>
+                <th class="sortable" (click)="onSort('dayVolume')">
+                  Объем день
+                  <mat-icon>{{ sortIcon('dayVolume') }}</mat-icon>
+                </th>
+                <th>Купон</th>
+                <th>Частота</th>
+                <th>НКД</th>
+                <th>Дата купона</th>
+                <th>Оферта</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let row of rows; trackBy: trackRow; let i = index"
+                [class.selected]="isSelected(row)"
+              >
+                <td>{{ rowStartIndex + i + 1 }}</td>
+                <td>
+                  <a class="name-link" (click)="openDetails(row)">{{ row.shortName || row.secId }}</a>
+                </td>
+                <td>{{ row.secId }}</td>
+                <td>{{ row.isin || '—' }}</td>
+                <td>{{ row.maturityDate ? (row.maturityDate | date : 'yyyy-MM-dd') : '—' }}</td>
+                <td>{{ row.yearsToMaturity == null ? '—' : (row.yearsToMaturity | number : '1.2-2') }}</td>
+                <td>{{ row.yieldPct == null ? '—' : (row.yieldPct | number : '1.2-2') }}</td>
+                <td>{{ row.couponAnnualYieldPct == null ? '—' : (row.couponAnnualYieldPct | number : '1.2-2') }}</td>
+                <td>{{ row.pricePctOfPar == null ? '—' : (row.pricePctOfPar | number : '1.2-2') }}</td>
+                <td>{{ row.dayVolume == null ? '—' : (row.dayVolume | number : '1.0-0') }}</td>
+                <td>{{ row.couponValue == null ? '—' : (row.couponValue | number : '1.2-2') }}</td>
+                <td>{{ row.couponFrequencyPerYear == null ? '—' : row.couponFrequencyPerYear }}</td>
+                <td>{{ row.accruedInterest == null ? '—' : (row.accruedInterest | number : '1.2-2') }}</td>
+                <td>{{ row.nextCouponDate ? (row.nextCouponDate | date : 'yyyy-MM-dd') : '—' }}</td>
+                <td>{{ row.offerDate ? (row.offerDate | date : 'yyyy-MM-dd') : '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ng-template #emptyState>
+          <div class="empty-state" *ngIf="!loading && !error">По текущим фильтрам ничего не найдено.</div>
+        </ng-template>
+
+        <mat-paginator
+          [length]="total"
+          [pageIndex]="state.page - 1"
+          [pageSize]="state.pageSize"
+          [pageSizeOptions]="[20, 50, 100]"
+          (page)="onPage($event)"
+        ></mat-paginator>
+      </section>
+    </mat-card-content>
+  </mat-card>
+</div>

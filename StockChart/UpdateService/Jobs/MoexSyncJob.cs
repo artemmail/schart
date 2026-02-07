@@ -22,7 +22,8 @@ public sealed class MoexSyncJob : IJob
         {
             var result = await _syncService.SyncAllAsync(context.CancellationToken);
             _logger.LogInformation(
-                "MoexSyncJob: stocks={Stocks} bonds={Bonds} futures={Futures} options={Options} links={Links}",
+                "MoexSyncJob: securityTypes={SecurityTypes} stocks={Stocks} bonds={Bonds} futures={Futures} options={Options} links={Links}",
+                result.UpdatedSecurityTypes,
                 result.UpdatedStocks,
                 result.UpdatedBonds,
                 result.UpdatedFutures,

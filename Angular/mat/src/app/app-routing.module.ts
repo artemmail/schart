@@ -59,6 +59,8 @@ import { OptionCalcPortfolioComponent } from './components/pages/option-calc-por
 import { OptionCalcUserPortfolioComponent } from './components/pages/option-calc-user-portfolio/option-calc-user-portfolio.component';
 import { OptionBoardComponent } from './components/pages/option-board/option-board.component';
 import { VolatilityGraphComponent } from './components/pages/volatility-graph/volatility-graph.component';
+import { BondsPageComponent } from './components/pages/bonds-page/bonds-page.component';
+import { BondDetailsComponent } from './components/pages/bond-details/bond-details.component';
 
 
 const routes: Routes = [
@@ -76,6 +78,8 @@ const routes: Routes = [
   { path: 'ShareHolders/:ticker', component: ShareHoldersComponent },
   { path: 'Financial/:ticker', component: FinancialComponent },
   { path: 'option/:code', component: OptionDetailsComponent },
+  { path: 'bonds', component: BondsPageComponent },
+  { path: 'bonds/:secid', component: BondDetailsComponent },
 
   { path: 'FuturesList', component: ContractGroupsComponent },
 

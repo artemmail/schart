@@ -1,0 +1,166 @@
+.bonds-page {
+  padding: 12px;
+}
+
+.bonds-card {
+  border-radius: 14px;
+}
+
+.filters {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #d9e2ef;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f8fbff 0%, #f3f8ff 100%);
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.qualified-toggle {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+}
+
+.filters-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.map-section {
+  margin-top: 14px;
+  border: 1px solid #d9e2ef;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fbfdff;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.section-head h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.map-hint {
+  color: #5c6875;
+  font-size: 12px;
+}
+
+.yield-map {
+  height: 360px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.table-section {
+  margin-top: 14px;
+  border: 1px solid #d9e2ef;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
+}
+
+.table-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.table-head h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.status {
+  color: #475569;
+  font-size: 13px;
+}
+
+.status.error {
+  color: #b42318;
+}
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1100px;
+}
+
+th,
+td {
+  border-bottom: 1px solid #edf2f7;
+  padding: 8px 8px;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  background: #f7fafc;
+  z-index: 1;
+  text-align: left;
+}
+
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+th.sortable mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+tr.selected {
+  background: #fff6e6;
+}
+
+.name-link {
+  cursor: pointer;
+  color: #0b57d0;
+  text-decoration: none;
+}
+
+.name-link:hover {
+  text-decoration: underline;
+}
+
+.empty-state {
+  padding: 20px 8px;
+  color: #64748b;
+}
+
+@media (max-width: 900px) {
+  .bonds-page {
+    padding: 8px;
+  }
+
+  .filters-grid {
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  }
+
+  .yield-map {
+    height: 280px;
+  }
+}

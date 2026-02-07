@@ -30,6 +30,13 @@ namespace StockChart.Repository.Services
             "MINSTEP"
         };
 
+        private static readonly string[] SecurityTypeColumns =
+        {
+            "id",
+            "name",
+            "title"
+        };
+
         private static readonly string[] BondColumns =
         {
             "secid",
@@ -171,6 +178,44 @@ namespace StockChart.Repository.Services
             }
 
             return rows;
+        }
+
+        public async Task<IReadOnlyList<MoexSecurityTypeRow>> GetSecurityTypesAsync(CancellationToken cancellationToken = default)
+        {
+            var columnsParam = BuildColumns(SecurityTypeColumns);
+            var url = $"https://iss.moex.com/iss/securitytypes.json?iss.meta=off&securitytypes.columns={columnsParam}";
+            var table = await GetTableAsync(url, "securitytypes", cancellationToken);
+            if (table == null || table.Rows.Count == 0)
+            {
+                return Array.Empty<MoexSecurityTypeRow>();
+            }
+
+            var columnIndex = BuildColumnIndex(table.Columns);
+            var idIndex = GetColumnIndex(columnIndex, "id", "ID");
+            if (!idIndex.HasValue)
+            {
+                return Array.Empty<MoexSecurityTypeRow>();
+            }
+
+            var nameIndex = GetColumnIndex(columnIndex, "name", "NAME");
+            var titleIndex = GetColumnIndex(columnIndex, "title", "TITLE");
+            var result = new List<MoexSecurityTypeRow>(table.Rows.Count);
+            foreach (var row in table.Rows)
+            {
+                var id = ReadInt(row, idIndex);
+                if (!id.HasValue)
+                {
+                    continue;
+                }
+
+                result.Add(new MoexSecurityTypeRow(
+                    id.Value,
+                    NormalizeCode(ReadString(row, nameIndex)),
+                    ReadString(row, titleIndex)
+                ));
+            }
+
+            return result;
         }
 
         public async Task<IReadOnlyList<ShareInfo>> GetSharesAsync(string boardId, int start, int limit, CancellationToken cancellationToken = default)

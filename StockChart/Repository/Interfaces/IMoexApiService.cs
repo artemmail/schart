@@ -10,6 +10,7 @@ namespace StockChart.Repository.Interfaces
     {
         Task<IReadOnlyList<OpenPosRow>?> GetOpenPositionsAsync(string contractName, DateTime date, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<MoexDividendRow>?> GetDividendsAsync(string ticker, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<MoexSecurityTypeRow>> GetSecurityTypesAsync(CancellationToken cancellationToken = default);
         Task<IReadOnlyList<ShareInfo>> GetSharesAsync(string boardId, int start, int limit, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<MoexBondRow>> GetCorporateBondsAsync(int start, int limit, CancellationToken cancellationToken = default);
         Task<MoexBondRow?> GetBondBySecidAsync(string secid, CancellationToken cancellationToken = default);

@@ -91,6 +91,7 @@ namespace StockChart.Model
         decimal? UnderlyingPrice);
 
     public sealed record MoexDividendRow(DateTime Date, decimal Value);
+    public sealed record MoexSecurityTypeRow(int Id, string? Name, string? Title);
 
     public sealed record MoexBondMarketRow(
         string SecId,

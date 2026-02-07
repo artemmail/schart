@@ -94,6 +94,7 @@ public partial class ApplicationDbContext
     public virtual DbSet<BondSpec> BondSpecs { get; set; }
     public virtual DbSet<BondMarketSnapshot> BondMarketSnapshots { get; set; }
     public virtual DbSet<BondCoupon> BondCoupons { get; set; }
+    public virtual DbSet<MoexSecurityType> MoexSecurityTypes { get; set; }
     public virtual DbSet<FutureSpec> FutureSpecs { get; set; }
     public virtual DbSet<OptionSpec> OptionSpecs { get; set; }
     public virtual DbSet<OptionMarketSnapshot> OptionMarketSnapshots { get; set; }
@@ -623,6 +624,17 @@ public partial class ApplicationDbContext
             entity.HasOne(d => d.Dictionary).WithMany()
                 .HasForeignKey(d => d.DictionaryId)
                 .HasConstraintName("FK_BondCoupons_Dictionary");
+        });
+
+        modelBuilder.Entity<MoexSecurityType>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("MoexSecurityTypes");
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Name).HasMaxLength(128);
+            entity.Property(e => e.Title).HasMaxLength(512);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+            entity.HasIndex(e => e.Name).IsUnique();
         });
 
         modelBuilder.Entity<FutureSpec>(entity =>

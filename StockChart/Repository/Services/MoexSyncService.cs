@@ -31,6 +31,7 @@ public sealed class MoexSyncService : IMoexSyncService
     {
         var summary = new MoexSyncSummary();
 
+        summary.UpdatedSecurityTypes = await SyncSecurityTypesAsync(cancellationToken);
         summary.UpdatedStocks = await SyncStocksEmitentsAsync(cancellationToken);
 
             
@@ -47,6 +48,61 @@ public sealed class MoexSyncService : IMoexSyncService
         summary.LinksUpserted += options.LinksUpserted;
             
         return summary;
+    }
+
+    private async Task<int> SyncSecurityTypesAsync(CancellationToken cancellationToken = default)
+    {
+        var items = await _moexApiService.GetSecurityTypesAsync(cancellationToken);
+        if (items.Count == 0)
+        {
+            return 0;
+        }
+
+        var now = DateTime.UtcNow;
+        var ids = items.Select(x => x.Id).Distinct().ToArray();
+        var existing = await _dbContext.MoexSecurityTypes
+            .Where(x => ids.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        var updated = 0;
+        foreach (var item in items)
+        {
+            if (!existing.TryGetValue(item.Id, out var entity))
+            {
+                entity = new MoexSecurityType
+                {
+                    Id = item.Id
+                };
+                _dbContext.MoexSecurityTypes.Add(entity);
+                existing[item.Id] = entity;
+            }
+
+            var changed = false;
+            if (!string.Equals(entity.Name, item.Name, StringComparison.Ordinal))
+            {
+                entity.Name = item.Name;
+                changed = true;
+            }
+
+            if (!string.Equals(entity.Title, item.Title, StringComparison.Ordinal))
+            {
+                entity.Title = item.Title;
+                changed = true;
+            }
+
+            if (changed || entity.UpdatedAt == default)
+            {
+                entity.UpdatedAt = now;
+                updated++;
+            }
+        }
+
+        if (_dbContext.ChangeTracker.HasChanges())
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return updated;
     }
 
     private async Task<IReadOnlyList<ShareInfo>> FetchActiveSharesAsync(
