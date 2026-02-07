@@ -143,7 +143,9 @@ namespace DataProvider.Services
 
         {
 
-            if (string.IsNullOrWhiteSpace(ticker))
+            var key = TickerKey.Normalize(ticker);
+
+            if (string.IsNullOrEmpty(key))
 
             {
 
@@ -155,7 +157,7 @@ namespace DataProvider.Services
 
 
 
-            return _tickerDictionary.TryGetValue(ticker, out tickerInfo);
+            return _tickerDictionary.TryGetValue(key, out tickerInfo);
 
         }
 
@@ -201,13 +203,19 @@ namespace DataProvider.Services
 
 
 
-            var tickerDictionary = new ConcurrentDictionary<string, TickerDIC>();
+            var tickerDictionary = new ConcurrentDictionary<string, TickerDIC>(StringComparer.OrdinalIgnoreCase);
 
 
 
             foreach (var ticker in tickerList)
 
             {
+
+                var key = TickerKey.Normalize(ticker.Securityid);
+
+                if (string.IsNullOrEmpty(key))
+
+                    continue;
 
                 var mappedTicker = new TickerDIC
 
@@ -223,7 +231,7 @@ namespace DataProvider.Services
 
 
 
-                tickerDictionary[ticker.Securityid!] = mappedTicker;
+                tickerDictionary[key] = mappedTicker;
 
             }
 

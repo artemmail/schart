@@ -76,12 +76,13 @@ namespace DataProvider
                     if (market == 0)
                     {
                         var newDictionaryRecords = queue
-                            .Where(x => !tickerDictionary.ContainsKey(x.ticker))
-                            .GroupBy(x => x.ticker)
-                            .Select(g => g.First())
+                            .Select(x => new { Record = x, Key = TickerKey.Normalize(x.ticker) })
+                            .Where(x => !string.IsNullOrEmpty(x.Key) && !tickerDictionary.ContainsKey(x.Key))
+                            .GroupBy(x => x.Key)
+                            .Select(g => g.First().Record)
                             .Select(record => new Dictionary
                             {
-                                Securityid = record.ticker,
+                                Securityid = TickerKey.Normalize(record.ticker),
                                 Shortname = record.name,
                                 Fullname = record.name,
                                 FromDate = record.datetime,
@@ -113,7 +114,11 @@ namespace DataProvider
                         .Where(x => x.price > 0.0001m || market == 0)
                         .Select(record =>
                         {
-                            if (!tickerDictionary.TryGetValue(record.ticker, out var tickerInfo))
+                            var key = TickerKey.Normalize(record.ticker);
+                            if (string.IsNullOrEmpty(key))
+                                throw new InvalidOperationException("Ticker is empty.");
+
+                            if (!tickerDictionary.TryGetValue(key, out var tickerInfo))
                                 throw new InvalidOperationException($"Ticker info not found for {record.ticker}");
 
                             return new
