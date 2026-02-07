@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, ParamMap, Router, RouterModule } from '@angular/router';
 import { PageEvent } from '@angular/material/paginator';
@@ -65,8 +65,10 @@ export class BondsPageComponent implements OnInit, OnDestroy {
   error = '';
   selectedDictionaryId: number | null = null;
   mapOptions: EChartsOption = {};
+  isMapFullscreen = false;
 
   private readonly destroy$ = new Subject<void>();
+  private previousBodyOverflow: string | null = null;
 
   constructor(
     private readonly bondsService: BondsService,
@@ -85,8 +87,14 @@ export class BondsPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.setBodyScrollLock(false);
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    this.closeMapFullscreen();
   }
 
   applyFilters(): void {
@@ -120,6 +128,19 @@ export class BondsPageComponent implements OnInit, OnDestroy {
   onMapModeChanged(): void {
     const next: BondsState = { ...this.state, page: 1 };
     this.navigateWithState(next);
+  }
+
+  toggleMapFullscreen(): void {
+    this.isMapFullscreen = !this.isMapFullscreen;
+    this.setBodyScrollLock(this.isMapFullscreen);
+  }
+
+  closeMapFullscreen(): void {
+    if (!this.isMapFullscreen) {
+      return;
+    }
+    this.isMapFullscreen = false;
+    this.setBodyScrollLock(false);
   }
 
   onMapPointClick(event: any): void {
@@ -453,7 +474,7 @@ export class BondsPageComponent implements OnInit, OnDestroy {
               ...x,
               key: (x.key || '').trim().toUpperCase(),
             }))
-            .filter((x) => !!x.key);
+            .filter((x) => !!x.key && x.key !== 'NON_EXCHANGE_BOND');
           this.moexTypeOptions = normalized;
           this.ensureMoexTypeSelection(normalized);
         },
@@ -486,5 +507,28 @@ export class BondsPageComponent implements OnInit, OnDestroy {
       return error.message;
     }
     return 'Не удалось загрузить данные по облигациям.';
+  }
+
+  private setBodyScrollLock(locked: boolean): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const body = document.body;
+    if (locked) {
+      if (this.previousBodyOverflow === null) {
+        this.previousBodyOverflow = body.style.overflow ?? '';
+      }
+      body.style.overflow = 'hidden';
+      return;
+    }
+
+    if (this.previousBodyOverflow !== null) {
+      body.style.overflow = this.previousBodyOverflow;
+      this.previousBodyOverflow = null;
+      return;
+    }
+
+    body.style.removeProperty('overflow');
   }
 }

@@ -1,34 +1,29 @@
 .bonds-page {
   padding: 12px;
+  max-width: 1500px;
+  margin: 0 auto;
 }
 
 .bonds-card {
-  border-radius: 14px;
+  border-radius: 12px;
 }
 
 .filters {
-  margin-top: 12px;
-  padding: 12px;
-  border: 1px solid #d9e2ef;
-  border-radius: 10px;
-  background: linear-gradient(180deg, #f8fbff 0%, #f3f8ff 100%);
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 
 .moex-type-tabs-wrap {
   margin-bottom: 10px;
 }
 
-.moex-type-tabs-label {
-  font-size: 12px;
-  color: #5c6875;
-  margin-bottom: 4px;
-}
-
 .moex-type-tabs {
-  background: #fff;
-  border: 1px solid #d9e2ef;
-  border-radius: 8px;
-  padding: 2px 6px 0 6px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
 }
 
 .moex-type-tabs ::ng-deep .mat-mdc-tab-body-wrapper {
@@ -64,7 +59,7 @@
 .section-head {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
 }
 
@@ -73,9 +68,20 @@
   font-size: 18px;
 }
 
+.section-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .map-hint {
   color: #5c6875;
   font-size: 12px;
+  text-align: right;
+}
+
+.map-fullscreen-button {
+  color: #334155;
 }
 
 .yield-map {
@@ -84,24 +90,42 @@
   margin-top: 6px;
 }
 
+.map-section.fullscreen {
+  position: fixed;
+  inset: 14px;
+  z-index: 1701;
+  margin-top: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: #fbfdff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.28);
+}
+
+.map-section.fullscreen .yield-map {
+  height: calc(100vh - 120px);
+  min-height: 360px;
+}
+
+.map-fullscreen-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1700;
+  background: rgba(15, 23, 42, 0.45);
+}
+
 .table-section {
   margin-top: 14px;
-  border: 1px solid #d9e2ef;
-  border-radius: 10px;
-  padding: 10px;
-  background: #fff;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
 }
 
 .table-head {
   display: flex;
   align-items: baseline;
   gap: 12px;
-  margin-bottom: 8px;
-}
-
-.table-head h3 {
-  margin: 0;
-  font-size: 18px;
+  margin-bottom: 6px;
 }
 
 .status {
@@ -172,6 +196,34 @@ tr.selected {
   color: #64748b;
 }
 
+.page-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(248, 250, 252, 0.72);
+  backdrop-filter: blur(1px);
+}
+
+.page-loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #d9e2ef;
+  border-radius: 12px;
+  padding: 18px 22px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.page-loading-text {
+  font-size: 13px;
+  color: #334155;
+}
+
 @media (max-width: 900px) {
   .bonds-page {
     padding: 8px;
@@ -183,5 +235,24 @@ tr.selected {
 
   .yield-map {
     height: 280px;
+  }
+
+  .map-section.fullscreen {
+    inset: 8px;
+    padding: 8px;
+  }
+
+  .map-section.fullscreen .yield-map {
+    height: calc(100vh - 98px);
+    min-height: 250px;
+  }
+
+  .section-head-actions {
+    gap: 4px;
+  }
+
+  .map-hint {
+    max-width: 220px;
+    font-size: 11px;
   }
 }

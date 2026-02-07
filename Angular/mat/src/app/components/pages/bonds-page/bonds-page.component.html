@@ -8,7 +8,6 @@
     <mat-card-content>
       <section class="filters">
         <div class="moex-type-tabs-wrap" *ngIf="moexTypeOptions.length > 0">
-          <div class="moex-type-tabs-label">Тип MOEX</div>
           <mat-tab-group
             class="moex-type-tabs"
             [selectedIndex]="selectedMoexTypeIndex"
@@ -80,17 +79,27 @@
         </div>
       </section>
 
-      <section class="map-section">
+      <section class="map-section" [class.fullscreen]="isMapFullscreen">
         <div class="section-head">
           <h3>Карта доходности облигаций</h3>
-          <div class="map-hint">Выделяйте область zoom-инструментом и кликайте по точке для подсветки строки</div>
+          <div class="section-head-actions">
+            <div class="map-hint">Выделяйте область zoom-инструментом и кликайте по точке для подсветки строки</div>
+            <button
+              mat-icon-button
+              type="button"
+              class="map-fullscreen-button"
+              (click)="toggleMapFullscreen()"
+              [attr.aria-label]="isMapFullscreen ? 'Свернуть карту' : 'Развернуть карту'"
+            >
+              <mat-icon>{{ isMapFullscreen ? 'fullscreen_exit' : 'fullscreen' }}</mat-icon>
+            </button>
+          </div>
         </div>
         <div echarts class="yield-map" [options]="mapOptions" (chartClick)="onMapPointClick($event)"></div>
       </section>
 
       <section class="table-section">
         <div class="table-head">
-          <h3>Котировки</h3>
           <div class="status" *ngIf="loading">Загрузка...</div>
           <div class="status error" *ngIf="!loading && error">{{ error }}</div>
           <div class="status" *ngIf="!loading && !error">Всего: {{ total }}</div>
@@ -182,4 +191,13 @@
       </section>
     </mat-card-content>
   </mat-card>
+
+  <div class="page-loading-overlay" *ngIf="loading">
+    <div class="page-loading-card">
+      <mat-spinner diameter="56"></mat-spinner>
+      <div class="page-loading-text">Загрузка облигаций...</div>
+    </div>
+  </div>
+
+  <div class="map-fullscreen-backdrop" *ngIf="isMapFullscreen" (click)="closeMapFullscreen()"></div>
 </div>
