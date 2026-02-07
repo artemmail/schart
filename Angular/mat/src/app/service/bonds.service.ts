@@ -3,13 +3,17 @@ import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../environment';
 
-export type BondTab = 'ofz' | 'corp' | 'cur' | 'subfed' | 'other';
 export type BondSortDir = 'asc' | 'desc';
 export type BondMapMode =
   | 'yield_by_duration'
   | 'coupon_yield_by_duration'
   | 'ytm'
   | 'coupon_yield_to_maturity';
+
+export interface BondMoexTypeOption {
+  key: string;
+  label: string;
+}
 
 export interface BondFacetItem {
   key: string;
@@ -135,7 +139,6 @@ export interface BondDetailsResponse {
 }
 
 export interface BondListQuery {
-  tab: BondTab;
   yieldMin?: number | null;
   yieldMax?: number | null;
   durationMin?: number | null;
@@ -160,8 +163,14 @@ export class BondsService {
 
   constructor(private readonly http: HttpClient) {}
 
+  public getMoexTypes(): Observable<BondMoexTypeOption[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/moex-types`).pipe(
+      map((raw) => this.arr(raw).map((x) => this.normalizeMoexTypeOption(x)))
+    );
+  }
+
   public getList(query: BondListQuery): Observable<BondListResponse> {
-    let params = new HttpParams().set('tab', query.tab);
+    let params = new HttpParams();
     params = this.setNum(params, 'yieldMin', query.yieldMin);
     params = this.setNum(params, 'yieldMax', query.yieldMax);
     params = this.setNum(params, 'durationMin', query.durationMin);
@@ -246,6 +255,13 @@ export class BondsService {
       key: String(raw?.key ?? raw?.Key ?? ''),
       label: String(raw?.label ?? raw?.Label ?? ''),
       count: this.num(raw?.count ?? raw?.Count),
+    };
+  }
+
+  private normalizeMoexTypeOption(raw: any): BondMoexTypeOption {
+    return {
+      key: String(raw?.key ?? raw?.Key ?? ''),
+      label: String(raw?.label ?? raw?.Label ?? ''),
     };
   }
 

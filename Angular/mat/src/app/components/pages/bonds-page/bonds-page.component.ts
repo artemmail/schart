@@ -10,15 +10,13 @@ import {
   BondListQuery,
   BondMapMode,
   BondMapPoint,
+  BondMoexTypeOption,
   BondSortDir,
-  BondTab,
   BondsService,
-  BondFacetItem,
 } from 'src/app/service/bonds.service';
 import { MaterialModule } from 'src/app/material.module';
 
 interface BondsState {
-  tab: BondTab;
   yieldMin: number | null;
   yieldMax: number | null;
   durationMin: number | null;
@@ -26,7 +24,7 @@ interface BondsState {
   yearsToMaturityMin: number | null;
   yearsToMaturityMax: number | null;
   qualifiedOnly: boolean;
-  moexType: string[];
+  moexType: string;
   couponFreq: number[];
   orderBy: string;
   dir: BondSortDir;
@@ -43,14 +41,6 @@ interface BondsState {
   styleUrls: ['./bonds-page.component.scss'],
 })
 export class BondsPageComponent implements OnInit, OnDestroy {
-  readonly tabs: { key: BondTab; label: string }[] = [
-    { key: 'ofz', label: 'ОФЗ' },
-    { key: 'corp', label: 'Корпоративные' },
-    { key: 'cur', label: 'Валютные' },
-    { key: 'subfed', label: 'Субфедеральные' },
-    { key: 'other', label: 'Другие' },
-  ];
-
   readonly mapModes: { key: BondMapMode; label: string }[] = [
     { key: 'yield_by_duration', label: 'Доходность по сроку дюрации' },
     { key: 'coupon_yield_by_duration', label: 'Купонная доходность по сроку дюрации' },
@@ -69,8 +59,7 @@ export class BondsPageComponent implements OnInit, OnDestroy {
   rows: BondListItem[] = [];
   total = 0;
   mapPoints: BondMapPoint[] = [];
-  moexTypeFacets: BondFacetItem[] = [];
-  couponFreqFacets: BondFacetItem[] = [];
+  moexTypeOptions: BondMoexTypeOption[] = [];
   loading = false;
   error = '';
   selectedDictionaryId: number | null = null;
@@ -85,6 +74,7 @@ export class BondsPageComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.loadMoexTypes();
     this.route.queryParamMap
       .pipe(takeUntil(this.destroy$))
       .subscribe((query) => {
@@ -98,24 +88,13 @@ export class BondsPageComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  get selectedTabIndex(): number {
-    const index = this.tabs.findIndex((x) => x.key === this.state.tab);
-    return index >= 0 ? index : 0;
-  }
-
-  onTabChanged(index: number): void {
-    const nextTab = this.tabs[index]?.key ?? 'corp';
-    const nextState: BondsState = { ...this.state, tab: nextTab, page: 1 };
-    this.navigateWithState(nextState);
-  }
-
   applyFilters(): void {
     const nextState: BondsState = { ...this.state, page: 1 };
     this.navigateWithState(nextState);
   }
 
   resetFilters(): void {
-    const next = this.defaultState(this.state.tab);
+    const next = this.defaultState();
     this.navigateWithState(next);
   }
 
@@ -185,7 +164,6 @@ export class BondsPageComponent implements OnInit, OnDestroy {
     this.error = '';
 
     const query: BondListQuery = {
-      tab: this.state.tab,
       yieldMin: this.state.yieldMin,
       yieldMax: this.state.yieldMax,
       durationMin: this.state.durationMin,
@@ -193,7 +171,7 @@ export class BondsPageComponent implements OnInit, OnDestroy {
       yearsToMaturityMin: this.state.yearsToMaturityMin,
       yearsToMaturityMax: this.state.yearsToMaturityMax,
       qualifiedOnly: this.state.qualifiedOnly ? true : null,
-      moexType: this.state.moexType,
+      moexType: this.state.moexType ? [this.state.moexType] : [],
       couponFreq: this.state.couponFreq,
       orderBy: this.state.orderBy,
       dir: this.state.dir,
@@ -215,8 +193,6 @@ export class BondsPageComponent implements OnInit, OnDestroy {
           this.total = response.total;
           this.rows = response.items ?? [];
           this.mapPoints = response.mapPoints ?? [];
-          this.moexTypeFacets = response.facets?.moexTypes ?? [];
-          this.couponFreqFacets = response.facets?.couponFrequencies ?? [];
           this.mapOptions = this.buildMapOptions(this.mapPoints);
           if (this.selectedDictionaryId != null) {
             const exists = this.rows.some((x) => x.dictionaryId === this.selectedDictionaryId);
@@ -328,7 +304,6 @@ export class BondsPageComponent implements OnInit, OnDestroy {
 
   private navigateWithState(state: BondsState): void {
     const queryParams: Record<string, any> = {
-      tab: state.tab,
       orderBy: state.orderBy,
       dir: state.dir,
       page: state.page,
@@ -345,7 +320,7 @@ export class BondsPageComponent implements OnInit, OnDestroy {
     if (state.qualifiedOnly) {
       queryParams['qualifiedOnly'] = '1';
     }
-    if (state.moexType.length > 0) {
+    if (state.moexType) {
       queryParams['moexType'] = state.moexType;
     }
     if (state.couponFreq.length > 0) {
@@ -366,13 +341,9 @@ export class BondsPageComponent implements OnInit, OnDestroy {
   }
 
   private readState(query: ParamMap): BondsState {
-    const tabValue = (query.get('tab') ?? 'corp').toLowerCase();
-    const tab: BondTab = this.tabs.some((x) => x.key === tabValue as BondTab)
-      ? (tabValue as BondTab)
-      : 'corp';
+    const moexType = this.parseStringList(query, 'moexType')[0] ?? '';
 
     return {
-      tab,
       yieldMin: this.parseNum(query.get('yieldMin')),
       yieldMax: this.parseNum(query.get('yieldMax')),
       durationMin: this.parseNum(query.get('durationMin')),
@@ -380,7 +351,7 @@ export class BondsPageComponent implements OnInit, OnDestroy {
       yearsToMaturityMin: this.parseNum(query.get('yearsToMaturityMin')),
       yearsToMaturityMax: this.parseNum(query.get('yearsToMaturityMax')),
       qualifiedOnly: query.get('qualifiedOnly') === '1' || query.get('qualifiedOnly') === 'true',
-      moexType: this.parseStringList(query, 'moexType'),
+      moexType,
       couponFreq: this.parseNumberList(query, 'couponFreq'),
       orderBy: query.get('orderBy') ?? 'yieldPct',
       dir: query.get('dir') === 'asc' ? 'asc' : 'desc',
@@ -430,9 +401,8 @@ export class BondsPageComponent implements OnInit, OnDestroy {
       .map((x) => Math.floor(x));
   }
 
-  private defaultState(tab: BondTab = 'corp'): BondsState {
+  private defaultState(): BondsState {
     return {
-      tab,
       yieldMin: null,
       yieldMax: null,
       durationMin: null,
@@ -440,7 +410,7 @@ export class BondsPageComponent implements OnInit, OnDestroy {
       yearsToMaturityMin: null,
       yearsToMaturityMax: null,
       qualifiedOnly: false,
-      moexType: [],
+      moexType: '',
       couponFreq: [],
       orderBy: 'yieldPct',
       dir: 'desc',
@@ -448,6 +418,20 @@ export class BondsPageComponent implements OnInit, OnDestroy {
       pageSize: 50,
       mapMode: 'yield_by_duration',
     };
+  }
+
+  private loadMoexTypes(): void {
+    this.bondsService
+      .getMoexTypes()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (options) => {
+          this.moexTypeOptions = options ?? [];
+        },
+        error: () => {
+          this.moexTypeOptions = [];
+        },
+      });
   }
 
   private extractError(error: any): string {

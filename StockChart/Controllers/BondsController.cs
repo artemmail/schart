@@ -15,6 +15,13 @@ public sealed class BondsController : ControllerBase
         _bondsQueryService = bondsQueryService;
     }
 
+    [HttpGet("moex-types")]
+    public async Task<ActionResult<List<BondMoexTypeOptionDto>>> GetMoexTypes(CancellationToken cancellationToken)
+    {
+        var response = await _bondsQueryService.GetMoexBondTypesAsync(cancellationToken);
+        return Ok(response);
+    }
+
     [HttpGet("list")]
     public async Task<ActionResult<BondListResponseDto>> GetList([FromQuery] BondsListRequestDto request, CancellationToken cancellationToken)
     {

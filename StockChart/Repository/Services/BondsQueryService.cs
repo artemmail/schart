@@ -17,6 +17,35 @@ public sealed class BondsQueryService : IBondsQueryService
         _db = db;
     }
 
+    public async Task<List<BondMoexTypeOptionDto>> GetMoexBondTypesAsync(CancellationToken cancellationToken = default)
+    {
+        var today = DateTime.UtcNow.Date;
+        var existingMoexBondTypes = (
+            from spec in _db.BondSpecs.AsNoTracking()
+            join d in _db.Dictionaries.AsNoTracking() on spec.DictionaryId equals d.Id
+            where d.Market == MarketBonds
+                  && (!d.ToDate.HasValue || d.ToDate.Value >= today)
+                  && spec.MoexType != null
+            select spec.MoexType!
+        ).Distinct();
+
+        var rows = await _db.MoexSecurityTypes.AsNoTracking()
+            .Where(x =>
+                x.Name != null &&
+                EF.Functions.Like(x.Name, "%_BOND") &&
+                existingMoexBondTypes.Contains(x.Name))
+            .Select(x => new BondMoexTypeOptionDto
+            {
+                Key = x.Name!,
+                Label = string.IsNullOrWhiteSpace(x.Title) ? x.Name! : x.Title!
+            })
+            .OrderBy(x => x.Label)
+            .ThenBy(x => x.Key)
+            .ToListAsync(cancellationToken);
+
+        return rows;
+    }
+
     public async Task<BondListResponseDto> GetListAsync(BondsListRequestDto request, CancellationToken cancellationToken = default)
     {
         request ??= new BondsListRequestDto();
@@ -489,6 +518,7 @@ public sealed class BondsQueryService : IBondsQueryService
     {
         return tab switch
         {
+            "all" => query,
             "ofz" => query.Where(x =>
                 (x.BondClass != null && x.BondClass == "ofz") ||
                 (x.MoexType != null && OfzTypeCodes.Contains(x.MoexType))),
@@ -504,24 +534,22 @@ public sealed class BondsQueryService : IBondsQueryService
                 x.IsForeignCurrency != true &&
                 !((x.BondClass != null && (x.BondClass == "ofz" || x.BondClass == "corp" || x.BondClass == "subfed")) ||
                   (x.MoexType != null && (OfzTypeCodes.Contains(x.MoexType) || CorpTypeCodes.Contains(x.MoexType) || SubfedTypeCodes.Contains(x.MoexType))))),
-            _ => query.Where(x =>
-                ((x.BondClass != null && x.BondClass == "corp") ||
-                 (x.MoexType != null && CorpTypeCodes.Contains(x.MoexType))) &&
-                x.IsForeignCurrency != true)
+            _ => query
         };
     }
 
     private static string NormalizeTab(string? tab)
     {
-        var normalized = (tab ?? "corp").Trim().ToLowerInvariant();
+        var normalized = (tab ?? "all").Trim().ToLowerInvariant();
         return normalized switch
         {
+            "all" => "all",
             "ofz" => "ofz",
             "corp" => "corp",
             "cur" => "cur",
             "subfed" => "subfed",
             "other" => "other",
-            _ => "corp"
+            _ => "all"
         };
     }
 

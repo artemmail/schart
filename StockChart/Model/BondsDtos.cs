@@ -2,7 +2,7 @@ namespace StockChart.Model;
 
 public sealed class BondsListRequestDto
 {
-    public string Tab { get; set; } = "corp";
+    public string Tab { get; set; } = "all";
     public decimal? YieldMin { get; set; }
     public decimal? YieldMax { get; set; }
     public decimal? DurationMin { get; set; }
@@ -17,6 +17,12 @@ public sealed class BondsListRequestDto
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 50;
     public string MapMode { get; set; } = "yield_by_duration";
+}
+
+public sealed class BondMoexTypeOptionDto
+{
+    public string Key { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
 }
 
 public sealed class BondListResponseDto
