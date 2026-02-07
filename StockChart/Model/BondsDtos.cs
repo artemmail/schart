@@ -126,6 +126,11 @@ public sealed class BondDetailsInstrumentDto
     public long? IssueSize { get; set; }
     public long? IssueSizePlaced { get; set; }
     public int? ListingLevel { get; set; }
+    public int? EmitentId { get; set; }
+    public string? EmitentTitle { get; set; }
+    public string? EmitentInn { get; set; }
+    public string? IssuerStockSecId { get; set; }
+    public string? IssuerStockShortName { get; set; }
 }
 
 public sealed class BondDetailsSnapshotDto

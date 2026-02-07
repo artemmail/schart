@@ -6,6 +6,7 @@ namespace StockChart.Repository.Services;
 
 public sealed class BondsQueryService : IBondsQueryService
 {
+    private const byte MarketStocks = 0;
     private const byte MarketBonds = 2;
     private static readonly string[] OfzTypeCodes = { "OFZ_BOND", "CB_BOND", "54", "4" };
     private static readonly string[] CorpTypeCodes = { "CORPORATE_BOND", "EXCHANGE_BOND", "IFI_BOND", "EURO_BOND", "NON_EXCHANGE_BOND", "2", "43", "42", "60", "78" };
@@ -233,6 +234,8 @@ public sealed class BondsQueryService : IBondsQueryService
             return null;
         }
 
+        var issuerStock = await ResolveIssuerStockAsync(bond.EmitentId, cancellationToken);
+
         var latestSnapshot = await _db.BondMarketSnapshots.AsNoTracking()
             .Where(x => x.DictionaryId == bond.DictionaryId)
             .OrderByDescending(x => x.ImportedAt)
@@ -283,7 +286,12 @@ public sealed class BondsQueryService : IBondsQueryService
                 PrimaryBoardId = bond.PrimaryBoardId,
                 IssueSize = bond.IssueSize,
                 IssueSizePlaced = bond.IssueSizePlaced,
-                ListingLevel = bond.ListingLevel
+                ListingLevel = bond.ListingLevel,
+                EmitentId = bond.EmitentId,
+                EmitentTitle = bond.EmitentTitle,
+                EmitentInn = bond.EmitentInn,
+                IssuerStockSecId = issuerStock.SecurityId,
+                IssuerStockShortName = issuerStock.ShortName
             },
             LastSnapshot = latestSnapshot == null
                 ? null
@@ -348,10 +356,49 @@ public sealed class BondsQueryService : IBondsQueryService
                         PrimaryBoardId = spec != null ? spec.PrimaryBoardId : null,
                         IssueSize = spec != null ? spec.IssueSize : null,
                         IssueSizePlaced = spec != null ? spec.IssueSizePlaced : null,
-                        ListingLevel = spec != null ? spec.ListingLevel : null
+                        ListingLevel = spec != null ? spec.ListingLevel : null,
+                        EmitentId = d.EmitentId,
+                        EmitentTitle = d.EmitentTitle,
+                        EmitentInn = d.EmitentInn
                     };
 
         return await scope(query).OrderBy(x => x.SecId).FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<(string? SecurityId, string? ShortName)> ResolveIssuerStockAsync(
+        int? emitentId,
+        CancellationToken cancellationToken)
+    {
+        if (!emitentId.HasValue)
+        {
+            return (null, null);
+        }
+
+        var today = DateTime.UtcNow.Date;
+        var activeStock = await _db.Dictionaries.AsNoTracking()
+            .Where(d =>
+                d.Market == MarketStocks &&
+                d.EmitentId == emitentId.Value &&
+                (!d.ToDate.HasValue || d.ToDate.Value >= today))
+            .OrderBy(d => d.Securityid)
+            .Select(d => new { d.Securityid, d.Shortname })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (activeStock != null)
+        {
+            return (activeStock.Securityid, activeStock.Shortname);
+        }
+
+        var anyStock = await _db.Dictionaries.AsNoTracking()
+            .Where(d => d.Market == MarketStocks && d.EmitentId == emitentId.Value)
+            .OrderByDescending(d => d.ToDate)
+            .ThenBy(d => d.Securityid)
+            .Select(d => new { d.Securityid, d.Shortname })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return anyStock == null
+            ? (null, null)
+            : (anyStock.Securityid, anyStock.Shortname);
     }
 
     private static BondListItemDto? BuildItem(BaseBondRow row, BondMarketSnapshot? snapshot, DateTime today)
@@ -711,5 +758,8 @@ public sealed class BondsQueryService : IBondsQueryService
         public long? IssueSize { get; set; }
         public long? IssueSizePlaced { get; set; }
         public int? ListingLevel { get; set; }
+        public int? EmitentId { get; set; }
+        public string? EmitentTitle { get; set; }
+        public string? EmitentInn { get; set; }
     }
 }

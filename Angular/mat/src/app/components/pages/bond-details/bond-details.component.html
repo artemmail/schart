@@ -1,103 +1,208 @@
 <div class="bond-details-page">
-  <div class="toolbar">
-    <a mat-stroked-button routerLink="/bonds">
-      <mat-icon>arrow_back</mat-icon>
-      К списку облигаций
-    </a>
+  <div class="container">
+    <div class="toolbar">
+      <a mat-stroked-button routerLink="/bonds">
+        <mat-icon>arrow_back</mat-icon>
+        К списку облигаций
+      </a>
+    </div>
+
+    <mat-card class="details-card" *ngIf="instrument">
+      <mat-card-header>
+        <mat-card-title>{{ instrument.shortName || instrument.secId }}</mat-card-title>
+        <mat-card-subtitle>
+          {{ instrument.secId }} <span *ngIf="instrument.isin">· {{ instrument.isin }}</span>
+        </mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <section class="details-section">
+          <h3>Рыночные данные</h3>
+          <div class="table-wrap">
+            <table class="details-table">
+              <tbody>
+                <tr>
+                  <th>Цена, %</th>
+                  <td>{{ snapshot?.pricePctOfPar == null ? '—' : (snapshot?.pricePctOfPar | number : '1.2-2') }}</td>
+                  <th>Цена, ден.</th>
+                  <td>{{ snapshot?.priceRub == null ? '—' : (snapshot?.priceRub | number : '1.2-2') }}</td>
+                </tr>
+                <tr>
+                  <th>Доходность, %</th>
+                  <td>{{ snapshot?.yieldPct == null ? '—' : (snapshot?.yieldPct | number : '1.2-2') }}</td>
+                  <th>Изм. за день, %</th>
+                  <td>{{ snapshot?.dayChangePct == null ? '—' : (snapshot?.dayChangePct | number : '1.2-2') }}</td>
+                </tr>
+                <tr>
+                  <th>Объем день</th>
+                  <td>{{ snapshot?.dayVolume == null ? '—' : (snapshot?.dayVolume | number : '1.0-0') }}</td>
+                  <th>Объем день, шт</th>
+                  <td>{{ snapshot?.dayVolumeQty == null ? '—' : (snapshot?.dayVolumeQty | number : '1.0-0') }}</td>
+                </tr>
+                <tr>
+                  <th>НКД</th>
+                  <td>{{ snapshot?.accruedInterest == null ? '—' : (snapshot?.accruedInterest | number : '1.2-2') }}</td>
+                  <th>Купон (рынок)</th>
+                  <td>{{ snapshot?.couponValue == null ? '—' : (snapshot?.couponValue | number : '1.2-2') }}</td>
+                </tr>
+                <tr>
+                  <th>Статус торгов</th>
+                  <td>{{ snapshot?.tradingStatus || '—' }}</td>
+                  <th>Board</th>
+                  <td>{{ snapshot?.boardId || instrument.primaryBoardId || '—' }}</td>
+                </tr>
+                <tr>
+                  <th>Импорт данных</th>
+                  <td>{{ snapshot?.importedAt ? (snapshot?.importedAt | date : 'yyyy-MM-dd HH:mm') : '—' }}</td>
+                  <th>Валюта торгов</th>
+                  <td>{{ snapshot?.currencyId || instrument.currency || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="details-section">
+          <h3>Параметры выпуска</h3>
+          <div class="table-wrap">
+            <table class="details-table">
+              <tbody>
+                <tr>
+                  <th>SECID</th>
+                  <td>{{ instrument.secId }}</td>
+                  <th>ISIN</th>
+                  <td>{{ instrument.isin || '—' }}</td>
+                </tr>
+                <tr>
+                  <th>Рег. номер</th>
+                  <td>{{ instrument.regNumber || '—' }}</td>
+                  <th>Класс</th>
+                  <td>{{ instrument.bondClass || '—' }}</td>
+                </tr>
+                <tr>
+                  <th>Эмитент</th>
+                  <td>{{ instrument.emitentTitle || '—' }}</td>
+                  <th>ИНН эмитента</th>
+                  <td>{{ instrument.emitentInn || '—' }}</td>
+                </tr>
+                <tr>
+                  <th>Акция эмитента</th>
+                  <td>
+                    <ng-container *ngIf="instrument.issuerStockSecId; else noIssuerStockLink">
+                      <a
+                        class="issuer-link"
+                        [routerLink]="['/statements', instrument.issuerStockSecId]"
+                        [title]="instrument.issuerStockSecId"
+                      >
+                        {{ instrument.issuerStockShortName || instrument.issuerStockSecId }}
+                      </a>
+                    </ng-container>
+                    <ng-template #noIssuerStockLink>—</ng-template>
+                  </td>
+                  <th>Ticker акции</th>
+                  <td>{{ instrument.issuerStockSecId || '—' }}</td>
+                </tr>
+                <tr>
+                  <th>Тип MOEX</th>
+                  <td>{{ instrument.moexTypeTitle || instrument.moexType || '—' }}</td>
+                  <th>Группа MOEX</th>
+                  <td>{{ instrument.moexGroup || '—' }}</td>
+                </tr>
+                <tr>
+                  <th>Валюта</th>
+                  <td>{{ instrument.currency || '—' }}</td>
+                  <th>Номинал</th>
+                  <td>{{ instrument.faceValue == null ? '—' : (instrument.faceValue | number : '1.2-2') }}</td>
+                </tr>
+                <tr>
+                  <th>Погашение</th>
+                  <td>{{ instrument.maturityDate ? (instrument.maturityDate | date : 'yyyy-MM-dd') : '—' }}</td>
+                  <th>Оферта</th>
+                  <td>{{ instrument.offerDate ? (instrument.offerDate | date : 'yyyy-MM-dd') : '—' }}</td>
+                </tr>
+                <tr>
+                  <th>Размещение</th>
+                  <td>{{ instrument.placementDate ? (instrument.placementDate | date : 'yyyy-MM-dd') : '—' }}</td>
+                  <th>След. купон</th>
+                  <td>{{ instrument.nextCouponDate ? (instrument.nextCouponDate | date : 'yyyy-MM-dd') : '—' }}</td>
+                </tr>
+                <tr>
+                  <th>Купон</th>
+                  <td>{{ instrument.couponValue == null ? '—' : (instrument.couponValue | number : '1.2-2') }}</td>
+                  <th>Ставка купона, %</th>
+                  <td>{{ instrument.couponRate == null ? '—' : (instrument.couponRate | number : '1.2-4') }}</td>
+                </tr>
+                <tr>
+                  <th>Период купона, дней</th>
+                  <td>{{ instrument.couponPeriodDays == null ? '—' : instrument.couponPeriodDays }}</td>
+                  <th>Только для квалов</th>
+                  <td>{{ instrument.qualifiedOnly ? 'Да' : 'Нет' }}</td>
+                </tr>
+                <tr>
+                  <th>Листинг</th>
+                  <td>{{ instrument.listingLevel == null ? '—' : instrument.listingLevel }}</td>
+                  <th>Размер выпуска</th>
+                  <td>{{ instrument.issueSize == null ? '—' : (instrument.issueSize | number : '1.0-0') }}</td>
+                </tr>
+                <tr>
+                  <th>В обращении</th>
+                  <td>{{ instrument.issueSizePlaced == null ? '—' : (instrument.issueSizePlaced | number : '1.0-0') }}</td>
+                  <th>Primary board</th>
+                  <td>{{ instrument.primaryBoardId || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="details-section">
+          <h3>График</h3>
+          <div class="mini-chart" *ngIf="miniParams">
+            <div class="mini-chart-title">Дневной свечной график</div>
+            <app-footprint-widget
+              [params]="miniParams"
+              [minimode]="true"
+            ></app-footprint-widget>
+          </div>
+          <div class="mini-loading" *ngIf="miniLoading">Загрузка мини-графика...</div>
+          <div class="empty-state" *ngIf="!miniLoading && !miniParams">График недоступен.</div>
+        </section>
+
+        <section class="details-section">
+          <h3>Календарь купонов</h3>
+          <div class="table-wrap" *ngIf="coupons.length > 0; else emptyCoupons">
+            <table>
+              <thead>
+                <tr>
+                  <th>№</th>
+                  <th>Дата купона</th>
+                  <th>Купон</th>
+                  <th>Доходн. купона, %</th>
+                  <th>% от номинала</th>
+                  <th>% от рынка</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let coupon of coupons">
+                  <td>{{ coupon.number == null ? '—' : coupon.number }}</td>
+                  <td>{{ coupon.couponDate ? (coupon.couponDate | date : 'yyyy-MM-dd') : '—' }}</td>
+                  <td>{{ coupon.couponValue == null ? '—' : (coupon.couponValue | number : '1.2-4') }}</td>
+                  <td>{{ coupon.couponYieldPct == null ? '—' : (coupon.couponYieldPct | number : '1.2-4') }}</td>
+                  <td>{{ coupon.percentOfPar == null ? '—' : (coupon.percentOfPar | number : '1.2-4') }}</td>
+                  <td>{{ coupon.percentOfMarket == null ? '—' : (coupon.percentOfMarket | number : '1.2-4') }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <ng-template #emptyCoupons>
+          <div class="empty-state">Купонный календарь отсутствует.</div>
+        </ng-template>
+      </mat-card-content>
+    </mat-card>
+
+    <div class="status loading" *ngIf="loading">Загрузка...</div>
+    <div class="status error" *ngIf="!loading && error">{{ error }}</div>
   </div>
-
-  <mat-card class="details-card" *ngIf="instrument">
-    <mat-card-header>
-      <mat-card-title>{{ instrument.shortName || instrument.secId }}</mat-card-title>
-      <mat-card-subtitle>
-        {{ instrument.secId }} <span *ngIf="instrument.isin">· {{ instrument.isin }}</span>
-      </mat-card-subtitle>
-    </mat-card-header>
-
-    <mat-card-content>
-      <section class="summary-grid">
-        <div class="metric">
-          <div class="label">Цена, %</div>
-          <div class="value">{{ snapshot?.pricePctOfPar == null ? '—' : (snapshot?.pricePctOfPar | number : '1.2-2') }}</div>
-        </div>
-        <div class="metric">
-          <div class="label">Цена, ден.</div>
-          <div class="value">{{ snapshot?.priceRub == null ? '—' : (snapshot?.priceRub | number : '1.2-2') }}</div>
-        </div>
-        <div class="metric">
-          <div class="label">Доходность, %</div>
-          <div class="value">{{ snapshot?.yieldPct == null ? '—' : (snapshot?.yieldPct | number : '1.2-2') }}</div>
-        </div>
-        <div class="metric">
-          <div class="label">Погашение</div>
-          <div class="value">{{ instrument.maturityDate ? (instrument.maturityDate | date : 'yyyy-MM-dd') : '—' }}</div>
-        </div>
-        <div class="metric">
-          <div class="label">След. купон</div>
-          <div class="value">{{ instrument.nextCouponDate ? (instrument.nextCouponDate | date : 'yyyy-MM-dd') : '—' }}</div>
-        </div>
-        <div class="metric">
-          <div class="label">НКД</div>
-          <div class="value">{{ snapshot?.accruedInterest == null ? '—' : (snapshot?.accruedInterest | number : '1.2-2') }}</div>
-        </div>
-      </section>
-
-      <section class="params-grid">
-        <div><span class="p-label">Рег. номер:</span> {{ instrument.regNumber || '—' }}</div>
-        <div><span class="p-label">Класс:</span> {{ instrument.bondClass || '—' }}</div>
-        <div><span class="p-label">Тип MOEX:</span> {{ instrument.moexTypeTitle || instrument.moexType || '—' }}</div>
-        <div><span class="p-label">Группа MOEX:</span> {{ instrument.moexGroup || '—' }}</div>
-        <div><span class="p-label">Валюта:</span> {{ instrument.currency || '—' }}</div>
-        <div><span class="p-label">Номинал:</span> {{ instrument.faceValue == null ? '—' : (instrument.faceValue | number : '1.2-2') }}</div>
-        <div><span class="p-label">Купон:</span> {{ instrument.couponValue == null ? '—' : (instrument.couponValue | number : '1.2-2') }}</div>
-        <div><span class="p-label">Ставка купона, %:</span> {{ instrument.couponRate == null ? '—' : (instrument.couponRate | number : '1.2-4') }}</div>
-        <div><span class="p-label">Частота купона (дней):</span> {{ instrument.couponPeriodDays == null ? '—' : instrument.couponPeriodDays }}</div>
-        <div><span class="p-label">Размещение:</span> {{ instrument.placementDate ? (instrument.placementDate | date : 'yyyy-MM-dd') : '—' }}</div>
-        <div><span class="p-label">Оферта:</span> {{ instrument.offerDate ? (instrument.offerDate | date : 'yyyy-MM-dd') : '—' }}</div>
-        <div><span class="p-label">Board:</span> {{ snapshot?.boardId || instrument.primaryBoardId || '—' }}</div>
-        <div><span class="p-label">Листинг:</span> {{ instrument.listingLevel == null ? '—' : instrument.listingLevel }}</div>
-        <div><span class="p-label">Размер выпуска:</span> {{ instrument.issueSize == null ? '—' : (instrument.issueSize | number : '1.0-0') }}</div>
-        <div><span class="p-label">В обращении:</span> {{ instrument.issueSizePlaced == null ? '—' : (instrument.issueSizePlaced | number : '1.0-0') }}</div>
-      </section>
-    </mat-card-content>
-  </mat-card>
-
-  <mat-card class="coupons-card" *ngIf="instrument">
-    <mat-card-header>
-      <mat-card-title>Календарь купонов</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      <div class="table-wrap" *ngIf="coupons.length > 0; else emptyCoupons">
-        <table>
-          <thead>
-            <tr>
-              <th>№</th>
-              <th>Дата купона</th>
-              <th>Купон</th>
-              <th>Доходн. купона, %</th>
-              <th>% от номинала</th>
-              <th>% от рынка</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let coupon of coupons">
-              <td>{{ coupon.number == null ? '—' : coupon.number }}</td>
-              <td>{{ coupon.couponDate ? (coupon.couponDate | date : 'yyyy-MM-dd') : '—' }}</td>
-              <td>{{ coupon.couponValue == null ? '—' : (coupon.couponValue | number : '1.2-4') }}</td>
-              <td>{{ coupon.couponYieldPct == null ? '—' : (coupon.couponYieldPct | number : '1.2-4') }}</td>
-              <td>{{ coupon.percentOfPar == null ? '—' : (coupon.percentOfPar | number : '1.2-4') }}</td>
-              <td>{{ coupon.percentOfMarket == null ? '—' : (coupon.percentOfMarket | number : '1.2-4') }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <ng-template #emptyCoupons>
-        <div class="empty-state">Купонный календарь отсутствует.</div>
-      </ng-template>
-    </mat-card-content>
-  </mat-card>
-
-  <div class="status loading" *ngIf="loading">Загрузка...</div>
-  <div class="status error" *ngIf="!loading && error">{{ error }}</div>
 </div>

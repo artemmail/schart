@@ -103,6 +103,11 @@ export interface BondDetailsInstrument {
   issueSize?: number | null;
   issueSizePlaced?: number | null;
   listingLevel?: number | null;
+  emitentId?: number | null;
+  emitentTitle?: string | null;
+  emitentInn?: string | null;
+  issuerStockSecId?: string | null;
+  issuerStockShortName?: string | null;
 }
 
 export interface BondDetailsSnapshot {
@@ -346,6 +351,11 @@ export class BondsService {
       issueSize: this.optNum(raw?.issueSize ?? raw?.IssueSize),
       issueSizePlaced: this.optNum(raw?.issueSizePlaced ?? raw?.IssueSizePlaced),
       listingLevel: this.optNum(raw?.listingLevel ?? raw?.ListingLevel),
+      emitentId: this.optNum(raw?.emitentId ?? raw?.EmitentId),
+      emitentTitle: raw?.emitentTitle ?? raw?.EmitentTitle ?? null,
+      emitentInn: raw?.emitentInn ?? raw?.EmitentInn ?? null,
+      issuerStockSecId: raw?.issuerStockSecId ?? raw?.IssuerStockSecId ?? null,
+      issuerStockShortName: raw?.issuerStockShortName ?? raw?.IssuerStockShortName ?? null,
     };
   }
 

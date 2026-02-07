@@ -2,51 +2,54 @@
   padding: 12px;
 }
 
+.container {
+  width: 100%;
+  max-width: 1250px;
+  margin: 0 auto;
+}
+
 .toolbar {
   margin-bottom: 10px;
 }
 
-.details-card,
-.coupons-card {
+.details-card {
   margin-bottom: 12px;
   border-radius: 12px;
 }
 
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 10px;
-  margin-bottom: 14px;
+.mini-chart {
+  margin: 4px 0 12px 0;
+  height: 312px;
+  display: flex;
+  flex-direction: column;
 }
 
-.metric {
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 10px;
-  background: #f8fafc;
+.mini-chart-title {
+  padding: 0 0 6px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
 }
 
-.metric .label {
-  font-size: 12px;
+.mini-chart app-footprint-widget {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.mini-loading {
+  margin: 8px 0 12px 0;
   color: #64748b;
 }
 
-.metric .value {
-  margin-top: 2px;
-  font-size: 18px;
+.details-section + .details-section {
+  margin-top: 14px;
+}
+
+.details-section h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
   font-weight: 600;
-  color: #0f172a;
-}
-
-.params-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 6px 12px;
-  font-size: 13px;
-}
-
-.p-label {
-  color: #475569;
+  color: #1e293b;
 }
 
 .table-wrap {
@@ -57,7 +60,7 @@
 
 table {
   width: 100%;
-  min-width: 760px;
+  min-width: 820px;
   border-collapse: collapse;
 }
 
@@ -72,6 +75,26 @@ td {
 th {
   background: #f8fafc;
   text-align: left;
+}
+
+.details-table th {
+  width: 18%;
+  color: #475569;
+  font-weight: 600;
+}
+
+.details-table td {
+  width: 32%;
+  color: #0f172a;
+}
+
+.issuer-link {
+  color: #0b57d0;
+  text-decoration: none;
+}
+
+.issuer-link:hover {
+  text-decoration: underline;
 }
 
 .status {
@@ -91,5 +114,9 @@ th {
 @media (max-width: 900px) {
   .bond-details-page {
     padding: 8px;
+  }
+
+  table {
+    min-width: 640px;
   }
 }
