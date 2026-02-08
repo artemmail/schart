@@ -22,18 +22,19 @@ export class DensityDeltaColumn extends ClusterColumnBase {
         column.cl[i].p <= this.finishPrice
       ) {
         var r = this.clusterRect(column.cl[i].p, number, mtx);
-        r.w = (column.cl[i].q * bar.w) / this.data.maxClusterQnt;
+        r.w = (column.cl[i].q * bar.w) / this.stats.qntMax;
         r.w *= this.clusterWidthScale;
-        var ds = column.cl[i].q / column.cl[i].ct;
-        ds = Math.min(ds, this.data.maxDens);
-        ds = Math.max(ds, this.data.minDens);
-        if (this.data.maxDens - this.data.minDens < 0.1)
+        var ds =
+          column.cl[i].ct !== 0 ? column.cl[i].q / column.cl[i].ct : 0;
+        ds = Math.min(ds, this.stats.maxDens);
+        ds = Math.max(ds, this.stats.minDens);
+        if (this.stats.maxDens - this.stats.minDens < 0.1)
           ctx.fillStyle = this.palette.accentSoft;
         else
           ctx.fillStyle = this.colorsService.getGradientColor(
             this.palette.bg,
             this.palette.accentSoft,
-            (ds - this.data.minDens) / (this.data.maxDens - this.data.minDens)
+            (ds - this.stats.minDens) / (this.stats.maxDens - this.stats.minDens)
           );
         ctx.strokeStyle = this.palette.gridSoft;
         if (drawBorder) {
@@ -50,9 +51,12 @@ export class DensityDeltaColumn extends ClusterColumnBase {
       ctx.fillStyle = this.palette.text;
       for (let i = 0; i < column.cl.length; i++) {
         var r = this.clusterRect(column.cl[i].p, number, mtx);
-        var w = (column.cl[i].q * r.w) / this.data.maxClusterQnt;
+        var w = (column.cl[i].q * r.w) / this.stats.qntMax;
         ctx.fillText(
-          drob(column.cl[i].q / column.cl[i].ct, 3).toString(),
+          drob(
+            column.cl[i].ct !== 0 ? column.cl[i].q / column.cl[i].ct : 0,
+            3
+          ).toString(),
           r.x + 1.5,
           r.y + bar.h / 2
         );

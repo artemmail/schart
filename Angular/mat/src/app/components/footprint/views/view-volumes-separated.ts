@@ -69,27 +69,15 @@ export class viewVolumesSeparated extends canvasPart {
    var FPsettings: ChartSettings = this.parent.FPsettings; 
 
     var maxQuantity: number, maxQuantityAsk: number, maxQuantityBid: number;
-
+    const stats = this.data.getRenderStats(!!FPsettings.ShrinkY);
     if (FPsettings.Contracts) {
-      maxQuantity = this.data.maxQuantity;
-      maxQuantityAsk = this.data.maxQuantityAsk;
-      maxQuantityBid = this.data.maxQuantityBid;
+      maxQuantity = stats.q;
+      maxQuantityAsk = stats.bq;
+      maxQuantityBid = stats.sq;
     } else {
-      maxQuantity = this.data.maxVolume;
-      maxQuantityAsk = this.data.maxVolumeAsk;
-      maxQuantityBid = this.data.maxVolumeBid;
-    }
-
-    if (FPsettings.ShrinkY) {
-      if (FPsettings.Contracts) {
-        maxQuantity = this.data.local.q;
-        maxQuantityAsk = this.data.local.bq;
-        maxQuantityBid = this.data.local.sq;
-      } else {
-        maxQuantity = this.data.local.v;
-        maxQuantityAsk = this.data.local.bv;
-        maxQuantityBid = this.data.local.sv;
-      }
+      maxQuantity = stats.v;
+      maxQuantityAsk = stats.bv;
+      maxQuantityBid = stats.sv;
     }
 
     ctx.restore();

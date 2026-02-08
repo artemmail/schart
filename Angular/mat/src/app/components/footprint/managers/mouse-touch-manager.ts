@@ -70,9 +70,10 @@ export class MouseAndTouchManager {
   onMouseOut = (event?: MouseEvent): void => {
     if (event) {
       this.updateHover(null);
+      this.selectedPoint = null;
     }
-    this.footprint.viewsManager.drawClusterView();
     this.footprint.hideHint();
+    this.footprint.viewsManager.drawClusterView();
   };
 
   private resolveHoverView(point: Point): any | null {

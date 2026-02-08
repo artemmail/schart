@@ -80,6 +80,8 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     pressT: 0,
     rafId: 0,
   };
+  private realtimeRafId: number | null = null;
+  private pendingRealtimeMerge = false;
 
   markupEnabled: boolean;
   markupManager: MarkUpManager;
@@ -578,8 +580,8 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     const matrix = this.viewsManager.mtx;
     this.getMinMaxIndex(matrix);
 
-    const local = this.data.local;
-    if (!local || !Number.isFinite(local.maxPrice) || !Number.isFinite(local.minPrice)) {
+    const local = this.data.getRenderStats(true);
+    if (!Number.isFinite(local.maxPrice) || !Number.isFinite(local.minPrice)) {
       return;
     }
 
@@ -611,11 +613,32 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     const isVisible = this.isPriceVisible();
     const shouldMerge = update.type !== 'ladder' && isVisible && !!update.merged;
     if (shouldMerge) {
-      this.mergeMatrix();
-      this.adjustViewportOnRealtime();
+      this.pendingRealtimeMerge = true;
     }
 
-    this.viewsManager.drawClusterView();
+    this.scheduleRealtimeDraw();
+  }
+
+  private scheduleRealtimeDraw(): void {
+    if (this.realtimeRafId !== null) {
+      return;
+    }
+
+    this.realtimeRafId = requestAnimationFrame(() => {
+      this.realtimeRafId = null;
+      if (!this.data || !this.viewsManager) {
+        this.pendingRealtimeMerge = false;
+        return;
+      }
+
+      if (this.pendingRealtimeMerge) {
+        this.pendingRealtimeMerge = false;
+        this.mergeMatrix();
+        this.adjustViewportOnRealtime();
+      }
+
+      this.viewsManager.drawClusterView();
+    });
   }
 
   private ensureIndicatorPanel(kind: 'chart' | 'new', preferredId?: string) {
@@ -644,6 +667,10 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.realtimeRafId !== null) {
+      cancelAnimationFrame(this.realtimeRafId);
+      this.realtimeRafId = null;
+    }
     this.themeSubscription?.unsubscribe();
     this.hintContainer.destroy();
   }

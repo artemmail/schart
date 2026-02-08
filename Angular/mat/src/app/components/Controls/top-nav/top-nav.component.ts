@@ -19,6 +19,7 @@ import {
 } from 'src/app/service/FootPrint/Favorites/footprint-favorites.service';
 import { FavoriteRenameDialogComponent } from 'src/app/components/Dialogs/favorite-rename-dialog/favorite-rename-dialog.component';
 import { FootPrintParameters } from 'src/app/models/Params';
+import { resolveFootprintMode } from 'src/app/models/footprint-mode';
 
 interface FootprintFavoritesHost {
   getFootprintFavoritePayload: () => FootprintFavoritePayload | null;
@@ -356,7 +357,9 @@ export class TopNavComponent implements OnInit, OnDestroy {
 
   private buildFavoriteName(params: FootPrintParameters): string {
     const parts: string[] = [];
-    if (params.type === 'arbitrage') {
+    const mode = resolveFootprintMode(params);
+
+    if (mode === 'arbitrage') {
       const leg1 = params.ticker1 ?? '';
       const leg2 = params.ticker2 ?? '';
       const pair = [leg1, leg2].filter(Boolean).join(' / ');

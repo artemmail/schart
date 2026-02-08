@@ -67,12 +67,9 @@ export class viewPrices extends canvasPart {
     // ===== режим DeltaGraph =====
     if (FP.DeltaGraph) {
       // 1. диапазон дельты
-      let min = parent.data.minCumDelta,
-          max = parent.data.maxCumDelta;
-      if (FP.ShrinkY) {
-        min = parent.data.local.minCumDelta;
-        max = parent.data.local.maxCumDelta;
-      }
+      const stats = parent.data.getRenderStats(!!FP.ShrinkY);
+      let min = stats.minCumDelta;
+      let max = stats.maxCumDelta;
       const pad = (max - min) / 10;
       min -= pad; max += pad;
 

@@ -4,6 +4,12 @@ import { TickerPresetNew } from 'src/app/models/tickerpreset';
 import type { FootPrintParamsComponent } from 'src/app/components/Controls/FootPrintParams/footpintparmas.component';
 import type { FootprintWidgetComponent } from 'src/app/components/footprint/components/footprint-widget/footprint-widget.component';
 import { FootprintFavoritePayload } from './footprint-favorites.service';
+import {
+  applyFootprintModeToParams,
+  DEFAULT_ARBITRAGE_PORTFOLIO_1,
+  DEFAULT_ARBITRAGE_PORTFOLIO_2,
+  resolveFootprintMode,
+} from 'src/app/models/footprint-mode';
 
 export interface FootprintFavoritesContext {
   params?: TickerPresetNew | null;
@@ -45,16 +51,28 @@ export class FootprintFavoritesHandlerService {
     }
 
     const params = this.normalizeParams(payload.params);
-    const isArbitrage = params.type === 'arbitrage';
+    const mode = resolveFootprintMode(params);
+    const normalized = applyFootprintModeToParams({ ...params }, mode, {
+      defaultPeriod:
+        Number.isFinite(params.period) && (params.period as number) > 0
+          ? (params.period as number)
+          : 1,
+      keepArbitrageTickers: true,
+      arbitrageDefaults: {
+        ticker1: DEFAULT_ARBITRAGE_PORTFOLIO_1,
+        ticker2: DEFAULT_ARBITRAGE_PORTFOLIO_2,
+      },
+    });
+    const isArbitrage = mode === 'arbitrage';
 
     const nextParams: TickerPresetNew = {
       ...(context.params ?? ({} as TickerPresetNew)),
-      ...params,
+      ...normalized,
       type: isArbitrage ? 'arbitrage' : undefined,
-      candlesOnly: isArbitrage ? false : !!params.candlesOnly,
-      ticker: isArbitrage ? undefined : params.ticker,
-      ticker1: isArbitrage ? params.ticker1 : undefined,
-      ticker2: isArbitrage ? params.ticker2 : undefined,
+      candlesOnly: isArbitrage ? false : !!normalized.candlesOnly,
+      ticker: isArbitrage ? undefined : normalized.ticker,
+      ticker1: isArbitrage ? normalized.ticker1 : undefined,
+      ticker2: isArbitrage ? normalized.ticker2 : undefined,
     };
 
     const paramsComponent = context.footPrintParamsComponent;
@@ -62,13 +80,12 @@ export class FootprintFavoritesHandlerService {
       paramsComponent.params = nextParams;
     }
 
-    const mode = isArbitrage
+    const uiMode = mode === 'arbitrage'
       ? 'arbitrage'
-      : nextParams.candlesOnly
+      : mode === 'candles'
       ? 'candles'
       : 'clusters';
-
-    paramsComponent?.onLoadModeChange(mode);
+    paramsComponent?.onLoadModeChange(uiMode);
 
     if (paramsComponent?.DateRange) {
       paramsComponent.DateRange.setDatesRange(
@@ -79,12 +96,12 @@ export class FootprintFavoritesHandlerService {
 
     const presetSelector = paramsComponent?.presetSelector;
     if (presetSelector) {
-      presetSelector.ticker = params.ticker ?? '';
-      presetSelector.rperiod = params.rperiod ?? 'custom';
+      presetSelector.ticker = normalized.ticker ?? '';
+      presetSelector.rperiod = normalized.rperiod ?? 'custom';
     }
 
-    if (!isArbitrage && params.ticker) {
-      paramsComponent?.onTickerSelected(params.ticker);
+    if (!isArbitrage && normalized.ticker) {
+      paramsComponent?.onTickerSelected(normalized.ticker);
     } else if (presetSelector) {
       presetSelector.loadPeriodPresets();
     }

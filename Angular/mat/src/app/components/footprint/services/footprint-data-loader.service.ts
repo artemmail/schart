@@ -16,6 +16,12 @@ import {
   FootprintUpdateEvent,
   FootprintUpdateType,
 } from '../models/footprint-data.types';
+import {
+  applyFootprintModeToParams,
+  DEFAULT_ARBITRAGE_PORTFOLIO_1,
+  DEFAULT_ARBITRAGE_PORTFOLIO_2,
+  resolveFootprintMode,
+} from 'src/app/models/footprint-mode';
 
 @Injectable()
 export class FootprintDataLoaderService implements OnDestroy {
@@ -93,7 +99,9 @@ export class FootprintDataLoaderService implements OnDestroy {
         break;
     }
 
-    this.dataSubject.next(this.currentData);
+    // Realtime handlers mutate the current data instance in place.
+    // Pushing the same object through data$ on every tick causes an
+    // extra render/update path and can freeze UI under fast streams.
     return { type, merged };
   }
 
@@ -101,11 +109,37 @@ export class FootprintDataLoaderService implements OnDestroy {
     params: FootPrintParameters
   ): Promise<boolean> {
     const settings = await this.resolveSettings();
-    params.candlesOnly =
-      params.candlesOnly ?? settings.CandlesOnly ?? false;
+    const mode = resolveFootprintMode({
+      ...params,
+      candlesOnly: params.candlesOnly ?? settings.CandlesOnly ?? false,
+    });
+    const normalizedParams = applyFootprintModeToParams(
+      {
+        ...params,
+        candlesOnly: params.candlesOnly ?? settings.CandlesOnly ?? false,
+      },
+      mode,
+      {
+        defaultPeriod:
+          Number.isFinite(params.period) && params.period > 0
+            ? params.period
+            : 1,
+        keepArbitrageTickers: mode === 'arbitrage',
+        arbitrageDefaults: {
+          ticker1: DEFAULT_ARBITRAGE_PORTFOLIO_1,
+          ticker2: DEFAULT_ARBITRAGE_PORTFOLIO_2,
+        },
+      }
+    );
+    Object.assign(params, normalizedParams);
+    if (!Number.isFinite(params.priceStep) || params.priceStep <= 0) {
+      params.priceStep = 1;
+    }
     this.paramsSubject.next(params);
     this.settingsSubject.next(settings);
-    await this.levelMarksService.load(params);
+    await this.levelMarksService.load(params, {
+      skipServer: !!this.options.minimode,
+    });
     return this.requestRange(params);
   }
 
@@ -138,16 +172,14 @@ export class FootprintDataLoaderService implements OnDestroy {
     priceScale: number
   ): ClusterData {
     const emptyPad = Math.max(Math.abs(priceScale || 1) * 0.001, 1e-6);
-    let a =0;
     const prepared = rangeSet
       .filter((value) => value.Date !== undefined)
       .map((value, index) => {
-        const date = new Date(value.Date );
+        const date = new Date(value.Date);
         const rawPrice1 = value.Price1normalized;
         const rawPrice2 = value.Price2normalized;
         const price1 = Number(rawPrice1);
         const price2 = Number(rawPrice2);
-        
 
         if (!Number.isFinite(price1) || !Number.isFinite(price2)) {
           return null;
@@ -162,8 +194,6 @@ export class FootprintDataLoaderService implements OnDestroy {
           high += pad;
           low -= pad;
         }
-
-        
 
         return {
           Number: index + 1,
@@ -213,15 +243,26 @@ export class FootprintDataLoaderService implements OnDestroy {
 
   private async requestRange(params: FootPrintParameters): Promise<boolean> {
     try {
-      const isArbitrageMode = params.type === 'arbitrage';
-
-      if (isArbitrageMode) {
-        params.ticker1 = params.ticker1 ?? 'SBER';
-        params.ticker2 = params.ticker2 ?? 'GAZP';
+      const mode = resolveFootprintMode(params);
+      Object.assign(
+        params,
+        applyFootprintModeToParams(params, mode, {
+          defaultPeriod:
+            Number.isFinite(params.period) && params.period > 0
+              ? params.period
+              : 1,
+          keepArbitrageTickers: mode === 'arbitrage',
+          arbitrageDefaults: {
+            ticker1: DEFAULT_ARBITRAGE_PORTFOLIO_1,
+            ticker2: DEFAULT_ARBITRAGE_PORTFOLIO_2,
+          },
+        })
+      );
+      if (!Number.isFinite(params.priceStep) || params.priceStep <= 0) {
+        params.priceStep = 1;
       }
 
-      if (isArbitrageMode && (params.ticker1 || params.ticker2)) {
-        
+      if (mode === 'arbitrage' && params.ticker1 && params.ticker2) {
         const rangeSet = await firstValueFrom(
           this.clusterStreamService.getRangeSetArray({
             ticker: params.ticker,
@@ -235,13 +276,11 @@ export class FootprintDataLoaderService implements OnDestroy {
           })
         );
 
-        let rangeData = this.buildClusterDataFromRangeSet(
+        const rangeData = this.buildClusterDataFromRangeSet(
           rangeSet,
           params.priceStep
         );
-        if (rangeSet?.length) {
-          rangeData.rangeSetLines = (rangeSet);
-        }
+        rangeData.rangeSetLines = rangeSet ?? [];
         this.currentData = rangeData;
       } else {
         const rangeData = await firstValueFrom(

@@ -28,7 +28,7 @@ export class VolumeDeltaColumn extends ClusterColumnBase {
           this.palette.downStrong,
           this.palette.bg,
           this.palette.upStrong,
-          this.data.maxDelta,
+          this.stats.maxDelta,
           delta
         );
         var r = this.clusterRect(column.cl[i].p, number, mtx);
@@ -43,7 +43,7 @@ export class VolumeDeltaColumn extends ClusterColumnBase {
           this.palette.downStrong,
           this.palette.bg,
           this.palette.accentSoft,
-          this.data.maxClusterQnt,
+          this.stats.qntMax,
           column.cl[i].q
         );
         r.x -= r.w;
@@ -82,7 +82,7 @@ export class VolumeDeltaColumn extends ClusterColumnBase {
       ctx.fillStyle = this.palette.text;
       for (let i = 0; i < column.cl.length; i++) {
         var r = this.clusterRect(column.cl[i].p, number, mtx);
-        var w = (column.cl[i].q * r.w) / this.data.maxClusterQnt;
+        var w = (column.cl[i].q * r.w) / this.stats.qntMax;
         r.x += shift;
         var delta = 2 * column.cl[i].bq - column.cl[i].q;
         ctx.fillText(drob(column.cl[i].q, 3).toString(), r.x + 1.5, r.y + bar.h / 2);

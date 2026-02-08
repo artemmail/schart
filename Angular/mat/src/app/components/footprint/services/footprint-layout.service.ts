@@ -267,11 +267,7 @@ export class FootprintLayoutService {
     settings: ChartSettings,
     params: FootPrintParameters
   ) {
-    if (
-      settings.ShrinkY &&
-      data.clusterData.length > 0 &&
-      (!data.local || data.local.maxPrice === undefined)
-    ) {
+    if (settings.ShrinkY && data.clusterData.length > 0) {
       data.maxFromPeriod(0, data.clusterData.length - 1);
     }
 
@@ -347,13 +343,17 @@ export class FootprintLayoutService {
     if (deltaX !== 0 || deltaY !== 0) matrix = matrix.getTranslate(deltaX, deltaY);
 
     if (settings.ShrinkY) {
-      if ((!data.local || data.local.maxPrice === undefined) && data.clusterData.length > 0) {
+      if (
+        data.clusterData.length > 0 &&
+        (!data.local ||
+          !Number.isFinite(data.local.maxPrice) ||
+          !Number.isFinite(data.local.minPrice))
+      ) {
         data.maxFromPeriod?.(0, data.clusterData.length - 1);
       }
 
-      const local = data.local ?? { maxPrice: data.maxPrice, minPrice: data.minPrice };
-
-      if (local.maxPrice !== undefined && local.minPrice !== undefined) {
+      const local = data.getRenderStats(true);
+      if (Number.isFinite(local.maxPrice) && Number.isFinite(local.minPrice)) {
         const localRange = local.maxPrice - local.minPrice;
         const localDelta = Math.max(Math.abs(localRange) / 10, scale);
         matrix = matrix.reassignY(

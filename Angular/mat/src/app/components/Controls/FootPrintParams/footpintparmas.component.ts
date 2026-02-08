@@ -21,6 +21,15 @@ import { tap } from 'rxjs/operators';
 import { PresetSelectorComponent1 } from '../../DateRangeSelector/date-range-selector.component';
 import { MaterialModule } from 'src/app/material.module';
 import { ComboBoxComponent } from '../ComboBox/combobox.component';
+import {
+  applyFootprintModeToParams,
+  DEFAULT_ARBITRAGE_PORTFOLIO_1,
+  DEFAULT_ARBITRAGE_PORTFOLIO_2,
+  FootprintMode,
+  resolveFootprintMode,
+} from 'src/app/models/footprint-mode';
+
+type FootprintUiMode = Exclude<FootprintMode, 'ticks'>;
 
 @Component({
   standalone: true,
@@ -52,7 +61,8 @@ export class FootPrintParamsComponent
   @Input() params: TickerPresetNew;
 
   presets2: SelectListItemNumber[] = SmallPeriodPreset;
-  loadMode: 'candles' | 'clusters' | 'arbitrage' = 'clusters';
+  loadMode: FootprintUiMode = 'clusters';
+  private lastNonTickPeriod = 1;
 
   constructor(
     private commonService: CommonService,
@@ -64,18 +74,8 @@ export class FootPrintParamsComponent
 
   refresh() {}
 
-  onLoadModeChange(mode: 'candles' | 'clusters' | 'arbitrage') {
-    this.loadMode = mode;
-    if (!this.params) {
-      return;
-    }
-
-    if (mode === 'arbitrage') {
-      this.applyArbitrageDefaults();
-    } else {
-      this.params.type = undefined;
-      this.params.candlesOnly = mode === 'candles';
-    }
+  onLoadModeChange(mode: FootprintUiMode) {
+    this.applyMode(mode);
   }
 
   isArbitrageMode(): boolean {
@@ -85,9 +85,20 @@ export class FootPrintParamsComponent
   isClusterMode(): boolean {
     return this.loadMode === 'clusters';
   }
+  isTickMode(): boolean {
+    return Number(this.params?.period) === 0;
+  }
   onArbitrageTickersChange() {
     if (this.isArbitrageMode() && this.params) {
-      this.params.type = 'arbitrage';
+      const next = applyFootprintModeToParams(this.params, 'arbitrage', {
+        defaultPeriod: this.lastNonTickPeriod,
+        keepArbitrageTickers: true,
+        arbitrageDefaults: {
+          ticker1: DEFAULT_ARBITRAGE_PORTFOLIO_1,
+          ticker2: DEFAULT_ARBITRAGE_PORTFOLIO_2,
+        },
+      });
+      Object.assign(this.params, next);
     }
   }
 
@@ -123,25 +134,71 @@ export class FootPrintParamsComponent
     }
   }
 
-  SelectPeriod(val: any) {}
+  SelectPeriod(val: any) {
+    if (!this.params) {
+      return;
+    }
+
+    const period = Number(this.params.period);
+    if (!Number.isFinite(period)) {
+      return;
+    }
+
+    if (period === 0) {
+      this.params.type = undefined;
+      this.params.candlesOnly = false;
+      return;
+    }
+
+    if (period > 0) {
+      this.lastNonTickPeriod = period;
+      this.applyMode(this.loadMode);
+    }
+  }
 
   public GetModel(): FootPrintParameters {
-    this.params.type = this.isArbitrageMode() ? 'arbitrage' : undefined;
-    if (!this.isArbitrageMode()) {
-      this.params.ticker1 = undefined;
-      this.params.ticker2 = undefined;
+    const period = Number(this.params?.period);
+    const isTickPeriod = Number.isFinite(period) && period === 0;
+    let normalized: TickerPresetNew;
+
+    if (isTickPeriod) {
+      normalized = {
+        ...this.params,
+        period: 0,
+        candlesOnly: false,
+        type: undefined,
+        ticker1: undefined,
+        ticker2: undefined,
+      };
+    } else {
+      normalized = applyFootprintModeToParams(
+        { ...this.params },
+        this.loadMode,
+        {
+          defaultPeriod: this.lastNonTickPeriod,
+          arbitrageDefaults: {
+            ticker1: DEFAULT_ARBITRAGE_PORTFOLIO_1,
+            ticker2: DEFAULT_ARBITRAGE_PORTFOLIO_2,
+          },
+        }
+      );
     }
+
+    if (normalized.period && normalized.period > 0) {
+      this.lastNonTickPeriod = normalized.period;
+    }
+
     return {
-      ticker: this.params.ticker,
-      ticker1: this.params.ticker1,
-      ticker2: this.params.ticker2,
-      period: this.params.period,
-      rperiod: this.params.rperiod,
-      priceStep: this.params.priceStep,
+      ticker: normalized.ticker,
+      ticker1: normalized.ticker1,
+      ticker2: normalized.ticker2,
+      period: normalized.period,
+      rperiod: normalized.rperiod,
+      priceStep: normalized.priceStep,
       startDate: this.DateRange.getStart(),
       endDate: this.DateRange.getEnd(),
-      candlesOnly: this.params.candlesOnly,
-      type: this.params.type,
+      candlesOnly: normalized.candlesOnly,
+      type: normalized.type,
     };
   }
 
@@ -186,13 +243,23 @@ export class FootPrintParamsComponent
       return;
     }
 
-    if (this.params.type === 'arbitrage') {
+    const resolvedMode = resolveFootprintMode(this.params);
+    if (resolvedMode === 'arbitrage') {
       this.loadMode = 'arbitrage';
-      this.applyArbitrageDefaults();
-      return;
+    } else if (resolvedMode === 'candles') {
+      this.loadMode = 'candles';
+    } else {
+      this.loadMode = 'clusters';
     }
 
-    this.loadMode = this.params.candlesOnly ? 'candles' : 'clusters';
+    const period = Number(this.params.period);
+    if (Number.isFinite(period) && period > 0) {
+      this.lastNonTickPeriod = period;
+    }
+
+    if (this.loadMode === 'arbitrage') {
+      this.applyMode('arbitrage');
+    }
   }
 
   private findPresetByRange(start: Date | null, end: Date | null): string | null {
@@ -249,11 +316,36 @@ export class FootPrintParamsComponent
     return isNaN(parsed.getTime()) ? null : parsed;
   }
 
-  private applyArbitrageDefaults() {
-    this.params.type = 'arbitrage';
-    this.params.candlesOnly = false;
-    this.params.ticker1 = this.params.ticker1 ?? 'GAZP*200+LKOH*10';
-    this.params.ticker2 = this.params.ticker2 ?? 'GMKN*3+SBER*300';
+  private applyMode(mode: FootprintUiMode) {
+    this.loadMode = mode;
+    if (!this.params) {
+      return;
+    }
+
+    const period = Number(this.params.period);
+    const isTickPeriod = Number.isFinite(period) && period === 0;
+    if (Number.isFinite(period) && period > 0) {
+      this.lastNonTickPeriod = period;
+    }
+
+    if (isTickPeriod && mode !== 'arbitrage') {
+      this.params.type = undefined;
+      this.params.candlesOnly = false;
+      return;
+    }
+
+    const next = applyFootprintModeToParams(this.params, mode, {
+      defaultPeriod: this.lastNonTickPeriod,
+      arbitrageDefaults: {
+        ticker1: DEFAULT_ARBITRAGE_PORTFOLIO_1,
+        ticker2: DEFAULT_ARBITRAGE_PORTFOLIO_2,
+      },
+    });
+    Object.assign(this.params, next);
+
+    if (this.params.period && this.params.period > 0) {
+      this.lastNonTickPeriod = this.params.period;
+    }
   }
 
   // Реализация ControlValueAccessor

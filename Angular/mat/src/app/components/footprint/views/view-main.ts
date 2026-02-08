@@ -335,15 +335,11 @@ interruptSwipe() {
 
   const ctx = this.parent.ctx;
   const FPsettings: ChartSettings = this.parent.FPsettings;
+  const stats = parent.data.getRenderStats(!!FPsettings.ShrinkY);
 
   // ----------------  расчёт границ по данным  -----------------
-  let max = parent.data.maxCumDelta;
-  let min = parent.data.minCumDelta;
-
-  if (FPsettings.ShrinkY) {          // учитывать локальное сжатие
-    max = parent.data.local.maxCumDelta;
-    min = parent.data.local.minCumDelta;
-  }
+  let max = stats.maxCumDelta;
+  let min = stats.minCumDelta;
 
   const pad = (max - min) / 10;      // небольшой «воздух»
   max += pad;
@@ -413,19 +409,6 @@ override draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
     let params = this.parent.params;
 
     let ctx = this.parent.ctx;
-    if (FPsettings.ShrinkY) {
-      parent.data.maxClusterQnt = parent.data.local.qntMax;
-      parent.data.maxDelta = parent.data.local.maxDelta;
-      parent.data.maxClusterQntAsk = parent.data.local.qntAskMax;
-      parent.data.maxClusterQntBid = parent.data.local.qntBidMax;
-
-      parent.data.maxClusterVol = parent.data.local.volMax;
-      parent.data.maxDeltaV = parent.data.local.maxDeltaV;
-      parent.data.maxClusterVolAsk = parent.data.local.volAskMax;
-      parent.data.maxClusterVolBid = parent.data.local.volBidMax;
-
-      parent.data.maxDens = parent.data.local.maxDens;
-    }
 
     let Bars = 'Bars' in FPsettings && FPsettings.Bars;
 

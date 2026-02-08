@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { environment } from 'src/app/environment';
@@ -108,6 +108,10 @@ export interface PriceMarkDto {
   comment: string;
 }
 
+export interface LevelMarksLoadOptions {
+  skipServer?: boolean;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -116,6 +120,11 @@ export class LevelMarksService {
   public markParamsData: MarkParamsData;
   private apiUrl = `${environment.apiUrl}/api/FootprintLevelMarks`;
   private loadToken = 0;
+  private serverMarksAvailable = true;
+  private serverMarksWarned = false;
+  private unavailableTickers = new Set<string>();
+  private unavailableTickerWarned = new Set<string>();
+  private loadQueue: Promise<void> = Promise.resolve();
 
   public getDates(): Record<string, MarkLineLevel>
   {
@@ -139,13 +148,21 @@ export class LevelMarksService {
     return this.getStorageKey(params);
   }
 
-  public async load(params: FootPrintParameters): Promise<void> {
+  public async load(
+    params: FootPrintParameters,
+    options: LevelMarksLoadOptions = {}
+  ): Promise<void> {
     this.currentParams = { ...params };
     const key = params.ticker ? this.getStorageKey(params) : null;
     const jsonString = key ? window.localStorage.getItem(key) : null;
     this.markParamsData = jsonString
       ? MarkParamsData.fromLocalJSON(jsonString)
       : new MarkParamsData();
+
+    if (options.skipServer) {
+      this.markParamsData.levels = {};
+      return;
+    }
 
     await this.loadPriceMarks(params.ticker);
   }
@@ -294,35 +311,57 @@ export class LevelMarksService {
   private async loadPriceMarks(ticker?: string): Promise<void> {
     const token = ++this.loadToken;
     this.markParamsData.levels = {};
-    if (!ticker) {
+    const normalizedTicker = this.normalizeTicker(ticker);
+    if (!normalizedTicker) {
+      return;
+    }
+    if (!this.serverMarksAvailable) {
+      return;
+    }
+    if (this.unavailableTickers.has(normalizedTicker)) {
       return;
     }
 
-    try {
-      const marks = await firstValueFrom(
-        this.http.get<PriceMarkDto[]>(this.apiUrl, {
-          params: { ticker },
-          withCredentials: true,
-        })
-      );
+    await this.enqueueLoad(async () => {
       if (token !== this.loadToken) {
+        return;
+      }
+      if (!this.serverMarksAvailable || this.unavailableTickers.has(normalizedTicker)) {
         return;
       }
 
-      const levels: Record<number, MarkLineLevel> = {};
-      (marks ?? []).forEach((mark) => {
-        if (mark && Number.isFinite(mark.price)) {
-          levels[mark.price] = new MarkLineLevel(mark.comment ?? '', mark.color ?? '#F0E68C');
+      try {
+        const marks = await firstValueFrom(
+          this.http.get<PriceMarkDto[]>(this.apiUrl, {
+            params: { ticker: normalizedTicker },
+            withCredentials: true,
+          })
+        );
+        if (token !== this.loadToken) {
+          return;
         }
-      });
-      this.markParamsData.levels = levels;
-    } catch (err) {
-      if (token !== this.loadToken) {
-        return;
+
+        const levels: Record<number, MarkLineLevel> = {};
+        (marks ?? []).forEach((mark) => {
+          if (mark && Number.isFinite(mark.price)) {
+            levels[mark.price] = new MarkLineLevel(mark.comment ?? '', mark.color ?? '#F0E68C');
+          }
+        });
+        this.markParamsData.levels = levels;
+      } catch (err) {
+        if (token !== this.loadToken) {
+          return;
+        }
+        if (this.markTickerUnavailable(err, normalizedTicker, 'load')) {
+          return;
+        }
+        if (this.markApiMissing(err, 'load')) {
+          return;
+        }
+        console.error('Failed to load footprint level marks', err);
+        this.markParamsData.levels = {};
       }
-      console.error('Failed to load footprint level marks', err);
-      this.markParamsData.levels = {};
-    }
+    });
   }
 
   private async upsertPriceMark(
@@ -330,7 +369,14 @@ export class LevelMarksService {
     price: number,
     level: MarkLineLevel
   ): Promise<void> {
-    if (!ticker) {
+    const normalizedTicker = this.normalizeTicker(ticker);
+    if (!normalizedTicker) {
+      return;
+    }
+    if (!this.serverMarksAvailable) {
+      return;
+    }
+    if (this.unavailableTickers.has(normalizedTicker)) {
       return;
     }
 
@@ -339,7 +385,7 @@ export class LevelMarksService {
         this.http.post<PriceMarkDto>(
           this.apiUrl,
           {
-            ticker,
+            ticker: normalizedTicker,
             price,
             color: level.color,
             comment: level.comment,
@@ -348,12 +394,25 @@ export class LevelMarksService {
         )
       );
     } catch (err) {
+      if (this.markTickerUnavailable(err, normalizedTicker, 'save')) {
+        return;
+      }
+      if (this.isNotFound(err)) {
+        return;
+      }
       console.error('Failed to save footprint level mark', err);
     }
   }
 
   private async deletePriceMark(ticker: string | undefined, price: number): Promise<void> {
-    if (!ticker) {
+    const normalizedTicker = this.normalizeTicker(ticker);
+    if (!normalizedTicker) {
+      return;
+    }
+    if (!this.serverMarksAvailable) {
+      return;
+    }
+    if (this.unavailableTickers.has(normalizedTicker)) {
       return;
     }
 
@@ -361,28 +420,135 @@ export class LevelMarksService {
       await firstValueFrom(
         this.http.delete<void>(this.apiUrl, {
           params: {
-            ticker,
+            ticker: normalizedTicker,
             price: price.toString(),
           },
           withCredentials: true,
         })
       );
     } catch (err) {
+      if (this.markTickerUnavailable(err, normalizedTicker, 'delete')) {
+        return;
+      }
+      if (this.isNotFound(err)) {
+        return;
+      }
       console.error('Failed to delete footprint level mark', err);
     }
   }
 
   private async deleteAllPriceMarks(ticker: string): Promise<void> {
+    const normalizedTicker = this.normalizeTicker(ticker);
+    if (!normalizedTicker) {
+      return;
+    }
+    if (!this.serverMarksAvailable) {
+      return;
+    }
+    if (this.unavailableTickers.has(normalizedTicker)) {
+      return;
+    }
+
     try {
       await firstValueFrom(
         this.http.delete<void>(`${this.apiUrl}/ticker`, {
-          params: { ticker },
+          params: { ticker: normalizedTicker },
           withCredentials: true,
         })
       );
     } catch (err) {
+      if (this.markTickerUnavailable(err, normalizedTicker, 'clear')) {
+        return;
+      }
+      if (this.isNotFound(err)) {
+        return;
+      }
       console.error('Failed to clear footprint level marks', err);
     }
+  }
+
+  private enqueueLoad(task: () => Promise<void>): Promise<void> {
+    const run = this.loadQueue.then(task, task);
+    this.loadQueue = run.catch(() => undefined);
+    return run;
+  }
+
+  private normalizeTicker(ticker: string | undefined | null): string | null {
+    if (typeof ticker !== 'string') {
+      return null;
+    }
+
+    const normalized = ticker.trim();
+    return normalized.length ? normalized : null;
+  }
+
+  private markTickerUnavailable(
+    err: unknown,
+    ticker: string,
+    action: string
+  ): boolean {
+    if (!(err instanceof HttpErrorResponse) || err.status !== 404) {
+      return false;
+    }
+
+    const message = this.extractErrorMessage(err).toLowerCase();
+    if (!message.includes('ticker not found')) {
+      return false;
+    }
+
+    this.unavailableTickers.add(ticker);
+    if (!this.unavailableTickerWarned.has(ticker)) {
+      this.unavailableTickerWarned.add(ticker);
+      console.warn(
+        `FootprintLevelMarks ticker unavailable: "${ticker}". Skip server marks (action: ${action}).`
+      );
+    }
+
+    return true;
+  }
+
+  private isNotFound(err: unknown): boolean {
+    return err instanceof HttpErrorResponse && err.status === 404;
+  }
+
+  private extractErrorMessage(err: HttpErrorResponse): string {
+    if (typeof err.error === 'string') {
+      return err.error;
+    }
+
+    if (err.error && typeof err.error === 'object') {
+      const data = err.error as { message?: unknown; title?: unknown };
+      if (typeof data.message === 'string') {
+        return data.message;
+      }
+      if (typeof data.title === 'string') {
+        return data.title;
+      }
+    }
+
+    return '';
+  }
+
+  private markApiMissing(err: unknown, action: string): boolean {
+    if (!(err instanceof HttpErrorResponse)) {
+      return false;
+    }
+
+    if (err.status !== 404) {
+      return false;
+    }
+    if (action !== 'load') {
+      return false;
+    }
+
+    this.serverMarksAvailable = false;
+    if (!this.serverMarksWarned) {
+      this.serverMarksWarned = true;
+      console.warn(
+        `FootprintLevelMarks API unavailable (404). Disable server marks calls (action: ${action}).`
+      );
+    }
+    return true;
   }
 
   private findClosestPriceKey(price: number): number | null {

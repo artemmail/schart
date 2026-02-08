@@ -18,17 +18,29 @@ namespace SignalRMvc.Hubs
         private const string SettingsPath = "c:/lua/list.txt"; // Рекомендуется получать из конфигурации
 
         private readonly ITickersRepository _tickersRepository;
-        private readonly ILogger<CandlesUpdater> _logger;
+        private readonly ILogger<CandlesHub> _logger;
         private readonly IServiceProvider _serviceProvider;
 
         public CandlesHub(
-            ILogger<CandlesUpdater> logger,
+            ILogger<CandlesHub> logger,
             ITickersRepository tickersRepository,
             IServiceProvider serviceProvider)
         {
             _logger = logger;
             _tickersRepository = tickersRepository;
             _serviceProvider = serviceProvider;
+        }
+
+        private void LogFlow(string source, string message)
+        {
+            _logger.LogInformation("{Source}: {Message}", source, message);
+            SignalRFlowFileLogger.Write(source, message);
+        }
+
+        public override async Task OnConnectedAsync()
+        {
+            LogFlow("StockChart.CandlesHub.OnConnected", $"connectionId={Context.ConnectionId}");
+            await base.OnConnectedAsync();
         }
 
         private async Task UpdateLadderAsync()
@@ -45,11 +57,13 @@ namespace SignalRMvc.Hubs
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating ladder");
+                SignalRFlowFileLogger.Write("StockChart.CandlesHub.UpdateLadder.Error", ex.Message);
             }
         }
 
         public async Task SubscribeLadder(string ticker)
         {
+            var originalTicker = ticker;
             using var scope = _serviceProvider.CreateScope();
             var stockMarketService = scope.ServiceProvider.GetRequiredService<IStockMarketServiceRepository>();
 
@@ -61,10 +75,14 @@ namespace SignalRMvc.Hubs
 
             await Groups.AddToGroupAsync(Context.ConnectionId, ticker);
             await UpdateLadderAsync();
+            LogFlow(
+                "StockChart.CandlesHub.SubscribeLadder",
+                $"connectionId={Context.ConnectionId}; requested={originalTicker}; normalized={ticker}; ladderConnections={connections.Count}");
         }
 
         public async Task UnSubscribeLadder(string ticker)
         {
+            var originalTicker = ticker;
             using var scope = _serviceProvider.CreateScope();
             var stockMarketService = scope.ServiceProvider.GetRequiredService<IStockMarketServiceRepository>();
 
@@ -83,6 +101,9 @@ namespace SignalRMvc.Hubs
                 }
 
                 await UpdateLadderAsync();
+                LogFlow(
+                    "StockChart.CandlesHub.UnSubscribeLadder",
+                    $"connectionId={Context.ConnectionId}; requested={originalTicker}; normalized={ticker}; ladderConnections={connections.Count}");
             }
         }
 
@@ -90,6 +111,7 @@ namespace SignalRMvc.Hubs
         {
             var subscription = JsonConvert.DeserializeObject<SubsCandle>(subsCandle);
             if (subscription == null) return;
+            var requestedKey = subscription.ToString();
 
             using var scope = _serviceProvider.CreateScope();
             var stockMarketService = scope.ServiceProvider.GetRequiredService<IStockMarketServiceRepository>();
@@ -106,6 +128,15 @@ namespace SignalRMvc.Hubs
                     new CandlesUpdater(stockMarketService, _tickersRepository, key));
 
                 await updater.AddConnection(Context.ConnectionId, Groups);
+                LogFlow(
+                    "StockChart.CandlesHub.SubscribeCandle",
+                    $"connectionId={Context.ConnectionId}; requested={requestedKey}; normalized={subscription}; group={updater.key}; groupConnections={updater.ConnectionCount}; activeGroups={CandlesUpd.Count}");
+            }
+            else
+            {
+                LogFlow(
+                    "StockChart.CandlesHub.SubscribeCandle",
+                    $"connectionId={Context.ConnectionId}; requested={requestedKey}; status=skipped_period_missing");
             }
 
             await subscribeRepository.Subscribe(CandlesUpd.Keys.ToArray());
@@ -115,6 +146,7 @@ namespace SignalRMvc.Hubs
         {
             var subscription = JsonConvert.DeserializeObject<SubsCandle>(subsCandle);
             if (subscription == null) return;
+            var requestedKey = subscription.ToString();
 
             using var scope = _serviceProvider.CreateScope();
             var stockMarketService = scope.ServiceProvider.GetRequiredService<IStockMarketServiceRepository>();
@@ -134,6 +166,15 @@ namespace SignalRMvc.Hubs
                 }
 
                 await subscribeRepository.Subscribe(CandlesUpd.Keys.ToArray());
+                LogFlow(
+                    "StockChart.CandlesHub.UnSubscribeCandle",
+                    $"connectionId={Context.ConnectionId}; requested={requestedKey}; normalized={subscription}; group={updater.key}; groupConnections={updater.ConnectionCount}; activeGroups={CandlesUpd.Count}");
+            }
+            else
+            {
+                LogFlow(
+                    "StockChart.CandlesHub.UnSubscribeCandle",
+                    $"connectionId={Context.ConnectionId}; requested={requestedKey}; normalized={subscription}; status=group_not_found");
             }
         }
 
@@ -141,6 +182,7 @@ namespace SignalRMvc.Hubs
         {
             var subscription = JsonConvert.DeserializeObject<SubsCluster>(subsCluster);
             if (subscription == null) return;
+            var requestedKey = subscription.ToString();
 
             using var scope = _serviceProvider.CreateScope();
             var stockMarketService = scope.ServiceProvider.GetRequiredService<IStockMarketServiceRepository>();
@@ -157,6 +199,15 @@ namespace SignalRMvc.Hubs
                     new ClusterUpdater(stockMarketService, key));
 
                 await updater.AddConnection(Context.ConnectionId, Groups);
+                LogFlow(
+                    "StockChart.CandlesHub.SubscribeCluster",
+                    $"connectionId={Context.ConnectionId}; requested={requestedKey}; normalized={subscription}; group={updater.key}; groupConnections={updater.ConnectionCount}; activeGroups={ClustersUpd.Count}");
+            }
+            else
+            {
+                LogFlow(
+                    "StockChart.CandlesHub.SubscribeCluster",
+                    $"connectionId={Context.ConnectionId}; requested={requestedKey}; status=skipped_period_missing");
             }
 
             await subscribeRepository.Subscribe(ClustersUpd.Keys.ToArray());
@@ -166,6 +217,7 @@ namespace SignalRMvc.Hubs
         {
             var subscription = JsonConvert.DeserializeObject<SubsCluster>(subsCluster);
             if (subscription == null) return;
+            var requestedKey = subscription.ToString();
 
             using var scope = _serviceProvider.CreateScope();
             var stockMarketService = scope.ServiceProvider.GetRequiredService<IStockMarketServiceRepository>();
@@ -185,11 +237,24 @@ namespace SignalRMvc.Hubs
                 }
 
                 await subscribeRepository.Subscribe(ClustersUpd.Keys.ToArray());
+                LogFlow(
+                    "StockChart.CandlesHub.UnSubscribeCluster",
+                    $"connectionId={Context.ConnectionId}; requested={requestedKey}; normalized={subscription}; group={updater.key}; groupConnections={updater.ConnectionCount}; activeGroups={ClustersUpd.Count}");
+            }
+            else
+            {
+                LogFlow(
+                    "StockChart.CandlesHub.UnSubscribeCluster",
+                    $"connectionId={Context.ConnectionId}; requested={requestedKey}; normalized={subscription}; status=group_not_found");
             }
         }
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
+            var candlesBefore = CandlesUpd.Count;
+            var clustersBefore = ClustersUpd.Count;
+            var laddersBefore = Ladders.Count;
+
             foreach (var updater in CandlesUpd.Values)
             {
                 await updater.RemoveConnectionAsync(Context.ConnectionId, Groups);
@@ -224,6 +289,10 @@ namespace SignalRMvc.Hubs
 
             await subscribeRepository.Subscribe(CandlesUpd.Keys.ToArray());
             await subscribeRepository.Subscribe(ClustersUpd.Keys.ToArray());
+
+            LogFlow(
+                "StockChart.CandlesHub.OnDisconnected",
+                $"connectionId={Context.ConnectionId}; exception={exception?.Message ?? "none"}; candlesBefore={candlesBefore}; clustersBefore={clustersBefore}; laddersBefore={laddersBefore}; candlesAfter={CandlesUpd.Count}; clustersAfter={ClustersUpd.Count}; laddersAfter={Ladders.Count}");
 
             await base.OnDisconnectedAsync(exception);
         }

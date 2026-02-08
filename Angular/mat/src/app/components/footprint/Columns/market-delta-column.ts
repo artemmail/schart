@@ -27,7 +27,7 @@ export class MarketDeltaColumn extends ClusterColumnBase {
           this.palette.downStrong,
           this.palette.bg,
           this.palette.upStrong,
-          this.data.maxDelta,
+          this.stats.maxDelta,
           delta
         );
         shift = settings.OpenClose ? 2 : 0;
@@ -55,7 +55,7 @@ export class MarketDeltaColumn extends ClusterColumnBase {
       ctx.fillStyle = this.palette.text;
       for (let i = 0; i < column.cl.length; i++) {
         var r = this.clusterRect(column.cl[i].p, number, mtx);
-        var w = (column.cl[i].q * r.w) / this.data.maxClusterQnt;
+        var w = (column.cl[i].q * r.w) / this.stats.qntMax;
         var text =
           drob(column.cl[i].q - column.cl[i].bq, 3) +
           'x' +

@@ -271,25 +271,14 @@ export class viewRangeSet extends canvasPart {
   }
 
   draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
-
-    debugger
     const rangeSetLines = parent.data?.rangeSetLines ?? [];
     if (!rangeSetLines.length) {
       return;
     }
 
-    const hasRawPrices = rangeSetLines.some(
-      (point) => Number.isFinite(point.Price1) || Number.isFinite(point.Price2)
-    );
-/*
-    if (hasRawPrices) {
-      this.drawSeries(rangeSetLines, mtx, (p) => p.Price1, this.palette.bid);
-      this.drawSeries(rangeSetLines, mtx, (p) => p.Price2, this.palette.ask);
-      return;
-    }
-*/
-    let min = parent.data.local.minPrice;
-    let max = parent.data.local.maxPrice;
+    const stats = parent.data.getRenderStats(!!parent.FPsettings?.ShrinkY);
+    let min = stats.minPrice;
+    let max = stats.maxPrice;
 
     if (!Number.isFinite(min) || !Number.isFinite(max)) {
       return;

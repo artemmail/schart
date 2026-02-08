@@ -18,13 +18,9 @@ export class viewDeltaBars extends viewVolumesSeparated {
   ): void {
     var FPsettings: ChartSettings = this.parent.FPsettings;
     let ctx = this.parent.ctx;
-    if (FPsettings.ShrinkY) {
-      this.data.maxDeltaBar = this.data.local.maxDeltaBar;
-      this.data.minDeltaBar = this.data.local.minDeltaBar;
-    }
-
-    let maxDeltaBar = this.data.maxDeltaBar;
-    let minDeltaBar = this.data.minDeltaBar;
+    const stats = this.data.getRenderStats(!!FPsettings.ShrinkY);
+    let maxDeltaBar = stats.maxDeltaBar;
+    let minDeltaBar = stats.minDeltaBar;
     var d = (maxDeltaBar - minDeltaBar) / 10;
     maxDeltaBar += d;
     minDeltaBar -= d;

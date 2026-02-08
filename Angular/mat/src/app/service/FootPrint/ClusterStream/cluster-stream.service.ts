@@ -15,11 +15,6 @@ import {
   CandlesRangeSetValue,
 } from 'src/app/models/candles-range-set';
 
-type QueryParams = Record<
-  string,
-  string | number | boolean | ReadonlyArray<string | number | boolean>
->;
-
 export interface VolumeSearchResult {
   Time: Date;
   Price: number;
@@ -107,7 +102,7 @@ export class ClusterStreamService {
       );
   }
 
-  private getRange(params: QueryParams): Observable<ClusterData> {
+  private getRange(params: HttpParams): Observable<ClusterData> {
     return this.http
       .get<ClusterDataInit>(`${environment.apiUrl}/api/clusters/getRange`, {
         params,
@@ -126,7 +121,7 @@ export class ClusterStreamService {
 
   private getTicks(
     model: FootPrintParameters,
-    params: QueryParams
+    params: HttpParams
   ): Observable<ClusterData> {
     return this.http
       .get<Tick[]>(`${environment.apiUrl}/api/clusters/getTicks`, {
@@ -158,15 +153,21 @@ export class ClusterStreamService {
       );
   }
 
-  private buildParams(model: FootPrintParameters): QueryParams {
-    const params: QueryParams = { ...(model as unknown as QueryParams) };
+  private buildParams(model: FootPrintParameters): HttpParams {
+    let params = new HttpParams();
 
-    if (model.startDate != null) {
-      params.startDate = removeUTC(model.startDate);
-    }
-    if (model.endDate != null) {
-      params.endDate = removeUTC(model.endDate);
-    }
+    params = this.appendParam(params, 'login', model.login);
+    params = this.appendParam(params, 'ticker', model.ticker);
+    params = this.appendParam(params, 'ticker1', model.ticker1);
+    params = this.appendParam(params, 'ticker2', model.ticker2);
+    params = this.appendParam(params, 'type', model.type);
+    params = this.appendParam(params, 'period', model.period);
+    params = this.appendParam(params, 'rperiod', model.rperiod);
+    params = this.appendParam(params, 'priceStep', model.priceStep);
+    params = this.appendParam(params, 'postmarket', model.postmarket);
+    params = this.appendParam(params, 'candlesOnly', model.candlesOnly);
+    params = this.appendDate(params, 'startDate', model.startDate);
+    params = this.appendDate(params, 'endDate', model.endDate);
 
     return params;
   }
@@ -187,8 +188,12 @@ export class ClusterStreamService {
     if (value === undefined || value === null) {
       return params;
     }
+    const date = value instanceof Date ? value : new Date(value);
+    if (!Number.isFinite(date.getTime())) {
+      return params;
+    }
 
-    return params.set(key, removeUTC(value));
+    return params.set(key, removeUTC(date));
   }
 
   private handle403Error(error: any) {

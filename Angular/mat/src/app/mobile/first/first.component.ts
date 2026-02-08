@@ -31,6 +31,12 @@ import { Subject, takeUntil } from 'rxjs';
 import { MaterialModule } from 'src/app/material.module';
 import { NonModalDialogComponent } from 'src/app/components/FootPrintParts/NonModal/non-modal-dialog.component';
 import { FootprintCsvTableComponent } from 'src/app/components/FootPrintParts/csv-table/footprint-csv-table.component';
+import {
+  applyFootprintModeToParams,
+  DEFAULT_ARBITRAGE_PORTFOLIO_1,
+  DEFAULT_ARBITRAGE_PORTFOLIO_2,
+  resolveFootprintMode,
+} from 'src/app/models/footprint-mode';
 
 
 @Component({
@@ -99,32 +105,39 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
       const isPairTradingRoute = this.router.url.includes(
         '/CandlestickChart/PairTrading'
       );
-      const modeParam = params['mode'] ?? params['type'];
-      const normalizedMode =
-        modeParam ?? (isPairTradingRoute ? 'arbitrage' : undefined);
-      const modeValue =
-        typeof normalizedMode === 'string'
-          ? normalizedMode.toLowerCase()
-          : undefined;
-      const candlesOnlyFromMode =
-        modeValue === 'candles'
-          ? true
-          : modeValue === 'clusters'
-          ? false
-          : undefined;
-      const typeFromMode =
-        modeValue === 'arbitrage' ? 'arbitrage' : undefined;
-      const requestParams: FootPrintRequestParamsNew = {
-        ...params,
-        period: params['period'] ? Number(params['period']) : undefined,
-        candlesOnly:
-          (candlesOnlyFromMode ??
-            (params['candlesOnly'] === true ||
-              params['candlesOnly'] === 'true')),
-        type: typeFromMode ?? normalizedMode,
-        ticker1: params['ticker1'],
-        ticker2: params['ticker2'],
-      };
+      const requestedPeriod = params['period']
+        ? Number(params['period'])
+        : undefined;
+      const requestedMode = resolveFootprintMode({
+        mode: params['mode'] ?? params['type'] ?? (isPairTradingRoute ? 'arbitrage' : undefined),
+        type: params['type'],
+        candlesOnly: params['candlesOnly'],
+        period: requestedPeriod,
+      });
+      const requestParams: FootPrintRequestParamsNew = applyFootprintModeToParams(
+        {
+          ...params,
+          period: Number.isFinite(requestedPeriod) ? requestedPeriod : undefined,
+          candlesOnly:
+            params['candlesOnly'] === true || params['candlesOnly'] === 'true',
+          type:
+            typeof params['type'] === 'string' ? params['type'] : undefined,
+          ticker1: params['ticker1'],
+          ticker2: params['ticker2'],
+        },
+        requestedMode,
+        {
+          defaultPeriod:
+            Number.isFinite(requestedPeriod) && (requestedPeriod as number) > 0
+              ? (requestedPeriod as number)
+              : 1,
+          keepArbitrageTickers: true,
+          arbitrageDefaults: {
+            ticker1: DEFAULT_ARBITRAGE_PORTFOLIO_1,
+            ticker2: DEFAULT_ARBITRAGE_PORTFOLIO_2,
+          },
+        }
+      );
 
       this.commonService
         .getControlsNew(requestParams)
@@ -132,7 +145,7 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
           this.isCandlestick =
             this.route.snapshot.url
               .join('/')
-              .includes('CandlestickChart') || requestParams.candlesOnly === true;
+              .includes('CandlestickChart') || requestedMode === 'candles';
 
           this.params = {
             ...this.params,

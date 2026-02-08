@@ -41,6 +41,12 @@ import {
   PortfolioManipulationDialogComponent,
   PortfolioManipulationDialogResult,
 } from '../../FootPrintParts/portfolio-manipulation-dialog/portfolio-manipulation-dialog.component';
+import {
+  applyFootprintModeToParams,
+  DEFAULT_ARBITRAGE_PORTFOLIO_1,
+  DEFAULT_ARBITRAGE_PORTFOLIO_2,
+  resolveFootprintMode,
+} from 'src/app/models/footprint-mode';
 
 import { Title } from '@angular/platform-browser';
 
@@ -128,36 +134,44 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
 
   ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {
-      // Обработка параметров маршрута, если необходимо
       const isPairTradingRoute = this.router.url.includes(
         '/CandlestickChart/PairTrading'
       );
-      const modeParam = params['mode'] ?? params['type'];
-      const normalizedMode =
-        modeParam ?? (isPairTradingRoute ? 'arbitrage' : undefined);
-      const modeValue =
-        typeof normalizedMode === 'string'
-          ? normalizedMode.toLowerCase()
-          : undefined;
-      const candlesOnlyFromMode =
-        modeValue === 'candles'
-          ? true
-          : modeValue === 'clusters'
-          ? false
-          : undefined;
-      const typeFromMode =
-        modeValue === 'arbitrage' ? 'arbitrage' : undefined;
-      const requestParams: FootPrintRequestParamsNew = {
-        ...params,
-        period: params['period'] ? Number(params['period']) : undefined,
-        candlesOnly:
-          (candlesOnlyFromMode ??
-            (params['candlesOnly'] === true ||
-              params['candlesOnly'] === 'true')),
-        type: typeFromMode ?? normalizedMode,
-        ticker1: params['ticker1'],
-        ticker2: params['ticker2'],
-      };
+      const requestedPeriod = params['period']
+        ? Number(params['period'])
+        : undefined;
+      const requestedMode = resolveFootprintMode({
+        mode: params['mode'] ?? params['type'] ?? (isPairTradingRoute ? 'arbitrage' : undefined),
+        type: params['type'],
+        candlesOnly: params['candlesOnly'],
+        period: requestedPeriod,
+      });
+
+      const requestParams: FootPrintRequestParamsNew = applyFootprintModeToParams(
+        {
+          ...params,
+          period: Number.isFinite(requestedPeriod) ? requestedPeriod : undefined,
+          candlesOnly:
+            params['candlesOnly'] === true || params['candlesOnly'] === 'true',
+          type:
+            typeof params['type'] === 'string' ? params['type'] : undefined,
+          ticker1: params['ticker1'],
+          ticker2: params['ticker2'],
+        },
+        requestedMode,
+        {
+          defaultPeriod:
+            Number.isFinite(requestedPeriod) && (requestedPeriod as number) > 0
+              ? (requestedPeriod as number)
+              : 1,
+          keepArbitrageTickers: true,
+          arbitrageDefaults: {
+            ticker1: DEFAULT_ARBITRAGE_PORTFOLIO_1,
+            ticker2: DEFAULT_ARBITRAGE_PORTFOLIO_2,
+          },
+        }
+      );
+
       this.commonService
         .getControlsNew(requestParams)
         .subscribe((data: TickerPresetNew) => {
@@ -171,7 +185,7 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
           };
           this.isCandlestick = this.route.snapshot.url
             .join('/')
-            .includes('CandlestickChart');
+            .includes('CandlestickChart') || requestedMode === 'candles';
           this.isInited = true;
 
           if (this.footPrintParamsComponent) {
@@ -247,8 +261,17 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
             }
 
             this.footPrintParamsComponent?.onLoadModeChange('arbitrage');
-            this.params.type = 'arbitrage';
-            this.params.candlesOnly = false;
+            Object.assign(
+              this.params,
+              applyFootprintModeToParams(this.params, 'arbitrage', {
+                defaultPeriod: this.params.period,
+                keepArbitrageTickers: true,
+                arbitrageDefaults: {
+                  ticker1: DEFAULT_ARBITRAGE_PORTFOLIO_1,
+                  ticker2: DEFAULT_ARBITRAGE_PORTFOLIO_2,
+                },
+              })
+            );
             this.params.ticker1 = ticker1;
             this.params.ticker2 = ticker2;
 
@@ -492,8 +515,7 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
       return new Date(value as any).toISOString();
     };
 
-    const mode =
-      model.type ?? (model.candlesOnly ? 'candles' : 'clusters');
+    const mode = resolveFootprintMode(model);
 
     const queryParams: Record<string, unknown> = {
       period: model.period,

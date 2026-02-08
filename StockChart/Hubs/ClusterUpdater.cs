@@ -9,6 +9,7 @@ namespace StockChart.Hubs
     {
         private readonly ConcurrentDictionary<string, byte> _connections = new();
         public string key;
+        public int ConnectionCount => _connections.Count;
 
         public ClusterUpdater(
             IStockMarketServiceRepository stockMarketServiceRepository,

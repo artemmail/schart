@@ -222,20 +222,23 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     };
 
     this.realtimeSubscriptions.add(
-      this.signalRService.receiveClusterFor(scopedParams).subscribe((answ) => {
-        this.emitUpdate('cluster', answ);
+      this.signalRService.receiveClusterFor(scopedParams).subscribe({
+        next: (answ) => this.emitUpdate('cluster', answ),
+        error: (err) => console.error('SignalR cluster stream error', err),
       })
     );
 
     this.realtimeSubscriptions.add(
-      this.signalRService.receiveTicksFor(scopedParams).subscribe((answ) => {
-        this.emitUpdate('ticks', answ);
+      this.signalRService.receiveTicksFor(scopedParams).subscribe({
+        next: (answ) => this.emitUpdate('ticks', answ),
+        error: (err) => console.error('SignalR ticks stream error', err),
       })
     );
 
     this.realtimeSubscriptions.add(
-      this.signalRService.receiveLadderFor(params.ticker).subscribe((ladder) => {
-        this.emitUpdate('ladder', ladder);
+      this.signalRService.receiveLadderFor(params.ticker).subscribe({
+        next: (ladder) => this.emitUpdate('ladder', ladder),
+        error: (err) => console.error('SignalR ladder stream error', err),
       })
     );
   }

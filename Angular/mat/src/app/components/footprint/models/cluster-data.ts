@@ -10,6 +10,35 @@ export interface ClusterDataInit {
   oiDeltaDivideBy2?: boolean;
 }
 
+export interface ClusterDataRenderStats {
+  qntMax: number;
+  qntAskMax: number;
+  qntBidMax: number;
+  volMax: number;
+  volAskMax: number;
+  volBidMax: number;
+  maxDelta: number;
+  maxDeltaV: number;
+  q: number;
+  bq: number;
+  sq: number;
+  v: number;
+  bv: number;
+  sv: number;
+  maxPrice: number;
+  minPrice: number;
+  maxOI: number;
+  minOI: number;
+  minCumDelta: number;
+  maxCumDelta: number;
+  minOIDelta: number;
+  maxOIDelta: number;
+  minDeltaBar: number;
+  maxDeltaBar: number;
+  maxDens: number;
+  minDens: number;
+}
+
 
 export class ClusterData {
   ladder: Record<number, number> = {};
@@ -50,7 +79,7 @@ export class ClusterData {
   maxDeltaBar: number = 0;
   maxDens: number = 0;
   minDens: number = 0;
-  local: any;
+  local: ClusterDataRenderStats | null = null;
   ColumnNumberByDate: Record<string, number> = {};
   maxPrice: number;
   minPrice: number;
@@ -120,6 +149,45 @@ export class ClusterData {
 
     this.oiDeltaDivideBy2 = normalized;
     this.calcPrices();
+  }
+
+  getGlobalRenderStats(): ClusterDataRenderStats {
+    return {
+      qntMax: this.maxClusterQnt,
+      qntAskMax: this.maxClusterQntAsk,
+      qntBidMax: this.maxClusterQntBid,
+      volMax: this.maxClusterVol,
+      volAskMax: this.maxClusterVolAsk,
+      volBidMax: this.maxClusterVolBid,
+      maxDelta: this.maxDelta,
+      maxDeltaV: this.maxDeltaV,
+      q: this.maxQuantity,
+      bq: this.maxQuantityAsk,
+      sq: this.maxQuantityBid,
+      v: this.maxVolume,
+      bv: this.maxVolumeAsk,
+      sv: this.maxVolumeBid,
+      maxPrice: this.maxPrice,
+      minPrice: this.minPrice,
+      maxOI: this.maxOI,
+      minOI: this.minOI,
+      minCumDelta: this.minCumDelta,
+      maxCumDelta: this.maxCumDelta,
+      minOIDelta: this.minOIDelta,
+      maxOIDelta: this.maxOIDelta,
+      minDeltaBar: this.minDeltaBar,
+      maxDeltaBar: this.maxDeltaBar,
+      maxDens: this.maxDens,
+      minDens: this.minDens,
+    };
+  }
+
+  getRenderStats(useLocal: boolean): ClusterDataRenderStats {
+    if (useLocal && this.local) {
+      return this.local;
+    }
+
+    return this.getGlobalRenderStats();
   }
 
   private normalizeOiValues(): void {
@@ -206,6 +274,43 @@ export class ClusterData {
     return ((value - base) / base) * 100;
   }
 
+  private collectDensity(
+    column: ColumnEx,
+    target: number[]
+  ): void {
+    column.cl?.forEach((clItem) => {
+      if (!Number.isFinite(clItem.ct) || clItem.ct === 0) {
+        return;
+      }
+
+      const density = Math.abs(clItem.q / clItem.ct);
+      if (Number.isFinite(density)) {
+        target.push(density);
+      }
+    });
+  }
+
+  private getDensityBounds(values: number[]): { maxDens: number; minDens: number } {
+    if (!values.length) {
+      return { maxDens: 0, minDens: 0 };
+    }
+
+    const sorted = [...values].sort((a, b) => b - a);
+    const r = Math.min(sorted.length, 8);
+    if (r <= 0) {
+      return { maxDens: 0, minDens: 0 };
+    }
+
+    const top =
+      sorted.slice(0, r).reduce((sum, val) => sum + val, 0) / r;
+    const bottom =
+      sorted
+        .slice(sorted.length - r, sorted.length)
+        .reduce((sum, val) => sum + val, 0) / r;
+
+    return { maxDens: top, minDens: bottom };
+  }
+
   private findNearestColumnIndex(date: Date): number | null {
     const iso = date.toISOString();
     const exactIndex = this.ColumnNumberByDate[iso];
@@ -234,18 +339,33 @@ export class ClusterData {
         this.lastPrice = data.clusterData[data.clusterData.length - 1].c;
     }
 
+    const getNumber = (column: any): number | null => {
+        const value = column?.Number;
+        return typeof value === 'number' && Number.isFinite(value) ? value : null;
+    };
+    const lastExistingNumber = this.clusterData.length
+        ? getNumber(this.clusterData[this.clusterData.length - 1])
+        : null;
+    const firstIncomingNumber = data.clusterData.length
+        ? getNumber(data.clusterData[0])
+        : null;
+
+    // Use Number-based merge only when both sides contain valid Number values.
+    // Realtime SignalR cluster updates can arrive without Number and must fallback
+    // to timestamp merge to avoid unbounded growth and UI freeze.
     if (
         data.clusterData.length > 0 &&
         this.clusterData.length > 0 &&
-        this.clusterData[this.clusterData.length - 1].hasOwnProperty('Number')
+        lastExistingNumber !== null &&
+        firstIncomingNumber !== null
     ) {
         // Ensure data.clusterData is sorted by Number
-        data.clusterData.sort((a, b) => a.Number - b.Number);
+        data.clusterData.sort((a, b) => ((getNumber(a) ?? 0) - (getNumber(b) ?? 0)));
 
         while (
             this.clusterData.length &&
-            this.clusterData[this.clusterData.length - 1].Number >=
-                data.clusterData[0].Number
+            (getNumber(this.clusterData[this.clusterData.length - 1]) ?? Number.NEGATIVE_INFINITY) >=
+                firstIncomingNumber
         ) {
             this.clusterData.pop();
         }
@@ -376,75 +496,92 @@ export class ClusterData {
 
   maxFromPeriod(start: number, end: number) {
     const columns = this.clusterData;
-    const cs = columns[start];
-    this.local = {
-      qntMax: cs.qntMax,
-      qntAskMax: cs.qntAskMax,
-      qntBidMax: cs.qntBidMax,
-      volMax: cs.volMax,
-      volAskMax: cs.volAskMax,
-      volBidMax: cs.volBidMax,
-      maxDelta: cs.maxDelta,
-      maxDeltaV: cs.maxDeltaV,
-      q: cs.q,
-      bq: cs.bq,
-      sq: cs.sq,
-      v: cs.v,
-      bv: cs.bv,
-      sv: cs.v - cs.bv,
-      maxPrice: cs.h,
-      minPrice: columns[end].l,
-      maxOI: cs.oi,
-      minOI: columns[end].oi,
-      minCumDelta: cs.cumDelta,
-      maxCumDelta: columns[end].cumDelta,
-      minOIDelta: cs.oiDelta,
-      maxOIDelta: columns[end].oiDelta,
-      minDeltaBar: 2 * cs.bq - cs.q,
-      maxDeltaBar: 2 * cs.bq - cs.q,
+    if (!columns.length) {
+      this.local = this.getGlobalRenderStats();
+      return;
+    }
+
+    let from = Number.isFinite(start) ? Math.floor(start) : 0;
+    let to = Number.isFinite(end) ? Math.floor(end) : columns.length - 1;
+
+    from = Math.max(0, Math.min(columns.length - 1, from));
+    to = Math.max(0, Math.min(columns.length - 1, to));
+
+    if (from > to) {
+      const tmp = from;
+      from = to;
+      to = tmp;
+    }
+
+    const first = columns[from];
+    const firstDeltaBar = 2 * first.bq - first.q;
+    const densityValues: number[] = [];
+
+    const local: ClusterDataRenderStats = {
+      qntMax: first.qntMax ?? 0,
+      qntAskMax: first.qntAskMax ?? 0,
+      qntBidMax: first.qntBidMax ?? 0,
+      volMax: first.volMax ?? 0,
+      volAskMax: first.volAskMax ?? 0,
+      volBidMax: first.volBidMax ?? 0,
+      maxDelta: first.maxDelta ?? 0,
+      maxDeltaV: first.maxDeltaV ?? 0,
+      q: first.q,
+      bq: first.bq,
+      sq: first.sq ?? first.q - first.bq,
+      v: first.v,
+      bv: first.bv,
+      sv: first.sv ?? first.v - first.bv,
+      maxPrice: first.h,
+      minPrice: first.l,
+      maxOI: first.oi,
+      minOI: first.oi,
+      minCumDelta: first.cumDelta ?? 0,
+      maxCumDelta: first.cumDelta ?? 0,
+      minOIDelta: first.oiDelta ?? 0,
+      maxOIDelta: first.oiDelta ?? 0,
+      minDeltaBar: firstDeltaBar,
+      maxDeltaBar: firstDeltaBar,
       maxDens: 0,
+      minDens: 0,
     };
 
-    for (let i = start; i <= end; i++) {
+    for (let i = from; i <= to; i++) {
       const col = columns[i];
-      this.local.qntMax = Math.max(col.qntMax!, this.local.qntMax);
-      this.local.qntAskMax = Math.max(col.qntAskMax!, this.local.qntAskMax);
-      this.local.qntBidMax = Math.max(col.qntBidMax!, this.local.qntBidMax);
-      this.local.volMax = Math.max(col.volMax!, this.local.volMax);
-      this.local.volAskMax = Math.max(col.volAskMax!, this.local.volAskMax);
-      this.local.volBidMax = Math.max(col.volBidMax!, this.local.volBidMax);
-      this.local.maxDelta = Math.max(col.maxDelta!, this.local.maxDelta);
-      this.local.maxDeltaV = Math.max(col.maxDeltaV!, this.local.maxDeltaV);
-      this.local.q = Math.max(col.q, this.local.q);
-      this.local.bq = Math.max(col.bq, this.local.bq);
-      this.local.sq = Math.max(col.sq!, this.local.sq);
-      this.local.v = Math.max(col.v, this.local.v);
-      this.local.bv = Math.max(col.bv, this.local.bv);
-      this.local.sv = Math.max(col.sv!, this.local.sv);
-      this.local.minPrice = Math.min(this.local.minPrice, col.l);
-      this.local.maxPrice = Math.max(this.local.maxPrice, col.h);
-      this.local.minCumDelta = Math.min(this.local.minCumDelta, col.cumDelta!);
-      this.local.maxCumDelta = Math.max(this.local.maxCumDelta, col.cumDelta!);
-      this.local.minOIDelta = Math.min(this.local.minOIDelta, col.oiDelta!);
-      this.local.maxOIDelta = Math.max(this.local.maxOIDelta, col.oiDelta!);
-      this.local.minDeltaBar = Math.min(
-        this.local.minDeltaBar,
-        2 * col.bq - col.q
-      );
-      this.local.maxDeltaBar = Math.max(
-        this.local.maxDeltaBar,
-        2 * col.bq - col.q
-      );
-      this.local.minOI = Math.min(this.local.minOI, col.oi);
-      this.local.maxOI = Math.max(this.local.maxOI, col.oi);
+      local.qntMax = Math.max(col.qntMax ?? 0, local.qntMax);
+      local.qntAskMax = Math.max(col.qntAskMax ?? 0, local.qntAskMax);
+      local.qntBidMax = Math.max(col.qntBidMax ?? 0, local.qntBidMax);
+      local.volMax = Math.max(col.volMax ?? 0, local.volMax);
+      local.volAskMax = Math.max(col.volAskMax ?? 0, local.volAskMax);
+      local.volBidMax = Math.max(col.volBidMax ?? 0, local.volBidMax);
+      local.maxDelta = Math.max(col.maxDelta ?? 0, local.maxDelta);
+      local.maxDeltaV = Math.max(col.maxDeltaV ?? 0, local.maxDeltaV);
+      local.q = Math.max(col.q, local.q);
+      local.bq = Math.max(col.bq, local.bq);
+      local.sq = Math.max(col.sq ?? col.q - col.bq, local.sq);
+      local.v = Math.max(col.v, local.v);
+      local.bv = Math.max(col.bv, local.bv);
+      local.sv = Math.max(col.sv ?? col.v - col.bv, local.sv);
+      local.minPrice = Math.min(local.minPrice, col.l);
+      local.maxPrice = Math.max(local.maxPrice, col.h);
+      local.minCumDelta = Math.min(local.minCumDelta, col.cumDelta ?? 0);
+      local.maxCumDelta = Math.max(local.maxCumDelta, col.cumDelta ?? 0);
+      local.minOIDelta = Math.min(local.minOIDelta, col.oiDelta ?? 0);
+      local.maxOIDelta = Math.max(local.maxOIDelta, col.oiDelta ?? 0);
 
-      col.cl?.forEach((clItem) => {
-        this.local.maxDens = Math.max(
-          this.local.maxDens,
-          Math.abs(clItem.q / clItem.ct)
-        );
-      });
+      const deltaBar = 2 * col.bq - col.q;
+      local.minDeltaBar = Math.min(local.minDeltaBar, deltaBar);
+      local.maxDeltaBar = Math.max(local.maxDeltaBar, deltaBar);
+      local.minOI = Math.min(local.minOI, col.oi);
+      local.maxOI = Math.max(local.maxOI, col.oi);
+
+      this.collectDensity(col, densityValues);
     }
+
+    const densBounds = this.getDensityBounds(densityValues);
+    local.maxDens = densBounds.maxDens;
+    local.minDens = densBounds.minDens;
+    this.local = local;
   }
 
   clusterLength(): number {
@@ -461,6 +598,9 @@ export class ClusterData {
 
   calcPrices() {
     const data = this.clusterData;
+    if (!data.length) {
+      return;
+    }
     this.ColumnNumberByDate = {};
     this.normalizeOiValues();
 
@@ -500,6 +640,9 @@ export class ClusterData {
     this.minColumnDelta = this.maxColumnDelta = first.deltaTotal ?? 0;
     this.minCumDelta = this.maxCumDelta = first.cumDelta ?? 0;
     this.maxAbsOIDelta = Math.abs(first.oiDelta ?? 0);
+    const firstDeltaBar = 2 * first.bq - first.q;
+    this.minDeltaBar = firstDeltaBar;
+    this.maxDeltaBar = firstDeltaBar;
 
     this.maxQuantity = first.q;
     this.maxQuantityAsk = first.bq;
@@ -590,29 +733,33 @@ export class ClusterData {
     this.totalColumn = this.getTotalColumn(data);
 
     const sortedMax: number[] = [];
-    const sortedAvg: number[] = [];
+    const densityValues: number[] = [];
     data.forEach((col) => {
       col.cl?.forEach((clItem) => {
         sortedMax.push(Math.abs(clItem.mx));
-        sortedAvg.push(Math.abs(clItem.q / clItem.ct));
+        if (Number.isFinite(clItem.ct) && clItem.ct !== 0) {
+          const density = Math.abs(clItem.q / clItem.ct);
+          if (Number.isFinite(density)) {
+            densityValues.push(density);
+          }
+        }
       });
     });
 
     sortedMax.sort((a, b) => b - a);
-    sortedAvg.sort((a, b) => b - a);
 
     this.maxt1 = sortedMax[0];
     this.maxt2 = sortedMax[Math.min(10, sortedMax.length - 1)];
+    if (!Number.isFinite(this.maxt1)) {
+      this.maxt1 = 0;
+    }
+    if (!Number.isFinite(this.maxt2)) {
+      this.maxt2 = 0;
+    }
 
-    const r = Math.min(sortedAvg.length, 8);
-    const rr =
-      sortedAvg.slice(0, r).reduce((sum, val) => sum + val, 0) / r;
-    const rr2 =
-      sortedAvg
-        .slice(sortedAvg.length - r - 1, sortedAvg.length - 1)
-        .reduce((sum, val) => sum + val, 0) / r;
-
-    this.maxDens = rr;
-    this.minDens = rr2;
+    const densBounds = this.getDensityBounds(densityValues);
+    this.maxDens = densBounds.maxDens;
+    this.minDens = densBounds.minDens;
+    this.local = this.getGlobalRenderStats();
   }
 }

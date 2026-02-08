@@ -35,6 +35,7 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
         await ConsumeMessageAsync(
             message.body,
             ProcessClusterAsync,
+            "ClusterMessage",
             "Error processing ClusterMessage",
             cancellationToken);
     }
@@ -44,6 +45,7 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
         await ConsumeMessageAsync(
             message.body,
             ProcessTickerAsync,
+            "TickerMessage",
             "Error processing TickerMessage",
             cancellationToken);
     }
@@ -53,16 +55,35 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
         await ConsumeMessageAsync(
             message.body,
             ProcessCandleAsync,
+            "CandleMessage",
             "Error processing CandleMessage",
             cancellationToken);
     }
 
     private async Task ConsumeMessageAsync<T>(
-        IDictionary<string, T> body,
+        IDictionary<string, T>? body,
         Func<string, T, Task> processMethod,
+        string messageType,
         string logMessage,
         CancellationToken cancellationToken)
     {
+        if (body == null || body.Count == 0)
+        {
+            SignalRFlowFileLogger.Write(
+                "StockChart.ClusterSubscriber.Receive",
+                $"type={messageType}; keys=0");
+            return;
+        }
+
+        var sampleKeys = string.Join(",", body.Keys.Take(5));
+        _logger.LogInformation(
+            "Received {MessageType} keys={KeysCount}",
+            messageType,
+            body.Count);
+        SignalRFlowFileLogger.Write(
+            "StockChart.ClusterSubscriber.Receive",
+            $"type={messageType}; keys={body.Count}; sampleKeys={sampleKeys}");
+
         var tasks = body.Select(kvp => processMethod(kvp.Key, kvp.Value));
 
         try
@@ -72,16 +93,30 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
         catch (Exception ex)
         {
             _logger.LogError(ex, "{LogMessage}", logMessage);
+            SignalRFlowFileLogger.Write(
+                "StockChart.ClusterSubscriber.Error",
+                $"{messageType}: {ex.Message}");
         }
     }
 
     private async Task ProcessClusterAsync(string key, List<ClusterColumnWCF> body)
     {
+        if (body == null)
+        {
+            SignalRFlowFileLogger.Write(
+                "StockChart.ClusterSubscriber.DispatchCluster",
+                $"key={key}; payload=null");
+            return;
+        }
+
         var subsCluster = SubsCluster.Parse(key);
 
         if (!_tickersRepository.Tickers.TryGetValue(subsCluster.ticker.ToUpper(), out var ticker))
         {
             _logger.LogWarning("Ticker not found: {Ticker}", subsCluster.ticker);
+            SignalRFlowFileLogger.Write(
+                "StockChart.ClusterSubscriber.DispatchCluster",
+                $"key={key}; status=ticker_not_found");
             return;
         }
 
@@ -116,6 +151,10 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
                         "receiveClusterEnvelope",
                         new object[] { new { key = groupName, data = (object)list } })
                 );
+
+                SignalRFlowFileLogger.Write(
+                    "StockChart.ClusterSubscriber.DispatchCluster",
+                    $"group={groupName}; sourceItems={body.Count}; sentItems={list.Count}; mode=rebuild_candles");
             }
             else
             {
@@ -127,6 +166,10 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
                         "receiveClusterEnvelope",
                         new object[] { new { key = groupName, data = (object)clusters } })
                 );
+
+                SignalRFlowFileLogger.Write(
+                    "StockChart.ClusterSubscriber.DispatchCluster",
+                    $"group={groupName}; sourceItems={body.Count}; sentItems={clusters.Count}; mode=rebuild_clusters");
             }
         }
         else
@@ -137,11 +180,23 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
                     "receiveClusterEnvelope",
                     new object[] { new { key = groupName, data = (object)body } })
             );
+
+            SignalRFlowFileLogger.Write(
+                "StockChart.ClusterSubscriber.DispatchCluster",
+                $"group={groupName}; sourceItems={body.Count}; sentItems={body.Count}; mode=realtime");
         }
     }
 
     private async Task ProcessTickerAsync(string key, List<tick> body)
     {
+        if (body == null)
+        {
+            SignalRFlowFileLogger.Write(
+                "StockChart.ClusterSubscriber.DispatchTicks",
+                $"key={key}; payload=null");
+            return;
+        }
+
         var subsCluster = SubsCluster.Parse(key);
         var groupName = subsCluster.ToString();
 
@@ -151,15 +206,30 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
                 "receiveTicksEnvelope",
                 new object[] { new { key = groupName, data = (object)body } })
         );
+
+        SignalRFlowFileLogger.Write(
+            "StockChart.ClusterSubscriber.DispatchTicks",
+            $"group={groupName}; sentItems={body.Count}");
     }
 
     private async Task ProcessCandleAsync(string key, List<BaseCandle> body)
     {
+        if (body == null)
+        {
+            SignalRFlowFileLogger.Write(
+                "StockChart.ClusterSubscriber.DispatchCandle",
+                $"key={key}; payload=null");
+            return;
+        }
+
         var subsCandle = SubsCandle.Parse(key);
 
         if (!_tickersRepository.Tickers.TryGetValue(subsCandle.ticker.ToUpper(), out var ticker))
         {
             _logger.LogWarning("Ticker not found: {Ticker}", subsCandle.ticker);
+            SignalRFlowFileLogger.Write(
+                "StockChart.ClusterSubscriber.DispatchCandle",
+                $"key={key}; status=ticker_not_found");
             return;
         }
 
@@ -187,5 +257,8 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
         var groupName = subsCandle.ToString();
 
         await _hubContext.Clients.Group(groupName).SendCoreAsync("recieveCandle", new object[] { JsonConvert.SerializeObject(result) });
+        SignalRFlowFileLogger.Write(
+            "StockChart.ClusterSubscriber.DispatchCandle",
+            $"group={groupName}; sourceItems={body.Count}; sentItems={candles.Count}");
     }
 }

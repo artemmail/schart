@@ -7,6 +7,8 @@ import { FootPrintComponent } from '../components/footprint/footprint.component'
 import { drob } from 'src/app/service/FootPrint/utils';
 
 export class viewOI extends viewVolumesSeparated {
+  private currentMinOi = 0;
+
   constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
     super(parent,  view, mtx, DraggableEnum.Top);
   }
@@ -18,16 +20,13 @@ export class viewOI extends viewVolumesSeparated {
     mtx: Matrix
   ): void {
     var FPsettings: ChartSettings = this.parent.FPsettings; let ctx = this.parent.ctx;
-    if (FPsettings.ShrinkY) {
-      this.data.maxOI = this.data.local.maxOI;
-      this.data.minOI = this.data.local.minOI;
-    }
-
-    let maxOI = this.data.maxOI;
-    let minOI = this.data.minOI;
+    const stats = this.data.getRenderStats(!!FPsettings.ShrinkY);
+    let maxOI = stats.maxOI;
+    let minOI = stats.minOI;
     var d = (maxOI - minOI) / 10;
     maxOI += d;
     minOI -= d;
+    this.currentMinOi = minOI;
 
     ctx.restore();
     this.DrawZebra(ctx, view.x, view.y, view.w, view.h, minOI, maxOI);
@@ -55,7 +54,7 @@ export class viewOI extends viewVolumesSeparated {
 
   drawVolumeColumnOI(column: ColumnEx, number: number, mtx: Matrix) {
     var ctx = this.ctx;
-    const baseOi = this.data.minOI ?? 0;
+    const baseOi = this.currentMinOi;
     ctx.fillStyle = column == this.parent.selectedColumn ? this.palette.accent : this.palette.accentSoft;
     ctx.mFillRectangle(number + 0.1, baseOi, 0.8, column.oi - baseOi);
   }

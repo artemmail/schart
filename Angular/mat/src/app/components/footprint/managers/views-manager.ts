@@ -33,6 +33,7 @@ import { ChartSettings } from 'src/app/models/ChartSettings';
 import { viewBackgroundRange } from '../views/view-background-range';
 import { viewIndicatorsOverlay } from '../views/view-indicators-overlay';
 import { viewIndicatorPanel } from '../views/view-indicator-panel';
+import { isArbitrageMode } from 'src/app/models/footprint-mode';
 
 export class ViewsManager {
   footprint: FootPrintComponent;
@@ -375,7 +376,7 @@ export class ViewsManager {
           this.mtxMain
         )));
 
-    const isArbitrage = this.footprint.params?.type === 'arbitrage';
+    const isArbitrage = isArbitrageMode(this.footprint.params ?? {});
     if (!isArbitrage) {
       // Draw overlay indicators last (above range set visuals too).
       this.views.push(new viewIndicatorsOverlay(this.footprint, this.clusterView, this.mtxMain));

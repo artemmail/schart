@@ -71,8 +71,8 @@ export class VolumeColumn extends ClusterColumnBase {
         var r = this.clusterRect(column.cl[i].p, number, mtx);
 
         if (settings.Contracts)
-          r.w = (column.cl[i].q * r.w) / this.data.maxClusterQnt;
-        else r.w = (mul * column.cl[i].q * r.w) / this.data.maxClusterVol;
+          r.w = (column.cl[i].q * r.w) / this.stats.qntMax;
+        else r.w = (mul * column.cl[i].q * r.w) / this.stats.volMax;
 
         r.w *= this.clusterWidthScale;
         if (drawBorder) {

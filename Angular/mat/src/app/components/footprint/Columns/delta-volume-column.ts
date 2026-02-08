@@ -10,8 +10,8 @@ export class DeltaVolumeColumn extends ClusterColumnBase {
   draw(column: ColumnEx, number: number, mtx: Matrix, total: boolean) {
     var ctx = this.ctx;
     this.drawOpenClose(ctx, column, number, mtx);
-    var maxVol = !total ? this.data.maxClusterQnt : column.qntMax;
-    var maxDelta = !total ? this.data.maxDelta : column.maxDelta;
+    var maxVol = !total ? this.stats.qntMax : column.qntMax;
+    var maxDelta = !total ? this.stats.maxDelta : column.maxDelta;
     var bar = this.getBar(mtx);
     var drawBorder = Math.abs(bar.w) > 20 && Math.abs(bar.h) > 6;
     var z = this.getZIndexVolume(column);

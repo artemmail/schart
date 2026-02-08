@@ -3,7 +3,7 @@ import { Matrix, Rectangle } from '../models/matrix';
 
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
-import { ClusterData } from '../models/cluster-data';
+import { ClusterData, ClusterDataRenderStats } from '../models/cluster-data';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { FormattingService } from 'src/app/service/FootPrint/Formating/formatting.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
@@ -19,6 +19,7 @@ export interface ClusterColumnContext {
   finishPrice: number;
   clusterWidthScale: number;
   settings: ChartSettings;
+  stats: ClusterDataRenderStats;
 }
 
 export function createClusterColumnContext(
@@ -38,6 +39,7 @@ export function createClusterColumnContext(
     finishPrice: parent.finishPrice,
     clusterWidthScale: parent.clusterWidthScale,
     settings: parent.FPsettings,
+    stats: parent.data.getRenderStats(!!parent.FPsettings?.ShrinkY),
   };
 }
 
@@ -74,6 +76,10 @@ export class ClusterColumnBase {
     return this.context.data;
   }
 
+  protected get stats(): ClusterDataRenderStats {
+    return this.context.stats;
+  }
+
   protected get startPrice(): number {
     return this.context.startPrice;
   }
@@ -91,7 +97,12 @@ export class ClusterColumnBase {
     if ('MaxTrades' in settings && settings.MaxTrades) {
       const x = r.x;
       const y = r.y + r.h / 2;
-      if (Math.abs(column.cl[i].mx) > this.data.maxt2) {
+      const maxTrade = this.data.maxt1;
+      if (
+        Math.abs(column.cl[i].mx) > this.data.maxt2 &&
+        Number.isFinite(maxTrade) &&
+        maxTrade > 0
+      ) {
         this.ctx.fillStyle =
           column.cl[i].mx > 0
             ? this.palette.upStrong
@@ -102,7 +113,7 @@ export class ClusterColumnBase {
             : this.palette.downBorder;
         const rh = Math.max(10, Math.abs(r.h));
         const hh = Math.abs(
-          Math.sqrt(Math.abs(column.cl[i].mx) / this.data.maxt1) * rh
+          Math.sqrt(Math.abs(column.cl[i].mx) / maxTrade) * rh
         );
         this.ctx.beginPath();
         this.ctx.moveTo(x, y);
@@ -362,16 +373,16 @@ export class ClusterColumnBase {
     var ctx = this.ctx;
     this.drawOpenClose(ctx, column, number, mtx);
 
-    var maxDelta = !total ? this.data.maxDelta : column.maxDelta;
-    var maxVol = !total ? this.data.maxClusterQnt : column.qntMax;
-    var maxVolAsk = !total ? this.data.maxClusterQntAsk : column.qntAskMax;
-    var maxVolBid = !total ? this.data.maxClusterQntBid : column.qntBidMax;
+    var maxDelta = !total ? this.stats.maxDelta : column.maxDelta;
+    var maxVol = !total ? this.stats.qntMax : column.qntMax;
+    var maxVolAsk = !total ? this.stats.qntAskMax : column.qntAskMax;
+    var maxVolBid = !total ? this.stats.qntBidMax : column.qntBidMax;
 
     if (!settings.Contracts) {
-      maxVol = !total ? this.data.maxClusterVol : column.volMax;
-      maxVolAsk = !total ? this.data.maxClusterVolAsk : column.volAskMax;
-      maxVolBid = !total ? this.data.maxClusterVolBid : column.volBidMax;
-      maxDelta = !total ? this.data.maxDeltaV : column.maxDeltaV;
+      maxVol = !total ? this.stats.volMax : column.volMax;
+      maxVolAsk = !total ? this.stats.volAskMax : column.volAskMax;
+      maxVolBid = !total ? this.stats.volBidMax : column.volBidMax;
+      maxDelta = !total ? this.stats.maxDeltaV : column.maxDeltaV;
     }
 
     var maxVolAskBid = Math.max(maxVolAsk, maxVolBid);

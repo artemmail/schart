@@ -13,13 +13,9 @@ export class viewOIDelta extends viewVolumesSeparated {
 
   override draw(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix): void {
    var FPsettings: ChartSettings = this.parent.FPsettings; let ctx = this.parent.ctx;
-    if (FPsettings.ShrinkY) {
-      this.data.maxOIDelta = this.data.local.maxOIDelta;
-      this.data.minOIDelta = this.data.local.minOIDelta;
-    }
-
-    let maxOIDelta = this.data.maxOIDelta;
-    let minOIDelta = this.data.minOIDelta;
+    const stats = this.data.getRenderStats(!!FPsettings.ShrinkY);
+    let maxOIDelta = stats.maxOIDelta;
+    let minOIDelta = stats.minOIDelta;
     var d = (maxOIDelta - minOIDelta) / 10;
     maxOIDelta += d;
     minOIDelta -= d;

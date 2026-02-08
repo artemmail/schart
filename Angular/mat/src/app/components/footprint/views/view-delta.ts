@@ -60,13 +60,9 @@ export class viewDelta extends viewVolumesSeparated {
 
   override draw(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix): void {
    var FPsettings: ChartSettings = this.parent.FPsettings; let ctx = this.parent.ctx;
-    var maxCumDelta = this.data.maxCumDelta;
-    var minCumDelta = this.data.minCumDelta;
-
-    if (FPsettings.ShrinkY) {
-      minCumDelta = this.data.local.minCumDelta;
-      maxCumDelta = this.data.local.maxCumDelta;
-    }
+    const stats = this.data.getRenderStats(!!FPsettings.ShrinkY);
+    var maxCumDelta = stats.maxCumDelta;
+    var minCumDelta = stats.minCumDelta;
 
     var d = (maxCumDelta - minCumDelta) / 10;
     maxCumDelta += d;

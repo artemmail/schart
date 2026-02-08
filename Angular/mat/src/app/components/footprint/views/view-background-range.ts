@@ -4,6 +4,7 @@ import { DraggableEnum } from 'src/app/models/Draggable';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { hexToRgb } from 'src/app/service/FootPrint/utils';
 import { rounder } from 'src/app/service/FootPrint/Formating/formatting.service';
+import { isArbitrageMode } from 'src/app/models/footprint-mode';
 
 export class viewBackgroundRange extends canvasPart {
   constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
@@ -86,7 +87,8 @@ export class viewBackgroundRange extends canvasPart {
       pointer.y >= totalView.y &&
       pointer.y <= totalView.y + totalView.h;
     const isArbitrage =
-      parent.params?.type === 'arbitrage' || (parent.data?.rangeSetLines ?? null) != null;
+      isArbitrageMode(parent.params ?? {}) ||
+      (parent.data?.rangeSetLines ?? null) != null;
     const allowSelection =
       !isArbitrage &&
       (!FP.ToolTip || (FP.totalMode === 'Left' && parent.hiddenHint && overTotal));
@@ -164,11 +166,9 @@ export class viewBackgroundRange extends canvasPart {
       }
     } else {
       // ===== DELTAGRAPH =====
-      let min = parent.data.minCumDelta, max = parent.data.maxCumDelta;
-      if (parent.FPsettings.ShrinkY) {
-        min = parent.data.local.minCumDelta;
-        max = parent.data.local.maxCumDelta;
-      }
+      const stats = parent.data.getRenderStats(!!parent.FPsettings.ShrinkY);
+      let min = stats.minCumDelta;
+      let max = stats.maxCumDelta;
       const pad      = (max - min) / 10; min -= pad; max += pad;
       const rawStep  = (max - min) / 12;
       const pow10    = Math.pow(10, Math.floor(Math.log10(rawStep)));

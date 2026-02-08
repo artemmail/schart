@@ -8,6 +8,7 @@ namespace StockChart.Hubs
     public class CandlesUpdater
     {
         private readonly ConcurrentDictionary<string, byte> _connections = new();
+        public int ConnectionCount => _connections.Count;
 
         public string ticker { get; set; }
         public double period { get; set; }
