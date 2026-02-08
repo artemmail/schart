@@ -74,11 +74,16 @@ export class SignalRService implements OnDestroy {
   private receiveLadderEnvelopeSubject = new Subject<SignalRLadderEnvelope>();
   receiveLadderEnvelope$ = this.receiveLadderEnvelopeSubject.asObservable();
 
+  private hasReceivedClusterEnvelope = false;
+  private hasReceivedTicksEnvelope = false;
+  private hasReceivedLadderEnvelope = false;
+
   private clusterEnvelopeHandler = (payload: SignalRClusterEnvelope) => {
     if (!payload || typeof payload.key !== 'string' || !Array.isArray(payload.data)) {
       console.warn('Skip receiveClusterEnvelope: invalid payload');
       return;
     }
+    this.hasReceivedClusterEnvelope = true;
     this.receiveClusterEnvelopeSubject.next(payload);
   };
 
@@ -87,6 +92,7 @@ export class SignalRService implements OnDestroy {
       console.warn('Skip receiveTicksEnvelope: invalid payload');
       return;
     }
+    this.hasReceivedTicksEnvelope = true;
     this.receiveTicksEnvelopeSubject.next(payload);
   };
 
@@ -101,15 +107,18 @@ export class SignalRService implements OnDestroy {
       return;
     }
 
+    this.hasReceivedLadderEnvelope = true;
     this.receiveLadderEnvelopeSubject.next(payload);
   };
 
   private clusterLegacyHandler = (answ: ColumnEx[]) => {
+    if (this.hasReceivedClusterEnvelope) {
+      // Modern server sends envelope + legacy in parallel; envelope is authoritative.
+      return;
+    }
+
     const key = this.tryGetSingleActiveClusterHubKey();
     if (!key) {
-      console.warn(
-        'Skip receiveCluster legacy payload: key is ambiguous. Use receiveClusterEnvelope.'
-      );
       return;
     }
 
@@ -117,11 +126,12 @@ export class SignalRService implements OnDestroy {
   };
 
   private ticksLegacyHandler = (answ: FootprintTickData[]) => {
+    if (this.hasReceivedTicksEnvelope) {
+      return;
+    }
+
     const key = this.tryGetSingleActiveClusterHubKey();
     if (!key) {
-      console.warn(
-        'Skip receiveTicks legacy payload: key is ambiguous. Use receiveTicksEnvelope.'
-      );
       return;
     }
 
@@ -129,6 +139,10 @@ export class SignalRService implements OnDestroy {
   };
 
   private ladderLegacyHandler = (ladder: FootprintLadderData) => {
+    if (this.hasReceivedLadderEnvelope) {
+      return;
+    }
+
     if (!ladder) {
       console.warn('Skip receiveLadder: payload is null or undefined');
       return;
@@ -136,9 +150,6 @@ export class SignalRService implements OnDestroy {
 
     const ticker = this.tryGetSingleActiveLadderTicker();
     if (!ticker) {
-      console.warn(
-        'Skip receiveLadder legacy payload: ticker is ambiguous. Use receiveLadderEnvelope.'
-      );
       return;
     }
 
@@ -175,6 +186,9 @@ export class SignalRService implements OnDestroy {
       .withAutomaticReconnect()
       .build();
     this.hubConnection = connection;
+    this.hasReceivedClusterEnvelope = false;
+    this.hasReceivedTicksEnvelope = false;
+    this.hasReceivedLadderEnvelope = false;
 
     connection.onclose(async (error) => {
       if (this.hubConnection !== connection) return;
@@ -465,6 +479,11 @@ export class SignalRService implements OnDestroy {
       await removeLocalTracking();
       return true;
     } catch (err) {
+      if (this.isConnectionClosedInvocationError(err)) {
+        await removeLocalTracking();
+        return true;
+      }
+
       console.warn('Error while invoking UnSubscribe methods: ' + err);
       return false;
     }
@@ -542,9 +561,23 @@ export class SignalRService implements OnDestroy {
       await removeLocalTracking();
       return true;
     } catch (err) {
+      if (this.isConnectionClosedInvocationError(err)) {
+        await removeLocalTracking();
+        return true;
+      }
+
       console.warn('Error while invoking UnSubscribeLadder: ' + err);
       return false;
     }
+  }
+
+  private isConnectionClosedInvocationError(err: unknown): boolean {
+    const text = String(err ?? '').toLowerCase();
+    return (
+      text.includes('invocation canceled due to the underlying connection being closed') ||
+      text.includes('cannot send data if the connection is not in the connected state') ||
+      text.includes('the connection was stopped')
+    );
   }
 
   private async invokeSubscribe(

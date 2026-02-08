@@ -2,7 +2,6 @@ import { ElementRef, Injectable, OnDestroy } from '@angular/core';
 import { Subject, Subscription } from 'rxjs';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { SignalRService } from 'src/app/service/FootPrint/signalr.service';
-import { addUTC } from 'src/app/service/FootPrint/Formating/formatting.service';
 import { FootprintDataLoaderService } from './footprint-data-loader.service';
 import {
   FootprintInitOptions,
@@ -109,7 +108,11 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
 
     const hasExplicitTime = this.hasExplicitTime(startDate, endDate);
     if (hasExplicitTime) {
-      return endDate.getTime() >= now.getTime();
+      // Date params in URL are often ISO-strings with seconds precision.
+      // Allow a grace window to keep realtime enabled around "now".
+      const periodMs = Math.max(1, Number(params.period || 1)) * 60_000;
+      const graceMs = Math.max(5 * 60_000, periodMs);
+      return endDate.getTime() + graceMs >= now.getTime();
     }
 
     return this.normalizeDay(endDate) >= this.normalizeDay(now);
@@ -127,7 +130,7 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
       if (Number.isNaN(parsed.getTime())) {
         return null;
       }
-      return value.endsWith('Z') ? addUTC(parsed) : parsed;
+      return parsed;
     }
     if (typeof value === 'number') {
       const parsed = new Date(value);
@@ -164,7 +167,7 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
 
     const canSubscribe = this.shouldSubscribe(params);
     if (!canSubscribe) {
-      console.log('Подписка пропущена: условия не выполнены.');
+      console.debug('Подписка пропущена: условия не выполнены.');
       return;
     }
 
