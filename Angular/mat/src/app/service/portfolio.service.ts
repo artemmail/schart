@@ -61,15 +61,25 @@ export class PortfolioService {
   
 
 
-  markovitz(tickers: string, rperiod: string, startDate: Date, endDate: Date, portfolioDate: Date, deposit: number, risk: number): Observable<PortfolioSolution> {
-    const params = new HttpParams()
-      .set('tickers', tickers)
-      .set('rperiod', rperiod)
-      .set('startDate', removeUTC( startDate))
-      .set('endDate', removeUTC(endDate))
-      .set('portfolioDate', removeUTC(portfolioDate))
-      .set('deposit', deposit.toString())
-      .set('risk', risk.toString());
+  markovitz(
+    tickers: string,
+    rperiod: string,
+    startDate: Date,
+    endDate: Date,
+    portfolioDate: Date,
+    deposit: number,
+    risk: number
+  ): Observable<PortfolioSolution> {
+    const params = new HttpParams({
+      fromObject: {
+        tickers,
+        startDate: removeUTC(startDate),
+        endDate: removeUTC(endDate),
+        portfolioDate: removeUTC(portfolioDate),
+        deposit: deposit.toString(),
+        risk: risk.toString()
+      }
+    });
     return this.http.get<PortfolioSolution>('/api/Portfolio/Markovitz', { params });
   }
 

@@ -14,7 +14,14 @@ namespace StockChart.Repository.Services
 
         public List<string> TickersFromString(string s);
 
+        public Task<PortfolioSolution> PortfolioOptimizationPreview(List<string> tickers,
+            DateTime startDate, DateTime endDate, decimal risk);
+        public Task<PortfolioSolution> PortfolioOptimizationPreview(List<string> tickers,
+            DateTime startDate, DateTime endDate, decimal risk, PortfolioOptimizationRequestOptions options);
+
         public Task<PortfolioSolution> PortfolioOptimizationSolv(Guid UserId, List<string> tickers,
             DateTime startDate, DateTime endDate, DateTime portfolioDate, decimal deposit, decimal risk);
+        public Task<PortfolioSolution> PortfolioOptimizationSolv(Guid UserId, List<string> tickers,
+            DateTime startDate, DateTime endDate, DateTime portfolioDate, decimal deposit, decimal risk, PortfolioOptimizationRequestOptions options);
     }
 }

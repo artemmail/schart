@@ -1,9 +1,12 @@
 ﻿
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using StockChart.Model;
 using StockChart.Repository.Interfaces;
 using StockProject.PortfolioOptimization;
+using SolverMode = StockProject.PortfolioOptimization.PortfolioOptimizationMode;
+using SolverRequest = StockProject.PortfolioOptimization.PortfolioOptimizationRequest;
 using System.Data;
 
 namespace StockChart.Repository.Services
@@ -21,6 +24,7 @@ namespace StockChart.Repository.Services
         IStockMarketServiceRepository service;
         private ApplicationDbContext _dbContext;
         ITickersRepository tikrep;
+        private bool? _isUserGameOrdersTableAvailable;
         public PortfoiloRepository(
             ApplicationDbContext dbContext,
                ITickersRepository tikrep,
@@ -81,6 +85,8 @@ namespace StockChart.Repository.Services
 
         public async Task CleanUpPortfolio(Guid UserId, byte portfolio)
         {
+            await EnsureUserGameOrdersAvailabilityAsync();
+
             List<UserGameShare> res = await _dbContext.UserGameShares
                 .Where(x => x.UserId == UserId && x.PortfolioNumber == portfolio)
                 .ToListAsync();
@@ -104,6 +110,8 @@ namespace StockChart.Repository.Services
         private void LogUserGameOrder(Guid userId, byte portfolioNumber, int quantity, decimal price, DateTime? orderTime = null)
         {
             if (quantity == 0)
+                return;
+            if (_isUserGameOrdersTableAvailable == false)
                 return;
 
             var order = new UserGameOrder()
@@ -178,18 +186,31 @@ namespace StockChart.Repository.Services
 
         private async Task RemoveUserGameOrdersAsync(Guid userId, byte portfolioNumber)
         {
-            var orders = await _dbContext.UserGameOrders
-                .Where(x => x.UserId == userId && x.PortfolioNumber == portfolioNumber)
-                .ToListAsync();
-
-            if (orders.Count == 0)
+            if (_isUserGameOrdersTableAvailable == false)
                 return;
 
-            _dbContext.UserGameOrders.RemoveRange(orders);
+            try
+            {
+                var orders = await _dbContext.UserGameOrders
+                    .Where(x => x.UserId == userId && x.PortfolioNumber == portfolioNumber)
+                    .ToListAsync();
+
+                if (orders.Count == 0)
+                    return;
+
+                _dbContext.UserGameOrders.RemoveRange(orders);
+            }
+            catch (SqlException ex) when (IsMissingUserGameOrdersTable(ex))
+            {
+                _isUserGameOrdersTableAvailable = false;
+                ClearTrackedUserGameOrders();
+            }
         }
 
         public async Task CopyPortfolio(Guid UserId, byte fromportfolio, byte toportfolio)
         {
+            await EnsureUserGameOrdersAvailabilityAsync();
+
             await CleanUpPortfolio(UserId, toportfolio);
             List<UserGameShare> res = await _dbContext.UserGameShares
                 .Where(x => x.UserId == UserId && x.PortfolioNumber == fromportfolio)
@@ -224,7 +245,7 @@ namespace StockChart.Repository.Services
             UserGameBallance? balllance = await GetBallance(UserId, 0);
             balllance.Ballance = deposit;
             _dbContext.Update(balllance);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
 
             for (int i = 0; i < tickers.Length; i++)
             {
@@ -328,6 +349,8 @@ namespace StockChart.Repository.Services
 
         private async Task RemoveSharesWithoutCurrentPrice(Guid userId, byte portfolio)
         {
+            await EnsureUserGameOrdersAvailabilityAsync();
+
             var shares = await _dbContext.UserGameShares
                 .Where(x => x.UserId == userId && x.PortfolioNumber == portfolio)
                 .Select(x => new { x.DictionaryId, x.Quantity, x.Price })
@@ -386,6 +409,22 @@ namespace StockChart.Repository.Services
             }
         }
 
+        class PortfolioOptimizationRawResult
+        {
+            public string[] tickers { get; }
+            public double[] weights { get; }
+            public decimal actual { get; }
+            public decimal stddev { get; }
+
+            public PortfolioOptimizationRawResult(string[] tickers, double[] weights, decimal actual, decimal stddev)
+            {
+                this.tickers = tickers;
+                this.weights = weights;
+                this.actual = actual;
+                this.stddev = stddev;
+            }
+        }
+
         public List<string> TickersFromString(string s)
 
         {
@@ -407,28 +446,210 @@ namespace StockChart.Repository.Services
             return tickers;
         }
 
-        public async Task<PortfolioSolution> PortfolioOptimizationSolv(Guid UserId, List<string> tickers, DateTime startDate, DateTime endDate, DateTime portfolioDate, decimal deposit, decimal risk)
+        async Task<PortfolioOptimizationRawResult?> SolvePortfolioOptimization(
+            List<string> tickers,
+            DateTime startDate,
+            DateTime endDate,
+            decimal risk,
+            PortfolioOptimizationRequestOptions options)
         {
+            if (tickers == null || tickers.Count == 0)
+                return null;
+
+            if (startDate >= endDate || risk <= 0)
+                return null;
+
             int period = 1440;
-            List<List<Candle>> res = new List<List<Candle>>();
+            List<List<Candle>> candlesByTicker = new List<List<Candle>>();
+            List<string> validTickers = new List<string>();
+            HashSet<string> seenTickers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var ticker in tickers)
             {
+                if (string.IsNullOrWhiteSpace(ticker))
+                    continue;
+
+                if (!seenTickers.Add(ticker))
+                    continue;
+
                 var candles = await _candlesRepository.GetCandles(ticker, period, startDate, endDate, 20000);
-                res.Add(candles);
+                if (candles == null || candles.Count < 2)
+                    continue;
+
+                candlesByTicker.Add(candles);
+                validTickers.Add(ticker);
             }
-           
-            MarkowitzPortfolio qp = new MarkowitzPortfolio();
-            qp.StockNames = tickers.ToArray();
-            var k = qp.BuildCovariance(res, (double)(risk / 1000));
-            
-            await CreateTempPortfolio(UserId, portfolioDate, deposit, tickers.ToArray(), k.Mas);
-            return
-                new PortfolioSolution(true, (decimal)(k.Actual * 1000), (decimal)(k.StdDev * 1000), PortfolioChart(tickers.ToArray(), k.Mas));
+
+            if (validTickers.Count == 0)
+                return null;
+
+            var names = validTickers.ToArray();
+            var normalizedOptions = NormalizeRequestOptions(options);
+            if (!HasValidRequestOptions(names.Length, normalizedOptions))
+                return null;
+
+            var solverRequest = new SolverRequest
+            {
+                Mode = ToSolverMode(normalizedOptions.Mode),
+                RiskParameter = (double)(risk / 1000m),
+                RiskFreeRate = (double)(normalizedOptions.RiskFreeRate / 1000m),
+                MinWeight = (double)(normalizedOptions.MinWeight ?? 0m),
+                MaxWeight = (double)(normalizedOptions.MaxWeight ?? 1m),
+                AssetSectorIds = ResolveAssetSectors(names),
+                SectorMaxWeights = ToDoubleSectorLimits(normalizedOptions.SectorMaxWeights),
+            };
+
+            PortfolioOptimizationResult? solved;
+            MarkowitzPortfolioAccord qp = new MarkowitzPortfolioAccord();
+            qp.StockNames = names;
+            solved = qp.BuildCovariance(candlesByTicker, solverRequest);
+
+            if (solved == null || solved.Mas == null || solved.Mas.Length != validTickers.Count)
+                return null;
+
+            return new PortfolioOptimizationRawResult(
+                names,
+                solved.Mas,
+                (decimal)(solved.Actual * 1000),
+                (decimal)(solved.StdDev * 1000));
+        }
+
+        static PortfolioOptimizationRequestOptions NormalizeRequestOptions(PortfolioOptimizationRequestOptions? options)
+        {
+            if (options == null)
+                return new PortfolioOptimizationRequestOptions();
+
+            return new PortfolioOptimizationRequestOptions
+            {
+                Mode = options.Mode,
+                RiskFreeRate = options.RiskFreeRate,
+                MinWeight = options.MinWeight,
+                MaxWeight = options.MaxWeight,
+                SectorMaxWeights = options.SectorMaxWeights ?? new Dictionary<int, decimal>(),
+            };
+        }
+
+        static bool HasValidRequestOptions(int assetCount, PortfolioOptimizationRequestOptions options)
+        {
+            if (assetCount <= 0)
+                return false;
+
+            var minWeight = options.MinWeight ?? 0m;
+            var maxWeight = options.MaxWeight ?? 1m;
+            if (minWeight < 0m || maxWeight > 1m || minWeight > maxWeight)
+                return false;
+            if (minWeight * assetCount > 1m || maxWeight * assetCount < 1m)
+                return false;
+
+            if (options.SectorMaxWeights != null)
+            {
+                foreach (var kv in options.SectorMaxWeights)
+                {
+                    if (kv.Value <= 0m || kv.Value > 1m)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        int?[] ResolveAssetSectors(string[] tickers)
+        {
+            var sectors = new int?[tickers.Length];
+            for (int i = 0; i < tickers.Length; i++)
+            {
+                var key = tickers[i].ToUpperInvariant();
+                if (tikrep.Tickers.TryGetValue(key, out var dic))
+                    sectors[i] = dic.CategoryTypeId;
+            }
+
+            return sectors;
+        }
+
+        static IReadOnlyDictionary<int, double> ToDoubleSectorLimits(IReadOnlyDictionary<int, decimal>? limits)
+        {
+            if (limits == null || limits.Count == 0)
+                return new Dictionary<int, double>();
+
+            return limits.ToDictionary(kv => kv.Key, kv => (double)kv.Value);
+        }
+
+        static SolverMode ToSolverMode(PortfolioOptimizationMode mode)
+        {
+            return mode switch
+            {
+                PortfolioOptimizationMode.MaxReturn => SolverMode.MaxReturn,
+                PortfolioOptimizationMode.MaxSharpe => SolverMode.MaxSharpe,
+                _ => SolverMode.MinVariance,
+            };
+        }
+
+        PortfolioSolution EmptyPortfolioSolution()
+        {
+            return new PortfolioSolution(false, 0, 0, new List<PortfolioChartItem>());
+        }
+
+        public async Task<PortfolioSolution> PortfolioOptimizationSolv(Guid UserId, List<string> tickers, DateTime startDate, DateTime endDate, DateTime portfolioDate, decimal deposit, decimal risk)
+        {
+            return await PortfolioOptimizationSolv(
+                UserId,
+                tickers,
+                startDate,
+                endDate,
+                portfolioDate,
+                deposit,
+                risk,
+                new PortfolioOptimizationRequestOptions());
+        }
+
+        public async Task<PortfolioSolution> PortfolioOptimizationSolv(
+            Guid UserId,
+            List<string> tickers,
+            DateTime startDate,
+            DateTime endDate,
+            DateTime portfolioDate,
+            decimal deposit,
+            decimal risk,
+            PortfolioOptimizationRequestOptions options)
+        {
+            var solved = await SolvePortfolioOptimization(tickers, startDate, endDate, risk, options);
+            if (solved == null)
+                return EmptyPortfolioSolution();
+
+            await CreateTempPortfolio(UserId, portfolioDate, deposit, solved.tickers, solved.weights);
+            return new PortfolioSolution(true, solved.actual, solved.stddev, PortfolioChart(solved.tickers, solved.weights));
+        }
+
+        List<PortfolioChartItem> PortfolioChartFull(string[] tickers, double[] values)
+        {
+            var list = new List<PortfolioChartItem>();
+            for (int i = 0; i < tickers.Length; i++)
+            {
+                var v = Math.Round((decimal)values[i] * 100, 4, MidpointRounding.AwayFromZero);
+                list.Add(new PortfolioChartItem(tickers[i], v));
+            }
+
+            return list;
+        }
+
+        public async Task<PortfolioSolution> PortfolioOptimizationPreview(List<string> tickers, DateTime startDate, DateTime endDate, decimal risk)
+        {
+            return await PortfolioOptimizationPreview(tickers, startDate, endDate, risk, new PortfolioOptimizationRequestOptions());
+        }
+
+        public async Task<PortfolioSolution> PortfolioOptimizationPreview(List<string> tickers, DateTime startDate, DateTime endDate, decimal risk, PortfolioOptimizationRequestOptions options)
+        {
+            var solved = await SolvePortfolioOptimization(tickers, startDate, endDate, risk, options);
+            if (solved == null)
+                return EmptyPortfolioSolution();
+
+            return new PortfolioSolution(true, solved.actual, solved.stddev, PortfolioChartFull(solved.tickers, solved.weights));
         }
 
         public async Task MakeOrder(Guid UserId, string ticker, int quantity, byte PortfolioNumber, decimal? money, decimal? price, DateTime from, DateTime to)
         {
+            await EnsureUserGameOrdersAvailabilityAsync();
+
             service.UpdateAlias(ref ticker);
             int tickerid = tikrep[ticker].Id;
             if (!price.HasValue)
@@ -456,6 +677,40 @@ namespace StockChart.Repository.Services
             _dbContext.Update(ballance);
 
             await _dbContext.SaveChangesAsync();
+        }
+
+        private async Task EnsureUserGameOrdersAvailabilityAsync()
+        {
+            if (_isUserGameOrdersTableAvailable.HasValue)
+                return;
+
+            try
+            {
+                await _dbContext.UserGameOrders
+                    .AsNoTracking()
+                    .Take(1)
+                    .ToListAsync();
+
+                _isUserGameOrdersTableAvailable = true;
+            }
+            catch (SqlException ex) when (IsMissingUserGameOrdersTable(ex))
+            {
+                _isUserGameOrdersTableAvailable = false;
+                ClearTrackedUserGameOrders();
+            }
+        }
+
+        private static bool IsMissingUserGameOrdersTable(SqlException ex)
+        {
+            return ex.Number == 208 &&
+                ex.Message.Contains("UserGameOrder", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void ClearTrackedUserGameOrders()
+        {
+            var trackedOrders = _dbContext.ChangeTracker.Entries<UserGameOrder>().ToList();
+            foreach (var entry in trackedOrders)
+                entry.State = EntityState.Detached;
         }
 
 

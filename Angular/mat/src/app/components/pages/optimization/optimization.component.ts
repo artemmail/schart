@@ -67,7 +67,7 @@ export class PortfolioOptimizationComponent implements OnInit, AfterViewInit, On
       endDate: [this.endDate, Validators.required],
       portfolioDate: ['', Validators.required],
       deposit: [1000000, [Validators.required, Validators.min(1000)]],
-      risk: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
+      risk: [0.2, [Validators.required, Validators.min(0.0001), Validators.max(100)]],
       selectedPortfolio: ['']
     });
   }
@@ -144,23 +144,31 @@ export class PortfolioOptimizationComponent implements OnInit, AfterViewInit, On
   }
 
   onSubmit(): void {
-    if (this.form.valid) {
-      const formValues = this.form.value;
-      this.portfolioService.markovitz(
-        formValues.tickers,
-        formValues.rperiod,
-        formValues.startDate,
-        formValues.endDate,
-        formValues.portfolioDate,
-        formValues.deposit,
-        formValues.risk
-      ).subscribe(solution => {
+    if (!this.form.valid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    const formValues = this.form.value;
+    this.portfolioService.markovitz(
+      formValues.tickers,
+      formValues.rperiod,
+      formValues.startDate,
+      formValues.endDate,
+      formValues.portfolioDate,
+      formValues.deposit,
+      formValues.risk
+    ).subscribe({
+      next: solution => {
         this.portfolioSolution = solution;
         this.updateChartData(solution);
-        
         this.portfolioTableComponent.loadPortfolio();
-      });
-    }
+      },
+      error: err => {
+        const message = err?.error?.error ?? 'Ошибка расчета портфеля';
+        alert(message);
+      }
+    });
   }
 
   updateChartData(solution: PortfolioSolution): void {
