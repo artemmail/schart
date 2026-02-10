@@ -1,5 +1,4 @@
-﻿using Binance.Net.Converters;
-using CryptoExchange.Net.Attributes;
+﻿using CryptoExchange.Net.Attributes;
 
 namespace Binance.Net.Enums
 {
@@ -20,9 +19,24 @@ namespace Binance.Net.Enums
         [Map("1")]
         Success,
         /// <summary>
+        /// Rejected
+        /// </summary>
+        [Map("2")]
+        Rejected,
+        /// <summary>
         /// Completed
         /// </summary>
         [Map("6")]
-        Completed
+        Completed,
+        /// <summary>
+        /// Rejected
+        /// </summary>
+        [Map("7")]
+        WrongDeposit,
+        /// <summary>
+        /// Rejected
+        /// </summary>
+        [Map("8")]
+        WaitingUserConfirm,
     }
 }

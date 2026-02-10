@@ -23,9 +23,9 @@ namespace Binance.Net
         public string SpotSocketApiAddress { get; }
 
         /// <summary>
-        /// Blvt Socket API address
+        /// Risk data Socket API address
         /// </summary>
-        public string? BlvtSocketAddress { get; }
+        public string? RiskDataSocketAddress { get; }
 
         /// <summary>
         /// Usd futures Rest address
@@ -73,6 +73,7 @@ namespace Binance.Net
          {
              TradeEnvironmentNames.Live => Live,
              TradeEnvironmentNames.Testnet => Testnet,
+             "demo" => Demo,
              "us" => Us,
              "" => Live,
              null => Live,
@@ -84,7 +85,7 @@ namespace Binance.Net
             string spotRestAddress,
             string spotSocketStreamAddress,
             string spotSocketApiAddress,
-            string? blvtSocketAddress,
+            string? riskDataSocketAddress,
             string? usdFuturesRestAddress,
             string? usdFuturesSocketAddress,
             string? usdFuturesSocketApiAddress,
@@ -96,7 +97,7 @@ namespace Binance.Net
             SpotRestAddress = spotRestAddress;
             SpotSocketStreamAddress = spotSocketStreamAddress;
             SpotSocketApiAddress = spotSocketApiAddress;
-            BlvtSocketAddress = blvtSocketAddress;
+            RiskDataSocketAddress = riskDataSocketAddress;
             UsdFuturesRestAddress = usdFuturesRestAddress;
             UsdFuturesSocketAddress = usdFuturesSocketAddress;
             UsdFuturesSocketApiAddress = usdFuturesSocketApiAddress;
@@ -109,7 +110,7 @@ namespace Binance.Net
         /// Available environment names
         /// </summary>
         /// <returns></returns>
-        public static string[] All => [Live.Name, Testnet.Name];
+        public static string[] All => [Live.Name, Testnet.Name, Demo.Name, Us.Name];
 
         /// <summary>
         /// Live environment
@@ -119,7 +120,7 @@ namespace Binance.Net
                                      BinanceApiAddresses.Default.RestClientAddress,
                                      BinanceApiAddresses.Default.SocketClientStreamAddress,
                                      BinanceApiAddresses.Default.SocketClientApiAddress,
-                                     BinanceApiAddresses.Default.BlvtSocketClientAddress,
+                                     BinanceApiAddresses.Default.RiskDataSocketClientAddress,
                                      BinanceApiAddresses.Default.UsdFuturesRestClientAddress,
                                      BinanceApiAddresses.Default.UsdFuturesSocketClientAddress,
                                      BinanceApiAddresses.Default.UsdFuturesSocketApiClientAddress,
@@ -135,13 +136,29 @@ namespace Binance.Net
                                      BinanceApiAddresses.TestNet.RestClientAddress,
                                      BinanceApiAddresses.TestNet.SocketClientStreamAddress,
                                      BinanceApiAddresses.TestNet.SocketClientApiAddress,
-                                     BinanceApiAddresses.TestNet.BlvtSocketClientAddress,
+                                     BinanceApiAddresses.TestNet.RiskDataSocketClientAddress,
                                      BinanceApiAddresses.TestNet.UsdFuturesRestClientAddress,
                                      BinanceApiAddresses.TestNet.UsdFuturesSocketClientAddress,
                                      BinanceApiAddresses.TestNet.UsdFuturesSocketApiClientAddress,
                                      BinanceApiAddresses.TestNet.CoinFuturesRestClientAddress,
                                      BinanceApiAddresses.TestNet.CoinFuturesSocketClientAddress,
                                      BinanceApiAddresses.TestNet.CoinFuturesSocketApiClientAddress);
+
+        /// <summary>
+        /// Demo environment
+        /// </summary>
+        public static BinanceEnvironment Demo { get; }
+          = new BinanceEnvironment("demo",
+                                   BinanceApiAddresses.Demo.RestClientAddress,
+                                   BinanceApiAddresses.Demo.SocketClientStreamAddress,
+                                   BinanceApiAddresses.Demo.SocketClientApiAddress,
+                                   BinanceApiAddresses.Demo.RiskDataSocketClientAddress,
+                                   BinanceApiAddresses.Demo.UsdFuturesRestClientAddress,
+                                   BinanceApiAddresses.Demo.UsdFuturesSocketClientAddress,
+                                   BinanceApiAddresses.Demo.UsdFuturesSocketApiClientAddress,
+                                   BinanceApiAddresses.Demo.CoinFuturesRestClientAddress,
+                                   BinanceApiAddresses.Demo.CoinFuturesSocketClientAddress,
+                                   BinanceApiAddresses.Demo.CoinFuturesSocketApiClientAddress);
 
         /// <summary>
         /// Binance.us environment
@@ -167,13 +184,13 @@ namespace Binance.Net
                         string spotRestAddress,
                         string spotSocketStreamsAddress,
                         string spotSocketApiAddress,
-                        string? blvtSocketAddress,
+                        string? riskDataSocketAddress,
                         string? usdFuturesRestAddress,
                         string? usdFuturesSocketAddress,
                         string? usdFuturesSocketApiAddress,
                         string? coinFuturesRestAddress,
                         string? coinFuturesSocketAddress,
                         string? coinFuturesSocketApiAddress)
-            => new BinanceEnvironment(name, spotRestAddress, spotSocketStreamsAddress, spotSocketApiAddress, blvtSocketAddress, usdFuturesRestAddress, usdFuturesSocketAddress, usdFuturesSocketApiAddress, coinFuturesRestAddress, coinFuturesSocketAddress, coinFuturesSocketApiAddress);
+            => new BinanceEnvironment(name, spotRestAddress, spotSocketStreamsAddress, spotSocketApiAddress, riskDataSocketAddress, usdFuturesRestAddress, usdFuturesSocketAddress, usdFuturesSocketApiAddress, coinFuturesRestAddress, coinFuturesSocketAddress, coinFuturesSocketApiAddress);
     }
 }

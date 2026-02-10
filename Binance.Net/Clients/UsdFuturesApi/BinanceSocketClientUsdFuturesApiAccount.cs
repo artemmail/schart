@@ -47,6 +47,19 @@ namespace Binance.Net.Clients.UsdFuturesApi
 
         #endregion
 
+
+        #region Get Account Info
+
+        /// <inheritdoc />
+        public async Task<CallResult<BinanceResponse<BinanceFuturesAccountInfo>>> GetAccountInfoV1Async(long? receiveWindow = null, CancellationToken ct = default)
+        {
+            var parameters = new ParameterCollection();
+            parameters.AddOptionalParameter("recvWindow", receiveWindow?.ToString(CultureInfo.InvariantCulture));
+            return await _client.QueryAsync<BinanceFuturesAccountInfo>(_client.ClientOptions.Environment.UsdFuturesSocketApiAddress!.AppendPath("ws-fapi/v1"), $"account.status", parameters, true, true, weight: 5, ct: ct).ConfigureAwait(false);
+        }
+
+        #endregion
+
         #endregion
 
         #region Streams
@@ -65,11 +78,25 @@ namespace Binance.Net.Clients.UsdFuturesApi
             Action<DataEvent<BinanceStrategyUpdate>>? onStrategyUpdate = null,
             Action<DataEvent<BinanceGridUpdate>>? onGridUpdate = null,
             Action<DataEvent<BinanceConditionOrderTriggerRejectUpdate>>? onConditionalOrderTriggerRejectUpdate = null,
+            Action<DataEvent<BinanceAlgoOrderUpdate>>? onAlgoOrderUpdate = null,
             CancellationToken ct = default)
         {
             listenKey.ValidateNotNull(nameof(listenKey));
 
-            var subscription = new BinanceUsdFuturesUserDataSubscription(_logger, new List<string> { listenKey }, onOrderUpdate, onTradeUpdate, onConfigUpdate, onMarginUpdate, onAccountUpdate, onListenKeyExpired, onStrategyUpdate, onGridUpdate, onConditionalOrderTriggerRejectUpdate);
+            var subscription = new BinanceUsdFuturesUserDataSubscription(
+                _logger,
+                _client,
+                listenKey,
+                onOrderUpdate,
+                onTradeUpdate,
+                onConfigUpdate,
+                onMarginUpdate,
+                onAccountUpdate,
+                onListenKeyExpired,
+                onStrategyUpdate,
+                onGridUpdate,
+                onConditionalOrderTriggerRejectUpdate,
+                onAlgoOrderUpdate);
             return await _client.SubscribeInternalAsync(_client.BaseAddress, subscription, ct).ConfigureAwait(false);
         }
 

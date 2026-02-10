@@ -1,5 +1,4 @@
 ﻿using Binance.Net.Enums;
-using CryptoExchange.Net.Converters;
 
 namespace Binance.Net.Objects.Models.Spot
 {
@@ -15,6 +14,12 @@ namespace Binance.Net.Objects.Models.Spot
         [JsonConverter(typeof(DateTimeConverter))]
         [JsonPropertyName("insertTime")]
         public DateTime InsertTime { get; set; }
+        /// <summary>
+        /// Time the deposit was completed
+        /// </summary>
+        [JsonConverter(typeof(DateTimeConverter))]
+        [JsonPropertyName("completeTime")]
+        public DateTime? CompleteTime { get; set; }
         /// <summary>
         /// The quantity deposited
         /// </summary>
@@ -83,5 +88,10 @@ namespace Binance.Net.Objects.Models.Spot
         /// </summary>
         [JsonPropertyName("sourceAddress")]
         public string? SourceAddress { get; set; }
+        /// <summary>
+        /// Travel rule status
+        /// </summary>
+        [JsonPropertyName("travelRuleStatus")]
+        public TravelRuleStatus TravelRuleStatus { get; set; }
     }
 }

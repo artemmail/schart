@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
-using Binance.Net.Converters;
 using Binance.Net.Enums;
 using Binance.Net.Interfaces;
 using Binance.Net.Interfaces.Clients.SpotApi;
@@ -165,7 +164,7 @@ namespace Binance.Net.Clients.SpotApi
                 return data.As<BinanceProduct[]>(null);
 
             if (!data.Data.Success)
-                return data.AsError<BinanceProduct[]>(new ServerError(data.Data.Code, data.Data.Message + " - " + data.Data.MessageDetail));
+                return data.AsError<BinanceProduct[]>(new ServerError(data.Data.Code.ToString(), _baseClient.GetErrorInfo(data.Data.Code, data.Data.Message + " - " + data.Data.MessageDetail)));
 
             return data.As(data.Data.Data);
         }
@@ -311,9 +310,10 @@ namespace Binance.Net.Clients.SpotApi
         }
 
         /// <inheritdoc />
-        public async Task<WebCallResult<IBinanceTick[]>> GetTickersAsync(IEnumerable<string> symbols, CancellationToken ct = default)
+        public async Task<WebCallResult<IBinanceTick[]>> GetTickersAsync(IEnumerable<string> symbols, SymbolStatusFilter? symbolStatus = null, CancellationToken ct = default)
         {
             var parameters = new ParameterCollection { { "symbols", $"[{string.Join(",", symbols.Select(s => $"\"{s}\""))}]" } };
+            parameters.AddOptionalEnum("symbolStatus", symbolStatus);
             var symbolCount = symbols.Count();
             var weight = symbolCount <= 20 ? 2 : symbolCount <= 100 ? 40 : 80;
 
@@ -323,10 +323,12 @@ namespace Binance.Net.Clients.SpotApi
         }
 
         /// <inheritdoc />
-        public async Task<WebCallResult<IBinanceTick[]>> GetTickersAsync(CancellationToken ct = default)
+        public async Task<WebCallResult<IBinanceTick[]>> GetTickersAsync(SymbolStatusFilter? symbolStatus = null, CancellationToken ct = default)
         {
+            var parameters = new ParameterCollection();
+            parameters.AddOptionalEnum("symbolStatus", symbolStatus);
             var request = _definitions.GetOrCreate(HttpMethod.Get, "api/v3/ticker/24hr", BinanceExchange.RateLimiter.SpotRestIp, 80);
-            var result = await _baseClient.SendAsync<Binance24HPrice[]>(request, null, ct, 80).ConfigureAwait(false);
+            var result = await _baseClient.SendAsync<Binance24HPrice[]>(request, parameters, ct, 80).ConfigureAwait(false);
             return result.As<IBinanceTick[]>(result.Data);
         }
 
@@ -347,9 +349,10 @@ namespace Binance.Net.Clients.SpotApi
         }
 
         /// <inheritdoc />
-        public async Task<WebCallResult<BinanceTradingDayTicker[]>> GetTradingDayTickersAsync(IEnumerable<string> symbols, string? timeZone = null, CancellationToken ct = default)
+        public async Task<WebCallResult<BinanceTradingDayTicker[]>> GetTradingDayTickersAsync(IEnumerable<string> symbols, string? timeZone = null, SymbolStatusFilter? symbolStatus = null, CancellationToken ct = default)
         {
             var parameters = new ParameterCollection { { "symbols", $"[{string.Join(",", symbols.Select(s => $"\"{s}\""))}]" } };
+            parameters.AddOptionalEnum("symbolStatus", symbolStatus);
             parameters.AddOptional("timeZone", timeZone);
             var symbolCount = symbols.Count();
             var weight = Math.Min(symbolCount * 4, 50);
@@ -373,10 +376,11 @@ namespace Binance.Net.Clients.SpotApi
         }
 
         /// <inheritdoc />
-        public async Task<WebCallResult<IBinance24HPrice[]>> GetRollingWindowTickersAsync(IEnumerable<string> symbols, TimeSpan? windowSize = null, CancellationToken ct = default)
+        public async Task<WebCallResult<IBinance24HPrice[]>> GetRollingWindowTickersAsync(IEnumerable<string> symbols, TimeSpan? windowSize = null, SymbolStatusFilter? symbolStatus = null, CancellationToken ct = default)
         {
             var parameters = new ParameterCollection { { "symbols", $"[{string.Join(",", symbols.Select(s => $"\"{s}\""))}]" } };
             parameters.AddOptionalParameter("windowSize", windowSize == null ? null : GetWindowSize(windowSize.Value));
+            parameters.AddOptionalEnum("symbolStatus", symbolStatus);
             var symbolCount = symbols.Count();
             var weight = Math.Min(symbolCount * 4, 100);
 
@@ -410,18 +414,21 @@ namespace Binance.Net.Clients.SpotApi
         }
 
         /// <inheritdoc />
-        public async Task<WebCallResult<BinancePrice[]>> GetPricesAsync(IEnumerable<string> symbols, CancellationToken ct = default)
+        public async Task<WebCallResult<BinancePrice[]>> GetPricesAsync(IEnumerable<string> symbols, SymbolStatusFilter? symbolStatus = null, CancellationToken ct = default)
         {
             var parameters = new ParameterCollection { { "symbols", $"[{string.Join(",", symbols.Select(s => $"\"{s}\""))}]" } };
+            parameters.AddOptionalEnum("symbolStatus", symbolStatus);
             var request = _definitions.GetOrCreate(HttpMethod.Get, "api/v3/ticker/price", BinanceExchange.RateLimiter.SpotRestIp, 4);
             return await _baseClient.SendAsync<BinancePrice[]>(request, parameters, ct, 4).ConfigureAwait(false);
         }
 
         /// <inheritdoc />
-        public async Task<WebCallResult<BinancePrice[]>> GetPricesAsync(CancellationToken ct = default)
+        public async Task<WebCallResult<BinancePrice[]>> GetPricesAsync(SymbolStatusFilter? symbolStatus = null, CancellationToken ct = default)
         {
+            var parameters = new ParameterCollection();
+            parameters.AddOptionalEnum("symbolStatus", symbolStatus);
             var request = _definitions.GetOrCreate(HttpMethod.Get, "api/v3/ticker/price", BinanceExchange.RateLimiter.SpotRestIp, 4);
-            return await _baseClient.SendAsync<BinancePrice[]>(request, null, ct, 4).ConfigureAwait(false);
+            return await _baseClient.SendAsync<BinancePrice[]>(request, parameters, ct, 4).ConfigureAwait(false);
         }
 
         #endregion
@@ -438,19 +445,21 @@ namespace Binance.Net.Clients.SpotApi
         }
 
         /// <inheritdoc />
-        public async Task<WebCallResult<BinanceBookPrice[]>> GetBookPricesAsync(IEnumerable<string> symbols, CancellationToken ct = default)
+        public async Task<WebCallResult<BinanceBookPrice[]>> GetBookPricesAsync(IEnumerable<string> symbols, SymbolStatusFilter? symbolStatus = null, CancellationToken ct = default)
         {
             var parameters = new ParameterCollection { { "symbols", $"[{string.Join(",", symbols.Select(s => $"\"{s}\""))}]" } };
-
+            parameters.AddOptionalEnum("symbolStatus", symbolStatus);
             var request = _definitions.GetOrCreate(HttpMethod.Get, "api/v3/ticker/bookTicker", BinanceExchange.RateLimiter.SpotRestIp, 4);
             return await _baseClient.SendAsync<BinanceBookPrice[]>(request, parameters, ct, 4).ConfigureAwait(false);
         }
 
         /// <inheritdoc />
-        public async Task<WebCallResult<BinanceBookPrice[]>> GetBookPricesAsync(CancellationToken ct = default)
+        public async Task<WebCallResult<BinanceBookPrice[]>> GetBookPricesAsync(SymbolStatusFilter? symbolStatus = null, CancellationToken ct = default)
         {
+            var parameters = new ParameterCollection();
+            parameters.AddOptionalEnum("symbolStatus", symbolStatus);
             var request = _definitions.GetOrCreate(HttpMethod.Get, "api/v3/ticker/bookTicker", BinanceExchange.RateLimiter.SpotRestIp, 4);
-            return await _baseClient.SendAsync<BinanceBookPrice[]>(request, null, ct, 4).ConfigureAwait(false);
+            return await _baseClient.SendAsync<BinanceBookPrice[]>(request, parameters, ct, 4).ConfigureAwait(false);
         }
 
         #endregion
@@ -591,7 +600,7 @@ namespace Binance.Net.Clients.SpotApi
         #region Query Isolated Margin Tier Data
 
         /// <inheritdoc />
-        public async Task<WebCallResult<BinanceIsolatedMarginTier[]>> GetIsolatedMarginTierDataAsync(string symbol, int? tier = null, int? receiveWindow = null, CancellationToken ct = default)
+        public async Task<WebCallResult<BinanceIsolatedMarginTierData[]>> GetIsolatedMarginTierDataAsync(string symbol, int? tier = null, int? receiveWindow = null, CancellationToken ct = default)
         {
             var parameters = new ParameterCollection();
             parameters.Add("symbol", symbol);
@@ -599,7 +608,7 @@ namespace Binance.Net.Clients.SpotApi
             parameters.AddOptionalParameter("recvWindow", receiveWindow?.ToString(CultureInfo.InvariantCulture) ?? _baseClient.ClientOptions.ReceiveWindow.TotalMilliseconds.ToString(CultureInfo.InvariantCulture));
 
             var request = _definitions.GetOrCreate(HttpMethod.Get, "sapi/v1/margin/isolatedMarginTier", BinanceExchange.RateLimiter.SpotRestIp, 1, true);
-            return await _baseClient.SendAsync<BinanceIsolatedMarginTier[]>(request, parameters, ct).ConfigureAwait(false);
+            return await _baseClient.SendAsync<BinanceIsolatedMarginTierData[]>(request, parameters, ct).ConfigureAwait(false);
         }
 
         #endregion

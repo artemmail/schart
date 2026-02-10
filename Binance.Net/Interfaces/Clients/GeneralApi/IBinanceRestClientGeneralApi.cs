@@ -1,4 +1,6 @@
-﻿namespace Binance.Net.Interfaces.Clients.GeneralApi
+﻿using CryptoExchange.Net.Interfaces.Clients;
+
+namespace Binance.Net.Interfaces.Clients.GeneralApi
 {
     /// <summary>
     /// Binance general API endpoints
@@ -58,5 +60,16 @@
         /// </summary>
         /// <see cref="IBinanceRestClientGeneralApiCopyTrading"/>
         IBinanceRestClientGeneralApiCopyTrading CopyTrading { get; }
+
+        /// <summary>
+        /// Endpoints related to Binance Gift Cards
+        /// </summary>
+        public IBinanceRestClientGeneralApiGiftCard GiftCard { get; }
+
+        /// <summary>
+        /// Endpoints related to Binance Nft
+        /// </summary>
+        /// <see cref="IBinanceRestClientGeneralApiNft"/>
+        IBinanceRestClientGeneralApiNft Nft { get; }
     }
 }

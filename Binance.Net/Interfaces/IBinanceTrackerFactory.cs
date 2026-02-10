@@ -1,31 +1,53 @@
-﻿using CryptoExchange.Net.SharedApis;
-using CryptoExchange.Net.Trackers.Klines;
-using CryptoExchange.Net.Trackers.Trades;
+﻿using CryptoExchange.Net.Trackers.UserData.Interfaces;
+using CryptoExchange.Net.Trackers.UserData.Objects;
 
 namespace Binance.Net.Interfaces
 {
     /// <summary>
     /// Tracker factory
     /// </summary>
-    public interface IBinanceTrackerFactory
+    public interface IBinanceTrackerFactory : ITrackerFactory
     {
         /// <summary>
-        /// Create a new kline tracker
+        /// Create a new Spot user data tracker
         /// </summary>
-        /// <param name="symbol">The symbol</param>
-        /// <param name="interval">Kline interval</param>
-        /// <param name="limit">The max amount of klines to retain</param>
-        /// <param name="period">The max period the data should be retained</param>
-        /// <returns></returns>
-        IKlineTracker CreateKlineTracker(SharedSymbol symbol, SharedKlineInterval interval, int? limit = null, TimeSpan? period = null);
+        /// <param name="userIdentifier">User identifier</param>
+        /// <param name="config">Configuration</param>
+        /// <param name="credentials">Credentials</param>
+        /// <param name="environment">Environment</param>
+        IUserSpotDataTracker CreateUserSpotDataTracker(string userIdentifier, ApiCredentials credentials, SpotUserDataTrackerConfig? config = null, BinanceEnvironment? environment = null);
+        /// <summary>
+        /// Create a new spot user data tracker
+        /// </summary>
+        /// <param name="config">Configuration</param>
+        IUserSpotDataTracker CreateUserSpotDataTracker(SpotUserDataTrackerConfig? config = null);
 
         /// <summary>
-        /// Create a new trade tracker for a symbol
+        /// Create a new linear futures user data tracker
         /// </summary>
-        /// <param name="symbol">The symbol</param>
-        /// <param name="limit">The max amount of klines to retain</param>
-        /// <param name="period">The max period the data should be retained</param>
-        /// <returns></returns>
-        ITradeTracker CreateTradeTracker(SharedSymbol symbol, int? limit = null, TimeSpan? period = null);
+        /// <param name="userIdentifier">User identifier</param>
+        /// <param name="config">Configuration</param>
+        /// <param name="credentials">Credentials</param>
+        /// <param name="environment">Environment</param>
+        IUserFuturesDataTracker CreateUserUsdFuturesDataTracker(string userIdentifier, ApiCredentials credentials, FuturesUserDataTrackerConfig? config = null, BinanceEnvironment? environment = null);
+        /// <summary>
+        /// Create a new linear futures user data tracker
+        /// </summary>
+        /// <param name="config">Configuration</param>
+        IUserFuturesDataTracker CreateUserUsdFuturesDataTracker(FuturesUserDataTrackerConfig? config = null);
+
+        /// <summary>
+        /// Create a new inverse futures user data tracker
+        /// </summary>
+        /// <param name="userIdentifier">User identifier</param>
+        /// <param name="config">Configuration</param>
+        /// <param name="credentials">Credentials</param>
+        /// <param name="environment">Environment</param>
+        IUserFuturesDataTracker CreateUserCoinFuturesDataTracker(string userIdentifier, ApiCredentials credentials, FuturesUserDataTrackerConfig? config = null, BinanceEnvironment? environment = null);
+        /// <summary>
+        /// Create a new inverse futures user data tracker
+        /// </summary>
+        /// <param name="config">Configuration</param>
+        IUserFuturesDataTracker CreateUserCoinFuturesDataTracker(FuturesUserDataTrackerConfig? config = null);
     }
 }

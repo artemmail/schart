@@ -1,5 +1,4 @@
 ﻿using Binance.Net.Enums;
-using System.Diagnostics;
 using Binance.Net.Objects.Models.Spot;
 using System.Text.Json;
 using System.Diagnostics.CodeAnalysis;
@@ -117,11 +116,23 @@ namespace Binance.Net.Converters
                         MaxNumIcebergOrders = obj.TryGetProperty("maxNumIcebergOrders", out var ele) ? ele.GetInt32() : 0
                     };
                     break;
+                case SymbolFilterType.OrderAmends:
+                    result = new BinanceMaxNumberOfOrderAmendsFilter
+                    {
+                        MaxNumOrderAmends = obj.TryGetProperty("maxNumOrderAmends", out var maxAm) ? maxAm.GetInt32() : 0
+                    };
+                    break;
+                case SymbolFilterType.OrderLists:
+                    result = new BinanceMaxNumberOfOrderListsFilter
+                    {
+                        MaxNumOrderLists = obj.TryGetProperty("maxNumOrderLists", out var maxLists) ? maxLists.GetInt32() : 0
+                    };
+                    break;
                 case SymbolFilterType.PositionRiskControl:
                     result = new BinanceSymbolFilter();
                     break;
                 default:
-                    Trace.WriteLine($"{DateTime.Now:yyyy/MM/dd HH:mm:ss:fff} | Warning | Can't parse symbol filter of type: " + obj.GetProperty("filterType").GetString());
+                    LibraryHelpers.StaticLogger?.LogWarning("Can't parse symbol filter of type: " + obj.GetProperty("filterType").GetString());
                     result = new BinanceSymbolFilter();
                     break;
             }

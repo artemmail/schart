@@ -2,6 +2,8 @@
 using Binance.Net.Enums;
 using Binance.Net.Interfaces.Clients.SpotApi;
 using Binance.Net.Objects;
+using CryptoExchange.Net.Objects.Errors;
+using Binance.Net.Objects.Sockets;
 
 namespace Binance.Net.Clients.SpotApi
 {
@@ -47,10 +49,14 @@ namespace Binance.Net.Clients.SpotApi
             if (!rulesCheck.Passed)
             {
                 _logger.Log(LogLevel.Warning, rulesCheck.ErrorMessage!);
-                return new CallResult<BinanceResponse<BinancePlacedOrder>>(new ArgumentError(rulesCheck.ErrorMessage!));
+                return new CallResult<BinanceResponse<BinancePlacedOrder>>(ArgumentError.Invalid(rulesCheck.ErrorParameter!, rulesCheck.ErrorMessage!));
             }
 
-            string clientOrderId = LibraryHelpers.ApplyBrokerId(newClientOrderId, BinanceExchange.ClientOrderIdSpot, 36, _client.ClientOptions.AllowAppendingClientOrderId);
+            string clientOrderId = LibraryHelpers.ApplyBrokerId(
+                    newClientOrderId,
+                    LibraryHelpers.GetClientReference(() => _client.ClientOptions.BrokerId, _client.Exchange, "Spot"),
+                    36,
+                    _client.ClientOptions.AllowAppendingClientOrderId);
 
             var parameters = new ParameterCollection();
             parameters.AddParameter("symbol", symbol);
@@ -117,7 +123,13 @@ namespace Binance.Net.Clients.SpotApi
         public async Task<CallResult<BinanceResponse<BinanceOrder>>> GetOrderAsync(string symbol, long? orderId = null, string? clientOrderId = null, CancellationToken ct = default)
         {
             if (clientOrderId != null)
-                clientOrderId = LibraryHelpers.ApplyBrokerId(clientOrderId, BinanceExchange.ClientOrderIdSpot, 36, _client.ClientOptions.AllowAppendingClientOrderId);
+            {
+                clientOrderId = LibraryHelpers.ApplyBrokerId(
+                    clientOrderId,
+                    LibraryHelpers.GetClientReference(() => _client.ClientOptions.BrokerId, _client.Exchange, "Spot"),
+                    36,
+                    _client.ClientOptions.AllowAppendingClientOrderId);
+            }
 
             var parameters = new Dictionary<string, object>();
             parameters.AddParameter("symbol", symbol);
@@ -134,10 +146,22 @@ namespace Binance.Net.Clients.SpotApi
         public async Task<CallResult<BinanceResponse<BinanceOrder>>> CancelOrderAsync(string symbol, long? orderId = null, string? clientOrderId = null, string? newClientOrderId = null, CancellationToken ct = default)
         {
             if (clientOrderId != null)
-                clientOrderId = LibraryHelpers.ApplyBrokerId(clientOrderId, BinanceExchange.ClientOrderIdSpot, 36, _client.ClientOptions.AllowAppendingClientOrderId);
+            {
+                clientOrderId = LibraryHelpers.ApplyBrokerId(
+                    clientOrderId,
+                    LibraryHelpers.GetClientReference(() => _client.ClientOptions.BrokerId, _client.Exchange, "Spot"),
+                    36,
+                    _client.ClientOptions.AllowAppendingClientOrderId);
+            }
 
             if (newClientOrderId != null)
-                newClientOrderId = LibraryHelpers.ApplyBrokerId(newClientOrderId, BinanceExchange.ClientOrderIdSpot, 36, _client.ClientOptions.AllowAppendingClientOrderId);
+            {
+                newClientOrderId = LibraryHelpers.ApplyBrokerId(
+                    newClientOrderId,
+                    LibraryHelpers.GetClientReference(() => _client.ClientOptions.BrokerId, _client.Exchange, "Spot"),
+                    36,
+                    _client.ClientOptions.AllowAppendingClientOrderId);
+            }
 
             var parameters = new Dictionary<string, object>();
             parameters.AddParameter("symbol", symbol);
@@ -172,13 +196,29 @@ namespace Binance.Net.Clients.SpotApi
             int? strategyType = null,
             CancellationToken ct = default)
         {
-            string clientOrderId = LibraryHelpers.ApplyBrokerId(newClientOrderId, BinanceExchange.ClientOrderIdSpot, 36, _client.ClientOptions.AllowAppendingClientOrderId);
+            string clientOrderId = LibraryHelpers.ApplyBrokerId(
+                    newClientOrderId,
+                    LibraryHelpers.GetClientReference(() => _client.ClientOptions.BrokerId, _client.Exchange, "Spot"),
+                    36,
+                    _client.ClientOptions.AllowAppendingClientOrderId);
 
             if (newCancelClientOrderId != null)
-                newCancelClientOrderId = LibraryHelpers.ApplyBrokerId(newCancelClientOrderId, BinanceExchange.ClientOrderIdSpot, 36, _client.ClientOptions.AllowAppendingClientOrderId);
+            {
+                newCancelClientOrderId = LibraryHelpers.ApplyBrokerId(
+                    newCancelClientOrderId,
+                    LibraryHelpers.GetClientReference(() => _client.ClientOptions.BrokerId, _client.Exchange, "Spot"),
+                    36,
+                    _client.ClientOptions.AllowAppendingClientOrderId);
+            }
 
             if (cancelClientOrderId != null)
-                cancelClientOrderId = LibraryHelpers.ApplyBrokerId(cancelClientOrderId, BinanceExchange.ClientOrderIdSpot, 36, _client.ClientOptions.AllowAppendingClientOrderId);
+            {
+                cancelClientOrderId = LibraryHelpers.ApplyBrokerId(
+                    cancelClientOrderId,
+                    LibraryHelpers.GetClientReference(() => _client.ClientOptions.BrokerId, _client.Exchange, "Spot"),
+                    36,
+                    _client.ClientOptions.AllowAppendingClientOrderId);
+            }
 
             var parameters = new ParameterCollection
             {
@@ -202,7 +242,29 @@ namespace Binance.Net.Clients.SpotApi
             parameters.AddOptionalEnum("newOrderRespType", orderResponseType);
             parameters.AddOptionalParameter("trailingDelta", trailingDelta?.ToString(CultureInfo.InvariantCulture));
 
-            return await _client.QueryAsync<BinanceReplaceOrderResult>(_client.ClientOptions.Environment.SpotSocketApiAddress.AppendPath("ws-api/v3"), $"order.cancelReplace", parameters, true, true, ct: ct).ConfigureAwait(false);
+            var result = await _client.QueryAsync(
+                _client.ClientOptions.Environment.SpotSocketApiAddress.AppendPath("ws-api/v3"),
+                $"order.cancelReplace",
+                parameters,
+                (client, request) => new BinanceSpotOrderReplaceQuery(client, request, false),
+                true,
+                true,
+                ct: ct).ConfigureAwait(false);
+            if (!result)
+                return result.As<BinanceResponse<BinanceReplaceOrderResult>>(default);
+
+            if (result.Data == null)
+                return result.AsError<BinanceResponse<BinanceReplaceOrderResult>>(new ServerError(ErrorInfo.Unknown));
+
+            if (result.Data.Result.NewOrderResult == OrderOperationResult.NotAttempted)
+                // Not attempted because cancel failed
+                return result.AsErrorWithData<BinanceResponse<BinanceReplaceOrderResult>>(new ServerError(result.Data.Result.CancelResponse!.Code!.Value, _client.GetErrorInfo(result.Data.Result.CancelResponse.Code.Value, result.Data.Result.CancelResponse.Message)), result.Data);
+
+            if (result.Data.Result.NewOrderResult == OrderOperationResult.Failure)
+                // New order attempted; if cancel failed this still takes priority since cancelReplaceMode was AllowFailure
+                return result.AsErrorWithData<BinanceResponse<BinanceReplaceOrderResult>>(new ServerError(result.Data.Result.NewOrderResponse!.Code!.Value, _client.GetErrorInfo(result.Data.Result.NewOrderResponse.Code.Value, result.Data.Result.NewOrderResponse.Message)), result.Data);
+
+            return result;
         }
 
         #endregion
@@ -256,9 +318,21 @@ namespace Binance.Net.Clients.SpotApi
             SelfTradePreventionMode? selfTradePreventionMode = null,
             CancellationToken ct = default)
         {
-            limitClientOrderId = LibraryHelpers.ApplyBrokerId(limitClientOrderId, BinanceExchange.ClientOrderIdSpot, 36, _client.ClientOptions.AllowAppendingClientOrderId);
-            stopClientOrderId = LibraryHelpers.ApplyBrokerId(stopClientOrderId, BinanceExchange.ClientOrderIdSpot, 36, _client.ClientOptions.AllowAppendingClientOrderId);
-            listClientOrderId = LibraryHelpers.ApplyBrokerId(listClientOrderId, BinanceExchange.ClientOrderIdSpot, 36, _client.ClientOptions.AllowAppendingClientOrderId);
+            limitClientOrderId = LibraryHelpers.ApplyBrokerId(
+                    limitClientOrderId,
+                    LibraryHelpers.GetClientReference(() => _client.ClientOptions.BrokerId, _client.Exchange, "Spot"),
+                    36,
+                    _client.ClientOptions.AllowAppendingClientOrderId);
+            stopClientOrderId = LibraryHelpers.ApplyBrokerId(
+                    stopClientOrderId,
+                    LibraryHelpers.GetClientReference(() => _client.ClientOptions.BrokerId, _client.Exchange, "Spot"),
+                    36,
+                    _client.ClientOptions.AllowAppendingClientOrderId);
+            listClientOrderId = LibraryHelpers.ApplyBrokerId(
+                    listClientOrderId,
+                    LibraryHelpers.GetClientReference(() => _client.ClientOptions.BrokerId, _client.Exchange, "Spot"),
+                    36,
+                    _client.ClientOptions.AllowAppendingClientOrderId);
 
             var parameters = new ParameterCollection
             {
@@ -324,9 +398,21 @@ namespace Binance.Net.Clients.SpotApi
             string? listClientOrderId = null,
             CancellationToken ct = default)
         {
-            aboveClientOrderId = LibraryHelpers.ApplyBrokerId(aboveClientOrderId, BinanceExchange.ClientOrderIdSpot, 36, _client.ClientOptions.AllowAppendingClientOrderId);
-            belowClientOrderId = LibraryHelpers.ApplyBrokerId(belowClientOrderId, BinanceExchange.ClientOrderIdSpot, 36, _client.ClientOptions.AllowAppendingClientOrderId);
-            listClientOrderId = LibraryHelpers.ApplyBrokerId(listClientOrderId, BinanceExchange.ClientOrderIdSpot, 36, _client.ClientOptions.AllowAppendingClientOrderId);
+            aboveClientOrderId = LibraryHelpers.ApplyBrokerId(
+                    aboveClientOrderId,
+                    LibraryHelpers.GetClientReference(() => _client.ClientOptions.BrokerId, _client.Exchange, "Spot"),
+                    36,
+                    _client.ClientOptions.AllowAppendingClientOrderId);
+            belowClientOrderId = LibraryHelpers.ApplyBrokerId(
+                    belowClientOrderId,
+                    LibraryHelpers.GetClientReference(() => _client.ClientOptions.BrokerId, _client.Exchange, "Spot"),
+                    36,
+                    _client.ClientOptions.AllowAppendingClientOrderId);
+            listClientOrderId = LibraryHelpers.ApplyBrokerId(
+                    listClientOrderId,
+                    LibraryHelpers.GetClientReference(() => _client.ClientOptions.BrokerId, _client.Exchange, "Spot"),
+                    36,
+                    _client.ClientOptions.AllowAppendingClientOrderId);
 
             var parameters = new ParameterCollection
             {
@@ -368,7 +454,13 @@ namespace Binance.Net.Clients.SpotApi
         public async Task<CallResult<BinanceResponse<BinanceOrderOcoList>>> GetOcoOrderAsync(long? orderId = null, string? clientOrderId = null, CancellationToken ct = default)
         {
             if (clientOrderId != null)
-                clientOrderId = LibraryHelpers.ApplyBrokerId(clientOrderId, BinanceExchange.ClientOrderIdSpot, 36, _client.ClientOptions.AllowAppendingClientOrderId);
+            {
+                clientOrderId = LibraryHelpers.ApplyBrokerId(
+                    clientOrderId,
+                    LibraryHelpers.GetClientReference(() => _client.ClientOptions.BrokerId, _client.Exchange, "Spot"),
+                    36,
+                    _client.ClientOptions.AllowAppendingClientOrderId);
+            }
 
             var parameters = new Dictionary<string, object>();
             parameters.AddOptionalParameter("orderListId", orderId);
@@ -384,10 +476,22 @@ namespace Binance.Net.Clients.SpotApi
         public async Task<CallResult<BinanceResponse<BinanceOrderOcoList>>> CancelOcoOrderAsync(string symbol, long? orderId = null, string? clientOrderId = null, string? newClientOrderId = null, CancellationToken ct = default)
         {
             if (clientOrderId != null)
-                clientOrderId = LibraryHelpers.ApplyBrokerId(clientOrderId, BinanceExchange.ClientOrderIdSpot, 36, _client.ClientOptions.AllowAppendingClientOrderId);
+            {
+                clientOrderId = LibraryHelpers.ApplyBrokerId(
+                    clientOrderId,
+                    LibraryHelpers.GetClientReference(() => _client.ClientOptions.BrokerId, _client.Exchange, "Spot"),
+                    36,
+                    _client.ClientOptions.AllowAppendingClientOrderId);
+            }
 
             if (newClientOrderId != null)
-                newClientOrderId = LibraryHelpers.ApplyBrokerId(newClientOrderId, BinanceExchange.ClientOrderIdSpot, 36, _client.ClientOptions.AllowAppendingClientOrderId);
+            {
+                newClientOrderId = LibraryHelpers.ApplyBrokerId(
+                    newClientOrderId,
+                    LibraryHelpers.GetClientReference(() => _client.ClientOptions.BrokerId, _client.Exchange, "Spot"),
+                    36,
+                    _client.ClientOptions.AllowAppendingClientOrderId);
+            }
 
             var parameters = new Dictionary<string, object>();
             parameters.AddParameter("symbol", symbol);

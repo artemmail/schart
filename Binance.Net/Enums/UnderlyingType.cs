@@ -1,5 +1,4 @@
-﻿using Binance.Net.Converters;
-using CryptoExchange.Net.Attributes;
+﻿using CryptoExchange.Net.Attributes;
 
 namespace Binance.Net.Enums
 {
@@ -18,6 +17,21 @@ namespace Binance.Net.Enums
         /// Index
         /// </summary>
         [Map("INDEX")]
-        Index
+        Index,
+        /// <summary>
+        /// Pre-market
+        /// </summary>
+        [Map("PREMARKET")]
+        PreMarket,
+        /// <summary>
+        /// Commodity
+        /// </summary>
+        [Map("COMMODITY")]
+        Commodity,
+        /// <summary>
+        /// Equity
+        /// </summary>
+        [Map("EQUITY")]
+        Equity
     }
 }

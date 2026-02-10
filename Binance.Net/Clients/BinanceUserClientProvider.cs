@@ -1,13 +1,7 @@
 ﻿using Binance.Net.Interfaces.Clients;
 using Binance.Net.Objects.Options;
-using CryptoExchange.Net.Authentication;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Net.Http;
 
 namespace Binance.Net.Clients
 {
@@ -21,6 +15,9 @@ namespace Binance.Net.Clients
         private readonly IOptions<BinanceSocketOptions> _socketOptions;
         private readonly HttpClient _httpClient;
         private readonly ILoggerFactory? _loggerFactory;
+
+        /// <inheritdoc />
+        public string ExchangeName => BinanceExchange.ExchangeName;
 
         /// <summary>
         /// ctor
@@ -54,9 +51,16 @@ namespace Binance.Net.Clients
         }
 
         /// <inheritdoc />
+        public void ClearUserClients(string userIdentifier)
+        {
+            _restClients.TryRemove(userIdentifier, out _);
+            _socketClients.TryRemove(userIdentifier, out _);
+        }
+
+        /// <inheritdoc />
         public IBinanceRestClient GetRestClient(string userIdentifier, ApiCredentials? credentials = null, BinanceEnvironment? environment = null)
         {
-            if (!_restClients.TryGetValue(userIdentifier, out var client))
+            if (!_restClients.TryGetValue(userIdentifier, out var client) || client.Disposed)
                 client = CreateRestClient(userIdentifier, credentials, environment);
 
             return client;
@@ -65,7 +69,7 @@ namespace Binance.Net.Clients
         /// <inheritdoc />
         public IBinanceSocketClient GetSocketClient(string userIdentifier, ApiCredentials? credentials = null, BinanceEnvironment? environment = null)
         {
-            if (!_socketClients.TryGetValue(userIdentifier, out var client))
+            if (!_socketClients.TryGetValue(userIdentifier, out var client) || client.Disposed)
                 client = CreateSocketClient(userIdentifier, credentials, environment);
 
             return client;

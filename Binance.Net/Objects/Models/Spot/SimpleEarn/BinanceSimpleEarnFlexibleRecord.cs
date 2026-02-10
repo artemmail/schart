@@ -1,5 +1,4 @@
-﻿using Binance.Net.Converters;
-using Binance.Net.Enums;
+﻿using Binance.Net.Enums;
 
 namespace Binance.Net.Objects.Models.Spot.SimpleEarn
 {
@@ -30,6 +29,11 @@ namespace Binance.Net.Objects.Models.Spot.SimpleEarn
         [JsonPropertyName("purchaseId")]
         public long PurchaseId { get; set; }
         /// <summary>
+        /// Product id
+        /// </summary>
+        [JsonPropertyName("productId")]
+        public string ProductId { get; set; } = string.Empty;
+        /// <summary>
         /// Subscription type
         /// </summary>
         [JsonPropertyName("type")]
@@ -53,6 +57,6 @@ namespace Binance.Net.Objects.Models.Spot.SimpleEarn
         /// Status
         /// </summary>
         [JsonPropertyName("status")]
-        public SubscriptionStatus Status { get; set; }
+        public Enums.SubscriptionStatus Status { get; set; }
     }
 }

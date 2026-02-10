@@ -1,6 +1,5 @@
 ﻿using Binance.Net.Converters;
 using Binance.Net.Enums;
-using CryptoExchange.Net.Converters;
 
 namespace Binance.Net.Objects.Models
 {
@@ -38,7 +37,7 @@ namespace Binance.Net.Objects.Models
         /// The order id as assigned by the client
         /// </summary>
         [JsonPropertyName("clientOrderId")]
-        [JsonConverter(typeof(ClientOrderIdReplaceConverter))] // TODO TEST
+        [JsonConverter(typeof(ClientOrderIdReplaceConverter))]
         public string ClientOrderId { get; set; } = string.Empty;
 
         private decimal _price;
@@ -198,5 +197,25 @@ namespace Binance.Net.Objects.Models
         /// </summary>
         [JsonPropertyName("preventedQuantity")]
         public decimal? PreventedMatchQuantity { get; set; }
+        /// <summary>
+        /// Peg price type
+        /// </summary>
+        [JsonPropertyName("pegPriceType")]
+        public PegPriceType? PegPriceType { get; set; }
+        /// <summary>
+        /// Peg offset value
+        /// </summary>
+        [JsonPropertyName("pegOffsetValue")]
+        public int? PegOffsetValue { get; set; }
+        /// <summary>
+        /// Peg offset type
+        /// </summary>
+        [JsonPropertyName("pegOffsetType")]
+        public PegOffsetType? PegOffsetType { get; set; }
+        /// <summary>
+        /// Pegged price
+        /// </summary>
+        [JsonPropertyName("peggedPrice")]
+        public decimal? PeggedPrice { get; set; }
     }
 }

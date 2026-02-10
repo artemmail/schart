@@ -1,5 +1,4 @@
-﻿using Binance.Net.Converters;
-using CryptoExchange.Net.Attributes;
+﻿using CryptoExchange.Net.Attributes;
 
 namespace Binance.Net.Enums
 {
@@ -47,7 +46,7 @@ namespace Binance.Net.Enums
         /// <summary>
         /// Not enough balance
         /// </summary>
-        [Map("INSUFFICIENT_BALANCE")]
+        [Map("INSUFFICIENT_BALANCE", "INSUFFICIENT_BALANCES")]
         InsufficientBalance,
         /// <summary>
         /// Account not active
@@ -63,6 +62,16 @@ namespace Binance.Net.Enums
         /// Stop price would trigger immediately
         /// </summary>
         [Map("STOP_PRICE_WOULD_TRIGGER_IMMEDIATELY")]
-        StopPriceWouldTrigger
+        StopPriceWouldTrigger,
+        /// <summary>
+        /// Trade would match immediately
+        /// </summary>
+        [Map("WOULD_MATCH_IMMEDIATELY")]
+        WouldMatchImmediately,
+        /// <summary>
+        /// OCO order bad prices
+        /// </summary>
+        [Map("OCO_BAD_PRICES")]
+        OCOOrderBadPrices
     }
 }
