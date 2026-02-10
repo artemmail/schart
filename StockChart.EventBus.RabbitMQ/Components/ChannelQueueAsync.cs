@@ -14,7 +14,7 @@ namespace StockChart.EventBus.RabbitMQ.Components
 {
     public class ChannelQueueAsync : IDisposable
     {
-        private IModel _channel;
+        private IChannel _channel;
         private readonly IRabbitMqPersistentConnection _connection;
         private readonly ExchangeConf _configuration;
         private readonly ISubscriptionRepository _repository;
@@ -44,7 +44,10 @@ namespace StockChart.EventBus.RabbitMQ.Components
 
         public void Close()
         {
-            _channel.Close();
+            _channel
+                .CloseAsync(CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
         }
 
         public void Bind(Type key)
@@ -66,8 +69,19 @@ namespace StockChart.EventBus.RabbitMQ.Components
         public void Start()
         {
             var consumer = new AsyncEventingBasicConsumer(_channel);
-            consumer.Received += Received_Handle;
-            _channel.BasicConsume(queue: _configuration.Queue, autoAck: false, consumer: consumer, exclusive: RabbitMQConstants.DECLARE_CONSUMER_AS_EXCLUSIVE);
+            consumer.ReceivedAsync += Received_Handle;
+            _channel
+                .BasicConsumeAsync(
+                    queue: _configuration.Queue,
+                    autoAck: false,
+                    consumerTag: string.Empty,
+                    noLocal: false,
+                    exclusive: RabbitMQConstants.DECLARE_CONSUMER_AS_EXCLUSIVE,
+                    arguments: null,
+                    consumer: consumer,
+                    cancellationToken: CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
         }
 
         public void Declare()
@@ -75,11 +89,11 @@ namespace StockChart.EventBus.RabbitMQ.Components
             if (!_connection.IsConnected)
                 _connection.TryConnect();
 
-            _channel = _connection.CreateModel();
+            _channel = _connection.CreateChannel();
 
             _configuration.Declare(_channel);
 
-            _channel.CallbackException += Exception_Handle;
+            _channel.CallbackExceptionAsync += Exception_Handle;
         }
 
         public void Publish(Type key, object messages)
@@ -99,20 +113,29 @@ namespace StockChart.EventBus.RabbitMQ.Components
 
             var isHandled = await ProcessEvent(eventName, message);
             if (isHandled)
-                _channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
+                await _channel.BasicAckAsync(
+                    deliveryTag: ea.DeliveryTag,
+                    multiple: false,
+                    cancellationToken: CancellationToken.None);
             else
-                _channel.BasicNack(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
+                await _channel.BasicNackAsync(
+                    deliveryTag: ea.DeliveryTag,
+                    multiple: false,
+                    requeue: true,
+                    cancellationToken: CancellationToken.None);
 
             await Task.Yield();
         }
 
-        private void Exception_Handle(object sender, CallbackExceptionEventArgs ea)
+        private Task Exception_Handle(object sender, CallbackExceptionEventArgs ea)
         {
             Logger.LogError(ea.Exception, "Ошибка RabbitMQ");
 
             this.Dispose();
             this.Declare();
             this.Start();
+
+            return Task.CompletedTask;
         }
 
         private async Task<bool> ProcessEvent(string eventName, string message)

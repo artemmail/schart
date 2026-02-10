@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net.Sockets;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
@@ -16,7 +17,7 @@ namespace StockChart.EventBus.RabbitMQ.Components
 
         public string Queue { get; set; }
 
-        private IBasicProperties _properties;
+        private BasicProperties _properties;
         private readonly RetryPolicy _policy;
 
         public ILogger Logger { get; set; }
@@ -34,34 +35,87 @@ namespace StockChart.EventBus.RabbitMQ.Components
                     });
         }
 
-        public void Bind(IModel channel, string key)
+        public void Bind(IChannel channel, string key)
         {
-            channel.QueueBind(queue: Queue, exchange: Exchange, routingKey: key);
+            channel.QueueBindAsync(
+                    queue: Queue,
+                    exchange: Exchange,
+                    routingKey: key,
+                    arguments: null,
+                    noWait: false,
+                    cancellationToken: CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
         }
 
-        public void Unbind(IModel channel, string key)
+        public void Unbind(IChannel channel, string key)
         {
-            channel.QueueUnbind(queue: Queue, exchange: Exchange, routingKey: key);
+            channel.QueueUnbindAsync(
+                    queue: Queue,
+                    exchange: Exchange,
+                    routingKey: key,
+                    arguments: null,
+                    cancellationToken: CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
         }
 
-        public void Declare(IModel channel)
+        public void Declare(IChannel channel)
         {
-            channel.ExchangeDeclare(exchange: Exchange, type: Type, durable: true);
-            channel.QueueDeclare(queue: Queue, durable: true, autoDelete: false, arguments: null);
-            channel.BasicQos(0, (ushort)this.PrefetchCount, false);
+            channel.ExchangeDeclareAsync(
+                    exchange: Exchange,
+                    type: Type,
+                    durable: true,
+                    autoDelete: false,
+                    arguments: null,
+                    passive: false,
+                    noWait: false,
+                    cancellationToken: CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
 
-            _properties = channel.CreateBasicProperties();
-            _properties.DeliveryMode = 2;
+            channel.QueueDeclareAsync(
+                    queue: Queue,
+                    durable: true,
+                    exclusive: false,
+                    autoDelete: false,
+                    arguments: null,
+                    passive: false,
+                    noWait: false,
+                    cancellationToken: CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
+
+            channel.BasicQosAsync(
+                    prefetchSize: 0,
+                    prefetchCount: (ushort)this.PrefetchCount,
+                    global: false,
+                    cancellationToken: CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
+
+            _properties = new BasicProperties
+            {
+                DeliveryMode = DeliveryModes.Persistent
+            };
         }
 
-        public void Publish(IModel channel, string key, byte[] body)
+        public void Publish(IChannel channel, string key, byte[] body)
         {
             if (_properties == null)
                 throw new InvalidOperationException($"{nameof(_properties)} is null.");
 
             _policy.Execute(() =>
             {
-                channel.BasicPublish(exchange: Exchange, routingKey: key, _properties, body);
+                channel.BasicPublishAsync(
+                        exchange: Exchange,
+                        routingKey: key,
+                        mandatory: false,
+                        basicProperties: _properties,
+                        body: body,
+                        cancellationToken: CancellationToken.None)
+                    .GetAwaiter()
+                    .GetResult();
             });
         }
 

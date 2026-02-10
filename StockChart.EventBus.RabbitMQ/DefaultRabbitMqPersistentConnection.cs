@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Polly;
 using RabbitMQ.Client;
@@ -34,14 +36,17 @@ namespace StockChart.EventBus.RabbitMQ
 
         public bool IsConnected => _connection != null && _connection.IsOpen && !_disposed;
 
-        public IModel CreateModel()
+        public IChannel CreateChannel()
         {
             if (!IsConnected)
             {
                 throw new InvalidOperationException("No RabbitMQ connections are available to perform this action");
             }
 
-            return _connection.CreateModel();
+            return _connection
+                .CreateChannelAsync(new CreateChannelOptions(false, false, null, null), CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
         }
 
         public void Dispose()
@@ -79,7 +84,9 @@ namespace StockChart.EventBus.RabbitMQ
                 policy.Execute(() =>
                 {
                     _connection = _connectionFactory
-                          .CreateConnection();
+                        .CreateConnectionAsync(CancellationToken.None)
+                        .GetAwaiter()
+                        .GetResult();
                 });
 
                 if (!IsConnected)
@@ -88,9 +95,9 @@ namespace StockChart.EventBus.RabbitMQ
                     return false;
                 }
 
-                _connection.ConnectionShutdown += OnConnectionShutdown;
-                _connection.CallbackException += OnCallbackException;
-                _connection.ConnectionBlocked += OnConnectionBlocked;
+                _connection.ConnectionShutdownAsync += OnConnectionShutdown;
+                _connection.CallbackExceptionAsync += OnCallbackException;
+                _connection.ConnectionBlockedAsync += OnConnectionBlocked;
 
                 _logger.LogInformation($"RabbitMQ persistent connection acquired a connection {_connection.Endpoint.HostName} and is subscribed to failure events");
 
@@ -98,31 +105,34 @@ namespace StockChart.EventBus.RabbitMQ
             }
         }
 
-        private void OnConnectionBlocked(object sender, ConnectionBlockedEventArgs e)
+        private Task OnConnectionBlocked(object sender, ConnectionBlockedEventArgs e)
         {
-            if (_disposed) return;
+            if (_disposed) return Task.CompletedTask;
 
             _logger.LogWarning("A RabbitMQ connection is shutdown. Trying to re-connect...");
 
             TryConnect();
+            return Task.CompletedTask;
         }
 
-        void OnCallbackException(object sender, CallbackExceptionEventArgs e)
+        private Task OnCallbackException(object sender, CallbackExceptionEventArgs e)
         {
-            if (_disposed) return;
+            if (_disposed) return Task.CompletedTask;
 
             _logger.LogWarning("A RabbitMQ connection throw exception. Trying to re-connect...");
 
             TryConnect();
+            return Task.CompletedTask;
         }
 
-        void OnConnectionShutdown(object sender, ShutdownEventArgs reason)
+        private Task OnConnectionShutdown(object sender, ShutdownEventArgs reason)
         {
-            if (_disposed) return;
+            if (_disposed) return Task.CompletedTask;
 
             _logger.LogWarning("A RabbitMQ connection is on shutdown. Trying to re-connect...");
 
             TryConnect();
+            return Task.CompletedTask;
         }
     }
 }

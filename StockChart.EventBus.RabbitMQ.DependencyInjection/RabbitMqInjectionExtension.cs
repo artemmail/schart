@@ -44,8 +44,7 @@ namespace StockChart.EventBus.RabbitMQ.DependencyInjection
 
                 var factory = new ConnectionFactory()
                 {
-                    HostName = rabbitMqServiceAccess.Host,
-                    DispatchConsumersAsync = true
+                    HostName = rabbitMqServiceAccess.Host
                 };
 
                 if (!string.IsNullOrEmpty(rabbitMqServiceAccess.UserName))

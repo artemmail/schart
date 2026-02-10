@@ -12,6 +12,6 @@ namespace StockChart.EventBus.RabbitMQ
 
         bool TryConnect();
 
-        IModel CreateModel();
+        IChannel CreateChannel();
     }
 }
