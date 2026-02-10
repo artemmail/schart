@@ -6,12 +6,23 @@ namespace StockChart.Repository
     {
         public Task<IReadOnlyList<VolumeDashboardRow>> GetVolumeDashboardAsync(byte market, DateOnly today);
         public Task<List<Barometer>> Barometer(byte market, DateTimePair dates);
+        public Task<List<Barometer>> BarometerByTickers(IReadOnlyCollection<string> tickers, DateTimePair dates);
         public Task<List<MicexVolYearResult>> MarketCandlesVolume(int year, int year2, byte market, int group);
         public Task<List<candleseekerResult>> VolumeSplash(int bigPeriod, int smallPeriod, float splash = 3, byte market = 0);
+        public Task<List<candleseekerResult>> VolumeSplashEf(int bigPeriod, int smallPeriod, float splash = 3, byte market = 0);
+        public Task<List<candleseekerResult>> VolumeSplashProc(int bigPeriod, int smallPeriod, float splash = 3, byte market = 0);
         public Task<List<TopOrdersResult>> TopOrders(string ticker, int bigPeriod);
+        public Task<List<TopOrdersResult>> TopOrdersEf(string ticker, int bigPeriod);
+        public Task<List<TopOrdersResult>> TopOrdersProc(string ticker, int bigPeriod);
         public Task<List<TopOrdersResult>> TopOrdersPeriod(string ticker, DateTime startDate, DateTime endDate, int topN = 200);
+        public Task<List<TopOrdersResult>> TopOrdersPeriodEf(string ticker, DateTime startDate, DateTime endDate, int topN = 200);
+        public Task<List<TopOrdersResult>> TopOrdersPeriodProc(string ticker, DateTime startDate, DateTime endDate, int topN = 200);
         public Task<List<MarketMapItem>> MarketMap(DateTime startDate, DateTime endDate, int top, byte market, HashSet<int> CatIds);
+        public Task<List<MarketMapItem>> MarketMapEf(DateTime startDate, DateTime endDate, int top, byte market, HashSet<int> CatIds);
+        public Task<List<MarketMapItem>> MarketMapProc(DateTime startDate, DateTime endDate, int top, byte market, HashSet<int> CatIds);
         public Task<List<ReportLeader>> MarketLeadersRep(DateTime startDate, DateTime endDate, int top, byte market, int dir, int colorModel = 0);
+        public Task<List<ReportLeader>> MarketLeadersRepEf(DateTime startDate, DateTime endDate, int top, byte market, int dir, int colorModel = 0);
+        public Task<List<ReportLeader>> MarketLeadersRepProc(DateTime startDate, DateTime endDate, int top, byte market, int dir, int colorModel = 0);
         public Task<List<MarketMapPeriod4Result>> MarketLeaders(DateTime startDate, DateTime endDate, int top, byte market, int dir);
     }
 }

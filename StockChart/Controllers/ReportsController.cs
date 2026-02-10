@@ -45,24 +45,55 @@ namespace StockChart.Controllers
 
         [HttpGet("TopOrders")]
         public Task<List<TopOrdersResult>> TopOrders(string ticker, int bigPeriod) =>
-            _reports.TopOrders(ticker, bigPeriod);
+            _reports.TopOrdersEf(ticker, bigPeriod);
+
+        [HttpGet("TopOrdersMode")]
+        public Task<List<TopOrdersResult>> TopOrdersMode(string ticker, int bigPeriod, string mode = "ef")
+        {
+            // Production lock: canonical path is EF implementation.
+            mode = "ef";
+            return _reports.TopOrdersEf(ticker, bigPeriod);
+        }
 
         [HttpGet("TopOrdersPeriod")]
         public async Task<List<TopOrdersResult>> TopOrdersPeriod(string ticker, DateTime? startDate, DateTime? endDate, int topN = 200)
         {
             var dates = new DateTimePair(startDate, endDate);
-            return await _reports.TopOrdersPeriod(ticker, dates.Start, dates.End, topN);
+            return await _reports.TopOrdersPeriodEf(ticker, dates.Start, dates.End, topN);
+        }
+
+        [HttpGet("TopOrdersPeriodMode")]
+        public async Task<List<TopOrdersResult>> TopOrdersPeriodMode(string ticker, DateTime? startDate, DateTime? endDate, int topN = 200, string mode = "ef")
+        {
+            var dates = new DateTimePair(startDate, endDate);
+            mode = "ef";
+            return await _reports.TopOrdersPeriodEf(ticker, dates.Start, dates.End, topN);
         }
 
         [HttpGet("VolumeSplash")]
         public Task<List<candleseekerResult>> VolumeSplash(int bigPeriod, int smallPeriod, float splash = 3, byte market = 0) =>
-            _reports.VolumeSplash(bigPeriod, smallPeriod, splash, market);
+            _reports.VolumeSplashEf(bigPeriod, smallPeriod, splash, market);
+
+        [HttpGet("VolumeSplashMode")]
+        public Task<List<candleseekerResult>> VolumeSplashMode(int bigPeriod, int smallPeriod, float splash = 3, byte market = 0, string mode = "ef")
+        {
+            mode = "ef";
+            return _reports.VolumeSplashEf(bigPeriod, smallPeriod, splash, market);
+        }
 
         [HttpGet("Leaders")]
         public async Task<IEnumerable<ReportLeader>> Leaders(DateTime? startDate, DateTime? endDate, string rperiod = "day", int top = 20, byte market = 0, int dir = 0)
         {
             var dates = GetDateRange(startDate, endDate, rperiod, market);
-            return await _reports.MarketLeadersRep(dates.Start, dates.End, top, market, dir);
+            return await _reports.MarketLeadersRepEf(dates.Start, dates.End, top, market, dir);
+        }
+
+        [HttpGet("LeadersMode")]
+        public async Task<IEnumerable<ReportLeader>> LeadersMode(DateTime? startDate, DateTime? endDate, string rperiod = "day", int top = 20, byte market = 0, int dir = 0, string mode = "ef")
+        {
+            var dates = GetDateRange(startDate, endDate, rperiod, market);
+            mode = "ef";
+            return await _reports.MarketLeadersRepEf(dates.Start, dates.End, top, market, dir);
         }
 
         [HttpGet("MarketMap")]
@@ -70,7 +101,7 @@ namespace StockChart.Controllers
         {
             var dates = GetDateRange(startDate, endDate, rperiod, market);
             var categoryIds = ParseCategories(categories);
-            var result = await _reports.MarketMap(dates.Start, dates.End, top, market, categoryIds);
+            var result = await _reports.MarketMapEf(dates.Start, dates.End, top, market, categoryIds);
             return new List<object> { new { value = "00", items = result } };
         }
 
@@ -79,7 +110,16 @@ namespace StockChart.Controllers
         {
             var dates = GetDateRange(startDate, endDate, rperiod, market);
             var categoryIds = ParseCategories(categories);
-            return await _reports.MarketMap(dates.Start, dates.End, top, market, categoryIds);
+            return await _reports.MarketMapEf(dates.Start, dates.End, top, market, categoryIds);
+        }
+
+        [HttpGet("MarketMap2Mode")]
+        public async Task<List<MarketMapItem>> MarketMap2Mode(DateTime? startDate, DateTime? endDate, string? categories, string rperiod = "day", int top = 50, byte market = 0, string mode = "ef")
+        {
+            var dates = GetDateRange(startDate, endDate, rperiod, market);
+            var categoryIds = ParseCategories(categories);
+            mode = "ef";
+            return await _reports.MarketMapEf(dates.Start, dates.End, top, market, categoryIds);
         }
 
         [HttpGet("MarketCandlesVolume")]
@@ -87,10 +127,23 @@ namespace StockChart.Controllers
             _reports.MarketCandlesVolume(year, year2, market, group);
 
         [HttpGet("Barometer")]
-        public Task<List<Barometer>> Barometer(byte market = 0)
+        public async Task<ActionResult<List<Barometer>>> Barometer(byte market = 0, string? tickers = null)
         {
             var dates = new DateTimePair(DateTime.Now.Date.AddDays(-301), DateTime.Now.Date);
-            return _reports.Barometer(market, dates);
+            if (!string.IsNullOrWhiteSpace(tickers))
+            {
+                var parsed = tickers
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                if (parsed.Count == 0)
+                    return BadRequest(new { error = "tickers must contain at least one non-empty ticker" });
+
+                return Ok(await _reports.BarometerByTickers(parsed, dates));
+            }
+
+            return Ok(await _reports.Barometer(market, dates));
         }
 
 
@@ -115,5 +168,6 @@ namespace StockChart.Controllers
                 ? new HashSet<int>()
                 : categories.Split(',').Select(int.Parse).ToHashSet();
         }
+
     }
 }

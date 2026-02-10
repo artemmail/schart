@@ -298,6 +298,98 @@ MARKOWITZ_PROFILES: Dict[str, List[str]] = {
     "full": ["success", "actual", "stddev", "chart"],
 }
 MARKOWITZ_ALLOWED_MODES: List[str] = ["min_variance", "max_return", "max_sharpe"]
+VOLUME_SPLASH_ALLOWED_FIELDS: List[str] = [
+    "ticker",
+    "name",
+    "price",
+    "splash",
+    "maxVolume",
+    "avgVolume",
+]
+MARKET_LEADERS_ALLOWED_FIELDS: List[str] = [
+    "ticker",
+    "name",
+    "opn",
+    "cls",
+    "percent",
+    "volume",
+    "bid",
+]
+VOLUME_SPLASH_PROFILES: Dict[str, List[str]] = {
+    "brief": ["ticker", "splash", "price"],
+    "base": ["ticker", "name", "splash", "price"],
+    "full": ["ticker", "name", "price", "splash", "maxVolume", "avgVolume"],
+}
+MARKET_LEADERS_PROFILES: Dict[str, List[str]] = {
+    "brief": ["ticker", "volume", "percent"],
+    "base": ["ticker", "name", "volume", "percent"],
+    "full": ["ticker", "name", "opn", "cls", "percent", "volume", "bid"],
+}
+BAROMETER_SIGNAL_LABELS: Dict[int, str] = {
+    3: "long_open",
+    2: "long_hold",
+    1: "long_reduce",
+    0: "flat",
+    -1: "short_reduce",
+    -2: "short_hold",
+    -3: "short_open",
+}
+
+MARKET_CODE_ALIASES: Dict[str, str] = {
+    "moex": "0",
+    "stocks": "0",
+    "stock": "0",
+    "shares": "0",
+    "share": "0",
+    "equities": "0",
+    "equity": "0",
+    "акции": "0",
+    "futures": "1",
+    "future": "1",
+    "forts": "1",
+    "фьючерсы": "1",
+    "фьючерс": "1",
+    "bonds": "2",
+    "bond": "2",
+    "облигации": "2",
+    "облигация": "2",
+    "options": "7",
+    "option": "7",
+    "opt": "7",
+    "опционы": "7",
+    "опцион": "7",
+}
+
+
+def _normalize_market_alias_key(value: str) -> str:
+    return value.strip().lower().replace("-", "").replace("_", "").replace(" ", "")
+
+
+def _coerce_market_code(value: Any) -> Any:
+    if value is None:
+        return None
+
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, int):
+        return str(value)
+
+    if isinstance(value, float):
+        if value.is_integer():
+            return str(int(value))
+        return value
+
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return None
+        if raw.isdigit():
+            return raw
+        mapped = MARKET_CODE_ALIASES.get(_normalize_market_alias_key(raw))
+        return mapped if mapped is not None else raw
+
+    return value
 
 
 def _resolve_list_fields(tool_name: str, args: Dict[str, Any]) -> Tuple[bool, Any]:
@@ -402,6 +494,70 @@ def _resolve_markowitz_fields(args: Dict[str, Any]) -> Tuple[bool, Any]:
     return False, fields
 
 
+def _resolve_volume_splash_fields(args: Dict[str, Any]) -> Tuple[bool, Any]:
+    raw_fields = args.get("fields")
+    if raw_fields is not None:
+        if not isinstance(raw_fields, str):
+            return True, _validation_error("fields must be a comma-separated string", {"tool": "volume_splash"})
+        selected = _dedupe_keep_order(_split_csv(raw_fields))
+        if not selected:
+            return True, _validation_error("fields must not be empty", {"tool": "volume_splash", "allowed": VOLUME_SPLASH_ALLOWED_FIELDS})
+        unsupported = [name for name in selected if name not in VOLUME_SPLASH_ALLOWED_FIELDS]
+        if unsupported:
+            return True, _validation_error(
+                "Unknown fields requested",
+                {"tool": "volume_splash", "unknown": unsupported, "allowed": VOLUME_SPLASH_ALLOWED_FIELDS},
+            )
+        return False, selected
+
+    raw_profile = args.get("profile")
+    if raw_profile is None:
+        return False, VOLUME_SPLASH_PROFILES["base"]
+    if not isinstance(raw_profile, str):
+        return True, _validation_error("profile must be a string", {"tool": "volume_splash", "allowed": list(VOLUME_SPLASH_PROFILES.keys())})
+
+    profile = raw_profile.strip().lower()
+    fields = VOLUME_SPLASH_PROFILES.get(profile)
+    if fields is None:
+        return True, _validation_error(
+            "Unknown profile",
+            {"tool": "volume_splash", "profile": profile, "allowed": list(VOLUME_SPLASH_PROFILES.keys())},
+        )
+    return False, fields
+
+
+def _resolve_market_leaders_fields(args: Dict[str, Any]) -> Tuple[bool, Any]:
+    raw_fields = args.get("fields")
+    if raw_fields is not None:
+        if not isinstance(raw_fields, str):
+            return True, _validation_error("fields must be a comma-separated string", {"tool": "market_leaders"})
+        selected = _dedupe_keep_order(_split_csv(raw_fields))
+        if not selected:
+            return True, _validation_error("fields must not be empty", {"tool": "market_leaders", "allowed": MARKET_LEADERS_ALLOWED_FIELDS})
+        unsupported = [name for name in selected if name not in MARKET_LEADERS_ALLOWED_FIELDS]
+        if unsupported:
+            return True, _validation_error(
+                "Unknown fields requested",
+                {"tool": "market_leaders", "unknown": unsupported, "allowed": MARKET_LEADERS_ALLOWED_FIELDS},
+            )
+        return False, selected
+
+    raw_profile = args.get("profile")
+    if raw_profile is None:
+        return False, MARKET_LEADERS_PROFILES["base"]
+    if not isinstance(raw_profile, str):
+        return True, _validation_error("profile must be a string", {"tool": "market_leaders", "allowed": list(MARKET_LEADERS_PROFILES.keys())})
+
+    profile = raw_profile.strip().lower()
+    fields = MARKET_LEADERS_PROFILES.get(profile)
+    if fields is None:
+        return True, _validation_error(
+            "Unknown profile",
+            {"tool": "market_leaders", "profile": profile, "allowed": list(MARKET_LEADERS_PROFILES.keys())},
+        )
+    return False, fields
+
+
 def _resolve_candles_fields(fields_value: Any, profile_value: Any) -> Tuple[bool, Any]:
     if fields_value is not None:
         if not isinstance(fields_value, str):
@@ -463,6 +619,16 @@ def _parse_positive_number(value: Any, field: str) -> Tuple[bool, Any]:
     return False, num
 
 
+def _parse_positive_int(value: Any, field: str) -> Tuple[bool, Any]:
+    bad_num, num_or_error = _parse_positive_number(value, field)
+    if bad_num:
+        return True, num_or_error
+    num = float(num_or_error)
+    if not num.is_integer():
+        return True, _validation_error(f"{field} must be an integer", {"field": field, "value": num})
+    return False, int(num)
+
+
 def _parse_limit(value: Any, *, default_value: int, minimum: int, maximum: int, field: str = "limit") -> Tuple[bool, Any]:
     if value is None:
         return False, default_value
@@ -481,6 +647,277 @@ def _parse_continue_on_error(value: Any) -> Tuple[bool, Any]:
     if not isinstance(value, bool):
         return True, _validation_error("continueOnError must be boolean")
     return False, value
+
+
+def _parse_byte(value: Any, field: str, default_value: int = 0) -> Tuple[bool, Any]:
+    if value is None:
+        return False, default_value
+    try:
+        parsed = int(value)
+    except Exception:
+        return True, _validation_error(f"{field} must be an integer", {"field": field, "value": value})
+    if parsed < 0 or parsed > 255:
+        return True, _validation_error(f"{field} must be between 0 and 255", {"field": field, "value": parsed})
+    return False, parsed
+
+
+def _normalize_barometer_tickers(args: Dict[str, Any], *, max_items: int = 50) -> Tuple[bool, Any]:
+    merged: List[str] = []
+
+    raw_single = args.get("ticker")
+    if raw_single is not None:
+        if not isinstance(raw_single, str):
+            return True, _validation_error("ticker must be a string")
+        single = raw_single.strip()
+        if not single:
+            return True, _validation_error("ticker must not be empty")
+        merged.append(single)
+
+    raw_many = args.get("tickers")
+    if raw_many is not None:
+        bad, many_or_error = _normalize_tickers(raw_many, max_items=max_items)
+        if bad:
+            return True, many_or_error
+        merged.extend(many_or_error)
+
+    normalized = _dedupe_keep_order([ticker.upper() for ticker in merged])
+    if len(normalized) > max_items:
+        return True, _validation_error("tickers max is 50", {"max": max_items, "actual": len(normalized)})
+
+    return False, normalized
+
+
+def _barometer_bias(score: int) -> str:
+    if score >= 4:
+        return "bullish"
+    if score <= -4:
+        return "bearish"
+    return "neutral"
+
+
+def _to_int_or_default(value: Any, default_value: int = 0) -> int:
+    try:
+        return int(value)
+    except Exception:
+        return default_value
+
+
+def _to_float_or_none(value: Any) -> Optional[float]:
+    try:
+        return float(value)
+    except Exception:
+        return None
+
+
+def _compact_volume_splash_response(
+    payload: Any,
+    requested_tickers: List[str],
+    market: int,
+    big_period: int,
+    small_period: int,
+    splash_threshold: float,
+    top_n: Optional[int],
+    fields: List[str],
+) -> Dict[str, Any]:
+    rows = payload if isinstance(payload, list) else []
+    requested_set = {ticker.upper() for ticker in requested_tickers}
+    items_full: List[Dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+
+        ticker = str(row.get("ticker") or "").strip().upper()
+        if not ticker:
+            continue
+        if requested_set and ticker not in requested_set:
+            continue
+
+        item_full = {
+            "ticker": ticker,
+            "name": row.get("name") or ticker,
+            "price": _to_float_or_none(row.get("cls")),
+            "splash": _to_float_or_none(row.get("huge")),
+            "maxVolume": _to_float_or_none(row.get("max")),
+            "avgVolume": _to_float_or_none(row.get("avgval")),
+        }
+        items_full.append(item_full)
+
+    if requested_tickers:
+        position = {ticker: index for index, ticker in enumerate(requested_tickers)}
+        items_full.sort(key=lambda item: position.get(str(item.get("ticker", "")), 10**6))
+    else:
+        items_full.sort(key=lambda item: _to_float_or_none(item.get("splash")) or 0.0, reverse=True)
+
+    # topN is intended for market snapshots; when explicit tickers are requested,
+    # return the full requested set without truncation.
+    if top_n is not None and not requested_tickers:
+        items_full = items_full[:top_n]
+
+    items = [_project_row(item, fields) for item in items_full]
+    found_set = {str(item.get("ticker", "")).upper() for item in items_full}
+    missing = [ticker for ticker in requested_tickers if ticker not in found_set]
+
+    splash_values = [value for value in (_to_float_or_none(item.get("splash")) for item in items_full) if value is not None]
+    summary: Dict[str, Any] = {
+        "count": len(items),
+        "market": market,
+        "bigPeriod": big_period,
+        "smallPeriod": small_period,
+        "splashThreshold": splash_threshold,
+    }
+    if splash_values:
+        summary["maxSplash"] = max(splash_values)
+        summary["minSplash"] = min(splash_values)
+
+    if requested_tickers:
+        summary["requested"] = requested_tickers
+        summary["missing"] = missing
+
+    return {
+        "items": items,
+        "summary": summary,
+        "meta": {
+            "source": "/api/Reports/VolumeSplash",
+            "format": "compact_ai",
+            "fields": fields,
+            "server_time_utc": _utc_now_iso(),
+        },
+    }
+
+
+def _compact_market_leaders_response(
+    payload: Any,
+    market: int,
+    direction: int,
+    top_n: int,
+    start_date: Optional[str],
+    end_date: Optional[str],
+    fields: List[str],
+) -> Dict[str, Any]:
+    rows = payload if isinstance(payload, list) else []
+    items_full: List[Dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+
+        ticker = str(row.get("ticker") or "").strip().upper()
+        if not ticker:
+            continue
+
+        items_full.append(
+            {
+                "ticker": ticker,
+                "name": row.get("name") or ticker,
+                "opn": _to_float_or_none(row.get("opn")),
+                "cls": _to_float_or_none(row.get("cls")),
+                "percent": _to_float_or_none(row.get("percent")),
+                "volume": _to_float_or_none(row.get("volume")),
+                "bid": _to_float_or_none(row.get("bid")),
+            }
+        )
+
+    items = [_project_row(item, fields) for item in items_full]
+    summary: Dict[str, Any] = {
+        "count": len(items),
+        "market": market,
+        "dir": direction,
+        "top": top_n,
+    }
+    if start_date:
+        summary["startDate"] = start_date
+    if end_date:
+        summary["endDate"] = end_date
+
+    return {
+        "items": items,
+        "summary": summary,
+        "meta": {
+            "source": "/api/Reports/Leaders",
+            "format": "compact_ai",
+            "fields": fields,
+            "server_time_utc": _utc_now_iso(),
+        },
+    }
+
+
+def _compact_barometer_response(
+    payload: Any,
+    requested_tickers: List[str],
+    market: int,
+    top_n: Optional[int],
+    include_codes: bool,
+) -> Dict[str, Any]:
+    rows = payload if isinstance(payload, list) else []
+    items: List[Dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+
+        ticker = str(row.get("ticker") or "").strip().upper()
+        if not ticker:
+            continue
+
+        c60 = _to_int_or_default(row.get("rec1"))
+        d1 = _to_int_or_default(row.get("rec2"))
+        w1 = _to_int_or_default(row.get("rec3"))
+        score = c60 + d1 + w1
+
+        item: Dict[str, Any] = {
+            "ticker": ticker,
+            "name": row.get("tickerName") or ticker,
+            "price": _to_float_or_none(row.get("opn")),
+            "score": score,
+            "bias": _barometer_bias(score),
+            "signals": {
+                "m60": BAROMETER_SIGNAL_LABELS.get(c60, "flat"),
+                "d1": BAROMETER_SIGNAL_LABELS.get(d1, "flat"),
+                "w1": BAROMETER_SIGNAL_LABELS.get(w1, "flat"),
+            },
+        }
+
+        if include_codes:
+            item["codes"] = {"m60": c60, "d1": d1, "w1": w1}
+
+        items.append(item)
+
+    if requested_tickers:
+        position = {ticker: index for index, ticker in enumerate(requested_tickers)}
+        items.sort(key=lambda item: position.get(str(item.get("ticker", "")), 10**6))
+    else:
+        items.sort(key=lambda item: (abs(_to_int_or_default(item.get("score"), 0)), _to_int_or_default(item.get("score"), 0)), reverse=True)
+
+    # topN is intended for market snapshots; when explicit tickers are requested,
+    # return the full requested set without truncation.
+    if top_n is not None and not requested_tickers:
+        items = items[:top_n]
+
+    bullish = sum(1 for item in items if item.get("bias") == "bullish")
+    bearish = sum(1 for item in items if item.get("bias") == "bearish")
+    neutral = len(items) - bullish - bearish
+    found_set = {str(item.get("ticker", "")).upper() for item in items}
+    missing = [ticker for ticker in requested_tickers if ticker not in found_set]
+
+    summary: Dict[str, Any] = {
+        "count": len(items),
+        "bullish": bullish,
+        "bearish": bearish,
+        "neutral": neutral,
+        "market": market,
+    }
+
+    if requested_tickers:
+        summary["requested"] = requested_tickers
+        summary["missing"] = missing
+
+    return {
+        "items": items,
+        "summary": summary,
+        "meta": {
+            "source": "/api/Reports/Barometer",
+            "format": "compact_ai",
+            "server_time_utc": _utc_now_iso(),
+        },
+    }
 
 
 def _tool_defs() -> List[Dict[str, Any]]:
@@ -505,7 +942,10 @@ def _tool_defs() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "q": {"type": "string"},
-                    "marketCode": {"type": "string"},
+                    "marketCode": {
+                        "type": "string",
+                        "description": "Numeric market code as string (e.g. 0 stocks, 1 futures, 2 bonds, 7 options). Common aliases like MOEX/stocks/bonds are accepted.",
+                    },
                     "sectorKey": {"type": "string"},
                     "industryKey": {"type": "string"},
                     "isActive": {"type": "boolean"},
@@ -523,7 +963,10 @@ def _tool_defs() -> List[Dict[str, Any]]:
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "marketCode": {"type": "string"},
+                    "marketCode": {
+                        "type": "string",
+                        "description": "Numeric market code as string (e.g. 0 stocks, 1 futures, 2 bonds, 7 options). Common aliases like MOEX/stocks/bonds are accepted.",
+                    },
                     "limit": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 200},
                     "offset": {"type": "integer", "minimum": 0, "default": 0},
                     "profile": {"type": "string", "enum": ["brief", "base", "full"]},
@@ -538,7 +981,10 @@ def _tool_defs() -> List[Dict[str, Any]]:
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "marketCode": {"type": "string"},
+                    "marketCode": {
+                        "type": "string",
+                        "description": "Numeric market code as string (e.g. 0 stocks, 1 futures, 2 bonds, 7 options). Common aliases like MOEX/stocks/bonds are accepted.",
+                    },
                     "sectorKey": {"type": "string"},
                     "limit": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 200},
                     "offset": {"type": "integer", "minimum": 0, "default": 0},
@@ -573,7 +1019,10 @@ def _tool_defs() -> List[Dict[str, Any]]:
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "marketCode": {"type": "string"},
+                    "marketCode": {
+                        "type": "string",
+                        "description": "Numeric market code as string (e.g. 0 stocks, 1 futures, 2 bonds, 7 options). Common aliases like MOEX/stocks/bonds are accepted.",
+                    },
                     "ticker": {"type": "string"},
                 },
                 "required": ["marketCode", "ticker"],
@@ -586,7 +1035,10 @@ def _tool_defs() -> List[Dict[str, Any]]:
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "marketCode": {"type": "string"},
+                    "marketCode": {
+                        "type": "string",
+                        "description": "Numeric market code as string (e.g. 0 stocks, 1 futures, 2 bonds, 7 options). Common aliases like MOEX/stocks/bonds are accepted.",
+                    },
                     "ticker": {"type": "string"},
                     "metricKey": {"type": "string"},
                     "period": {"type": "string", "enum": ["annual", "quarter", "ltm"], "default": "annual"},
@@ -610,7 +1062,10 @@ def _tool_defs() -> List[Dict[str, Any]]:
                         "items": {
                             "type": "object",
                             "properties": {
-                                "marketCode": {"type": "string"},
+                                "marketCode": {
+                                    "type": "string",
+                                    "description": "Numeric market code as string (e.g. 0 stocks, 1 futures, 2 bonds, 7 options). Common aliases like MOEX/stocks/bonds are accepted.",
+                                },
                                 "ticker": {"type": "string"},
                                 "metricKey": {"type": "string"},
                                 "period": {"type": "string", "enum": ["annual", "quarter", "ltm"]},
@@ -670,6 +1125,44 @@ def _tool_defs() -> List[Dict[str, Any]]:
             },
         },
         {
+            "name": "market_leaders",
+            "description": "Market leaders for a period. dir=0 volume leaders, dir=1 top gainers, dir=2 top losers.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "startDate": {"type": "string", "description": "Optional ISO datetime."},
+                    "endDate": {"type": "string", "description": "Optional ISO datetime."},
+                    "rperiod": {"type": "string", "default": "day"},
+                    "top": {"type": "integer", "minimum": 1, "maximum": 500, "default": 20},
+                    "market": {"type": "integer", "minimum": 0, "maximum": 255, "default": 0},
+                    "dir": {"type": "integer", "enum": [0, 1, 2], "default": 0},
+                    "profile": {"type": "string", "enum": ["brief", "base", "full"]},
+                    "fields": {"type": "string", "description": "Comma-separated fields override profile."},
+                },
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "volume_splash",
+            "description": "Volume splash scanner: finds abnormal volume bursts and returns compact AI-friendly rows.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "bigPeriod": {"type": "integer", "minimum": 1, "description": "Lookback window for baseline volume."},
+                    "smallPeriod": {"type": "integer", "minimum": 1, "description": "Window for local volume peak detection."},
+                    "splash": {"type": "number", "exclusiveMinimum": 0, "default": 3, "description": "Minimum splash ratio threshold."},
+                    "market": {"type": "integer", "minimum": 0, "maximum": 255, "default": 0},
+                    "ticker": {"type": "string", "description": "Optional single ticker filter."},
+                    "tickers": {"type": "array", "minItems": 1, "maxItems": 50, "items": {"type": "string"}},
+                    "topN": {"type": "integer", "minimum": 1, "maximum": 1000},
+                    "profile": {"type": "string", "enum": ["brief", "base", "full"]},
+                    "fields": {"type": "string", "description": "Comma-separated fields override profile."},
+                },
+                "required": ["bigPeriod", "smallPeriod"],
+                "additionalProperties": False,
+            },
+        },
+        {
             "name": "portfolio_markowitz",
             "description": "Read-only Markowitz optimization for a ticker list (no portfolio writes, supports modes and constraints).",
             "inputSchema": {
@@ -689,6 +1182,21 @@ def _tool_defs() -> List[Dict[str, Any]]:
                     "fields": {"type": "string", "description": "Comma-separated top-level fields override profile."},
                 },
                 "required": ["tickers", "startDate", "endDate", "risk"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "fractal_barometer",
+            "description": "Fractal barometer (Starchenko): single ticker, ticker list, or market snapshot; returns compact AI-friendly summary.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "ticker": {"type": "string", "description": "Single ticker (optional)."},
+                    "tickers": {"type": "array", "minItems": 1, "maxItems": 50, "items": {"type": "string"}},
+                    "market": {"type": "integer", "minimum": 0, "maximum": 255, "default": 0},
+                    "topN": {"type": "integer", "minimum": 1, "maximum": 200},
+                    "includeCodes": {"type": "boolean", "default": False, "description": "Include raw rec1/rec2/rec3 code values."},
+                },
                 "additionalProperties": False,
             },
         },
@@ -983,7 +1491,7 @@ def _read_resource(uri: str) -> Tuple[bool, Any]:
             if query_error:
                 return True, query_error
 
-            market_code = segments[1]
+            market_code = str(_coerce_market_code(segments[1]) or "").strip()
             ticker = segments[2]
             if not market_code or not ticker:
                 return True, _resource_error(-32602, "marketCode and ticker are required", {"uri": uri})
@@ -1004,7 +1512,7 @@ def _read_resource(uri: str) -> Tuple[bool, Any]:
             if query_error:
                 return True, query_error
 
-            market_code = segments[1]
+            market_code = str(_coerce_market_code(segments[1]) or "").strip()
             ticker = segments[2]
             metric_key = segments[3]
             if not market_code or not ticker or not metric_key:
@@ -1056,7 +1564,7 @@ def _call_tool(name: str, args: Dict[str, Any]) -> Tuple[bool, Any]:
     if name == "search_stocks":
         q = {
             "q": args.get("q"),
-            "marketCode": args.get("marketCode"),
+            "marketCode": _coerce_market_code(args.get("marketCode")),
             "sectorKey": args.get("sectorKey"),
             "industryKey": args.get("industryKey"),
             "isActive": args.get("isActive"),
@@ -1070,7 +1578,7 @@ def _call_tool(name: str, args: Dict[str, Any]) -> Tuple[bool, Any]:
 
     if name == "list_sectors":
         q = {
-            "marketCode": args.get("marketCode"),
+            "marketCode": _coerce_market_code(args.get("marketCode")),
             "limit": args.get("limit", 200),
             "offset": args.get("offset", 0),
         }
@@ -1081,7 +1589,7 @@ def _call_tool(name: str, args: Dict[str, Any]) -> Tuple[bool, Any]:
 
     if name == "list_industries":
         q = {
-            "marketCode": args.get("marketCode"),
+            "marketCode": _coerce_market_code(args.get("marketCode")),
             "sectorKey": args.get("sectorKey"),
             "limit": args.get("limit", 200),
             "offset": args.get("offset", 0),
@@ -1107,13 +1615,13 @@ def _call_tool(name: str, args: Dict[str, Any]) -> Tuple[bool, Any]:
         return _apply_list_projection("list_metrics", payload, args)
 
     if name == "statements_available":
-        market_code = str(args.get("marketCode", "")).strip()
+        market_code = str(_coerce_market_code(args.get("marketCode")) or "").strip()
         ticker = str(args.get("ticker", "")).strip()
         status, payload = _http_json("GET", f"/api/statements/{urllib.parse.quote(market_code)}/{urllib.parse.quote(ticker)}/available")
         return status >= 400 or status == 0, payload
 
     if name == "statement_series":
-        market_code = str(args.get("marketCode", "")).strip()
+        market_code = str(_coerce_market_code(args.get("marketCode")) or "").strip()
         ticker = str(args.get("ticker", "")).strip()
         metric_key = str(args.get("metricKey", "")).strip()
         q = {
@@ -1133,7 +1641,15 @@ def _call_tool(name: str, args: Dict[str, Any]) -> Tuple[bool, Any]:
         items = args.get("items")
         if not isinstance(items, list):
             return True, {"error": {"code": "VALIDATION_ERROR", "message": "items must be an array", "details": {}}}
-        status, payload = _http_json("POST", "/api/statements/series/batch", body={"items": items})
+        normalized_items: List[Any] = []
+        for item in items:
+            if isinstance(item, dict):
+                copy_item = dict(item)
+                copy_item["marketCode"] = _coerce_market_code(copy_item.get("marketCode"))
+                normalized_items.append(copy_item)
+            else:
+                normalized_items.append(item)
+        status, payload = _http_json("POST", "/api/statements/series/batch", body={"items": normalized_items})
         return status >= 400 or status == 0, payload
 
     if name == "candles_series":
@@ -1229,6 +1745,119 @@ def _call_tool(name: str, args: Dict[str, Any]) -> Tuple[bool, Any]:
 
         all_failed = len(results) == 0 and len(errors) > 0
         return all_failed, response
+
+    if name == "volume_splash":
+        bad_big_period, big_period_or_error = _parse_positive_int(args.get("bigPeriod"), "bigPeriod")
+        if bad_big_period:
+            return True, big_period_or_error
+        big_period = big_period_or_error
+
+        bad_small_period, small_period_or_error = _parse_positive_int(args.get("smallPeriod"), "smallPeriod")
+        if bad_small_period:
+            return True, small_period_or_error
+        small_period = small_period_or_error
+
+        if small_period > big_period:
+            return True, _validation_error("smallPeriod must be <= bigPeriod")
+
+        splash_value = args.get("splash", 3)
+        bad_splash, splash_or_error = _parse_positive_number(splash_value, "splash")
+        if bad_splash:
+            return True, splash_or_error
+        splash = splash_or_error
+
+        bad_market, market_or_error = _parse_byte(args.get("market"), "market", default_value=0)
+        if bad_market:
+            return True, market_or_error
+        market = market_or_error
+
+        bad_tickers, tickers_or_error = _normalize_barometer_tickers(args, max_items=50)
+        if bad_tickers:
+            return True, tickers_or_error
+        tickers: List[str] = tickers_or_error
+
+        top_n = None
+        if args.get("topN") is not None:
+            bad_top, top_or_error = _parse_limit(args.get("topN"), default_value=1, minimum=1, maximum=1000, field="topN")
+            if bad_top:
+                return True, top_or_error
+            top_n = top_or_error
+
+        bad_fields, fields_or_error = _resolve_volume_splash_fields(args)
+        if bad_fields:
+            return True, fields_or_error
+        fields: List[str] = fields_or_error
+
+        status, payload = _http_json(
+            "GET",
+            "/api/Reports/VolumeSplash",
+            query={
+                "bigPeriod": big_period,
+                "smallPeriod": small_period,
+                "splash": splash,
+                "market": market,
+            },
+        )
+        if status >= 400 or status == 0:
+            return True, payload
+
+        return False, _compact_volume_splash_response(payload, tickers, market, big_period, small_period, splash, top_n, fields)
+
+    if name == "market_leaders":
+        bad_top, top_or_error = _parse_limit(args.get("top"), default_value=20, minimum=1, maximum=500, field="top")
+        if bad_top:
+            return True, top_or_error
+        top = top_or_error
+
+        bad_market, market_or_error = _parse_byte(args.get("market"), "market", default_value=0)
+        if bad_market:
+            return True, market_or_error
+        market = market_or_error
+
+        direction = 0
+        if args.get("dir") is not None:
+            try:
+                direction = int(args.get("dir"))
+            except Exception:
+                return True, _validation_error("dir must be integer 0|1|2")
+            if direction not in (0, 1, 2):
+                return True, _validation_error("dir must be 0|1|2")
+
+        rperiod = "day"
+        if args.get("rperiod") is not None:
+            if not isinstance(args.get("rperiod"), str):
+                return True, _validation_error("rperiod must be a string")
+            rperiod = str(args.get("rperiod")).strip() or "day"
+
+        start_date = args.get("startDate")
+        if start_date is not None and not isinstance(start_date, str):
+            return True, _validation_error("startDate must be a string")
+
+        end_date = args.get("endDate")
+        if end_date is not None and not isinstance(end_date, str):
+            return True, _validation_error("endDate must be a string")
+
+        bad_fields, fields_or_error = _resolve_market_leaders_fields(args)
+        if bad_fields:
+            return True, fields_or_error
+        fields: List[str] = fields_or_error
+
+        status, payload = _http_json(
+            "GET",
+            "/api/Reports/Leaders",
+            query={
+                "startDate": start_date,
+                "endDate": end_date,
+                "rperiod": rperiod,
+                "top": top,
+                "market": market,
+                "dir": direction,
+            },
+        )
+        if status >= 400 or status == 0:
+            return True, payload
+
+        return False, _compact_market_leaders_response(payload, market, direction, top, start_date, end_date, fields)
 
     if name == "portfolio_markowitz":
         bad_tickers, tickers_or_error = _normalize_tickers(args.get("tickers"), max_items=50)
@@ -1338,6 +1967,44 @@ def _call_tool(name: str, args: Dict[str, Any]) -> Tuple[bool, Any]:
 
         return False, payload
 
+    if name == "fractal_barometer":
+        bad_tickers, tickers_or_error = _normalize_barometer_tickers(args, max_items=50)
+        if bad_tickers:
+            return True, tickers_or_error
+        tickers: List[str] = tickers_or_error
+
+        bad_market, market_or_error = _parse_byte(args.get("market"), "market", default_value=0)
+        if bad_market:
+            return True, market_or_error
+        market = market_or_error
+
+        top_n = None
+        if args.get("topN") is not None:
+            bad_top, top_or_error = _parse_limit(args.get("topN"), default_value=1, minimum=1, maximum=200, field="topN")
+            if bad_top:
+                return True, top_or_error
+            top_n = top_or_error
+
+        include_codes_raw = args.get("includeCodes")
+        include_codes = False
+        if include_codes_raw is not None:
+            if not isinstance(include_codes_raw, bool):
+                return True, _validation_error("includeCodes must be boolean")
+            include_codes = include_codes_raw
+
+        status, payload = _http_json(
+            "GET",
+            "/api/Reports/Barometer",
+            query={
+                "market": market,
+                "tickers": ",".join(tickers) if tickers else None,
+            },
+        )
+        if status >= 400 or status == 0:
+            return True, payload
+
+        return False, _compact_barometer_response(payload, tickers, market, top_n, include_codes)
+
     if name == "dividends":
         ticker = str(args.get("ticker", "")).strip()
         if not ticker:
@@ -1433,6 +2100,9 @@ def main() -> int:
         line = line.strip()
         if not line:
             continue
+        # Be tolerant to accidental BOM prefix from host stdin.
+        if line.startswith("\ufeff"):
+            line = line.lstrip("\ufeff")
 
         try:
             msg = json.loads(line)

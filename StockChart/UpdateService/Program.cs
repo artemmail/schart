@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Quartz;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using StockChart.UpdateService;
 using StockChart.Model;
@@ -48,10 +50,7 @@ builder.Services
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<LotSizeFileOptions>, LotSizeFileOptionsValidator>();
 
-builder.Services.AddQuartz(configurator =>
-{
-    configurator.UseMicrosoftDependencyInjectionJobFactory();
-});
+builder.Services.AddQuartz();
 
 builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 

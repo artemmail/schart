@@ -9,6 +9,7 @@ namespace StockChart.Repository
         Task<List<ClusterColumnBase>> GetCandlesGlued1(string ticker, int period, DateTime startDate, DateTime endDate, int top);
 
         Task<List<Candle>> GetCandles(string ticker, double period, DateTime startDate, DateTime endDate, int top);
+        Task<List<Candle>> GetCandlesProc(string ticker, double period, DateTime startDate, DateTime endDate, int top);
 
         Task<List<ClusterColumnBase>> GetTradesCandles(string ticker, DateTime startDate, DateTime endDate);
 
@@ -19,6 +20,7 @@ namespace StockChart.Repository
         Task<object[][]> Seasonality(string ticker);
         Task<List<Candle>> GetLastCandlesQuick(string ticker, double period, int top);
         Task<List<Candle>> GetCandlesQuick(string ticker, double period, DateTime startDate, DateTime endDate, int top);
+        Task<List<Candle>> GetCandlesGluedProc(string ticker, int period, DateTime startDate, DateTime endDate, int top);
         //     Task<Dictionary<SubsCandle, List<BaseCandle>>> CandlesQueryBatch(SubsCandle[] array, int count);
         Task<List<ClusterColumnBase>> ClusterProfileQuery(string ticker, decimal period, DateTimePair Dates, decimal step, bool Postmarket);
         Task<List<tick>> GetTicksQuick(string ticker, DateTime startDate, DateTime endDate);

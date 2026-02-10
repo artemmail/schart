@@ -35,25 +35,65 @@ namespace StockChart.Repository
             _cache = cache;
         }
 
-        public async Task<List<TopOrdersResult>> TopOrders(string ticker, int bigPeriod)
+        public Task<List<TopOrdersResult>> TopOrders(string ticker, int bigPeriod)
+        {
+            return TopOrdersEf(ticker, bigPeriod);
+        }
+
+        public async Task<List<TopOrdersResult>> TopOrdersEf(string ticker, int bigPeriod)
         {
             return await _dbContext.TopOrdersAsync(ticker, bigPeriod);
         }
 
-        public async Task<List<TopOrdersResult>> TopOrdersPeriod(string ticker, DateTime startDate, DateTime endDate, int topN = 200)
+        public async Task<List<TopOrdersResult>> TopOrdersProc(string ticker, int bigPeriod)
+        {
+            return await _dbContext.TopOrdersProcAsync(ticker, bigPeriod);
+        }
+
+        public Task<List<TopOrdersResult>> TopOrdersPeriod(string ticker, DateTime startDate, DateTime endDate, int topN = 200)
+        {
+            return TopOrdersPeriodEf(ticker, startDate, endDate, topN);
+        }
+
+        public async Task<List<TopOrdersResult>> TopOrdersPeriodEf(string ticker, DateTime startDate, DateTime endDate, int topN = 200)
         {
             return await _dbContext.TopOrdersPeriodAsync(ticker, startDate, endDate, topN);
         }
 
-        public async Task<List<candleseekerResult>> VolumeSplash(int bigPeriod, int smallPeriod, float splash = 3, byte market = 0)
+        public async Task<List<TopOrdersResult>> TopOrdersPeriodProc(string ticker, DateTime startDate, DateTime endDate, int topN = 200)
+        {
+            return await _dbContext.TopOrdersPeriodProcAsync(ticker, startDate, endDate, topN);
+        }
+
+        public Task<List<candleseekerResult>> VolumeSplash(int bigPeriod, int smallPeriod, float splash = 3, byte market = 0)
+        {
+            return VolumeSplashEf(bigPeriod, smallPeriod, splash, market);
+        }
+
+        public async Task<List<candleseekerResult>> VolumeSplashEf(int bigPeriod, int smallPeriod, float splash = 3, byte market = 0)
         {
             return await _dbContext.VolumeSplashAsync(bigPeriod, smallPeriod, market, splash);
         }
 
-        public async Task<List<MarketMapPeriod4Result>> MarketLeaders(DateTime startDate, DateTime endDate, int top, byte market, int dir)
+        public async Task<List<candleseekerResult>> VolumeSplashProc(int bigPeriod, int smallPeriod, float splash = 3, byte market = 0)
+        {
+            return await _dbContext.VolumeSplashProcAsync(bigPeriod, smallPeriod, market, splash);
+        }
+
+        private async Task<List<MarketMapPeriod4Result>> MarketLeadersCore(
+            DateTime startDate,
+            DateTime endDate,
+            int top,
+            byte market,
+            int dir,
+            bool useStoredProcedure)
         {
             endDate = endDate.AddDays(1).AddSeconds(-1);
-            var map = await _dbContext.MarketMapPeriod4Async(startDate, endDate, market);
+            var map = useStoredProcedure
+                ? await _dbContext.MarketMapPeriod4ProcAsync(startDate, endDate, market)
+                : dir == 0
+                    ? await _dbContext.MarketMapPeriod4EfTopByVolumeAsync(startDate, endDate, market, top)
+                    : await _dbContext.MarketMapPeriod4EfAsync(startDate, endDate, market);
 
             var query = map.AsQueryable();
 
@@ -71,6 +111,11 @@ namespace StockChart.Repository
             }
 
             return query.Take(top).ToList();
+        }
+
+        public Task<List<MarketMapPeriod4Result>> MarketLeaders(DateTime startDate, DateTime endDate, int top, byte market, int dir)
+        {
+            return MarketLeadersCore(startDate, endDate, top, market, dir, useStoredProcedure: true);
         }
 
         public async Task<List<MicexVolYearResult>> MarketCandlesVolume(int year, int year2, byte market, int group)
@@ -224,6 +269,30 @@ namespace StockChart.Repository
             return await CreateBarometers(idDict, dates, isRTS: false);
         }
 
+        public async Task<List<Barometer>> BarometerByTickers(IReadOnlyCollection<string> tickers, DateTimePair dates)
+        {
+            if (tickers == null || tickers.Count == 0)
+                return new List<Barometer>();
+
+            var idDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var raw in tickers)
+            {
+                if (string.IsNullOrWhiteSpace(raw))
+                    continue;
+
+                var ticker = raw.Trim();
+                _marketServiceRepository.UpdateAlias(ref ticker);
+
+                if (_tickerRepository.Tickers.TryGetValue(ticker.ToUpperInvariant(), out var dic))
+                    idDict[dic.Securityid] = dic.Shortname;
+            }
+
+            if (idDict.Count == 0)
+                return new List<Barometer>();
+
+            return await CreateBarometers(idDict, dates, isRTS: false);
+        }
+
         private async Task<List<Barometer>> CreateBarometers(Dictionary<string, string> ids, DateTimePair dates, bool isRTS)
         {
             var res = new List<Barometer>();
@@ -273,9 +342,16 @@ namespace StockChart.Repository
             }, TimeSpan.FromMinutes(15));
         }
 
-        public async Task<List<ReportLeader>> MarketLeadersRep(DateTime startDate, DateTime endDate, int top, byte market, int dir, int colorModel = 0)
+        private async Task<List<ReportLeader>> MarketLeadersRepCore(
+            DateTime startDate,
+            DateTime endDate,
+            int top,
+            byte market,
+            int dir,
+            int colorModel,
+            bool useStoredProcedure)
         {
-            var map = await MarketLeaders(startDate, endDate, top, market, dir);
+            var map = await MarketLeadersCore(startDate, endDate, top, market, dir, useStoredProcedure);
             var avTake = 5;
 
             var logReturns = map.Where(x => x.Cls > 0 && x.Opn > 0)
@@ -302,12 +378,33 @@ namespace StockChart.Repository
                       .ToList();
         }
 
-        public async Task<List<MarketMapItem>> MarketMap(DateTime startDate, DateTime endDate, int top, byte market, HashSet<int> catIds)
+        public Task<List<ReportLeader>> MarketLeadersRep(DateTime startDate, DateTime endDate, int top, byte market, int dir, int colorModel = 0)
+        {
+            return MarketLeadersRepCore(startDate, endDate, top, market, dir, colorModel, useStoredProcedure: true);
+        }
+
+        public Task<List<ReportLeader>> MarketLeadersRepEf(DateTime startDate, DateTime endDate, int top, byte market, int dir, int colorModel = 0)
+        {
+            return MarketLeadersRepCore(startDate, endDate, top, market, dir, colorModel, useStoredProcedure: false);
+        }
+
+        public Task<List<ReportLeader>> MarketLeadersRepProc(DateTime startDate, DateTime endDate, int top, byte market, int dir, int colorModel = 0)
+        {
+            return MarketLeadersRepCore(startDate, endDate, top, market, dir, colorModel, useStoredProcedure: true);
+        }
+
+        private async Task<List<MarketMapItem>> MarketMapCore(
+            DateTime startDate,
+            DateTime endDate,
+            int top,
+            byte market,
+            HashSet<int> catIds,
+            bool useStoredProcedure)
         {
             bool haveCategories = market == 0 && catIds.Any();
             int fetchLimit = haveCategories ? 2000 : top;
 
-            var leaders = await MarketLeadersRep(startDate, endDate, fetchLimit, market, 0, 1);
+            var leaders = await MarketLeadersRepCore(startDate, endDate, fetchLimit, market, 0, 1, useStoredProcedure);
 
             if (haveCategories)
             {
@@ -339,6 +436,21 @@ namespace StockChart.Repository
                                   t.cls,
                                   t.percent))))
                           .ToList();
+        }
+
+        public Task<List<MarketMapItem>> MarketMap(DateTime startDate, DateTime endDate, int top, byte market, HashSet<int> catIds)
+        {
+            return MarketMapCore(startDate, endDate, top, market, catIds, useStoredProcedure: true);
+        }
+
+        public Task<List<MarketMapItem>> MarketMapEf(DateTime startDate, DateTime endDate, int top, byte market, HashSet<int> catIds)
+        {
+            return MarketMapCore(startDate, endDate, top, market, catIds, useStoredProcedure: false);
+        }
+
+        public Task<List<MarketMapItem>> MarketMapProc(DateTime startDate, DateTime endDate, int top, byte market, HashSet<int> catIds)
+        {
+            return MarketMapCore(startDate, endDate, top, market, catIds, useStoredProcedure: true);
         }
 
         public class MarketMapSquare

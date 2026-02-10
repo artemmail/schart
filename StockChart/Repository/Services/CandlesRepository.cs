@@ -247,6 +247,11 @@ namespace StockChart.Repository
             return await _dbContext.GetCandlesAsync(ticker, period, startDate, endDate, top);
         }
 
+        public async Task<List<Candle>> GetCandlesProc(string ticker, double period, DateTime startDate, DateTime endDate, int top)
+        {
+            return await _dbContext.GetCandlesProcAsync(ticker, period, startDate, endDate, top);
+        }
+
         public async Task<List<Candle>> GetCandlesGlued(string ticker, int period, DateTime startDate, DateTime endDate, int top)
         {
             try
@@ -264,6 +269,11 @@ namespace StockChart.Repository
             {
             }
             return await _dbContext.GetCandlesGluedAsync(ticker, period, startDate, endDate, top);
+        }
+
+        public async Task<List<Candle>> GetCandlesGluedProc(string ticker, int period, DateTime startDate, DateTime endDate, int top)
+        {
+            return await _dbContext.GetCandlesGluedProcAsync(ticker, period, startDate, endDate, top);
         }
 
 
