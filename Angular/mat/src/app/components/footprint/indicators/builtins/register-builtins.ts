@@ -16,6 +16,7 @@ import { PrevDayLevelsIndicator } from './prev-day-levels.indicator';
 import { OpeningRangeIndicator } from './opening-range.indicator';
 import { FractalsIndicator } from './fractals.indicator';
 import { ZigZagIndicator } from './zigzag.indicator';
+import { StochasticIndicator } from './stochastic.indicator';
 
 export function registerFootprintBuiltInIndicators(registry: IndicatorRegistry): void {
   registry.register(SmaIndicator);
@@ -34,5 +35,6 @@ export function registerFootprintBuiltInIndicators(registry: IndicatorRegistry):
   registry.register(OpeningRangeIndicator);
   registry.register(FractalsIndicator);
   registry.register(ZigZagIndicator);
+  registry.register(StochasticIndicator);
   registry.register(MidPriceOiCumWeightedIndicator);
 }

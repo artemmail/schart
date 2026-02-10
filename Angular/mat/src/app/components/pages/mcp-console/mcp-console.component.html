@@ -1,0 +1,106 @@
+<div class="chat-page">
+  <mat-card class="chat-shell">
+    <mat-card-header>
+      <mat-card-title>MCP Chat Console</mat-card-title>
+      <mat-card-subtitle>
+        Диалоговый режим как в чате
+        <span class="provider-chip">{{ providerLabel }}</span>
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content class="chat-content">
+      <div #scrollContainer class="chat-log">
+        <div
+          class="message-row"
+          *ngFor="let message of messages"
+          [ngClass]="message.role"
+        >
+          <div class="message-bubble">
+            <div class="message-meta">
+              <span class="role">
+                {{
+                  message.role === 'user'
+                    ? 'Вы'
+                    : message.role === 'assistant'
+                    ? (message.provider === 'openai'
+                      ? 'OpenAI Assistant'
+                      : 'MCP Assistant')
+                    : message.role === 'error'
+                    ? 'Ошибка'
+                    : 'Система'
+                }}
+              </span>
+              <span class="model" *ngIf="message.role === 'assistant' && message.model">
+                {{ message.model }}
+              </span>
+              <span class="time">{{ message.timestamp | date: 'HH:mm:ss' }}</span>
+            </div>
+
+            <div class="message-text">{{ message.text }}</div>
+
+            <pre *ngIf="message.data">{{ message.data | json }}</pre>
+
+            <div
+              class="message-suggestions"
+              *ngIf="message.suggestions && message.suggestions.length > 0"
+            >
+              <button
+                mat-stroked-button
+                *ngFor="let suggestion of message.suggestions"
+                (click)="applySuggestion(suggestion)"
+              >
+                {{ suggestion }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+
+    <mat-card-actions class="chat-actions">
+      <div class="quick-prompts">
+        <button
+          mat-stroked-button
+          *ngFor="let prompt of quickPrompts"
+          (click)="applySuggestion(prompt)"
+          [disabled]="sending"
+        >
+          {{ prompt }}
+        </button>
+      </div>
+
+      <mat-form-field appearance="outline" class="composer-field">
+        <mat-label>Сообщение</mat-label>
+        <textarea
+          matInput
+          rows="3"
+          [(ngModel)]="userInput"
+          [disabled]="sending"
+          (keydown)="onComposerKeyDown($event)"
+          placeholder="Напишите запрос, например: дивиденды SBER"
+        ></textarea>
+      </mat-form-field>
+
+      <div class="composer-actions">
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="sendMessage()"
+          [disabled]="sending || !userInput.trim()"
+        >
+          Отправить
+        </button>
+
+        <button mat-stroked-button color="warn" (click)="clearConversation()">
+          Новый диалог
+        </button>
+
+        <mat-progress-spinner
+          *ngIf="sending"
+          mode="indeterminate"
+          diameter="22"
+        ></mat-progress-spinner>
+      </div>
+    </mat-card-actions>
+  </mat-card>
+</div>

@@ -131,6 +131,13 @@ Each entry lists: **type** (settings key), **panel**, **series**, and **params**
 - **Purpose:** Connects pivots based on deviation + depth/backstep.
 - **Params:** `deviationMode`, `deviation`, `depth`, `backstep`, `showPivotLabels` (reserved), `color`, `width`, `lineStyle`.
 
+### Stochastic Oscillator
+- **type:** `stochastic`, **panel:** new panel (fixed), **series:** 2-4 lines (`%K`, `%D`, optional 20/80 levels)
+- **Purpose:** Momentum oscillator based on close position inside recent high/low range.
+- **Formula:** `%K(raw) = 100 * (C - LL(kPeriod)) / (HH(kPeriod) - LL(kPeriod))`,
+  then `%K = SMA(%K(raw), smoothK)`, `%D = SMA(%K, dPeriod)`.
+- **Params:** `kPeriod`, `smoothK`, `dPeriod`, `showLevels`, `overbought`, `oversold`, `kColor`, `dColor`, `levelsColor`, `width`, `levelsWidth`, `lineStyle`, `levelsLineStyle`.
+
 ### MidPrice OI CumWeighted
 - **type:** `midprice-oi-cumweighted`, **panel:** chart (fixed), **series:** 1 line
 - **Purpose:** Cumulative weighted mid-price using OI delta:
@@ -144,3 +151,4 @@ Each entry lists: **type** (settings key), **panel**, **series**, and **params**
 - Use `paramsSchema` as the single source of truth for UI controls.
 - Indicator recalculation is centralized in `indicator-engine.ts` (warmup, append/update modes).
 - If you add an indicator that needs its own panel, set `defaultPanel: 'newPanel'` and `panelBehavior: 'fixed'`.
+- Panels can use a fixed Y-scale when every visible series provides `fixedRange` (used by `stochastic` for 0..100).

@@ -1,0 +1,137 @@
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../environment';
+
+export interface McpToolPropertySchema {
+  type?: string | string[];
+  default?: unknown;
+  description?: string;
+}
+
+export interface McpToolInputSchema {
+  required?: string[];
+  properties?: Record<string, McpToolPropertySchema>;
+}
+
+export interface McpToolDefinition {
+  name: string;
+  description?: string;
+  inputSchema?: McpToolInputSchema;
+}
+
+export interface McpToolsResponse {
+  tools: McpToolDefinition[];
+  stderr?: string;
+  warnings?: string[];
+}
+
+export interface McpToolCallResponse {
+  tool: string;
+  isError: boolean;
+  payload: unknown;
+  rpc?: unknown;
+  stderr?: string;
+  warnings?: string[];
+}
+
+export interface McpRpcResponse {
+  rpc: unknown;
+  stderr?: string;
+  warnings?: string[];
+}
+
+export interface McpProviderResponse {
+  provider: string;
+  openAi?: {
+    enabled?: boolean;
+    model?: string;
+    baseUrl?: string;
+    hasApiKey?: boolean;
+    apiKeyEnvVar?: string;
+  };
+}
+
+export interface McpChatHistoryItem {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+export interface McpChatResponse {
+  isError: boolean;
+  provider?: string;
+  model?: string;
+  answer: string;
+  executedTool?: string;
+  arguments?: unknown;
+  data?: unknown;
+  stderr?: string;
+  warnings?: string[];
+  suggestions?: string[];
+}
+
+@Injectable({
+  providedIn: 'root',
+})
+export class McpConsoleService {
+  private readonly baseUrl = `${environment.apiUrl}/api/mcp`;
+
+  constructor(private http: HttpClient) {}
+
+  getProvider(): Observable<McpProviderResponse> {
+    return this.http.get<McpProviderResponse>(`${this.baseUrl}/provider`, {
+      withCredentials: true,
+    });
+  }
+
+  getTools(): Observable<McpToolsResponse> {
+    return this.http.get<McpToolsResponse>(`${this.baseUrl}/tools`, {
+      withCredentials: true,
+    });
+  }
+
+  callTool(
+    tool: string,
+    argumentsPayload: Record<string, unknown>
+  ): Observable<McpToolCallResponse> {
+    return this.http.post<McpToolCallResponse>(
+      `${this.baseUrl}/tool-call`,
+      {
+        tool,
+        arguments: argumentsPayload,
+      },
+      {
+        withCredentials: true,
+      }
+    );
+  }
+
+  rpc(method: string, paramsPayload: unknown): Observable<McpRpcResponse> {
+    return this.http.post<McpRpcResponse>(
+      `${this.baseUrl}/rpc`,
+      {
+        method,
+        params: paramsPayload,
+      },
+      {
+        withCredentials: true,
+      }
+    );
+  }
+
+  chat(
+    message: string,
+    history: McpChatHistoryItem[] = []
+  ): Observable<McpChatResponse> {
+    return this.http.post<McpChatResponse>(
+      `${this.baseUrl}/chat`,
+      {
+        message,
+        history,
+      },
+      {
+        withCredentials: true,
+      }
+    );
+  }
+}

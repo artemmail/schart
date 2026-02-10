@@ -44,6 +44,14 @@ export interface DataSeries {
   histogramBaseline?: HistogramBaseline;
   histogramWidthRatio?: number; // 0..1
   histogramStackId?: string;
+  /**
+   * Optional fixed Y-range hint for the whole panel.
+   * When all visible series in a panel define this, the panel uses this range.
+   */
+  fixedRange?: {
+    min: number;
+    max: number;
+  };
 }
 
 export type PanelRef = 'chart' | { id: string };

@@ -110,8 +110,15 @@ export class viewBackgroundRange extends canvasPart {
     }
 
     // ───── перекрестие ─────
-    if (FP.ToolTip && !parent.hiddenHint && 'selectedPoint' in parent.mouseAndTouchManager) {
-      const p = parent.mouseAndTouchManager.selectedPoint;
+    const crosshairPoint = parent.mouseAndTouchManager?.selectedPoint;
+    if (
+      FP.ToolTip &&
+      !parent.hiddenHint &&
+      crosshairPoint &&
+      isFinite(crosshairPoint.x) &&
+      isFinite(crosshairPoint.y)
+    ) {
+      const p = crosshairPoint;
       const inY = p.y >= view.y && p.y <= view.y + view.h;
       const inX = p.x >= view.x && p.x <= view.x + view.w;
       if (inY || inX) {

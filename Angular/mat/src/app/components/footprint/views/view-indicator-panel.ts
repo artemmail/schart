@@ -82,6 +82,30 @@ export class viewIndicatorPanel extends canvasPart {
     const from = parent.minIndex ?? 0;
     const to = parent.maxIndex ?? Math.max(0, parent.data?.clusterData.length ?? 0);
 
+    const fixedRanges = series
+      .map((s) => s.fixedRange)
+      .filter(
+        (r): r is NonNullable<DataSeries['fixedRange']> =>
+          !!r && isFinite(r.min) && isFinite(r.max)
+      );
+
+    if (fixedRanges.length > 0 && fixedRanges.length === series.length) {
+      let fixedMin = Number.POSITIVE_INFINITY;
+      let fixedMax = Number.NEGATIVE_INFINITY;
+      for (const r of fixedRanges) {
+        fixedMin = Math.min(fixedMin, r.min);
+        fixedMax = Math.max(fixedMax, r.max);
+      }
+
+      if (!isFinite(fixedMin) || !isFinite(fixedMax)) return null;
+      if (fixedMin === fixedMax) {
+        fixedMin -= 1;
+        fixedMax += 1;
+      }
+
+      return { min: fixedMin, max: fixedMax };
+    }
+
     let min = Number.POSITIVE_INFINITY;
     let max = Number.NEGATIVE_INFINITY;
     let any = false;

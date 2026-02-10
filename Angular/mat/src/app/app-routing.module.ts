@@ -61,6 +61,7 @@ import { OptionBoardComponent } from './components/pages/option-board/option-boa
 import { VolatilityGraphComponent } from './components/pages/volatility-graph/volatility-graph.component';
 import { BondsPageComponent } from './components/pages/bonds-page/bonds-page.component';
 import { BondDetailsComponent } from './components/pages/bond-details/bond-details.component';
+import { McpConsoleComponent } from './components/pages/mcp-console/mcp-console.component';
 
 
 const routes: Routes = [
@@ -105,6 +106,7 @@ const routes: Routes = [
   { path: 'UserTable', component: UserTableComponent },
   { path: 'YooMoney', component: YooMoneyOperationsComponent },
   { path: 'Admin/SubscriptionPlans', component: SubscriptionPlanAdminComponent },
+  { path: 'Admin/McpConsole', component: McpConsoleComponent, canActivate: [AuthGuard] },
 
   { path: 'OpenPositions', component: ContractChartComponent 
     //,    canActivate: [AuthGuard] 

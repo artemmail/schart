@@ -169,4 +169,62 @@ describe('FootprintIndicatorEngine', () => {
     expect(bid!.values[1]).toBeCloseTo(8);
     expect(bid!.values[2]).toBeCloseTo(10);
   });
+
+  test('calculates Stochastic in fixed 0..100 subpanel', () => {
+    const data = makeClusterData([1, 2, 3, 4, 5, 6]);
+    const engine = makeEngine();
+
+    engine.setData(data);
+    engine.setSettings({
+      Indicators: [
+        {
+          id: 's1',
+          type: 'stochastic',
+          params: {
+            kPeriod: 3,
+            smoothK: 2,
+            dPeriod: 2,
+            showLevels: true,
+            overbought: 80,
+            oversold: 20,
+            kColor: '#1f77b4',
+            dColor: '#ff7f0e',
+            levelsColor: '#95a5a6',
+            width: 2,
+            levelsWidth: 1,
+            lineStyle: 'solid',
+            levelsLineStyle: 'dashed',
+          },
+          panel: { id: 'stoch' },
+          visible: true,
+        },
+      ],
+      IndicatorPanels: { stoch: { height: 100 } },
+    } as any);
+
+    engine.prepare();
+
+    expect(engine.getPanels().map((p) => p.id)).toEqual(['stoch']);
+
+    const series = engine.getPanelSeries('stoch');
+    const k = series.find((s) => s.id === 'STOCH_K');
+    const d = series.find((s) => s.id === 'STOCH_D');
+    const ob = series.find((s) => s.id === 'STOCH_OB');
+    const os = series.find((s) => s.id === 'STOCH_OS');
+
+    expect(k).toBeTruthy();
+    expect(d).toBeTruthy();
+    expect(ob).toBeTruthy();
+    expect(os).toBeTruthy();
+
+    expect(Number.isNaN(k!.values[2])).toBe(true);
+    expect(k!.values[3]).toBeCloseTo(100);
+    expect(Number.isNaN(d!.values[3])).toBe(true);
+    expect(d!.values[4]).toBeCloseTo(100);
+    expect(ob!.values[4]).toBeCloseTo(80);
+    expect(os!.values[4]).toBeCloseTo(20);
+
+    expect(k!.fixedRange).toEqual({ min: 0, max: 100 });
+    expect(d!.fixedRange).toEqual({ min: 0, max: 100 });
+  });
 });

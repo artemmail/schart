@@ -123,11 +123,14 @@ export abstract class canvasPart {
 
   drawVertical() {
     var parent = this.parent;
+    const point = parent.mouseAndTouchManager?.selectedPoint;
     if (
       /*FPsettings.ToolTip +++ &&*/ !parent.hiddenHint &&
-      'selectedPoint' in parent.mouseAndTouchManager
+      point &&
+      isFinite(point.x) &&
+      isFinite(point.y)
     ) {
-      var e = parent.mouseAndTouchManager.selectedPoint;
+      var e = point;
       this.ctx.beginPath();
       this.ctx.strokeStyle = this.palette.crosshair;
       this.ctx.myLine(e.x, this.view.y, e.x, this.view.y + this.view.h);
