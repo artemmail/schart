@@ -22,10 +22,5 @@ namespace DataProvider.Models
             if (trade.number > minnumber)
                 TradesList.Add(trade);
         }
-        struct cluster
-        {
-            public int Quantity;
-            public int BuyQuantity;
-        }
     }
 }

@@ -79,12 +79,20 @@ namespace DataProvider.Models
 
             if (m_machine.m_priceStep > 0)
             {
-                decimal roundprice = Math.Round((trade.Price / m_machine.m_priceStep)) * m_machine.m_priceStep;
+                decimal roundprice = RoundToStep(trade.Price, m_machine.m_priceStep);
                 if (ColumnDictionary.ContainsKey(roundprice))
                     ColumnDictionary[roundprice].Add(trade.Quantity, trade.Direction);
                 else
                     ColumnDictionary[roundprice] = new Cluster(trade.Quantity, trade.Direction);
             }
+        }
+
+        private static decimal RoundToStep(decimal price, decimal step)
+        {
+            if (step <= 0)
+                return price;
+
+            return Math.Round(price / step, 0, MidpointRounding.AwayFromZero) * step;
         }
 
 
