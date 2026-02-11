@@ -1,6 +1,8 @@
 param(
-    [string]$SourceRoot = "C:\corechart",
+    [string]$SourceRoot = "C:\sc\schart",
     [string]$ProjectRelativePath = "StockChart\StockChart.csproj",
+    [string]$McpAdapterRelativePath = "tools\mcp_adapter",
+    [bool]$CopyMcpAdapter = $true,
     [string]$SiteName = "stockchart",
     [string]$AppPool = "",
     [string]$TargetPath = "",
@@ -236,6 +238,40 @@ try
     if ($robocopyCode -ge 8)
     {
         throw "robocopy failed with exit code $robocopyCode."
+    }
+
+    if ($CopyMcpAdapter)
+    {
+        $mcpSourcePath = Join-Path $SourceRoot $McpAdapterRelativePath
+        $mcpTargetPath = Join-Path $resolvedTargetPath $McpAdapterRelativePath
+
+        if (Test-Path $mcpSourcePath)
+        {
+            Write-Step "Copying MCP adapter: $mcpSourcePath -> $mcpTargetPath"
+            New-Item -ItemType Directory -Force -Path $mcpTargetPath | Out-Null
+
+            $mcpRoboArgs = @(
+                $mcpSourcePath,
+                $mcpTargetPath,
+                "/MIR",
+                "/R:2",
+                "/W:2",
+                "/NFL",
+                "/NDL",
+                "/NP"
+            )
+
+            & robocopy @mcpRoboArgs
+            $mcpRobocopyCode = $LASTEXITCODE
+            if ($mcpRobocopyCode -ge 8)
+            {
+                throw "MCP adapter robocopy failed with exit code $mcpRobocopyCode."
+            }
+        }
+        else
+        {
+            Write-Warning "MCP adapter source folder not found: $mcpSourcePath"
+        }
     }
 
     Write-Step "Removing app_offline.htm"
