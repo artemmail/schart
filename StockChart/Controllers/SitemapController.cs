@@ -36,12 +36,52 @@ namespace StockChart.Controllers
             var baseUrl = $"{scheme}://{host}";
 
             // Извлекаем все необходимые Slug из таблицы Topics
-            var slugs = await _dbContext.Topics                
-                .Select(t => new { t.Slug, t.Date })
+            var newsUrls = await _dbContext.Topics
+                .AsNoTracking()
+                .Select(t => new { Url = $"{baseUrl}/ServiceNews/Content/{t.Slug}", LastMod = t.Date })
                 .ToListAsync();
 
+            var bondUrls = await (
+                from d in _dbContext.Dictionaries.AsNoTracking()
+                join bs in _dbContext.BondSpecs.AsNoTracking() on d.Id equals bs.DictionaryId
+                orderby d.Id
+                select new
+                {
+                    Url = $"{baseUrl}/bonds/{d.Securityid}",
+                    LastMod = bs.UpdatedAt
+                })
+                .ToListAsync();
+
+            var statementTickers = await (
+                from d in _dbContext.Dictionaries.AsNoTracking()
+                where d.Market == 0 && d.ToDate == null
+                join e in _dbContext.FinancialStatementEntries.AsNoTracking()
+                    on d.Id equals e.DictionaryId
+                where e.Standard == "MSFO" || e.Standard == "RSBU"
+                group e by new { d.Id, d.Securityid } into g
+                orderby g.Key.Id
+                select new
+                {
+                    Ticker = g.Key.Securityid,
+                    LastMod = g.Max(x => x.ImportedAt)
+                })
+                .ToListAsync();
+
+            var reportsUrls = statementTickers
+                .SelectMany(x => new[]
+                {
+                    new { d = x.LastMod, s = $"{baseUrl}/statements/{x.Ticker}" },
+                    new { d = x.LastMod, s = $"{baseUrl}/Dividends/{x.Ticker}" },
+                    new { d = x.LastMod, s = $"{baseUrl}/ShareHolders/{x.Ticker}" }
+                })
+                .ToList();
+
             // Формируем список URL
-            var urls = slugs.Select(slug =>new {d=slug.Date,s= $"{baseUrl}/ServiceNews/Content/{slug}" }).ToList();
+            var urls = newsUrls
+                .Select(x => new { d = x.LastMod, s = x.Url })
+                .Concat(bondUrls.Select(x => new { d = x.LastMod, s = x.Url }))
+                .Concat(reportsUrls)
+                .ToList();
 
             // Создаем XML документ
             XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
