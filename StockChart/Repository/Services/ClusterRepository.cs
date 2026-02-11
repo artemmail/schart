@@ -63,11 +63,10 @@ namespace StockChart.Repository.Services
 
             foreach (var row in clusters)
             {
-                if (d.ContainsKey(row.period))
+                var key = row.period.Floor((double)period);
+                if (d.TryGetValue(key, out var column))
                 {
-                    var cl = d[row.period.Floor((double)period)].cl;
-
-                    cl.Add(
+                    column.cl.Add(
                         new cluster
                         {
                             p = row.price,
