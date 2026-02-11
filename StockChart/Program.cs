@@ -16,6 +16,7 @@ using StockChart.Repository;
 using StockChart.Repository.Interfaces;
 using StockChart.Repository.Moex.OptionCalc;
 using StockChart.Repository.Services;
+using System.Net;
 using System.Text.Json;
 var MyAllowSpecificOrigins = "AllowSpecificOrigin";// "_myAllowSpecificOrigins";
 var builder = WebApplication.CreateBuilder(args);
@@ -157,7 +158,21 @@ app.UseStaticFiles();
 app.UseDetection();
 app.UseRouting();
 app.UseCors(MyAllowSpecificOrigins);
-app.UseHttpsRedirection();
+Func<HttpContext, bool> ShouldForceHttps = ctx =>
+{
+    var host = ctx.Request.Host.Host;
+    if (string.IsNullOrWhiteSpace(host))
+        return false;
+
+    if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase))
+        return false;
+
+    if (IPAddress.TryParse(host, out var ip) && IPAddress.IsLoopback(ip))
+        return false;
+
+    return true;
+};
+app.UseWhen(ShouldForceHttps, branch => branch.UseHttpsRedirection());
 app.UseSpaStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -203,6 +218,5 @@ app.MapWhen(ShouldUseRazor, appBuilder =>
         endpoints.MapRazorPages();
     });
 });
-app.UseHttpsRedirection();
 app.MapControllers();
 app.Run();

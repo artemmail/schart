@@ -7,6 +7,8 @@ param(
     [string]$Configuration = "Release",
     [string]$PublishOutput = "",
     [string]$LocalHealthUrl = "http://localhost:5253/",
+    [int]$HealthTimeoutSec = 60,
+    [int]$HealthRetryDelaySec = 2,
     [switch]$EnsureLocalhostBinding,
     [switch]$SkipBuild,
     [string[]]$ExcludeDirs = @(),
@@ -54,28 +56,76 @@ function Expand-PathValue([string]$raw)
     return $expanded.Trim().Trim('"')
 }
 
-function Ensure-LocalhostHttpBinding([string]$appCmdPath, [string]$siteName)
+function Ensure-SiteBinding(
+    [string]$appCmdPath,
+    [string]$siteName,
+    [string]$protocol,
+    [string]$bindingInformation,
+    [string]$existingBindingRegex,
+    [string]$displayName
+)
 {
     $bindings = Invoke-AppCmd $appCmdPath @("list", "site", $siteName, "/text:bindings")
-    if ($bindings -match "http/127\.0\.0\.1:5253:")
+    if ($bindings -match $existingBindingRegex)
     {
-        Write-Step "localhost binding already exists: http/127.0.0.1:5253"
+        Write-Step "Binding already exists: $displayName"
         return
     }
 
-    Write-Step "Adding localhost binding: http/127.0.0.1:5253"
+    Write-Step "Adding binding: $displayName"
     Invoke-AppCmd $appCmdPath @(
         "set",
         "site",
         "/site.name:$siteName",
-        "/+bindings.[protocol='http',bindingInformation='127.0.0.1:5253:']"
+        "/+bindings.[protocol='$protocol',bindingInformation='$bindingInformation']"
     ) | Out-Null
+}
+
+function Ensure-LocalhostHttpBinding([string]$appCmdPath, [string]$siteName)
+{
+    # Host-based localhost binding avoids collisions when multiple IIS sites use the same port.
+    Ensure-SiteBinding $appCmdPath $siteName "http" "*:5253:localhost" "http/\*:5253:localhost" "http/*:5253:localhost"
+    Ensure-SiteBinding $appCmdPath $siteName "http" "127.0.0.1:5253:" "http/127\.0\.0\.1:5253:" "http/127.0.0.1:5253:"
+    Ensure-SiteBinding $appCmdPath $siteName "http" "[::1]:5253:" "http/\[::1\]:5253:" "http/[::1]:5253:"
+}
+
+function Wait-Health([string]$url, [int]$timeoutSec, [int]$retryDelaySec)
+{
+    $started = Get-Date
+    $lastError = $null
+
+    while (((Get-Date) - $started).TotalSeconds -lt $timeoutSec)
+    {
+        try
+        {
+            $response = Invoke-WebRequest -Uri $url -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 10
+            return $response.StatusCode
+        }
+        catch
+        {
+            $lastError = $_.Exception.Message
+            Start-Sleep -Seconds $retryDelaySec
+        }
+    }
+
+    throw "Health check failed after $timeoutSec sec for '$url'. Last error: $lastError"
 }
 
 $appCmdPath = Resolve-AppCmdPath
 Write-Step "Using appcmd: $appCmdPath"
 
 $projectPath = Join-Path $SourceRoot $ProjectRelativePath
+if (-not (Test-Path $projectPath))
+{
+    $scriptRootSource = Split-Path -Parent $PSScriptRoot
+    $candidateProjectPath = Join-Path $scriptRootSource $ProjectRelativePath
+    if (Test-Path $candidateProjectPath)
+    {
+        $SourceRoot = $scriptRootSource
+        $projectPath = $candidateProjectPath
+        Write-Step "Auto-detected SourceRoot from script location: $SourceRoot"
+    }
+}
 if (-not (Test-Path $projectPath))
 {
     throw "Project file not found: $projectPath"
@@ -197,15 +247,15 @@ try
     Write-Step "Starting site: $SiteName"
     Invoke-AppCmd $appCmdPath @("start", "site", "/site.name:$SiteName") | Out-Null
 
-    Write-Step "Health check: $LocalHealthUrl"
+    Write-Step "Health check: $LocalHealthUrl (timeout=$HealthTimeoutSec sec)"
     try
     {
-        $response = Invoke-WebRequest -Uri $LocalHealthUrl -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 20
-        Write-Step "Health check status: $($response.StatusCode)"
+        $statusCode = Wait-Health -url $LocalHealthUrl -timeoutSec $HealthTimeoutSec -retryDelaySec $HealthRetryDelaySec
+        Write-Step "Health check status: $statusCode"
     }
     catch
     {
-        Write-Warning "Health check failed: $($_.Exception.Message)"
+        Write-Warning $_.Exception.Message
     }
 
     Write-Step "Deploy completed."
