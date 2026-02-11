@@ -36,28 +36,32 @@ namespace StockChart.Repository.Services
             _isRunning = true;
             _processedContracts.Clear();
 
-            var allContracts = GetAllContracts();
-            var start = new DateTime(2025, 12, 18);
-            var end = DateTime.Today;
-
-            for (var d = start; d <= end; d = d.AddDays(1))
+            try
             {
+                var allContracts = GetAllContracts();
+                var end = DateTime.Today;
+
                 foreach (var contractName in allContracts)
                 {
                     try
                     {
-                        await DownloadAndImportContractDataAsync(contractName, d);
+                        var start = await GetNextDateToDownloadAsync(contractName, end);
+
+                        for (var d = start; d <= end; d = d.AddDays(1))
+                            await DownloadAndImportContractDataAsync(contractName, d);
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Import error for {contractName} at {d:dd.MM.yyyy}: {ex.Message}");
+                        Console.WriteLine($"Import error for {contractName}: {ex.Message}");
                     }
 
                     _processedContracts.Add(contractName);
                 }
             }
-
-            _isRunning = false;
+            finally
+            {
+                _isRunning = false;
+            }
         }
 
         public async Task DownloadAndImportContractsAsync()
@@ -71,53 +75,53 @@ namespace StockChart.Repository.Services
         private async Task DownloadAndImportContractDataAsync(string contractName, DateTime? d = null)
         {
             var currentDate = (d ?? DateTime.Today).Date;
-            bool dataChanged = true;
+
+            if (currentDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+                return;
+
             using var context = _contextFactory.CreateDbContext();
 
-            while (dataChanged)
+            var hasExisting = await context.OpenPositions
+                .AnyAsync(op => op.ContractName == contractName && op.Date == currentDate);
+            if (hasExisting)
             {
-                if (currentDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
-                {
-                    currentDate = currentDate.AddDays(-1);
-                    continue;
-                }
-
-                var data = await DownloadContractDataAsync(contractName, currentDate);
-                if (data == null)
-                {
-                    Console.WriteLine($"No data for {contractName} on {currentDate:dd.MM.yyyy}. Skipping.");
-                    currentDate = currentDate.AddDays(-1);
-                    continue;
-                }
-
-                var contractDate = data.Value.TradeDate.Date;
-
-                var existing = await context.OpenPositions
-                    .FirstOrDefaultAsync(op => op.ContractName == contractName && op.Date == contractDate);
-
-                if (existing != null)
-                {
-                    dataChanged = HasDataChanged(existing, data.Value);
-                    if (!dataChanged)
-                    {
-                        Console.WriteLine($"Data for {contractName} on {contractDate:dd.MM.yyyy} is up to date. Stopping download.");
-                        break;
-                    }
-
-                    UpdateExistingOpenPosition(existing, data.Value);
-                    Console.WriteLine($"Data for {contractName} on {contractDate:dd.MM.yyyy} has changed. Updating.");
-                }
-                else
-                {
-                    var created = CreateNewOpenPosition(contractName, data.Value);
-                    context.OpenPositions.Add(created);
-                    Console.WriteLine($"New data for {contractName} on {contractDate:dd.MM.yyyy} added.");
-                }
-
-                await context.SaveChangesAsync();
-
-                currentDate = currentDate.AddDays(-1);
+                Console.WriteLine($"Data for {contractName} on {currentDate:dd.MM.yyyy} already exists. Skipping download.");
+                return;
             }
+
+            var data = await DownloadContractDataAsync(contractName, currentDate);
+            if (data == null)
+            {
+                Console.WriteLine($"No data for {contractName} on {currentDate:dd.MM.yyyy}. Skipping.");
+                return;
+            }
+
+            var contractDate = data.Value.TradeDate.Date;
+
+            var existsByTradeDate = await context.OpenPositions
+                .AnyAsync(op => op.ContractName == contractName && op.Date == contractDate);
+            if (existsByTradeDate)
+            {
+                Console.WriteLine($"Data for {contractName} on {contractDate:dd.MM.yyyy} already exists. Skipping import.");
+                return;
+            }
+
+            var created = CreateNewOpenPosition(contractName, data.Value);
+            context.OpenPositions.Add(created);
+
+            await context.SaveChangesAsync();
+            Console.WriteLine($"New data for {contractName} on {contractDate:dd.MM.yyyy} added.");
+        }
+
+        private async Task<DateTime> GetNextDateToDownloadAsync(string contractName, DateTime fallback)
+        {
+            using var context = _contextFactory.CreateDbContext();
+
+            var lastDate = await context.OpenPositions
+                .Where(op => op.ContractName == contractName)
+                .MaxAsync(op => (DateTime?)op.Date);
+
+            return lastDate?.Date.AddDays(1) ?? fallback;
         }
 
         private async Task<OpenPositionsImportData?> DownloadContractDataAsync(string contractName, DateTime date)
