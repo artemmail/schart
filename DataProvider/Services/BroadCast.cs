@@ -3,6 +3,7 @@ using StockChart.EventBus.Abstractions;
 using Microsoft.Extensions.Logging;
 using StockChart.Notification.WebApi.RabbitMQ.Subscriptions;
 using StockChart.Messages;
+using DataProvider.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,8 +32,13 @@ public class BroadCast : IBroadCast
     {
         try
         {
-            await BroadCastClusters(list);
-            var array = Subscriber.subscribed_candles.Where(x => list.Contains(x.ticker)).ToArray();
+            var changedTickersCount = list?.Count ?? 0;
+            var normalizedTickers = NormalizeChangedTickers(list);
+
+            await BroadCastClustersCore(normalizedTickers, changedTickersCount);
+            var array = Subscriber.subscribed_candles
+                .Where(x => ContainsTicker(normalizedTickers, x.ticker))
+                .ToArray();
 
             if (array.Any())
             {
@@ -44,12 +50,12 @@ public class BroadCast : IBroadCast
 
                 _logger.LogInformation(
                     "BroadcastCandles changed={ChangedTickers} subscriptions={Subscriptions} payloadKeys={PayloadKeys}",
-                    list.Count,
+                    changedTickersCount,
                     array.Length,
                     payloadKeys);
                 SignalRFlowFileLogger.Write(
                     "DataProvider.BroadCastCandles",
-                    $"changed={list.Count}; subscriptions={array.Length}; payloadKeys={payloadKeys}; sampleKeys={sampleKeys}");
+                    $"changed={changedTickersCount}; subscriptions={array.Length}; payloadKeys={payloadKeys}; sampleKeys={sampleKeys}");
 
                 await _bus.SendAsync(
                     typeof(CandleMessage),
@@ -67,8 +73,15 @@ public class BroadCast : IBroadCast
 
     public async Task BroadCastClusters(HashSet<string> list)
     {
+        var changedTickersCount = list?.Count ?? 0;
+        var normalizedTickers = NormalizeChangedTickers(list);
+        await BroadCastClustersCore(normalizedTickers, changedTickersCount);
+    }
+
+    private async Task BroadCastClustersCore(HashSet<string> normalizedTickers, int changedTickersCount)
+    {
         var clusterSubscriptions = Subscriber.subscribed_clusters
-            .Where(x => list.Contains(x.ticker) && x.period > 0)
+            .Where(x => ContainsTicker(normalizedTickers, x.ticker) && x.period > 0)
             .ToArray();
         if (clusterSubscriptions.Any())
         {
@@ -80,12 +93,12 @@ public class BroadCast : IBroadCast
 
             _logger.LogInformation(
                 "BroadcastClusters changed={ChangedTickers} subscriptions={Subscriptions} payloadKeys={PayloadKeys}",
-                list.Count,
+                changedTickersCount,
                 clusterSubscriptions.Length,
                 payloadKeys);
             SignalRFlowFileLogger.Write(
                 "DataProvider.BroadCastClusters",
-                $"changed={list.Count}; subscriptions={clusterSubscriptions.Length}; payloadKeys={payloadKeys}; sampleKeys={sampleKeys}");
+                $"changed={changedTickersCount}; subscriptions={clusterSubscriptions.Length}; payloadKeys={payloadKeys}; sampleKeys={sampleKeys}");
 
             await _bus.SendAsync(
                 typeof(ClusterMessage),
@@ -94,7 +107,7 @@ public class BroadCast : IBroadCast
         }
 
         var tickSubscriptions = Subscriber.subscribed_clusters
-            .Where(x => list.Contains(x.ticker) && x.period == 0)
+            .Where(x => ContainsTicker(normalizedTickers, x.ticker) && x.period == 0)
             .ToArray();
         if (tickSubscriptions.Any())
         {
@@ -106,18 +119,37 @@ public class BroadCast : IBroadCast
 
             _logger.LogInformation(
                 "BroadcastTicks changed={ChangedTickers} subscriptions={Subscriptions} payloadKeys={PayloadKeys}",
-                list.Count,
+                changedTickersCount,
                 tickSubscriptions.Length,
                 payloadKeys);
             SignalRFlowFileLogger.Write(
                 "DataProvider.BroadCastTicks",
-                $"changed={list.Count}; subscriptions={tickSubscriptions.Length}; payloadKeys={payloadKeys}; sampleKeys={sampleKeys}");
+                $"changed={changedTickersCount}; subscriptions={tickSubscriptions.Length}; payloadKeys={payloadKeys}; sampleKeys={sampleKeys}");
 
             await _bus.SendAsync(
                 typeof(TickerMessage),
                 new List<TickerMessage> { new TickerMessage { body = payload } },
                 CancellationToken.None);
         }
+    }
+
+    private static HashSet<string> NormalizeChangedTickers(IEnumerable<string>? tickers)
+    {
+        if (tickers == null)
+        {
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        return tickers
+            .Select(TickerKey.Normalize)
+            .Where(x => !string.IsNullOrEmpty(x))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static bool ContainsTicker(HashSet<string> normalizedTickers, string? ticker)
+    {
+        var normalizedTicker = TickerKey.Normalize(ticker);
+        return !string.IsNullOrEmpty(normalizedTicker) && normalizedTickers.Contains(normalizedTicker);
     }
 
 }
