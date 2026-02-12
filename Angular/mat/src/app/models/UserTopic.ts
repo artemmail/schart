@@ -28,6 +28,10 @@ export interface UserTopicText {
 export interface ApplicationUser {
   Id: string;
   UserName: string;
+  HasActiveSubscription?: boolean;
+  hasActiveSubscription?: boolean;
+  IsAdmin?: boolean;
+  isAdmin?: boolean;
 }
 
 export interface Comment {

@@ -15,7 +15,7 @@ import { LeaderboardTableComponent } from '../../Controls/leaderboard-table/lead
 
 @Component({
   standalone: true,
-  selector: 'app-main-page',  
+  selector: 'app-main-page',
   templateUrl: './main-page.component.html',
   styleUrl: './main-page.component.css',
   imports: [
@@ -31,35 +31,23 @@ import { LeaderboardTableComponent } from '../../Controls/leaderboard-table/lead
     StockChartTreemapComponent,
     LeaderboardTableComponent,
   ],
-  
 })
 export class MainPageComponent {
+  public selectedMarket: number = 0;
+  @ViewChild(StockChartTreemapComponent) stockChartTreemapComponent: StockChartTreemapComponent;
 
-  public selectedMarket: number  = 0;
-  @ViewChild(StockChartTreemapComponent)  stockChartTreemapComponent: StockChartTreemapComponent;
-
-
+  constructor(private titleService: Title, private dialogService: DialogService) {
+    titleService.setTitle('Кластерные графики и биржевые инструменты онлайн');
+    this.selectedMarket = 0;
+  }
 
   onMarketChange(market: number): void {
-    
-
     this.stockChartTreemapComponent.updateParams({ market: this.selectedMarket });
   }
 
-  constructor(private titleService: Title,   private dialogService: DialogService) {
-     titleService.setTitle('Кластерные графики и биржевые инструменты онлайн');
-     this.selectedMarket =0 ;
-
-   }
-
-   openSupportDialog()
-   {
-     this.dialogService.openSupportDialog()
-   }
-
-  ngOnInit(): void {
-    
+  openSupportDialog(): void {
+    this.dialogService.openSupportDialog();
   }
 
+  ngOnInit(): void {}
 }
-

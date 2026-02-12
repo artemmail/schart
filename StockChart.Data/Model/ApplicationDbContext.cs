@@ -43,6 +43,7 @@ public class ApplicationUser : IdentityUser<Guid>
 
 
     public virtual ICollection<UserLoginHistory> UserLoginHistory { get; } = new List<UserLoginHistory>();
+    public virtual ICollection<McpConversation> McpConversations { get; } = new List<McpConversation>();
 
     //public SelectedChartSettings SelectedChartSettings { get; set; }
 
@@ -106,6 +107,8 @@ public partial class ApplicationDbContext
     public virtual DbSet<RecommendationReason> RecommendationReasons { get; set; }
     public virtual DbSet<FinancialStatementEntry> FinancialStatementEntries { get; set; }
     public virtual DbSet<FinancialStatementDictionary> FinancialStatementDictionaries { get; set; }
+    public virtual DbSet<McpConversation> McpConversations { get; set; }
+    public virtual DbSet<McpConversationMessage> McpConversationMessages { get; set; }
 
 
 
@@ -240,6 +243,37 @@ public partial class ApplicationDbContext
             entity.HasOne(d => d.Metric).WithMany(p => p.Entries)
                 .HasForeignKey(d => d.MetricId)
                 .HasConstraintName("FK_FinancialStatementEntries_Metric");
+        });
+
+        modelBuilder.Entity<McpConversation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("McpConversations");
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.LastMessagePreview).HasMaxLength(512);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+            entity.Property(e => e.LastMessageAt).HasColumnType("datetime2");
+            entity.HasIndex(e => new { e.UserId, e.UpdatedAt });
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.McpConversations)
+                .HasForeignKey(e => e.UserId)
+                .HasConstraintName("FK_McpConversations_AspNetUsers_UserId");
+        });
+
+        modelBuilder.Entity<McpConversationMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("McpConversationMessages");
+            entity.Property(e => e.Role).HasMaxLength(32);
+            entity.Property(e => e.Provider).HasMaxLength(64);
+            entity.Property(e => e.Model).HasMaxLength(128);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
+            entity.HasIndex(e => new { e.ConversationId, e.CreatedAt });
+            entity.HasOne(e => e.Conversation)
+                .WithMany(c => c.Messages)
+                .HasForeignKey(e => e.ConversationId)
+                .HasConstraintName("FK_McpConversationMessages_McpConversations_ConversationId");
         });
 
         modelBuilder.Entity<Al>(entity =>

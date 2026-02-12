@@ -110,8 +110,9 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
         }
 
         var subsCluster = SubsCluster.Parse(key);
+        subsCluster.ticker = NormalizeTickerForHub(subsCluster.ticker);
 
-        if (!_tickersRepository.Tickers.TryGetValue(subsCluster.ticker.ToUpper(), out var ticker))
+        if (!_tickersRepository.Tickers.TryGetValue(subsCluster.ticker.ToUpperInvariant(), out var ticker))
         {
             _logger.LogWarning("Ticker not found: {Ticker}", subsCluster.ticker);
             SignalRFlowFileLogger.Write(
@@ -121,6 +122,7 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
         }
 
         var groupName = subsCluster.ToString();
+        var aliasGroupName = TryBuildAliasClusterKey(subsCluster, ticker);
         var period = subsCluster.period.GetValueOrDefault();
 
         if ((ticker.Market == 20 && period > 60) || period > 1440)
@@ -145,45 +147,75 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
                     bv = row.BuyVolume
                 }).ToList();
 
-                await Task.WhenAll(
+                var tasks = new List<Task>
+                {
                     _hubContext.Clients.Group(groupName).SendCoreAsync("receiveCluster", new object[] { list }),
                     _hubContext.Clients.Group(groupName).SendCoreAsync(
                         "receiveClusterEnvelope",
                         new object[] { new { key = groupName, data = (object)list } })
-                );
+                };
+
+                if (!string.IsNullOrEmpty(aliasGroupName))
+                {
+                    tasks.Add(_hubContext.Clients.Group(groupName).SendCoreAsync(
+                        "receiveClusterEnvelope",
+                        new object[] { new { key = aliasGroupName, data = (object)list } }));
+                }
+
+                await Task.WhenAll(tasks);
 
                 SignalRFlowFileLogger.Write(
                     "StockChart.ClusterSubscriber.DispatchCluster",
-                    $"group={groupName}; sourceItems={body.Count}; sentItems={list.Count}; mode=rebuild_candles");
+                    $"group={groupName}; aliasGroup={aliasGroupName ?? "none"}; sourceItems={body.Count}; sentItems={list.Count}; mode=rebuild_candles");
             }
             else
             {
                 var clusterRepository = scope.ServiceProvider.GetRequiredService<IClusterRepository>();
                 var clusters = await clusterRepository.GetLastCluster(ticker.Id, (decimal)period, subsCluster.step, 3);
-                await Task.WhenAll(
+                var tasks = new List<Task>
+                {
                     _hubContext.Clients.Group(groupName).SendCoreAsync("receiveCluster", new object[] { clusters }),
                     _hubContext.Clients.Group(groupName).SendCoreAsync(
                         "receiveClusterEnvelope",
                         new object[] { new { key = groupName, data = (object)clusters } })
-                );
+                };
+
+                if (!string.IsNullOrEmpty(aliasGroupName))
+                {
+                    tasks.Add(_hubContext.Clients.Group(groupName).SendCoreAsync(
+                        "receiveClusterEnvelope",
+                        new object[] { new { key = aliasGroupName, data = (object)clusters } }));
+                }
+
+                await Task.WhenAll(tasks);
 
                 SignalRFlowFileLogger.Write(
                     "StockChart.ClusterSubscriber.DispatchCluster",
-                    $"group={groupName}; sourceItems={body.Count}; sentItems={clusters.Count}; mode=rebuild_clusters");
+                    $"group={groupName}; aliasGroup={aliasGroupName ?? "none"}; sourceItems={body.Count}; sentItems={clusters.Count}; mode=rebuild_clusters");
             }
         }
         else
         {
-            await Task.WhenAll(
+            var tasks = new List<Task>
+            {
                 _hubContext.Clients.Group(groupName).SendCoreAsync("receiveCluster", new object[] { body }),
                 _hubContext.Clients.Group(groupName).SendCoreAsync(
                     "receiveClusterEnvelope",
                     new object[] { new { key = groupName, data = (object)body } })
-            );
+            };
+
+            if (!string.IsNullOrEmpty(aliasGroupName))
+            {
+                tasks.Add(_hubContext.Clients.Group(groupName).SendCoreAsync(
+                    "receiveClusterEnvelope",
+                    new object[] { new { key = aliasGroupName, data = (object)body } }));
+            }
+
+            await Task.WhenAll(tasks);
 
             SignalRFlowFileLogger.Write(
                 "StockChart.ClusterSubscriber.DispatchCluster",
-                $"group={groupName}; sourceItems={body.Count}; sentItems={body.Count}; mode=realtime");
+                $"group={groupName}; aliasGroup={aliasGroupName ?? "none"}; sourceItems={body.Count}; sentItems={body.Count}; mode=realtime");
         }
     }
 
@@ -198,18 +230,30 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
         }
 
         var subsCluster = SubsCluster.Parse(key);
+        subsCluster.ticker = NormalizeTickerForHub(subsCluster.ticker);
         var groupName = subsCluster.ToString();
+        var aliasGroupName = TryBuildAliasClusterKey(subsCluster);
 
-        await Task.WhenAll(
+        var tasks = new List<Task>
+        {
             _hubContext.Clients.Group(groupName).SendCoreAsync("receiveTicks", new object[] { body }),
             _hubContext.Clients.Group(groupName).SendCoreAsync(
                 "receiveTicksEnvelope",
                 new object[] { new { key = groupName, data = (object)body } })
-        );
+        };
+
+        if (!string.IsNullOrEmpty(aliasGroupName))
+        {
+            tasks.Add(_hubContext.Clients.Group(groupName).SendCoreAsync(
+                "receiveTicksEnvelope",
+                new object[] { new { key = aliasGroupName, data = (object)body } }));
+        }
+
+        await Task.WhenAll(tasks);
 
         SignalRFlowFileLogger.Write(
             "StockChart.ClusterSubscriber.DispatchTicks",
-            $"group={groupName}; sentItems={body.Count}");
+            $"group={groupName}; aliasGroup={aliasGroupName ?? "none"}; sentItems={body.Count}");
     }
 
     private async Task ProcessCandleAsync(string key, List<BaseCandle> body)
@@ -223,8 +267,9 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
         }
 
         var subsCandle = SubsCandle.Parse(key);
+        subsCandle.ticker = NormalizeTickerForHub(subsCandle.ticker);
 
-        if (!_tickersRepository.Tickers.TryGetValue(subsCandle.ticker.ToUpper(), out var ticker))
+        if (!_tickersRepository.Tickers.TryGetValue(subsCandle.ticker.ToUpperInvariant(), out var ticker))
         {
             _logger.LogWarning("Ticker not found: {Ticker}", subsCandle.ticker);
             SignalRFlowFileLogger.Write(
@@ -260,5 +305,57 @@ public class ClusterSubscriber : ISubscriber, IConsumer<ClusterMessage>, IConsum
         SignalRFlowFileLogger.Write(
             "StockChart.ClusterSubscriber.DispatchCandle",
             $"group={groupName}; sourceItems={body.Count}; sentItems={candles.Count}");
+    }
+
+    private string NormalizeTickerForHub(string? ticker)
+    {
+        if (string.IsNullOrWhiteSpace(ticker))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = ticker.Trim();
+        var upperTicker = trimmed.ToUpperInvariant();
+
+        if (_tickersRepository.Tickers.TryGetValue(upperTicker, out var dictionaryTicker) &&
+            !string.IsNullOrWhiteSpace(dictionaryTicker.Securityid))
+        {
+            return dictionaryTicker.Securityid.Trim();
+        }
+
+        return trimmed;
+    }
+
+    private string? TryBuildAliasClusterKey(SubsCluster subscription, StockChart.Model.Dictionary? tickerInfo = null)
+    {
+        var ticker = subscription.ticker;
+        if (string.IsNullOrWhiteSpace(ticker) || ticker.Length <= 2)
+        {
+            return null;
+        }
+
+        var market = tickerInfo?.Market;
+        if (!market.HasValue &&
+            _tickersRepository.Tickers.TryGetValue(ticker.ToUpperInvariant(), out var fromRepoTickerInfo))
+        {
+            market = fromRepoTickerInfo.Market;
+        }
+
+        if ((market ?? 0) != 1)
+        {
+            return null;
+        }
+
+        var aliasTicker = ticker.Substring(0, 2);
+        var aliasKey = new SubsCluster
+        {
+            ticker = aliasTicker,
+            period = subscription.period,
+            step = subscription.step
+        }.ToString();
+
+        return string.Equals(aliasKey, subscription.ToString(), StringComparison.Ordinal)
+            ? null
+            : aliasKey;
     }
 }

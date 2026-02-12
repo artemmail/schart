@@ -28,18 +28,19 @@ namespace StockChart.Repository
         public async Task Subscribe(SubsCandle[] array)
         {
             array ??= Array.Empty<SubsCandle>();
-            var sample = string.Join(",", array.Take(5).Select(x => x.ToString()));
+            var normalized = array.Select(Normalize).ToArray();
+            var sample = string.Join(",", normalized.Take(5).Select(x => x.ToString()));
 
             _logger.LogInformation(
                 "Publish SubscribeCandleMessage subscriptions={Subscriptions}",
-                array.Length);
+                normalized.Length);
             SignalRFlowFileLogger.Write(
                 "StockChart.SubscribeRepository.Candles",
-                $"subscriptions={array.Length}; sample={sample}");
+                $"subscriptions={normalized.Length}; sample={sample}");
 
             await _bus.SendAsync(
                 typeof(SubscribeCandleMessage),
-                new List<SubscribeCandleMessage> { new SubscribeCandleMessage { body = array } },
+                new List<SubscribeCandleMessage> { new SubscribeCandleMessage { body = normalized } },
                 CancellationToken.None);
 
             /*
@@ -62,18 +63,19 @@ namespace StockChart.Repository
         public async Task Subscribe(SubsCluster[] array)
         {
             array ??= Array.Empty<SubsCluster>();
-            var sample = string.Join(",", array.Take(5).Select(x => x.ToString()));
+            var normalized = array.Select(Normalize).ToArray();
+            var sample = string.Join(",", normalized.Take(5).Select(x => x.ToString()));
 
             _logger.LogInformation(
                 "Publish SubscribeClusterMessage subscriptions={Subscriptions}",
-                array.Length);
+                normalized.Length);
             SignalRFlowFileLogger.Write(
                 "StockChart.SubscribeRepository.Clusters",
-                $"subscriptions={array.Length}; sample={sample}");
+                $"subscriptions={normalized.Length}; sample={sample}");
 
             await _bus.SendAsync(
                 typeof(SubscribeClusterMessage),
-                new List<SubscribeClusterMessage> { new SubscribeClusterMessage { body = array } },
+                new List<SubscribeClusterMessage> { new SubscribeClusterMessage { body = normalized } },
                 CancellationToken.None);
 
             /*
@@ -90,6 +92,30 @@ namespace StockChart.Repository
                 }
             
             }*/
+        }
+
+        private static SubsCandle Normalize(SubsCandle subscription)
+        {
+            return new SubsCandle
+            {
+                ticker = NormalizeTicker(subscription?.ticker),
+                period = subscription?.period
+            };
+        }
+
+        private static SubsCluster Normalize(SubsCluster subscription)
+        {
+            return new SubsCluster
+            {
+                ticker = NormalizeTicker(subscription?.ticker),
+                period = subscription?.period,
+                step = subscription?.step ?? 0m
+            };
+        }
+
+        private static string NormalizeTicker(string? ticker)
+        {
+            return (ticker ?? string.Empty).Trim().ToUpperInvariant();
         }
     }
 }

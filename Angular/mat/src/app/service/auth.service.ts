@@ -115,7 +115,27 @@ export class AuthService {
 
   // Проверка, является ли пользователь администратором
   isAdmin(): boolean {
-    const roles = JSON.parse(localStorage.getItem('userRoles') || '[]');
+    const roles = this.getStoredRoles();
     return roles.includes('Admin');
+  }
+
+  private getStoredRoles(): string[] {
+    const raw = localStorage.getItem('userRoles');
+    if (!raw) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      return parsed
+        .filter((role: unknown) => typeof role === 'string')
+        .map((role: unknown) => role as string);
+    } catch {
+      return [];
+    }
   }
 }

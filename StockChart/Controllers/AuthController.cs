@@ -10,6 +10,7 @@ using System.Text.Encodings.Web;
 using StockChart.Areas.Identity.Pages.Account;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using StockChart.Repository.Interfaces;
 
 namespace YourNamespace.Controllers
 {
@@ -24,9 +25,11 @@ namespace YourNamespace.Controllers
         private readonly ILogger<AuthController> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ApplicationDbContext _db;
+        private readonly IUsersRepository _usersRepository;
 
         public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager,
-            ILogger<AuthController> logger, ApplicationDbContext db, IHttpContextAccessor httpContextAccessor, IEmailSender emailSender)
+            ILogger<AuthController> logger, ApplicationDbContext db, IHttpContextAccessor httpContextAccessor, IEmailSender emailSender,
+            IUsersRepository usersRepository)
         {
             _emailSender = emailSender;
             _signInManager = signInManager;
@@ -34,6 +37,7 @@ namespace YourNamespace.Controllers
             _logger = logger;
             _httpContextAccessor = httpContextAccessor;
             _db = db;
+            _usersRepository = usersRepository;
         }
 
         [HttpGet("issignedin")]
@@ -44,7 +48,14 @@ namespace YourNamespace.Controllers
         public async Task<IActionResult> GetLoggedUser()
         {
             var user = await _userManager.GetUserAsync(User);
-            return Ok(new { user.Id, user.UserName });
+            if (user == null)
+            {
+                return Unauthorized(new { message = "User is not authenticated." });
+            }
+
+            var hasActiveSubscription = await _usersRepository.UserHasActiveSubscription(user);
+            var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+            return Ok(new { user.Id, user.UserName, hasActiveSubscription, isAdmin });
         }
 
         [HttpPost("login")]

@@ -1,63 +1,158 @@
-<div class="chat-page">
-  <mat-card class="chat-shell">
-    <mat-card-header>
-      <mat-card-title>MCP Chat Console</mat-card-title>
-      <mat-card-subtitle>
-        Диалоговый режим как в чате
-        <span class="provider-chip">{{ providerLabel }}</span>
-      </mat-card-subtitle>
-    </mat-card-header>
+<div class="chatgpt-shell">
+  <aside class="chatgpt-sidebar" [class.open]="mobileSidebarOpen">
+    <div class="sidebar-header">
+      <button mat-flat-button class="new-chat-btn" (click)="startNewConversation()">
+        <mat-icon>add</mat-icon>
+        Новый диалог
+      </button>
 
-    <mat-card-content class="chat-content">
-      <div #scrollContainer class="chat-log">
-        <div
-          class="message-row"
-          *ngFor="let message of messages"
-          [ngClass]="message.role"
-        >
-          <div class="message-bubble">
-            <div class="message-meta">
-              <span class="role">
-                {{
-                  message.role === 'user'
-                    ? 'Вы'
-                    : message.role === 'assistant'
-                    ? (message.provider === 'openai'
-                      ? 'OpenAI Assistant'
-                      : 'MCP Assistant')
-                    : message.role === 'error'
-                    ? 'Ошибка'
-                    : 'Система'
-                }}
-              </span>
-              <span class="model" *ngIf="message.role === 'assistant' && message.model">
-                {{ message.model }}
-              </span>
-              <span class="time">{{ message.timestamp | date: 'HH:mm:ss' }}</span>
-            </div>
+      <div class="provider-chip">{{ providerLabel }}</div>
+    </div>
 
-            <div class="message-text">{{ message.text }}</div>
+    <div class="sidebar-list" *ngIf="hasConversationItems; else emptySidebar">
+      <button
+        type="button"
+        class="conversation-item"
+        *ngFor="let conversation of conversations"
+        [class.active]="conversation.id === activeConversationId"
+        (click)="openConversation(conversation.id)"
+      >
+        <div class="conversation-title">{{ conversation.title }}</div>
+        <div class="conversation-preview">{{ conversation.lastMessagePreview }}</div>
+        <div class="conversation-time">{{ formatConversationTime(conversation.lastMessageAt || conversation.updatedAt) }}</div>
+      </button>
+    </div>
 
-            <pre *ngIf="message.data">{{ message.data | json }}</pre>
+    <ng-template #emptySidebar>
+      <div class="sidebar-empty">История пустая. Начните первый диалог.</div>
+    </ng-template>
+  </aside>
 
-            <div
-              class="message-suggestions"
-              *ngIf="message.suggestions && message.suggestions.length > 0"
+  <section class="chatgpt-main">
+    <header class="chat-header">
+      <button mat-icon-button class="mobile-toggle" (click)="toggleSidebar()">
+        <mat-icon>menu</mat-icon>
+      </button>
+
+      <div class="chat-title-wrap">
+        <h1>{{ activeConversationTitle }}</h1>
+        <p>MCP Console</p>
+      </div>
+
+      <button mat-stroked-button (click)="startNewConversation()">Новый</button>
+    </header>
+
+    <main #scrollContainer class="chat-log">
+      <div class="chat-placeholder" *ngIf="loadingConversation || loadingConversations">
+        <mat-progress-spinner mode="indeterminate" diameter="28"></mat-progress-spinner>
+      </div>
+
+      <div class="message-row" *ngFor="let message of messages" [ngClass]="message.role">
+        <div class="message-card">
+          <div class="message-meta">
+            <span class="role">
+              {{
+                message.role === 'user'
+                  ? 'Вы'
+                  : message.role === 'assistant'
+                  ? (message.provider === 'openai' ? 'OpenAI' : 'MCP')
+                  : message.role === 'error'
+                  ? 'Ошибка'
+                  : 'Система'
+              }}
+            </span>
+            <span class="model" *ngIf="message.role === 'assistant' && message.model">
+              {{ message.model }}
+            </span>
+            <span class="time">{{ message.timestamp | date: 'dd.MM HH:mm' }}</span>
+          </div>
+
+          <div class="message-text" *ngIf="message.role === 'user'; else renderedResponse">
+            {{ message.text }}
+          </div>
+
+          <ng-template #renderedResponse>
+            <div class="message-markdown" [innerHTML]="message.renderedHtml"></div>
+          </ng-template>
+
+          <div class="message-actions" *ngIf="message.role !== 'user'">
+            <button mat-icon-button (click)="copyMessage(message)" matTooltip="Копировать ответ">
+              <mat-icon>content_copy</mat-icon>
+            </button>
+
+            <button
+              mat-icon-button
+              *ngIf="hasOpenAiTrace(message)"
+              (click)="toggleMessageTrace(message)"
+              matTooltip="Показать шаги OpenAI"
             >
-              <button
-                mat-stroked-button
-                *ngFor="let suggestion of message.suggestions"
-                (click)="applySuggestion(suggestion)"
-              >
-                {{ suggestion }}
-              </button>
+              <mat-icon>{{ message.traceExpanded ? 'timeline' : 'alt_route' }}</mat-icon>
+            </button>
+
+            <button
+              mat-icon-button
+              *ngIf="message.data"
+              (click)="toggleMessageDetails(message)"
+              matTooltip="Показать JSON"
+            >
+              <mat-icon>{{ message.detailsExpanded ? 'code_off' : 'code' }}</mat-icon>
+            </button>
+          </div>
+
+          <div class="message-trace" *ngIf="message.traceExpanded && hasOpenAiTrace(message)">
+            <div class="trace-step" *ngFor="let step of message.trace; let idx = index">
+              <div class="trace-step-meta">
+                <span class="trace-step-title">
+                  Шаг {{ step.iteration || idx + 1 }} · {{ step.phase }}
+                </span>
+                <span class="trace-step-state" [class.error]="step.status === 'error'">
+                  {{ step.finishReason || step.status }}
+                </span>
+              </div>
+
+              <div class="trace-step-tools" *ngIf="step.tools && step.tools.length > 0">
+                tools: {{ step.tools.join(', ') }}
+              </div>
+
+              <div class="trace-step-text" *ngIf="step.assistantTextPreview">
+                {{ step.assistantTextPreview }}
+              </div>
+
+              <div class="trace-step-error" *ngIf="step.errorText">
+                {{ step.errorText }}
+              </div>
+
+              <div class="trace-tool-results" *ngIf="step.toolResults && step.toolResults.length > 0">
+                <div class="trace-tool-row" *ngFor="let call of step.toolResults">
+                  <span class="trace-tool-name">{{ call.tool || call.id }}</span>
+                  <span class="trace-tool-state" [class.error]="call.isError">
+                    {{ call.isError ? 'error' : 'ok' }}
+                  </span>
+                  <span class="trace-tool-error" *ngIf="call.error">{{ call.error }}</span>
+                </div>
+              </div>
             </div>
+          </div>
+
+          <pre class="message-data" *ngIf="message.data && message.detailsExpanded">{{ message.data | json }}</pre>
+
+          <div
+            class="message-suggestions"
+            *ngIf="message.suggestions && message.suggestions.length > 0"
+          >
+            <button
+              mat-stroked-button
+              *ngFor="let suggestion of message.suggestions"
+              (click)="applySuggestion(suggestion)"
+            >
+              {{ suggestion }}
+            </button>
           </div>
         </div>
       </div>
-    </mat-card-content>
+    </main>
 
-    <mat-card-actions class="chat-actions">
+    <footer class="chat-composer">
       <div class="quick-prompts">
         <button
           mat-stroked-button
@@ -77,7 +172,7 @@
           [(ngModel)]="userInput"
           [disabled]="sending"
           (keydown)="onComposerKeyDown($event)"
-          placeholder="Напишите запрос, например: дивиденды SBER"
+          placeholder="Например: дивиденды SBER"
         ></textarea>
       </mat-form-field>
 
@@ -91,16 +186,12 @@
           Отправить
         </button>
 
-        <button mat-stroked-button color="warn" (click)="clearConversation()">
-          Новый диалог
-        </button>
-
         <mat-progress-spinner
           *ngIf="sending"
           mode="indeterminate"
-          diameter="22"
+          diameter="20"
         ></mat-progress-spinner>
       </div>
-    </mat-card-actions>
-  </mat-card>
+    </footer>
+  </section>
 </div>

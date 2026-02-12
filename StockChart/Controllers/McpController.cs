@@ -6,7 +6,11 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using StockChart.Model;
+using StockChart.Repository.Interfaces;
 
 namespace StockChart.Controllers;
 
@@ -20,6 +24,12 @@ public sealed class McpController : ControllerBase
     private const int CallRequestId = 2;
     private const string LocalProviderName = "local";
     private const string OpenAiProviderName = "openai";
+    private const string DefaultConversationTitle = "Новый диалог";
+    private const int ConversationHistoryLimit = 30;
+    private const int OpenAiToolPayloadArrayLimit = 24;
+    private const int OpenAiToolPayloadObjectLimit = 40;
+    private const int OpenAiToolPayloadStringLimit = 600;
+    private const int OpenAiToolPayloadDepthLimit = 6;
     private const string DefaultOpenAiSystemPrompt =
         "Ты ассистент MCP-консоли StockChart. Используй доступные tools для получения данных. " +
         "Если вопрос требует фактов и чисел, сначала делай tool calls, затем формируй ответ. " +
@@ -57,17 +67,26 @@ public sealed class McpController : ControllerBase
     private readonly IWebHostEnvironment _environment;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<McpController> _logger;
+    private readonly ApplicationDbContext _dbContext;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IUsersRepository _usersRepository;
 
     public McpController(
         IConfiguration configuration,
         IWebHostEnvironment environment,
         IHttpClientFactory httpClientFactory,
-        ILogger<McpController> logger)
+        ILogger<McpController> logger,
+        ApplicationDbContext dbContext,
+        UserManager<ApplicationUser> userManager,
+        IUsersRepository usersRepository)
     {
         _configuration = configuration;
         _environment = environment;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _dbContext = dbContext;
+        _userManager = userManager;
+        _usersRepository = usersRepository;
     }
 
     [HttpGet("tools")]
@@ -110,9 +129,140 @@ public sealed class McpController : ControllerBase
         });
     }
 
+    [HttpGet("conversations")]
+    public async Task<IActionResult> GetConversations(CancellationToken cancellationToken)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized(new { error = "user is not authenticated." });
+        }
+
+        var conversations = await _dbContext.McpConversations
+            .AsNoTracking()
+            .Where(x => x.UserId == user.Id)
+            .OrderByDescending(x => x.UpdatedAt)
+            .Select(x => new McpConversationSummary
+            {
+                Id = x.Id,
+                Title = x.Title,
+                LastMessagePreview = x.LastMessagePreview,
+                LastMessageAt = x.LastMessageAt,
+                CreatedAt = x.CreatedAt,
+                UpdatedAt = x.UpdatedAt,
+                MessageCount = x.Messages.Count
+            })
+            .ToListAsync(cancellationToken);
+
+        return Ok(conversations);
+    }
+
+    [HttpGet("conversations/{conversationId:guid}")]
+    public async Task<IActionResult> GetConversation(Guid conversationId, CancellationToken cancellationToken)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized(new { error = "user is not authenticated." });
+        }
+
+        var conversation = await _dbContext.McpConversations
+            .AsNoTracking()
+            .Where(x => x.Id == conversationId && x.UserId == user.Id)
+            .Select(x => new McpConversationDetails
+            {
+                Id = x.Id,
+                Title = x.Title,
+                LastMessagePreview = x.LastMessagePreview,
+                LastMessageAt = x.LastMessageAt,
+                CreatedAt = x.CreatedAt,
+                UpdatedAt = x.UpdatedAt
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (conversation == null)
+        {
+            return NotFound(new { error = "conversation was not found." });
+        }
+
+        var messageRows = await _dbContext.McpConversationMessages
+            .AsNoTracking()
+            .Where(x => x.ConversationId == conversationId)
+            .OrderBy(x => x.CreatedAt)
+            .Select(x => new
+            {
+                x.Id,
+                x.Role,
+                x.Content,
+                x.Provider,
+                x.Model,
+                x.IsError,
+                x.DataJson,
+                x.SuggestionsJson,
+                x.CreatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        conversation.Messages = messageRows.Select(x => new McpConversationMessageView
+        {
+            Id = x.Id,
+            Role = x.Role,
+            Text = x.Content,
+            Provider = x.Provider,
+            Model = x.Model,
+            IsError = x.IsError,
+            Data = ParseJsonNode(x.DataJson),
+            Suggestions = ParseStringList(x.SuggestionsJson),
+            Timestamp = x.CreatedAt
+        }).ToList();
+        return Ok(conversation);
+    }
+
+    [HttpPost("conversations")]
+    public async Task<IActionResult> CreateConversation(
+        [FromBody] McpCreateConversationRequest? request,
+        CancellationToken cancellationToken)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized(new { error = "user is not authenticated." });
+        }
+
+        var now = DateTime.UtcNow;
+        var conversation = new McpConversation
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Title = BuildConversationTitle(request?.Title),
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        _dbContext.McpConversations.Add(conversation);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Ok(new McpConversationSummary
+        {
+            Id = conversation.Id,
+            Title = conversation.Title,
+            LastMessagePreview = conversation.LastMessagePreview,
+            LastMessageAt = conversation.LastMessageAt,
+            CreatedAt = conversation.CreatedAt,
+            UpdatedAt = conversation.UpdatedAt,
+            MessageCount = 0
+        });
+    }
+
     [HttpPost("tool-call")]
     public async Task<IActionResult> ToolCall([FromBody] McpToolCallRequest request, CancellationToken cancellationToken)
     {
+        var access = await EnsureMcpAccessAsync();
+        if (access.Error != null)
+        {
+            return access.Error;
+        }
+
         if (request == null || string.IsNullOrWhiteSpace(request.Tool))
         {
             return BadRequest(new { error = "tool is required." });
@@ -145,6 +295,12 @@ public sealed class McpController : ControllerBase
     [HttpPost("rpc")]
     public async Task<IActionResult> Rpc([FromBody] McpRpcRequest request, CancellationToken cancellationToken)
     {
+        var access = await EnsureMcpAccessAsync();
+        if (access.Error != null)
+        {
+            return access.Error;
+        }
+
         if (request == null || string.IsNullOrWhiteSpace(request.Method))
         {
             return BadRequest(new { error = "method is required." });
@@ -175,13 +331,96 @@ public sealed class McpController : ControllerBase
     [HttpPost("chat")]
     public async Task<IActionResult> Chat([FromBody] McpChatRequest request, CancellationToken cancellationToken)
     {
+        var access = await EnsureMcpAccessAsync();
+        if (access.Error != null)
+        {
+            return access.Error;
+        }
+
         if (request == null || string.IsNullOrWhiteSpace(request.Message))
         {
             return BadRequest(new { error = "message is required." });
         }
 
+        var user = access.User!;
+        var userMessage = request.Message.Trim();
+        var conversation = await ResolveConversationAsync(
+            user.Id,
+            request.ConversationId,
+            userMessage,
+            cancellationToken);
+
+        if (conversation == null)
+        {
+            return NotFound(new { error = "conversation was not found." });
+        }
+
+        request.History = await BuildConversationHistoryAsync(conversation.Id, cancellationToken);
         var response = await HandleChatAsync(request, cancellationToken);
+
+        var now = DateTime.UtcNow;
+        _dbContext.McpConversationMessages.Add(new McpConversationMessage
+        {
+            ConversationId = conversation.Id,
+            Role = "user",
+            Content = userMessage,
+            CreatedAt = now
+        });
+
+        _dbContext.McpConversationMessages.Add(new McpConversationMessage
+        {
+            ConversationId = conversation.Id,
+            Role = response.IsError ? "error" : "assistant",
+            Content = response.Answer,
+            Provider = response.Provider,
+            Model = response.Model,
+            IsError = response.IsError,
+            DataJson = SerializeJsonNode(BuildStoredMessageData(response)),
+            SuggestionsJson = SerializeStringList(response.Suggestions),
+            CreatedAt = now
+        });
+
+        conversation.UpdatedAt = now;
+        conversation.LastMessageAt = now;
+        conversation.LastMessagePreview = BuildConversationPreview(response.Answer);
+
+        if (IsDefaultConversationTitle(conversation.Title))
+        {
+            conversation.Title = BuildConversationTitle(userMessage);
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        response.ConversationId = conversation.Id;
+        response.ConversationTitle = conversation.Title;
         return Ok(response);
+    }
+
+    private async Task<(ApplicationUser? User, IActionResult? Error)> EnsureMcpAccessAsync()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return (null, Unauthorized(new { error = "user is not authenticated." }));
+        }
+
+        var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+        if (isAdmin)
+        {
+            return (user, null);
+        }
+
+        var hasActiveSubscription = await _usersRepository.UserHasActiveSubscription(user);
+        if (hasActiveSubscription)
+        {
+            return (user, null);
+        }
+
+        return (null, StatusCode(StatusCodes.Status403Forbidden, new
+        {
+            code = "subscription_required",
+            error = "Active subscription is required to use MCP tools and chat.",
+            paymentUrl = "/Payment"
+        }));
     }
 
     private async Task<McpChatResponse> HandleChatAsync(McpChatRequest request, CancellationToken cancellationToken)
@@ -308,6 +547,243 @@ public sealed class McpController : ControllerBase
         };
     }
 
+    private async Task<McpConversation?> ResolveConversationAsync(
+        Guid userId,
+        Guid? conversationId,
+        string initialMessage,
+        CancellationToken cancellationToken)
+    {
+        if (conversationId.HasValue)
+        {
+            return await _dbContext.McpConversations
+                .SingleOrDefaultAsync(
+                    x => x.Id == conversationId.Value && x.UserId == userId,
+                    cancellationToken);
+        }
+
+        var now = DateTime.UtcNow;
+        var conversation = new McpConversation
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Title = BuildConversationTitle(initialMessage),
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        _dbContext.McpConversations.Add(conversation);
+        return conversation;
+    }
+
+    private async Task<List<McpChatHistoryItem>> BuildConversationHistoryAsync(
+        Guid conversationId,
+        CancellationToken cancellationToken)
+    {
+        var rows = await _dbContext.McpConversationMessages
+            .AsNoTracking()
+            .Where(x => x.ConversationId == conversationId)
+            .OrderByDescending(x => x.CreatedAt)
+            .ThenByDescending(x => x.Id)
+            .Take(ConversationHistoryLimit)
+            .OrderBy(x => x.CreatedAt)
+            .ThenBy(x => x.Id)
+            .Select(x => new
+            {
+                x.Role,
+                x.Content
+            })
+            .ToListAsync(cancellationToken);
+
+        var result = new List<McpChatHistoryItem>(rows.Count);
+        foreach (var row in rows)
+        {
+            if (string.IsNullOrWhiteSpace(row.Content))
+            {
+                continue;
+            }
+
+            var role = row.Role;
+            if (string.Equals(role, "error", StringComparison.OrdinalIgnoreCase))
+            {
+                role = "assistant";
+            }
+
+            result.Add(new McpChatHistoryItem
+            {
+                Role = role,
+                Content = row.Content
+            });
+        }
+
+        return result;
+    }
+
+    private static JsonNode? BuildStoredMessageData(McpChatResponse response)
+    {
+        var payload = new JsonObject();
+        var hasPayload = false;
+
+        if (!string.IsNullOrWhiteSpace(response.ExecutedTool))
+        {
+            payload["executedTool"] = response.ExecutedTool;
+            hasPayload = true;
+        }
+
+        if (response.Arguments != null)
+        {
+            payload["arguments"] = response.Arguments.DeepClone();
+            hasPayload = true;
+        }
+
+        if (response.Data != null)
+        {
+            payload["data"] = response.Data.DeepClone();
+            hasPayload = true;
+        }
+
+        if (response.Trace != null)
+        {
+            payload["trace"] = response.Trace.DeepClone();
+            hasPayload = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(response.Stderr))
+        {
+            payload["stderr"] = response.Stderr;
+            hasPayload = true;
+        }
+
+        if (response.Warnings is { Count: > 0 })
+        {
+            var warnings = new JsonArray();
+            foreach (var warning in response.Warnings)
+            {
+                warnings.Add(warning);
+            }
+
+            payload["warnings"] = warnings;
+            hasPayload = true;
+        }
+
+        return hasPayload ? payload : null;
+    }
+
+    private static string? SerializeJsonNode(JsonNode? node)
+    {
+        if (node == null)
+        {
+            return null;
+        }
+
+        return node.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = false
+        });
+    }
+
+    private static JsonNode? ParseJsonNode(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonNode.Parse(value);
+        }
+        catch
+        {
+            return new JsonObject
+            {
+                ["raw"] = Clip(value, 12000),
+                ["parseError"] = "invalid_json"
+            };
+        }
+    }
+
+    private static string? SerializeStringList(List<string>? values)
+    {
+        if (values == null || values.Count == 0)
+        {
+            return null;
+        }
+
+        var array = new JsonArray();
+        foreach (var value in values.Where(x => !string.IsNullOrWhiteSpace(x)))
+        {
+            array.Add(value);
+        }
+
+        return array.Count == 0
+            ? null
+            : array.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
+    }
+
+    private static List<string>? ParseStringList(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        try
+        {
+            var node = JsonNode.Parse(value) as JsonArray;
+            if (node == null)
+            {
+                return null;
+            }
+
+            return node
+                .Select(x => x?.GetValue<string>()?.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x!)
+                .ToList();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool IsDefaultConversationTitle(string? title)
+    {
+        return string.IsNullOrWhiteSpace(title) ||
+               string.Equals(title, DefaultConversationTitle, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string BuildConversationTitle(string? rawTitle)
+    {
+        if (string.IsNullOrWhiteSpace(rawTitle))
+        {
+            return DefaultConversationTitle;
+        }
+
+        var normalized = Regex.Replace(rawTitle.Trim(), "\\s+", " ");
+        if (normalized.Length > 120)
+        {
+            normalized = normalized[..120].TrimEnd() + "...";
+        }
+
+        return string.IsNullOrWhiteSpace(normalized)
+            ? DefaultConversationTitle
+            : normalized;
+    }
+
+    private static string BuildConversationPreview(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return string.Empty;
+        }
+
+        var normalized = Regex.Replace(text.Trim(), "\\s+", " ");
+        return normalized.Length <= 240
+            ? normalized
+            : normalized[..240].TrimEnd() + "...";
+    }
+
     private async Task<McpChatResponse?> TryHandleOpenAiChatAsync(
         McpChatRequest request,
         string message,
@@ -364,12 +840,15 @@ public sealed class McpController : ControllerBase
         var openAiTools = BuildOpenAiTools(toolsExecution.CallResponse);
         var openAiMessages = BuildOpenAiMessages(request, message, openAi);
         var toolTrace = new JsonArray();
+        var openAiTrace = new JsonArray();
         var warnings = new List<string>();
 
         if (toolsExecution.Warnings.Count > 0)
         {
             warnings.AddRange(toolsExecution.Warnings);
         }
+
+        var noTextContinuationAttempts = 0;
 
         for (var iteration = 0; iteration < openAi.MaxToolIterations; iteration++)
         {
@@ -382,6 +861,14 @@ public sealed class McpController : ControllerBase
 
             if (!completion.IsSuccess)
             {
+                openAiTrace.Add(new JsonObject
+                {
+                    ["phase"] = "iteration",
+                    ["iteration"] = iteration + 1,
+                    ["status"] = "error",
+                    ["error"] = completion.Error?.DeepClone() ?? new JsonObject()
+                });
+
                 return new McpChatResponse
                 {
                     IsError = true,
@@ -389,6 +876,7 @@ public sealed class McpController : ControllerBase
                     Model = openAi.Model,
                     Answer = "Ошибка при обращении к OpenAI.",
                     Data = completion.Error,
+                    Trace = openAiTrace.Count > 0 ? openAiTrace : null,
                     Warnings = warnings.Count > 0 ? warnings : null
                 };
             }
@@ -396,6 +884,15 @@ public sealed class McpController : ControllerBase
             var assistantMessage = completion.AssistantMessage;
             if (assistantMessage == null)
             {
+                openAiTrace.Add(new JsonObject
+                {
+                    ["phase"] = "iteration",
+                    ["iteration"] = iteration + 1,
+                    ["status"] = "error",
+                    ["message"] = "OpenAI returned no assistant message.",
+                    ["finishReason"] = completion.FinishReason ?? string.Empty
+                });
+
                 return new McpChatResponse
                 {
                     IsError = true,
@@ -403,19 +900,88 @@ public sealed class McpController : ControllerBase
                     Model = openAi.Model,
                     Answer = "OpenAI вернул ответ без `choices[0].message`.",
                     Data = completion.RawResponse,
+                    Trace = openAiTrace.Count > 0 ? openAiTrace : null,
                     Warnings = warnings.Count > 0 ? warnings : null
                 };
             }
 
             openAiMessages.Add(assistantMessage.DeepClone());
 
-            var toolCalls = assistantMessage["tool_calls"] as JsonArray;
-            if (toolCalls == null || toolCalls.Count == 0)
+            var toolCalls = ExtractOpenAiToolCalls(assistantMessage);
+            var assistantTextPreview = Clip(ExtractOpenAiContent(assistantMessage, completion.RawResponse), 700);
+            var iterationTrace = new JsonObject
             {
-                var answer = ExtractOpenAiContent(assistantMessage);
+                ["phase"] = "iteration",
+                ["iteration"] = iteration + 1,
+                ["status"] = "ok",
+                ["finishReason"] = completion.FinishReason ?? string.Empty,
+                ["toolCallCount"] = toolCalls.Count,
+                ["tools"] = BuildOpenAiToolNames(toolCalls),
+                ["assistantTextPreview"] = assistantTextPreview
+            };
+
+            if (completion.RawResponse?["usage"] != null)
+            {
+                iterationTrace["usage"] = completion.RawResponse["usage"]?.DeepClone();
+            }
+
+            var iterationToolResults = new JsonArray();
+            iterationTrace["toolResults"] = iterationToolResults;
+            openAiTrace.Add(iterationTrace);
+
+            if (toolCalls.Count == 0)
+            {
+                var answer = ExtractOpenAiContent(assistantMessage, completion.RawResponse);
                 if (string.IsNullOrWhiteSpace(answer))
                 {
-                    answer = TryBuildToolErrorFallback(toolTrace) ?? "OpenAI вернул пустой ответ.";
+                    var finishReason = completion.FinishReason?.Trim();
+                    if (string.Equals(finishReason, "length", StringComparison.OrdinalIgnoreCase) &&
+                        iteration + 1 < openAi.MaxToolIterations)
+                    {
+                        noTextContinuationAttempts++;
+                        warnings.Add("OpenAI обрезал ответ по лимиту токенов. Продолжаю цепочку.");
+                        openAiMessages.Add(new JsonObject
+                        {
+                            ["role"] = "system",
+                            ["content"] =
+                                "Предыдущий ответ был прерван из-за лимита токенов. " +
+                                "Продолжи с того же места и при необходимости вызывай tools."
+                        });
+                        continue;
+                    }
+
+                    if (toolTrace.Count > 0 &&
+                        noTextContinuationAttempts < 2 &&
+                        iteration + 1 < openAi.MaxToolIterations)
+                    {
+                        noTextContinuationAttempts++;
+                        warnings.Add("OpenAI вернул assistant-сообщение без текста. Запрашиваю еще один проход с tools.");
+                        openAiMessages.Add(new JsonObject
+                        {
+                            ["role"] = "system",
+                            ["content"] =
+                                "Ты еще не выдал итоговый ответ пользователю. " +
+                                "Если данных недостаточно, сначала вызови нужные tools, затем обязательно дай финальный текст."
+                        });
+                        continue;
+                    }
+
+                    warnings.Add("OpenAI вернул assistant-сообщение без текста. Выполняю финализацию без новых tools.");
+                    answer = await TryFinalizeOpenAiAnswerWithoutToolsAsync(
+                        apiKey,
+                        openAi,
+                        openAiMessages,
+                        openAiTools,
+                        cancellationToken,
+                        openAiTrace,
+                        "fallback_no_text");
+                }
+
+                if (string.IsNullOrWhiteSpace(answer))
+                {
+                    answer = TryBuildToolDataFallback(toolTrace)
+                             ?? TryBuildToolErrorFallback(toolTrace)
+                             ?? "OpenAI вернул пустой ответ.";
                 }
 
                 return new McpChatResponse
@@ -424,6 +990,7 @@ public sealed class McpController : ControllerBase
                     Model = openAi.Model,
                     Answer = answer,
                     Data = toolTrace.Count > 0 ? toolTrace : null,
+                    Trace = openAiTrace.Count > 0 ? openAiTrace : null,
                     Warnings = warnings.Count > 0 ? warnings : null
                 };
             }
@@ -444,6 +1011,12 @@ public sealed class McpController : ControllerBase
 
                     openAiMessages.Add(CreateOpenAiToolMessage(callId, payload));
                     toolTrace.Add(new JsonObject
+                    {
+                        ["id"] = callId,
+                        ["isError"] = true,
+                        ["error"] = "tool_call без function.name"
+                    });
+                    iterationToolResults.Add(new JsonObject
                     {
                         ["id"] = callId,
                         ["isError"] = true,
@@ -475,6 +1048,13 @@ public sealed class McpController : ControllerBase
                         ["isError"] = true,
                         ["error"] = payload.DeepClone()
                     });
+                    iterationToolResults.Add(new JsonObject
+                    {
+                        ["id"] = callId,
+                        ["tool"] = toolName,
+                        ["isError"] = true,
+                        ["error"] = "arguments JSON parse error"
+                    });
                     continue;
                 }
 
@@ -502,13 +1082,21 @@ public sealed class McpController : ControllerBase
                         ["isError"] = true,
                         ["error"] = toolExecution.BridgeError.DeepClone()
                     });
+                    iterationToolResults.Add(new JsonObject
+                    {
+                        ["id"] = callId,
+                        ["tool"] = toolName,
+                        ["isError"] = true,
+                        ["arguments"] = argumentsObject.DeepClone(),
+                        ["error"] = toolExecution.BridgeError["message"]?.GetValue<string>() ?? "bridge_error"
+                    });
                 }
                 else
                 {
                     modelPayload = new JsonObject
                     {
                         ["isError"] = toolExecution.IsError,
-                        ["data"] = toolExecution.Payload.DeepClone()
+                        ["data"] = CompactToolPayloadForModel(toolExecution.Payload) ?? new JsonObject()
                     };
 
                     toolTrace.Add(new JsonObject
@@ -519,10 +1107,60 @@ public sealed class McpController : ControllerBase
                         ["isError"] = toolExecution.IsError,
                         ["data"] = toolExecution.Payload.DeepClone()
                     });
+
+                    iterationToolResults.Add(new JsonObject
+                    {
+                        ["id"] = callId,
+                        ["tool"] = toolName,
+                        ["isError"] = toolExecution.IsError,
+                        ["arguments"] = argumentsObject.DeepClone(),
+                        ["error"] = toolExecution.IsError
+                            ? (toolExecution.Payload["error"]?["message"]?.GetValue<string>() ?? "tool_error")
+                            : null
+                    });
                 }
 
                 openAiMessages.Add(CreateOpenAiToolMessage(callId, modelPayload));
             }
+        }
+
+        warnings.Add($"Достигнут лимит tool-итераций OpenAI ({openAi.MaxToolIterations}).");
+
+        var finalizedAnswer = await TryFinalizeOpenAiAnswerWithoutToolsAsync(
+            apiKey,
+            openAi,
+            openAiMessages,
+            openAiTools,
+            cancellationToken,
+            openAiTrace,
+            "limit_finalize");
+
+        if (!string.IsNullOrWhiteSpace(finalizedAnswer))
+        {
+            return new McpChatResponse
+            {
+                Provider = OpenAiProviderName,
+                Model = openAi.Model,
+                Answer = finalizedAnswer,
+                Data = toolTrace.Count > 0 ? toolTrace : null,
+                Trace = openAiTrace.Count > 0 ? openAiTrace : null,
+                Warnings = warnings.Count > 0 ? warnings : null
+            };
+        }
+
+        var fallbackAnswer = TryBuildToolDataFallback(toolTrace)
+                             ?? TryBuildToolErrorFallback(toolTrace);
+        if (!string.IsNullOrWhiteSpace(fallbackAnswer))
+        {
+            return new McpChatResponse
+            {
+                Provider = OpenAiProviderName,
+                Model = openAi.Model,
+                Answer = fallbackAnswer,
+                Data = toolTrace.Count > 0 ? toolTrace : null,
+                Trace = openAiTrace.Count > 0 ? openAiTrace : null,
+                Warnings = warnings.Count > 0 ? warnings : null
+            };
         }
 
         return new McpChatResponse
@@ -532,8 +1170,84 @@ public sealed class McpController : ControllerBase
             Model = openAi.Model,
             Answer = $"Достигнут лимит tool-итераций OpenAI ({openAi.MaxToolIterations}).",
             Data = toolTrace.Count > 0 ? toolTrace : null,
+            Trace = openAiTrace.Count > 0 ? openAiTrace : null,
             Warnings = warnings.Count > 0 ? warnings : null
         };
+    }
+
+    private async Task<string?> TryFinalizeOpenAiAnswerWithoutToolsAsync(
+        string apiKey,
+        McpOpenAiOptions options,
+        JsonArray messages,
+        JsonArray tools,
+        CancellationToken cancellationToken,
+        JsonArray? openAiTrace = null,
+        string phase = "finalize_no_tools")
+    {
+        var finalizeOptions = CloneOpenAiOptions(options);
+        finalizeOptions.MaxCompletionTokens = Math.Clamp(Math.Max(options.MaxCompletionTokens, 3000), 64, 8192);
+
+        var finalMessages = new JsonArray();
+        var startIndex = Math.Max(0, messages.Count - 40);
+        for (var i = startIndex; i < messages.Count; i++)
+        {
+            finalMessages.Add(messages[i]?.DeepClone());
+        }
+
+        finalMessages.Add(new JsonObject
+        {
+            ["role"] = "system",
+            ["content"] =
+                "Больше не вызывай tools. Дай финальный ответ по уже полученным данным. " +
+                "Ответ коротко, в 6-12 строк."
+        });
+
+        var completion = await CallOpenAiChatCompletionAsync(
+            apiKey,
+            finalizeOptions,
+            finalMessages,
+            tools,
+            cancellationToken,
+            toolChoice: tools.Count > 0 ? "none" : null);
+
+        if (openAiTrace != null)
+        {
+            var traceNode = new JsonObject
+            {
+                ["phase"] = phase,
+                ["status"] = completion.IsSuccess ? "ok" : "error",
+                ["finishReason"] = completion.FinishReason ?? string.Empty
+            };
+
+            if (completion.Error != null)
+            {
+                traceNode["error"] = completion.Error.DeepClone();
+            }
+
+            if (completion.RawResponse?["usage"] != null)
+            {
+                traceNode["usage"] = completion.RawResponse["usage"]?.DeepClone();
+            }
+
+            var preview = completion.AssistantMessage == null
+                ? string.Empty
+                : Clip(ExtractOpenAiContent(completion.AssistantMessage, completion.RawResponse), 700);
+
+            if (!string.IsNullOrWhiteSpace(preview))
+            {
+                traceNode["assistantTextPreview"] = preview;
+            }
+
+            openAiTrace.Add(traceNode);
+        }
+
+        if (!completion.IsSuccess || completion.AssistantMessage == null)
+        {
+            return null;
+        }
+
+        var answer = ExtractOpenAiContent(completion.AssistantMessage, completion.RawResponse);
+        return string.IsNullOrWhiteSpace(answer) ? null : answer;
     }
 
     private async Task<OpenAiChatResult> CallOpenAiChatCompletionAsync(
@@ -541,19 +1255,22 @@ public sealed class McpController : ControllerBase
         McpOpenAiOptions options,
         JsonArray messages,
         JsonArray tools,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? toolChoice = null)
     {
         var endpoint = BuildUrl(options.BaseUrl, "chat/completions");
         var payload = new JsonObject
         {
             ["model"] = options.Model,
-            ["messages"] = messages.DeepClone(),
-            ["tool_choice"] = "auto"
+            ["messages"] = messages.DeepClone()
         };
 
         if (tools.Count > 0)
         {
             payload["tools"] = tools.DeepClone();
+            payload["tool_choice"] = string.IsNullOrWhiteSpace(toolChoice)
+                ? "auto"
+                : toolChoice.Trim();
         }
 
         if (ShouldSendTemperature(options))
@@ -648,7 +1365,12 @@ public sealed class McpController : ControllerBase
                 });
         }
 
-        return OpenAiChatResult.Success(assistantMessage, parsedResponse);
+        var finishReasonNode = parsedResponse?["choices"]?[0]?["finish_reason"];
+        var finishReason = finishReasonNode is JsonValue finishReasonValue &&
+                           finishReasonValue.TryGetValue<string>(out var parsedFinishReason)
+            ? parsedFinishReason
+            : null;
+        return OpenAiChatResult.Success(assistantMessage, parsedResponse, finishReason);
     }
 
     private static JsonArray BuildOpenAiTools(JsonNode? toolsListResponse)
@@ -746,6 +1468,124 @@ public sealed class McpController : ControllerBase
             ["tool_call_id"] = toolCallId,
             ["content"] = SerializeOneLine(payload)
         };
+    }
+
+    private static JsonArray BuildOpenAiToolNames(JsonArray toolCalls)
+    {
+        var names = new JsonArray();
+        foreach (var callNode in toolCalls)
+        {
+            var toolName = callNode?["function"]?["name"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(toolName))
+            {
+                continue;
+            }
+
+            names.Add(toolName);
+        }
+
+        return names;
+    }
+
+    private static JsonNode? CompactToolPayloadForModel(JsonNode? node, int depth = 0)
+    {
+        if (node == null)
+        {
+            return null;
+        }
+
+        if (depth >= OpenAiToolPayloadDepthLimit)
+        {
+            return JsonValue.Create("...truncated_depth...");
+        }
+
+        if (node is JsonValue value)
+        {
+            if (value.TryGetValue<string>(out var text))
+            {
+                return JsonValue.Create(Clip(text, OpenAiToolPayloadStringLimit));
+            }
+
+            return node.DeepClone();
+        }
+
+        if (node is JsonArray array)
+        {
+            var result = new JsonArray();
+            var take = Math.Min(array.Count, OpenAiToolPayloadArrayLimit);
+            for (var i = 0; i < take; i++)
+            {
+                result.Add(CompactToolPayloadForModel(array[i], depth + 1));
+            }
+
+            if (array.Count > take)
+            {
+                result.Add(new JsonObject
+                {
+                    ["_truncatedItems"] = array.Count - take
+                });
+            }
+
+            return result;
+        }
+
+        if (node is JsonObject obj)
+        {
+            var result = new JsonObject();
+            var index = 0;
+            foreach (var pair in obj)
+            {
+                if (index >= OpenAiToolPayloadObjectLimit)
+                {
+                    break;
+                }
+
+                result[pair.Key] = CompactToolPayloadForModel(pair.Value, depth + 1);
+                index++;
+            }
+
+            if (obj.Count > index)
+            {
+                result["_truncatedFields"] = obj.Count - index;
+            }
+
+            return result;
+        }
+
+        return node.DeepClone();
+    }
+
+    private static JsonArray ExtractOpenAiToolCalls(JsonObject assistantMessage)
+    {
+        if (assistantMessage["tool_calls"] is JsonArray toolCalls && toolCalls.Count > 0)
+        {
+            return toolCalls;
+        }
+
+        if (assistantMessage["function_call"] is not JsonObject functionCall)
+        {
+            return [];
+        }
+
+        var functionName = functionCall["name"]?.GetValue<string>();
+        if (string.IsNullOrWhiteSpace(functionName))
+        {
+            return [];
+        }
+
+        return
+        [
+            new JsonObject
+            {
+                ["id"] = $"call_{Guid.NewGuid():N}",
+                ["type"] = "function",
+                ["function"] = new JsonObject
+                {
+                    ["name"] = functionName,
+                    ["arguments"] = functionCall["arguments"]?.GetValue<string>() ?? "{}"
+                }
+            }
+        ];
     }
 
     private async Task<McpChatResponse?> TryHandleMarkowitzRequestAsync(
@@ -1018,29 +1858,90 @@ public sealed class McpController : ControllerBase
         };
     }
 
-    private static string ExtractOpenAiContent(JsonObject assistantMessage)
+    private static string ExtractOpenAiContent(JsonObject assistantMessage, JsonNode? rawResponse = null)
     {
-        if (assistantMessage["content"] is JsonValue value && value.TryGetValue<string>(out var contentText))
-        {
-            return contentText;
-        }
-
-        if (assistantMessage["content"] is not JsonArray parts)
-        {
-            return string.Empty;
-        }
-
         var texts = new List<string>();
-        foreach (var part in parts)
+
+        AppendOpenAiTextParts(assistantMessage["content"], texts);
+        AppendOpenAiTextParts(assistantMessage["refusal"], texts);
+
+        if (texts.Count == 0)
         {
-            var text = part?["text"]?.GetValue<string>();
-            if (!string.IsNullOrWhiteSpace(text))
+            AppendOpenAiTextParts(rawResponse?["choices"]?[0]?["message"]?["content"], texts);
+            AppendOpenAiTextParts(rawResponse?["choices"]?[0]?["message"]?["refusal"], texts);
+            AppendOpenAiTextParts(rawResponse?["choices"]?[0]?["text"], texts);
+
+            if (rawResponse?["output"] is JsonArray output)
             {
-                texts.Add(text);
+                foreach (var item in output)
+                {
+                    AppendOpenAiTextParts(item?["content"], texts);
+                    AppendOpenAiTextParts(item?["output_text"], texts);
+                    AppendOpenAiTextParts(item?["text"], texts);
+                }
             }
         }
 
         return texts.Count == 0 ? string.Empty : string.Join("\n", texts);
+    }
+
+    private static void AppendOpenAiTextParts(JsonNode? node, List<string> texts)
+    {
+        if (node == null)
+        {
+            return;
+        }
+
+        if (node is JsonValue value)
+        {
+            if (value.TryGetValue<string>(out var text))
+            {
+                AddUniqueText(texts, text);
+            }
+
+            return;
+        }
+
+        if (node is JsonArray array)
+        {
+            foreach (var item in array)
+            {
+                AppendOpenAiTextParts(item, texts);
+            }
+
+            return;
+        }
+
+        if (node is not JsonObject obj)
+        {
+            return;
+        }
+
+        AppendOpenAiTextParts(obj["text"], texts);
+        AppendOpenAiTextParts(obj["value"], texts);
+        AppendOpenAiTextParts(obj["content"], texts);
+        AppendOpenAiTextParts(obj["output_text"], texts);
+        AppendOpenAiTextParts(obj["refusal"], texts);
+        AppendOpenAiTextParts(obj["summary"], texts);
+    }
+
+    private static void AddUniqueText(List<string> texts, string? value)
+    {
+        var trimmed = value?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            return;
+        }
+
+        for (var i = 0; i < texts.Count; i++)
+        {
+            if (string.Equals(texts[i], trimmed, StringComparison.Ordinal))
+            {
+                return;
+            }
+        }
+
+        texts.Add(trimmed);
     }
 
     private static string? TryBuildToolErrorFallback(JsonArray toolTrace)
@@ -1067,6 +1968,476 @@ public sealed class McpController : ControllerBase
         return null;
     }
 
+    private static string? TryBuildToolDataFallback(JsonArray toolTrace)
+    {
+        if (toolTrace.Count == 0)
+        {
+            return null;
+        }
+
+        var oilAndDividends = TryBuildOilAndDividendsFallback(toolTrace);
+        if (!string.IsNullOrWhiteSpace(oilAndDividends))
+        {
+            return oilAndDividends;
+        }
+
+        var successCount = 0;
+        var uniqueTools = new List<string>();
+        var errors = new List<string>();
+
+        foreach (var item in toolTrace)
+        {
+            if (item is not JsonObject entry)
+            {
+                continue;
+            }
+
+            var isError = entry["isError"]?.GetValue<bool>() ?? true;
+            var toolName = entry["tool"]?.GetValue<string>()?.Trim();
+
+            if (!isError)
+            {
+                successCount++;
+                if (!string.IsNullOrWhiteSpace(toolName) &&
+                    !uniqueTools.Contains(toolName, StringComparer.OrdinalIgnoreCase))
+                {
+                    uniqueTools.Add(toolName);
+                }
+
+                continue;
+            }
+
+            var errorMessage = entry["data"]?["error"]?["message"]?.GetValue<string>()
+                               ?? entry["error"]?["message"]?.GetValue<string>()
+                               ?? entry["error"]?.GetValue<string>();
+
+            if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                errors.Add(errorMessage.Trim());
+            }
+        }
+
+        if (successCount == 0)
+        {
+            return null;
+        }
+
+        var lines = new List<string>
+        {
+            $"OpenAI не вернул финальный текст, но выполнил {successCount} успешных tool-вызовов."
+        };
+
+        if (uniqueTools.Count > 0)
+        {
+            lines.Add($"Tools: {string.Join(", ", uniqueTools.Take(8))}.");
+        }
+
+        if (errors.Count > 0)
+        {
+            lines.Add($"Также были ошибки tools: {string.Join("; ", errors.Distinct(StringComparer.Ordinal).Take(2))}.");
+        }
+
+        lines.Add("Откройте «Шаги OpenAI» или JSON-детали у сообщения.");
+        return string.Join('\n', lines);
+    }
+
+    private static string? TryBuildOilAndDividendsFallback(JsonArray toolTrace)
+    {
+        var namesByTicker = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var oilByTicker = new Dictionary<string, (decimal Value, string Period)>(StringComparer.OrdinalIgnoreCase);
+        var dividendByTicker = new Dictionary<string, (decimal Value, string Period, string? Yield)>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in toolTrace)
+        {
+            if (item is not JsonObject entry)
+            {
+                continue;
+            }
+
+            if (entry["isError"]?.GetValue<bool>() ?? true)
+            {
+                continue;
+            }
+
+            var toolName = entry["tool"]?.GetValue<string>()?.Trim();
+            if (string.IsNullOrWhiteSpace(toolName))
+            {
+                continue;
+            }
+
+            var dataNode = entry["data"];
+            if (dataNode == null)
+            {
+                continue;
+            }
+
+            if (string.Equals(toolName, "search_stocks", StringComparison.OrdinalIgnoreCase))
+            {
+                ExtractTickerNamesFromSearchStocks(dataNode, namesByTicker);
+                continue;
+            }
+
+            if (string.Equals(toolName, "statement_series_batch", StringComparison.OrdinalIgnoreCase))
+            {
+                ExtractLatestSeriesFromBatch(dataNode, oilByTicker, dividendByTicker);
+                continue;
+            }
+
+            if (string.Equals(toolName, "dividends", StringComparison.OrdinalIgnoreCase))
+            {
+                ExtractLatestDividendHistory(dataNode, dividendByTicker);
+            }
+        }
+
+        var tickers = oilByTicker.Keys
+            .Concat(dividendByTicker.Keys)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (tickers.Count == 0)
+        {
+            return null;
+        }
+
+        var ordered = tickers
+            .OrderByDescending(ticker => oilByTicker.TryGetValue(ticker, out var oil) ? oil.Value : decimal.MinValue)
+            .ThenByDescending(ticker => dividendByTicker.TryGetValue(ticker, out var dividend) ? dividend.Value : decimal.MinValue)
+            .ThenBy(ticker => ticker, StringComparer.OrdinalIgnoreCase)
+            .Take(12)
+            .ToList();
+
+        var lines = new List<string>
+        {
+            "OpenAI не вернул финальный текст. Сформировал результат по данным выполненных tools.",
+            "",
+            "| Тикер | Компания | Добыча нефти | Дивиденд | Доходность |",
+            "|---|---|---:|---:|---:|"
+        };
+
+        foreach (var ticker in ordered)
+        {
+            namesByTicker.TryGetValue(ticker, out var companyName);
+            var companyText = string.IsNullOrWhiteSpace(companyName) ? "-" : EscapeMarkdownCell(companyName);
+
+            var oilText = "n/a";
+            if (oilByTicker.TryGetValue(ticker, out var oil))
+            {
+                var period = string.IsNullOrWhiteSpace(oil.Period) ? string.Empty : $" ({oil.Period})";
+                oilText = $"{oil.Value.ToString("0.##", CultureInfo.InvariantCulture)}{period}";
+            }
+
+            var dividendText = "n/a";
+            var yieldText = "n/a";
+            if (dividendByTicker.TryGetValue(ticker, out var dividend))
+            {
+                var period = string.IsNullOrWhiteSpace(dividend.Period) ? string.Empty : $" ({dividend.Period})";
+                dividendText = $"{dividend.Value.ToString("0.##", CultureInfo.InvariantCulture)}{period}";
+                if (!string.IsNullOrWhiteSpace(dividend.Yield))
+                {
+                    yieldText = EscapeMarkdownCell(dividend.Yield);
+                }
+            }
+
+            lines.Add($"| {ticker} | {companyText} | {oilText} | {dividendText} | {yieldText} |");
+        }
+
+        lines.Add("");
+        lines.Add("Источник: `statement_series_batch`, `dividends`, `search_stocks`.");
+        return string.Join('\n', lines);
+    }
+
+    private static void ExtractTickerNamesFromSearchStocks(
+        JsonNode dataNode,
+        Dictionary<string, string> namesByTicker)
+    {
+        if (dataNode?["data"] is not JsonArray rows)
+        {
+            return;
+        }
+
+        foreach (var row in rows)
+        {
+            var ticker = NormalizeTickerSymbol(row?["ticker"]?.GetValue<string>());
+            if (string.IsNullOrWhiteSpace(ticker))
+            {
+                continue;
+            }
+
+            var name = row?["name"]?.GetValue<string>()?.Trim();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                continue;
+            }
+
+            namesByTicker[ticker] = name;
+        }
+    }
+
+    private static void ExtractLatestSeriesFromBatch(
+        JsonNode dataNode,
+        Dictionary<string, (decimal Value, string Period)> oilByTicker,
+        Dictionary<string, (decimal Value, string Period, string? Yield)> dividendByTicker)
+    {
+        if (dataNode?["results"] is not JsonArray results)
+        {
+            return;
+        }
+
+        foreach (var resultNode in results)
+        {
+            var ticker = NormalizeTickerSymbol(resultNode?["ticker"]?.GetValue<string>());
+            if (string.IsNullOrWhiteSpace(ticker))
+            {
+                continue;
+            }
+
+            var metricKey = resultNode?["metricKey"]?.GetValue<string>()?.Trim();
+            if (string.IsNullOrWhiteSpace(metricKey))
+            {
+                continue;
+            }
+
+            if (resultNode?["points"] is not JsonArray points)
+            {
+                continue;
+            }
+
+            if (!TryExtractLatestPointFromSeries(points, out var value, out var period))
+            {
+                continue;
+            }
+
+            if (string.Equals(metricKey, "oil_production", StringComparison.OrdinalIgnoreCase))
+            {
+                UpsertLatestOil(oilByTicker, ticker, value, period);
+                continue;
+            }
+
+            if (metricKey.StartsWith("dividend", StringComparison.OrdinalIgnoreCase))
+            {
+                UpsertLatestDividend(dividendByTicker, ticker, value, period, null);
+            }
+        }
+    }
+
+    private static void ExtractLatestDividendHistory(
+        JsonNode dataNode,
+        Dictionary<string, (decimal Value, string Period, string? Yield)> dividendByTicker)
+    {
+        var ticker = NormalizeTickerSymbol(
+            dataNode?["ticker"]?.GetValue<string>() ??
+            dataNode?["Ticker"]?.GetValue<string>());
+
+        if (string.IsNullOrWhiteSpace(ticker))
+        {
+            return;
+        }
+
+        var dividends = (dataNode?["dividends"] ?? dataNode?["Dividends"]) as JsonArray;
+        if (dividends == null)
+        {
+            return;
+        }
+
+        decimal? bestValue = null;
+        var bestPeriod = string.Empty;
+        string? bestYield = null;
+        var bestRank = int.MinValue;
+        var bestIndex = -1;
+
+        for (var i = 0; i < dividends.Count; i++)
+        {
+            var row = dividends[i] as JsonObject;
+            if (row == null)
+            {
+                continue;
+            }
+
+            var value = TryReadDecimalFlexible(row["dividend"] ?? row["Dividend"]);
+            if (!value.HasValue)
+            {
+                continue;
+            }
+
+            var period =
+                row["recordDate"]?.GetValue<string>() ??
+                row["RecordDate"]?.GetValue<string>() ??
+                row["buyBefore"]?.GetValue<string>() ??
+                row["BuyBefore"]?.GetValue<string>() ??
+                string.Empty;
+
+            var rank = GetPeriodRank(period);
+            if (!bestValue.HasValue || rank > bestRank || (rank == bestRank && i > bestIndex))
+            {
+                bestValue = value.Value;
+                bestPeriod = period.Trim();
+                bestYield =
+                    row["yield"]?.GetValue<string>()?.Trim() ??
+                    row["Yield"]?.GetValue<string>()?.Trim();
+                bestRank = rank;
+                bestIndex = i;
+            }
+        }
+
+        if (!bestValue.HasValue)
+        {
+            return;
+        }
+
+        UpsertLatestDividend(dividendByTicker, ticker, bestValue.Value, bestPeriod, bestYield);
+    }
+
+    private static bool TryExtractLatestPointFromSeries(
+        JsonArray points,
+        out decimal value,
+        out string period)
+    {
+        value = 0;
+        period = string.Empty;
+        var hasValue = false;
+        var bestRank = int.MinValue;
+        var bestIndex = -1;
+
+        for (var i = 0; i < points.Count; i++)
+        {
+            var point = points[i] as JsonObject;
+            if (point == null)
+            {
+                continue;
+            }
+
+            var pointValue = TryReadDecimalFlexible(point["valueNum"] ?? point["valueRaw"] ?? point["value"]);
+            if (!pointValue.HasValue)
+            {
+                continue;
+            }
+
+            var pointPeriod = point["x"]?.GetValue<string>()?.Trim() ?? string.Empty;
+            var rank = GetPeriodRank(pointPeriod);
+            if (!hasValue || rank > bestRank || (rank == bestRank && i > bestIndex))
+            {
+                value = pointValue.Value;
+                period = pointPeriod;
+                hasValue = true;
+                bestRank = rank;
+                bestIndex = i;
+            }
+        }
+
+        return hasValue;
+    }
+
+    private static void UpsertLatestOil(
+        Dictionary<string, (decimal Value, string Period)> oilByTicker,
+        string ticker,
+        decimal value,
+        string period)
+    {
+        if (!oilByTicker.TryGetValue(ticker, out var existing) ||
+            GetPeriodRank(period) >= GetPeriodRank(existing.Period))
+        {
+            oilByTicker[ticker] = (value, period);
+        }
+    }
+
+    private static void UpsertLatestDividend(
+        Dictionary<string, (decimal Value, string Period, string? Yield)> dividendByTicker,
+        string ticker,
+        decimal value,
+        string period,
+        string? yield)
+    {
+        if (!dividendByTicker.TryGetValue(ticker, out var existing) ||
+            GetPeriodRank(period) >= GetPeriodRank(existing.Period))
+        {
+            dividendByTicker[ticker] = (value, period, yield);
+        }
+    }
+
+    private static decimal? TryReadDecimalFlexible(JsonNode? node)
+    {
+        var numeric = TryReadDecimal(node);
+        if (numeric.HasValue)
+        {
+            return numeric.Value;
+        }
+
+        if (node is not JsonValue value || !value.TryGetValue<string>(out var text))
+        {
+            return null;
+        }
+
+        var normalized = (text ?? string.Empty)
+            .Trim()
+            .Replace(" ", string.Empty, StringComparison.Ordinal)
+            .Replace(",", ".", StringComparison.Ordinal)
+            .Replace("%", string.Empty, StringComparison.Ordinal);
+
+        if (decimal.TryParse(
+                normalized,
+                NumberStyles.Float | NumberStyles.AllowLeadingSign,
+                CultureInfo.InvariantCulture,
+                out var parsed))
+        {
+            return parsed;
+        }
+
+        return null;
+    }
+
+    private static string? NormalizeTickerSymbol(string? ticker)
+    {
+        if (string.IsNullOrWhiteSpace(ticker))
+        {
+            return null;
+        }
+
+        var normalized = ticker.Trim().ToUpperInvariant();
+        return normalized.Length == 0 ? null : normalized;
+    }
+
+    private static int GetPeriodRank(string? period)
+    {
+        if (string.IsNullOrWhiteSpace(period))
+        {
+            return int.MinValue;
+        }
+
+        var source = period.Trim();
+        if (DateTime.TryParse(source, CultureInfo.GetCultureInfo("ru-RU"), DateTimeStyles.None, out var ruDate))
+        {
+            return ruDate.Year * 10000 + ruDate.Month * 100 + ruDate.Day;
+        }
+
+        if (DateTime.TryParse(source, CultureInfo.InvariantCulture, DateTimeStyles.None, out var invDate))
+        {
+            return invDate.Year * 10000 + invDate.Month * 100 + invDate.Day;
+        }
+
+        var match = Regex.Match(source, @"(?<year>\d{4})(?:\D*(?<part>\d{1,2}))?", RegexOptions.CultureInvariant);
+        if (match.Success && int.TryParse(match.Groups["year"].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var year))
+        {
+            var part = 0;
+            if (match.Groups["part"].Success)
+            {
+                int.TryParse(match.Groups["part"].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out part);
+            }
+
+            return year * 100 + Math.Clamp(part, 0, 99);
+        }
+
+        return int.MinValue + 1;
+    }
+
+    private static string EscapeMarkdownCell(string value)
+    {
+        return (value ?? string.Empty)
+            .Replace("|", "\\|", StringComparison.Ordinal)
+            .Replace("\r", " ", StringComparison.Ordinal)
+            .Replace("\n", " ", StringComparison.Ordinal)
+            .Trim();
+    }
+
     private static string? NormalizeOpenAiRole(string? role)
     {
         if (string.IsNullOrWhiteSpace(role))
@@ -1090,6 +2461,25 @@ public sealed class McpController : ControllerBase
         }
 
         return null;
+    }
+
+    private static McpOpenAiOptions CloneOpenAiOptions(McpOpenAiOptions source)
+    {
+        return new McpOpenAiOptions
+        {
+            Enabled = source.Enabled,
+            ApiKey = source.ApiKey,
+            ApiKeyEnvVar = source.ApiKeyEnvVar,
+            BaseUrl = source.BaseUrl,
+            Model = source.Model,
+            Organization = source.Organization,
+            Project = source.Project,
+            TimeoutSeconds = source.TimeoutSeconds,
+            Temperature = source.Temperature,
+            MaxCompletionTokens = source.MaxCompletionTokens,
+            MaxToolIterations = source.MaxToolIterations,
+            SystemPrompt = source.SystemPrompt
+        };
     }
 
     private McpProviderOptions ResolveProviderOptions()
@@ -1118,7 +2508,7 @@ public sealed class McpController : ControllerBase
         }
 
         options.OpenAi.TimeoutSeconds = Math.Clamp(options.OpenAi.TimeoutSeconds, 10, 300);
-        options.OpenAi.MaxToolIterations = Math.Clamp(options.OpenAi.MaxToolIterations, 1, 8);
+        options.OpenAi.MaxToolIterations = Math.Clamp(options.OpenAi.MaxToolIterations, 1, 12);
         options.OpenAi.MaxCompletionTokens = Math.Clamp(options.OpenAi.MaxCompletionTokens, 64, 8192);
 
         return options;
@@ -2109,6 +3499,7 @@ public sealed class McpController : ControllerBase
     public sealed class McpChatRequest
     {
         public string? Message { get; set; }
+        public Guid? ConversationId { get; set; }
         public List<McpChatHistoryItem>? History { get; set; }
     }
 
@@ -2123,13 +3514,56 @@ public sealed class McpController : ControllerBase
         public bool IsError { get; set; }
         public string Provider { get; set; } = LocalProviderName;
         public string? Model { get; set; }
+        public Guid? ConversationId { get; set; }
+        public string? ConversationTitle { get; set; }
         public string Answer { get; set; } = string.Empty;
         public string? ExecutedTool { get; set; }
         public JsonNode? Arguments { get; set; }
         public JsonNode? Data { get; set; }
+        public JsonNode? Trace { get; set; }
         public string? Stderr { get; set; }
         public List<string>? Warnings { get; set; }
         public List<string>? Suggestions { get; set; }
+    }
+
+    public sealed class McpCreateConversationRequest
+    {
+        public string? Title { get; set; }
+    }
+
+    public sealed class McpConversationSummary
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = DefaultConversationTitle;
+        public string? LastMessagePreview { get; set; }
+        public DateTime? LastMessageAt { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public int MessageCount { get; set; }
+    }
+
+    public sealed class McpConversationDetails
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = DefaultConversationTitle;
+        public string? LastMessagePreview { get; set; }
+        public DateTime? LastMessageAt { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public List<McpConversationMessageView> Messages { get; set; } = [];
+    }
+
+    public sealed class McpConversationMessageView
+    {
+        public long Id { get; set; }
+        public string Role { get; set; } = string.Empty;
+        public string Text { get; set; } = string.Empty;
+        public string? Provider { get; set; }
+        public string? Model { get; set; }
+        public bool IsError { get; set; }
+        public JsonNode? Data { get; set; }
+        public List<string>? Suggestions { get; set; }
+        public DateTime Timestamp { get; set; }
     }
 
     private sealed class McpToolExecutionView
@@ -2171,7 +3605,7 @@ public sealed class McpController : ControllerBase
         public int TimeoutSeconds { get; set; } = 90;
         public double Temperature { get; set; } = 0.2;
         public int MaxCompletionTokens { get; set; } = 1200;
-        public int MaxToolIterations { get; set; } = 4;
+        public int MaxToolIterations { get; set; } = 8;
         public string? SystemPrompt { get; set; }
     }
 
@@ -2180,15 +3614,17 @@ public sealed class McpController : ControllerBase
         public bool IsSuccess { get; private init; }
         public JsonObject? AssistantMessage { get; private init; }
         public JsonNode? RawResponse { get; private init; }
+        public string? FinishReason { get; private init; }
         public JsonObject? Error { get; private init; }
 
-        public static OpenAiChatResult Success(JsonObject assistantMessage, JsonNode? rawResponse)
+        public static OpenAiChatResult Success(JsonObject assistantMessage, JsonNode? rawResponse, string? finishReason)
         {
             return new OpenAiChatResult
             {
                 IsSuccess = true,
                 AssistantMessage = assistantMessage,
-                RawResponse = rawResponse
+                RawResponse = rawResponse,
+                FinishReason = finishReason
             };
         }
 

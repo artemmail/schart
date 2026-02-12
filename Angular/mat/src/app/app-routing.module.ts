@@ -106,7 +106,8 @@ const routes: Routes = [
   { path: 'UserTable', component: UserTableComponent },
   { path: 'YooMoney', component: YooMoneyOperationsComponent },
   { path: 'Admin/SubscriptionPlans', component: SubscriptionPlanAdminComponent },
-  { path: 'Admin/McpConsole', component: McpConsoleComponent, canActivate: [AuthGuard] },
+  { path: 'McpConsole', component: McpConsoleComponent, canActivate: [AuthGuard] },
+  { path: 'Admin/McpConsole', redirectTo: 'McpConsole', pathMatch: 'full' },
 
   { path: 'OpenPositions', component: ContractChartComponent 
     //,    canActivate: [AuthGuard] 

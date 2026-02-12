@@ -31,6 +31,10 @@
         <mat-icon>announcement</mat-icon>
         Новости
       </a>
+      <a mat-list-item routerLink="/McpConsole" (click)="drawer.toggle()">
+        <mat-icon>terminal</mat-icon>
+        MCP Console
+      </a>
       <ng-container *ngIf="isSignedIn; else guestTemplate">
         <a mat-list-item routerLink="/Identity/Account/Logout" class="auth-action" (click)="drawer.toggle()">
           <mat-icon>logout</mat-icon>

@@ -61,13 +61,48 @@ export interface McpChatResponse {
   isError: boolean;
   provider?: string;
   model?: string;
+  conversationId?: string;
+  conversationTitle?: string;
   answer: string;
   executedTool?: string;
   arguments?: unknown;
   data?: unknown;
+  trace?: unknown;
   stderr?: string;
   warnings?: string[];
   suggestions?: string[];
+}
+
+export interface McpConversationSummary {
+  id: string;
+  title: string;
+  lastMessagePreview?: string;
+  lastMessageAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  messageCount: number;
+}
+
+export interface McpConversationMessageView {
+  id: number;
+  role: string;
+  text: string;
+  provider?: string;
+  model?: string;
+  isError: boolean;
+  data?: unknown;
+  suggestions?: string[];
+  timestamp: string;
+}
+
+export interface McpConversationDetails {
+  id: string;
+  title: string;
+  lastMessagePreview?: string;
+  lastMessageAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: McpConversationMessageView[];
 }
 
 @Injectable({
@@ -119,14 +154,44 @@ export class McpConsoleService {
     );
   }
 
+  getConversations(): Observable<McpConversationSummary[]> {
+    return this.http.get<McpConversationSummary[]>(
+      `${this.baseUrl}/conversations`,
+      {
+        withCredentials: true,
+      }
+    );
+  }
+
+  getConversation(conversationId: string): Observable<McpConversationDetails> {
+    return this.http.get<McpConversationDetails>(
+      `${this.baseUrl}/conversations/${conversationId}`,
+      {
+        withCredentials: true,
+      }
+    );
+  }
+
+  createConversation(title?: string): Observable<McpConversationSummary> {
+    return this.http.post<McpConversationSummary>(
+      `${this.baseUrl}/conversations`,
+      { title },
+      {
+        withCredentials: true,
+      }
+    );
+  }
+
   chat(
     message: string,
+    conversationId?: string | null,
     history: McpChatHistoryItem[] = []
   ): Observable<McpChatResponse> {
     return this.http.post<McpChatResponse>(
       `${this.baseUrl}/chat`,
       {
         message,
+        conversationId,
         history,
       },
       {
