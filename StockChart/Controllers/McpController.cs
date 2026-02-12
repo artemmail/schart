@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -24,6 +25,9 @@ public sealed class McpController : ControllerBase
     private const int CallRequestId = 2;
     private const string LocalProviderName = "local";
     private const string OpenAiProviderName = "openai";
+    private const string OpenAiApiModeLegacy = "chat_completions_legacy";
+    private const string OpenAiApiModeResponsesCustomTools = "responses_custom_tools";
+    private const string OpenAiApiModeResponsesNativeMcp = "responses_native_mcp";
     private const string DefaultConversationTitle = "Новый диалог";
     private const int ConversationHistoryLimit = 30;
     private const int OpenAiToolPayloadArrayLimit = 24;
@@ -128,10 +132,139 @@ public sealed class McpController : ControllerBase
                 enabled = openAi.Enabled,
                 model = openAi.Model,
                 baseUrl = openAi.BaseUrl,
+                apiMode = openAi.ApiMode,
+                useConversationsApi = openAi.UseConversationsApi,
+                reasoningEffort = openAi.ReasoningEffort,
                 hasApiKey,
                 apiKeyEnvVar = openAi.ApiKeyEnvVar
             }
         });
+    }
+
+    [AllowAnonymous]
+    [HttpGet("~/mcp")]
+    public IActionResult GetHttpMcpServerInfo()
+    {
+        return Ok(new
+        {
+            name = "StockChart.McpServer",
+            protocolVersion = ProtocolVersion,
+            status = "ok"
+        });
+    }
+
+    [AllowAnonymous]
+    [HttpPost("~/mcp")]
+    public async Task<IActionResult> HandleHttpMcpRequest([FromBody] JsonNode? rpcRequest, CancellationToken cancellationToken)
+    {
+        if (!TryAuthorizeHttpMcpRequest(out var authError))
+        {
+            return authError!;
+        }
+
+        if (rpcRequest is not JsonObject requestObject)
+        {
+            return CreateJsonRpcHttpResponse(
+                CreateJsonRpcErrorResponse(null, -32600, "Invalid Request", new JsonObject
+                {
+                    ["message"] = "Body must be a JSON-RPC object."
+                }));
+        }
+
+        var method = requestObject["method"]?.GetValue<string>()?.Trim();
+        var idNode = requestObject["id"]?.DeepClone();
+        var parameters = requestObject["params"]?.DeepClone() ?? new JsonObject();
+
+        if (string.IsNullOrWhiteSpace(method))
+        {
+            return CreateJsonRpcHttpResponse(
+                CreateJsonRpcErrorResponse(idNode, -32600, "Invalid Request", new JsonObject
+                {
+                    ["message"] = "method is required."
+                }));
+        }
+
+        if (string.Equals(method, "notifications/initialized", StringComparison.OrdinalIgnoreCase))
+        {
+            return NoContent();
+        }
+
+        if (string.Equals(method, "ping", StringComparison.OrdinalIgnoreCase))
+        {
+            return CreateJsonRpcHttpResponse(CreateJsonRpcResultResponse(idNode, new JsonObject
+            {
+                ["ok"] = true
+            }));
+        }
+
+        if (string.Equals(method, "initialize", StringComparison.OrdinalIgnoreCase))
+        {
+            var initResult = new JsonObject
+            {
+                ["protocolVersion"] = ProtocolVersion,
+                ["serverInfo"] = new JsonObject
+                {
+                    ["name"] = "StockChart.McpServer",
+                    ["version"] = "1.0.0"
+                },
+                ["capabilities"] = new JsonObject
+                {
+                    ["tools"] = new JsonObject
+                    {
+                        ["listChanged"] = false
+                    },
+                    ["resources"] = new JsonObject
+                    {
+                        ["listChanged"] = false
+                    }
+                },
+                ["instructions"] =
+                    "Expose StockChart economic/fundamental tools via MCP over HTTP. " +
+                    "Use tools/list and tools/call."
+            };
+
+            return CreateJsonRpcHttpResponse(CreateJsonRpcResultResponse(idNode, initResult));
+        }
+
+        if (!IsSupportedHttpMcpMethod(method))
+        {
+            return CreateJsonRpcHttpResponse(
+                CreateJsonRpcErrorResponse(idNode, -32601, "Method not found", new JsonObject
+                {
+                    ["method"] = method
+                }));
+        }
+
+        var proxiedRequest = new JsonObject
+        {
+            ["jsonrpc"] = "2.0",
+            ["id"] = idNode?.DeepClone() ?? JsonValue.Create(Guid.NewGuid().ToString("N")),
+            ["method"] = method,
+            ["params"] = parameters
+        };
+
+        var execution = await ExecuteAsync(proxiedRequest, cancellationToken);
+        if (execution.Error != null)
+        {
+            return CreateJsonRpcHttpResponse(
+                CreateJsonRpcErrorResponse(idNode, -32000, "MCP bridge execution failed.", new JsonObject
+                {
+                    ["error"] = execution.Error.DeepClone(),
+                    ["stderr"] = Clip(execution.Stderr, 2000),
+                    ["warnings"] = ToJsonArray(execution.Warnings)
+                }));
+        }
+
+        if (execution.CallResponse is JsonObject responseObject)
+        {
+            return CreateJsonRpcHttpResponse(responseObject);
+        }
+
+        return CreateJsonRpcHttpResponse(
+            CreateJsonRpcErrorResponse(idNode, -32000, "MCP bridge returned invalid response.", new JsonObject
+            {
+                ["response"] = execution.CallResponse?.DeepClone()
+            }));
     }
 
     [HttpGet("conversations")]
@@ -181,7 +314,10 @@ public sealed class McpController : ControllerBase
                 LastMessagePreview = x.LastMessagePreview,
                 LastMessageAt = x.LastMessageAt,
                 CreatedAt = x.CreatedAt,
-                UpdatedAt = x.UpdatedAt
+                UpdatedAt = x.UpdatedAt,
+                ProviderApiMode = x.ProviderApiMode,
+                ProviderConversationId = x.ProviderConversationId,
+                ProviderLastResponseId = x.ProviderLastResponseId
             })
             .SingleOrDefaultAsync(cancellationToken);
 
@@ -201,8 +337,10 @@ public sealed class McpController : ControllerBase
                 x.Content,
                 x.Provider,
                 x.Model,
+                x.ProviderMessageId,
                 x.IsError,
                 x.DataJson,
+                x.TraceJson,
                 x.SuggestionsJson,
                 x.CreatedAt
             })
@@ -215,8 +353,9 @@ public sealed class McpController : ControllerBase
             Text = x.Content,
             Provider = x.Provider,
             Model = x.Model,
+            ProviderMessageId = x.ProviderMessageId,
             IsError = x.IsError,
-            Data = ParseJsonNode(x.DataJson),
+            Data = BuildStoredMessageDataNode(x.DataJson, x.TraceJson),
             Suggestions = ParseStringList(x.SuggestionsJson),
             Timestamp = x.CreatedAt
         }).ToList();
@@ -360,8 +499,13 @@ public sealed class McpController : ControllerBase
             return NotFound(new { error = "conversation was not found." });
         }
 
+        request.ProviderConversationId = conversation.ProviderConversationId;
+        request.ProviderLastResponseId = conversation.ProviderLastResponseId;
+        request.ProviderApiMode = conversation.ProviderApiMode;
         request.History = await BuildConversationHistoryAsync(conversation.Id, cancellationToken);
         var response = await HandleChatAsync(request, cancellationToken);
+        var providerOptions = ResolveProviderOptions();
+        var activeApiMode = NormalizeOpenAiApiMode(providerOptions.OpenAi.ApiMode);
 
         var now = DateTime.UtcNow;
         _dbContext.McpConversationMessages.Add(new McpConversationMessage
@@ -379,8 +523,10 @@ public sealed class McpController : ControllerBase
             Content = response.Answer,
             Provider = response.Provider,
             Model = response.Model,
+            ProviderMessageId = response.ProviderRunId,
             IsError = response.IsError,
             DataJson = SerializeJsonNode(BuildStoredMessageData(response)),
+            TraceJson = SerializeJsonNode(response.Trace),
             SuggestionsJson = SerializeStringList(response.Suggestions),
             CreatedAt = now
         });
@@ -388,6 +534,25 @@ public sealed class McpController : ControllerBase
         conversation.UpdatedAt = now;
         conversation.LastMessageAt = now;
         conversation.LastMessagePreview = BuildConversationPreview(response.Answer);
+        if (string.Equals(response.Provider, OpenAiProviderName, StringComparison.OrdinalIgnoreCase))
+        {
+            conversation.ProviderApiMode = activeApiMode;
+            if (!string.IsNullOrWhiteSpace(response.ProviderConversationId))
+            {
+                conversation.ProviderConversationId = response.ProviderConversationId;
+            }
+
+            if (!string.IsNullOrWhiteSpace(response.ProviderRunId))
+            {
+                conversation.ProviderLastResponseId = response.ProviderRunId;
+            }
+        }
+
+        var providerStateApiMode = string.Equals(response.Provider, OpenAiProviderName, StringComparison.OrdinalIgnoreCase)
+            ? (conversation.ProviderApiMode ?? activeApiMode)
+            : null;
+        conversation.ProviderStateJson = SerializeJsonNode(
+            BuildConversationProviderState(response, providerStateApiMode));
 
         if (IsDefaultConversationTitle(conversation.Title))
         {
@@ -646,6 +811,24 @@ public sealed class McpController : ControllerBase
             hasPayload = true;
         }
 
+        if (!string.IsNullOrWhiteSpace(response.ProviderRunId))
+        {
+            payload["providerRunId"] = response.ProviderRunId;
+            hasPayload = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(response.ProviderConversationId))
+        {
+            payload["providerConversationId"] = response.ProviderConversationId;
+            hasPayload = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(response.OrchestratorPhase))
+        {
+            payload["orchestratorPhase"] = response.OrchestratorPhase;
+            hasPayload = true;
+        }
+
         if (response.Trace != null)
         {
             payload["trace"] = response.Trace.DeepClone();
@@ -669,6 +852,83 @@ public sealed class McpController : ControllerBase
             payload["warnings"] = warnings;
             hasPayload = true;
         }
+
+        if (response.OrchestratorWarnings is { Count: > 0 })
+        {
+            var orchestratorWarnings = new JsonArray();
+            foreach (var warning in response.OrchestratorWarnings.Where(x => !string.IsNullOrWhiteSpace(x)))
+            {
+                orchestratorWarnings.Add(warning);
+            }
+
+            if (orchestratorWarnings.Count > 0)
+            {
+                payload["orchestratorWarnings"] = orchestratorWarnings;
+                hasPayload = true;
+            }
+        }
+
+        return hasPayload ? payload : null;
+    }
+
+    private static JsonNode? BuildConversationProviderState(McpChatResponse response, string? apiMode)
+    {
+        var payload = new JsonObject();
+        var hasPayload = false;
+
+        if (!string.IsNullOrWhiteSpace(apiMode))
+        {
+            payload["apiMode"] = apiMode;
+            hasPayload = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(response.Provider))
+        {
+            payload["provider"] = response.Provider;
+            hasPayload = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(response.Model))
+        {
+            payload["model"] = response.Model;
+            hasPayload = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(response.ProviderConversationId))
+        {
+            payload["providerConversationId"] = response.ProviderConversationId;
+            hasPayload = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(response.ProviderRunId))
+        {
+            payload["providerRunId"] = response.ProviderRunId;
+            hasPayload = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(response.OrchestratorPhase))
+        {
+            payload["orchestratorPhase"] = response.OrchestratorPhase;
+            hasPayload = true;
+        }
+
+        if (response.OrchestratorWarnings is { Count: > 0 })
+        {
+            var warnings = new JsonArray();
+            foreach (var warning in response.OrchestratorWarnings.Where(x => !string.IsNullOrWhiteSpace(x)))
+            {
+                warnings.Add(warning);
+            }
+
+            if (warnings.Count > 0)
+            {
+                payload["orchestratorWarnings"] = warnings;
+                hasPayload = true;
+            }
+        }
+
+        payload["updatedAtUtc"] = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+        hasPayload = true;
 
         return hasPayload ? payload : null;
     }
@@ -705,6 +965,26 @@ public sealed class McpController : ControllerBase
                 ["parseError"] = "invalid_json"
             };
         }
+    }
+
+    private static JsonNode? BuildStoredMessageDataNode(string? dataJson, string? traceJson)
+    {
+        var parsedData = ParseJsonNode(dataJson);
+        if (parsedData != null)
+        {
+            return parsedData;
+        }
+
+        var parsedTrace = ParseJsonNode(traceJson);
+        if (parsedTrace == null)
+        {
+            return null;
+        }
+
+        return new JsonObject
+        {
+            ["trace"] = parsedTrace
+        };
     }
 
     private static string? SerializeStringList(List<string>? values)
@@ -826,6 +1106,18 @@ public sealed class McpController : ControllerBase
             };
         }
 
+        var apiMode = NormalizeOpenAiApiMode(openAi.ApiMode);
+        if (!string.Equals(apiMode, OpenAiApiModeLegacy, StringComparison.OrdinalIgnoreCase))
+        {
+            return await TryHandleOpenAiResponsesChatAsync(
+                request,
+                message,
+                apiKey,
+                openAi,
+                apiMode,
+                cancellationToken);
+        }
+
         var toolsRequest = CreateRpcRequest(CallRequestId, "tools/list", new JsonObject());
         var toolsExecution = await ExecuteAsync(toolsRequest, cancellationToken);
         if (toolsExecution.Error != null)
@@ -842,7 +1134,7 @@ public sealed class McpController : ControllerBase
             };
         }
 
-        var openAiTools = BuildOpenAiTools(toolsExecution.CallResponse);
+        var openAiTools = BuildOpenAiTools(toolsExecution.CallResponse, useResponsesFormat: false);
         var openAiMessages = BuildOpenAiMessages(request, message, openAi);
         var toolTrace = new JsonArray();
         var openAiTrace = new JsonArray();
@@ -1008,9 +1300,28 @@ public sealed class McpController : ControllerBase
 
                 if (string.IsNullOrWhiteSpace(answer))
                 {
-                    answer = TryBuildToolDataFallback(toolTrace)
-                             ?? TryBuildToolErrorFallback(toolTrace)
-                             ?? "OpenAI вернул пустой ответ.";
+                    var fallback = TryBuildToolDataFallback(toolTrace)
+                                   ?? TryBuildToolErrorFallback(toolTrace);
+                    if (!string.IsNullOrWhiteSpace(fallback))
+                    {
+                        answer = fallback;
+                    }
+                    else
+                    {
+                        return new McpChatResponse
+                        {
+                            IsError = true,
+                            Provider = OpenAiProviderName,
+                            Model = openAi.Model,
+                            Answer = "OpenAI вернул пустой ответ.",
+                            Data = new JsonObject
+                            {
+                                ["code"] = "openai_empty_final"
+                            },
+                            Trace = openAiTrace.Count > 0 ? openAiTrace : null,
+                            Warnings = warnings.Count > 0 ? warnings : null
+                        };
+                    }
                 }
 
                 return new McpChatResponse
@@ -1280,6 +1591,852 @@ public sealed class McpController : ControllerBase
         return string.IsNullOrWhiteSpace(answer) ? null : answer;
     }
 
+    private async Task<McpChatResponse> TryHandleOpenAiResponsesChatAsync(
+        McpChatRequest request,
+        string message,
+        string apiKey,
+        McpOpenAiOptions openAi,
+        string apiMode,
+        CancellationToken cancellationToken)
+    {
+        var toolTrace = new JsonArray();
+        var openAiTrace = new JsonArray();
+        var warnings = new List<string>();
+        var noTextContinuationAttempts = 0;
+        var clarificationLoopAttempts = 0;
+        var orchestratorPhase = "planning";
+        string? providerRunId = null;
+        string? providerConversationId = request.ProviderConversationId;
+        string? previousResponseId = request.ProviderLastResponseId;
+
+        var useNativeMcp = string.Equals(apiMode, OpenAiApiModeResponsesNativeMcp, StringComparison.OrdinalIgnoreCase);
+        JsonArray openAiTools = new();
+
+        if (useNativeMcp)
+        {
+            var bridgeOptions = ResolveOptions();
+            openAiTools = BuildOpenAiNativeMcpTools(openAi, bridgeOptions, warnings);
+            if (openAiTools.Count == 0)
+            {
+                return new McpChatResponse
+                {
+                    IsError = true,
+                    Provider = OpenAiProviderName,
+                    Model = openAi.Model,
+                    Answer =
+                        "Режим `responses_native_mcp` включен, но не настроен ни один MCP server. " +
+                        "Проверьте `McpProvider:OpenAi:NativeMcpServers` и токен доступа к `/mcp`.",
+                    Data = new JsonObject
+                    {
+                        ["code"] = "mcp_server_unreachable",
+                        ["apiMode"] = apiMode
+                    }
+                };
+            }
+        }
+
+        if (!useNativeMcp)
+        {
+            openAiTools = new JsonArray();
+            var toolsRequest = CreateRpcRequest(CallRequestId, "tools/list", new JsonObject());
+            var toolsExecution = await ExecuteAsync(toolsRequest, cancellationToken);
+            if (toolsExecution.Error != null)
+            {
+                return new McpChatResponse
+                {
+                    IsError = true,
+                    Provider = OpenAiProviderName,
+                    Model = openAi.Model,
+                    Answer = "Не удалось получить MCP tools перед обращением к OpenAI Responses.",
+                    Data = toolsExecution.Error,
+                    Stderr = toolsExecution.Stderr,
+                    Warnings = toolsExecution.Warnings
+                };
+            }
+
+            openAiTools = BuildOpenAiTools(toolsExecution.CallResponse, useResponsesFormat: true);
+            if (toolsExecution.Warnings.Count > 0)
+            {
+                warnings.AddRange(toolsExecution.Warnings);
+            }
+        }
+
+        var forceNoFollowUps = ShouldForceNoFollowUps(message, request.History);
+        JsonNode currentInput = openAi.UseConversationsApi && !string.IsNullOrWhiteSpace(previousResponseId)
+            ? CreateOpenAiUserMessageInput(message, forceNoFollowUps)
+            : BuildOpenAiMessages(request, message, openAi);
+
+        for (var iteration = 0; iteration < openAi.MaxToolIterations; iteration++)
+        {
+            orchestratorPhase = "tooling";
+            var completion = await CallOpenAiResponsesAsync(
+                apiKey,
+                openAi,
+                currentInput,
+                openAiTools,
+                cancellationToken,
+                previousResponseId,
+                providerConversationId);
+
+            if (!completion.IsSuccess)
+            {
+                if (!string.IsNullOrWhiteSpace(previousResponseId) &&
+                    LooksLikeOpenAiPreviousResponseError(completion.Error) &&
+                    iteration + 1 < openAi.MaxToolIterations)
+                {
+                    warnings.Add(
+                        "OpenAI отклонил previous_response_id. Сбрасываю provider state и повторяю запрос по локальной истории.");
+                    previousResponseId = null;
+                    providerConversationId = null;
+                    currentInput = BuildOpenAiMessages(request, message, openAi);
+                    continue;
+                }
+
+                openAiTrace.Add(new JsonObject
+                {
+                    ["phase"] = "iteration",
+                    ["iteration"] = iteration + 1,
+                    ["status"] = "error",
+                    ["error"] = completion.Error?.DeepClone() ?? new JsonObject()
+                });
+
+                return new McpChatResponse
+                {
+                    IsError = true,
+                    Provider = OpenAiProviderName,
+                    Model = openAi.Model,
+                    Answer = "Ошибка при обращении к OpenAI Responses API.",
+                    Data = BuildOpenAiProviderErrorPayload(completion.Error),
+                    Trace = openAiTrace.Count > 0 ? openAiTrace : null,
+                    Warnings = warnings.Count > 0 ? warnings : null,
+                    ProviderRunId = providerRunId,
+                    ProviderConversationId = providerConversationId,
+                    OrchestratorPhase = orchestratorPhase,
+                    OrchestratorWarnings = warnings.Count > 0 ? warnings.ToList() : null
+                };
+            }
+
+            if (!string.IsNullOrWhiteSpace(completion.ResponseId))
+            {
+                providerRunId = completion.ResponseId;
+                previousResponseId = completion.ResponseId;
+            }
+
+            if (!string.IsNullOrWhiteSpace(completion.ConversationId))
+            {
+                providerConversationId = completion.ConversationId;
+            }
+
+            var toolCalls = ExtractOpenAiResponseToolCalls(completion.RawResponse);
+            var assistantTextPreview = Clip(ExtractOpenAiResponseContent(completion.RawResponse), 700);
+            var iterationTrace = new JsonObject
+            {
+                ["phase"] = "iteration",
+                ["iteration"] = iteration + 1,
+                ["status"] = "ok",
+                ["finishReason"] = completion.FinishReason ?? string.Empty,
+                ["toolCallCount"] = toolCalls.Count,
+                ["tools"] = BuildOpenAiToolNames(toolCalls),
+                ["assistantTextPreview"] = assistantTextPreview,
+                ["responseId"] = completion.ResponseId ?? string.Empty
+            };
+
+            if (completion.RawResponse?["usage"] != null)
+            {
+                iterationTrace["usage"] = completion.RawResponse["usage"]?.DeepClone();
+            }
+
+            var iterationToolResults = new JsonArray();
+            iterationTrace["toolResults"] = iterationToolResults;
+            openAiTrace.Add(iterationTrace);
+
+            if (toolCalls.Count == 0)
+            {
+                var answer = ExtractOpenAiResponseContent(completion.RawResponse);
+                if (!string.IsNullOrWhiteSpace(answer) &&
+                    ShouldBypassClarificationLoop(
+                        message,
+                        answer,
+                        request.History,
+                        clarificationLoopAttempts,
+                        iteration,
+                        openAi.MaxToolIterations))
+                {
+                    clarificationLoopAttempts++;
+                    warnings.Add("OpenAI зациклился на уточнениях. Продолжаю без повторных вопросов.");
+                    currentInput = CreateOpenAiUserMessageInput(
+                        "Пользователь уже подтвердил выполнение. " +
+                        "Не задавай больше уточняющих вопросов. " +
+                        "Выполни нужные действия и верни финальный ответ.");
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(answer))
+                {
+                    var finishReason = completion.FinishReason?.Trim();
+                    if (string.Equals(finishReason, "incomplete", StringComparison.OrdinalIgnoreCase) &&
+                        iteration + 1 < openAi.MaxToolIterations)
+                    {
+                        noTextContinuationAttempts++;
+                        warnings.Add("OpenAI вернул incomplete output. Продолжаю итерацию.");
+                        currentInput = CreateOpenAiUserMessageInput(
+                            "Предыдущий ответ был прерван. Продолжи с того же места и при необходимости используй tools.");
+                        continue;
+                    }
+
+                    if (toolTrace.Count > 0 &&
+                        noTextContinuationAttempts < 2 &&
+                        iteration + 1 < openAi.MaxToolIterations)
+                    {
+                        noTextContinuationAttempts++;
+                        warnings.Add("OpenAI вернул ответ без текста. Запрашиваю еще один проход с tools.");
+                        currentInput = CreateOpenAiUserMessageInput(
+                            "Ты еще не выдал итоговый ответ пользователю. " +
+                            "Если данных недостаточно, сначала вызови нужные tools, затем обязательно дай финальный текст. " +
+                            "Не проси подтверждений и не задавай встречных вопросов.");
+                        continue;
+                    }
+
+                    warnings.Add("OpenAI вернул ответ без текста. Выполняю финализацию без новых tools.");
+                    answer = await TryFinalizeOpenAiAnswerWithoutToolsViaResponsesAsync(
+                        apiKey,
+                        openAi,
+                        previousResponseId,
+                        providerConversationId,
+                        cancellationToken,
+                        openAiTrace,
+                        "fallback_no_text");
+                }
+
+                if (string.IsNullOrWhiteSpace(answer))
+                {
+                    answer = TryBuildToolDataFallback(toolTrace)
+                             ?? TryBuildToolErrorFallback(toolTrace)
+                             ?? "OpenAI вернул пустой ответ.";
+                }
+
+                orchestratorPhase = "finalizing";
+                return new McpChatResponse
+                {
+                    Provider = OpenAiProviderName,
+                    Model = openAi.Model,
+                    Answer = answer,
+                    Data = toolTrace.Count > 0 ? toolTrace : null,
+                    Trace = openAiTrace.Count > 0 ? openAiTrace : null,
+                    Warnings = warnings.Count > 0 ? warnings : null,
+                    ProviderRunId = providerRunId,
+                    ProviderConversationId = providerConversationId,
+                    OrchestratorPhase = orchestratorPhase,
+                    OrchestratorWarnings = warnings.Count > 0 ? warnings.ToList() : null
+                };
+            }
+
+            var toolOutputsForNextResponse = new JsonArray();
+            foreach (var callNode in toolCalls)
+            {
+                var callId = callNode?["id"]?.GetValue<string>() ?? $"call_{Guid.NewGuid():N}";
+                var toolName = callNode?["function"]?["name"]?.GetValue<string>();
+                var argumentsRaw = callNode?["function"]?["arguments"]?.GetValue<string>() ?? "{}";
+
+                if (string.IsNullOrWhiteSpace(toolName))
+                {
+                    var payload = new JsonObject
+                    {
+                        ["isError"] = true,
+                        ["message"] = "Missing function.name in tool_call."
+                    };
+
+                    toolOutputsForNextResponse.Add(CreateOpenAiResponseToolOutputItem(callId, payload));
+                    toolTrace.Add(new JsonObject
+                    {
+                        ["id"] = callId,
+                        ["isError"] = true,
+                        ["error"] = "tool_call без function.name"
+                    });
+                    iterationToolResults.Add(new JsonObject
+                    {
+                        ["id"] = callId,
+                        ["isError"] = true,
+                        ["error"] = "tool_call без function.name"
+                    });
+                    continue;
+                }
+
+                JsonObject argumentsObject;
+                try
+                {
+                    argumentsObject = JsonNode.Parse(argumentsRaw) as JsonObject ?? new JsonObject();
+                }
+                catch (Exception ex)
+                {
+                    var payload = new JsonObject
+                    {
+                        ["isError"] = true,
+                        ["message"] = "arguments JSON parse error",
+                        ["exception"] = ex.Message,
+                        ["source"] = Clip(argumentsRaw, 1024)
+                    };
+
+                    toolOutputsForNextResponse.Add(CreateOpenAiResponseToolOutputItem(callId, payload));
+                    toolTrace.Add(new JsonObject
+                    {
+                        ["id"] = callId,
+                        ["tool"] = toolName,
+                        ["isError"] = true,
+                        ["error"] = payload.DeepClone()
+                    });
+                    iterationToolResults.Add(new JsonObject
+                    {
+                        ["id"] = callId,
+                        ["tool"] = toolName,
+                        ["isError"] = true,
+                        ["error"] = "arguments JSON parse error"
+                    });
+                    continue;
+                }
+
+                var toolExecution = await ExecuteToolCallInternalAsync(toolName, argumentsObject, cancellationToken);
+                if (toolExecution.Warnings.Count > 0)
+                {
+                    warnings.AddRange(toolExecution.Warnings);
+                }
+
+                JsonObject modelPayload;
+                if (toolExecution.BridgeError != null)
+                {
+                    modelPayload = new JsonObject
+                    {
+                        ["isError"] = true,
+                        ["error"] = toolExecution.BridgeError.DeepClone(),
+                        ["stderr"] = Clip(toolExecution.Stderr, 1200)
+                    };
+
+                    toolTrace.Add(new JsonObject
+                    {
+                        ["id"] = callId,
+                        ["tool"] = toolName,
+                        ["arguments"] = argumentsObject.DeepClone(),
+                        ["isError"] = true,
+                        ["error"] = toolExecution.BridgeError.DeepClone()
+                    });
+                    iterationToolResults.Add(new JsonObject
+                    {
+                        ["id"] = callId,
+                        ["tool"] = toolName,
+                        ["isError"] = true,
+                        ["arguments"] = argumentsObject.DeepClone(),
+                        ["error"] = toolExecution.BridgeError["message"]?.GetValue<string>() ?? "bridge_error"
+                    });
+                }
+                else
+                {
+                    modelPayload = new JsonObject
+                    {
+                        ["isError"] = toolExecution.IsError,
+                        ["data"] = CompactToolPayloadForModel(toolExecution.Payload) ?? new JsonObject()
+                    };
+
+                    toolTrace.Add(new JsonObject
+                    {
+                        ["id"] = callId,
+                        ["tool"] = toolName,
+                        ["arguments"] = argumentsObject.DeepClone(),
+                        ["isError"] = toolExecution.IsError,
+                        ["data"] = toolExecution.Payload.DeepClone()
+                    });
+
+                    iterationToolResults.Add(new JsonObject
+                    {
+                        ["id"] = callId,
+                        ["tool"] = toolName,
+                        ["isError"] = toolExecution.IsError,
+                        ["arguments"] = argumentsObject.DeepClone(),
+                        ["error"] = toolExecution.IsError
+                            ? (toolExecution.Payload["error"]?["message"]?.GetValue<string>() ?? "tool_error")
+                            : null
+                    });
+                }
+
+                toolOutputsForNextResponse.Add(CreateOpenAiResponseToolOutputItem(callId, modelPayload));
+            }
+
+            currentInput = toolOutputsForNextResponse;
+        }
+
+        warnings.Add($"Достигнут лимит tool-итераций OpenAI ({openAi.MaxToolIterations}).");
+
+        var skipFinalize = false;
+        if (!string.IsNullOrWhiteSpace(previousResponseId) &&
+            HasOpenAiFunctionCallOutputItems(currentInput))
+        {
+            warnings.Add("Перед финализацией отправляю последние tool output в OpenAI.");
+            var flushCompletion = await CallOpenAiResponsesAsync(
+                apiKey,
+                openAi,
+                currentInput,
+                new JsonArray(),
+                cancellationToken,
+                previousResponseId,
+                providerConversationId);
+
+            var flushTrace = new JsonObject
+            {
+                ["phase"] = "limit_flush",
+                ["status"] = flushCompletion.IsSuccess ? "ok" : "error",
+                ["finishReason"] = flushCompletion.FinishReason ?? string.Empty,
+                ["responseId"] = flushCompletion.ResponseId ?? string.Empty
+            };
+
+            if (flushCompletion.Error != null)
+            {
+                flushTrace["error"] = flushCompletion.Error.DeepClone();
+            }
+
+            if (flushCompletion.RawResponse?["usage"] != null)
+            {
+                flushTrace["usage"] = flushCompletion.RawResponse["usage"]?.DeepClone();
+            }
+
+            var flushPreview = Clip(ExtractOpenAiResponseContent(flushCompletion.RawResponse), 700);
+            if (!string.IsNullOrWhiteSpace(flushPreview))
+            {
+                flushTrace["assistantTextPreview"] = flushPreview;
+            }
+
+            openAiTrace.Add(flushTrace);
+
+            if (flushCompletion.IsSuccess)
+            {
+                if (!string.IsNullOrWhiteSpace(flushCompletion.ResponseId))
+                {
+                    providerRunId = flushCompletion.ResponseId;
+                    previousResponseId = flushCompletion.ResponseId;
+                }
+
+                if (!string.IsNullOrWhiteSpace(flushCompletion.ConversationId))
+                {
+                    providerConversationId = flushCompletion.ConversationId;
+                }
+
+                var flushAnswer = ExtractOpenAiResponseContent(flushCompletion.RawResponse);
+                if (!string.IsNullOrWhiteSpace(flushAnswer))
+                {
+                    if (LooksLikeOpenAiToolDispatchLeak(flushAnswer))
+                    {
+                        warnings.Add(
+                            "OpenAI вернул служебный текст tool-dispatch на этапе limit_flush. " +
+                            "Игнорирую его и продолжаю финализацию.");
+                    }
+                    else
+                    {
+                        return new McpChatResponse
+                        {
+                            Provider = OpenAiProviderName,
+                            Model = openAi.Model,
+                            Answer = flushAnswer,
+                            Data = toolTrace.Count > 0 ? toolTrace : null,
+                            Trace = openAiTrace.Count > 0 ? openAiTrace : null,
+                            Warnings = warnings.Count > 0 ? warnings : null,
+                            ProviderRunId = providerRunId,
+                            ProviderConversationId = providerConversationId,
+                            OrchestratorPhase = "finalizing",
+                            OrchestratorWarnings = warnings.Count > 0 ? warnings.ToList() : null
+                        };
+                    }
+                }
+
+                var extraToolCalls = ExtractOpenAiResponseToolCalls(flushCompletion.RawResponse);
+                if (extraToolCalls.Count > 0)
+                {
+                    skipFinalize = true;
+                    warnings.Add(
+                        $"После отправки последних tool output OpenAI запросил еще {extraToolCalls.Count} tool-вызов(ов), " +
+                        "но лимит итераций уже исчерпан. Перехожу к fallback-ответу.");
+                }
+            }
+            else
+            {
+                warnings.Add("Не удалось отправить последние tool output перед финализацией.");
+            }
+        }
+
+        var finalizedAnswer = skipFinalize
+            ? null
+            : await TryFinalizeOpenAiAnswerWithoutToolsViaResponsesAsync(
+                apiKey,
+                openAi,
+                previousResponseId,
+                providerConversationId,
+                cancellationToken,
+                openAiTrace,
+                "limit_finalize");
+
+        if (!string.IsNullOrWhiteSpace(finalizedAnswer))
+        {
+            return new McpChatResponse
+            {
+                Provider = OpenAiProviderName,
+                Model = openAi.Model,
+                Answer = finalizedAnswer,
+                Data = toolTrace.Count > 0 ? toolTrace : null,
+                Trace = openAiTrace.Count > 0 ? openAiTrace : null,
+                Warnings = warnings.Count > 0 ? warnings : null,
+                ProviderRunId = providerRunId,
+                ProviderConversationId = providerConversationId,
+                OrchestratorPhase = "finalizing",
+                OrchestratorWarnings = warnings.Count > 0 ? warnings.ToList() : null
+            };
+        }
+
+        var fallbackAnswer = TryBuildToolDataFallback(toolTrace)
+                             ?? TryBuildToolErrorFallback(toolTrace);
+        if (!string.IsNullOrWhiteSpace(fallbackAnswer))
+        {
+            return new McpChatResponse
+            {
+                Provider = OpenAiProviderName,
+                Model = openAi.Model,
+                Answer = fallbackAnswer,
+                Data = toolTrace.Count > 0 ? toolTrace : null,
+                Trace = openAiTrace.Count > 0 ? openAiTrace : null,
+                Warnings = warnings.Count > 0 ? warnings : null,
+                ProviderRunId = providerRunId,
+                ProviderConversationId = providerConversationId,
+                OrchestratorPhase = "finalizing",
+                OrchestratorWarnings = warnings.Count > 0 ? warnings.ToList() : null
+            };
+        }
+
+        return new McpChatResponse
+        {
+            IsError = true,
+            Provider = OpenAiProviderName,
+            Model = openAi.Model,
+            Answer = $"Достигнут лимит tool-итераций OpenAI ({openAi.MaxToolIterations}).",
+            Data = toolTrace.Count > 0 ? toolTrace : null,
+            Trace = openAiTrace.Count > 0 ? openAiTrace : null,
+            Warnings = warnings.Count > 0 ? warnings : null,
+            ProviderRunId = providerRunId,
+            ProviderConversationId = providerConversationId,
+            OrchestratorPhase = "finalizing",
+            OrchestratorWarnings = warnings.Count > 0 ? warnings.ToList() : null
+        };
+    }
+
+    private async Task<string?> TryFinalizeOpenAiAnswerWithoutToolsViaResponsesAsync(
+        string apiKey,
+        McpOpenAiOptions options,
+        string? previousResponseId,
+        string? conversationId,
+        CancellationToken cancellationToken,
+        JsonArray? openAiTrace = null,
+        string phase = "finalize_no_tools")
+    {
+        var finalizeOptions = CloneOpenAiOptions(options);
+        finalizeOptions.MaxOutputTokens = Math.Clamp(Math.Max(options.MaxOutputTokens, 3000), 64, 8192);
+
+        var currentInput = CreateOpenAiUserMessageInput(
+            "Больше не вызывай tools. Дай финальный ответ по уже полученным данным в этом сообщении. " +
+            "Не задавай встречных вопросов и не проси подтверждений. " +
+            "Если формат явно не указан, для числовых данных используй markdown-таблицу и затем короткий вывод.");
+        var currentPreviousResponseId = previousResponseId;
+        var currentConversationId = conversationId;
+        const int maxFinalizeAttempts = 3;
+
+        for (var attempt = 0; attempt < maxFinalizeAttempts; attempt++)
+        {
+            var completion = await CallOpenAiResponsesAsync(
+                apiKey,
+                finalizeOptions,
+                currentInput,
+                new JsonArray(),
+                cancellationToken,
+                currentPreviousResponseId,
+                currentConversationId);
+
+            if (openAiTrace != null)
+            {
+                var traceNode = new JsonObject
+                {
+                    ["phase"] = phase,
+                    ["attempt"] = attempt + 1,
+                    ["status"] = completion.IsSuccess ? "ok" : "error",
+                    ["finishReason"] = completion.FinishReason ?? string.Empty,
+                    ["responseId"] = completion.ResponseId ?? string.Empty
+                };
+
+                if (completion.Error != null)
+                {
+                    traceNode["error"] = completion.Error.DeepClone();
+                }
+
+                if (completion.RawResponse?["usage"] != null)
+                {
+                    traceNode["usage"] = completion.RawResponse["usage"]?.DeepClone();
+                }
+
+                var preview = Clip(ExtractOpenAiResponseContent(completion.RawResponse), 700);
+                if (!string.IsNullOrWhiteSpace(preview))
+                {
+                    traceNode["assistantTextPreview"] = preview;
+                }
+
+                openAiTrace.Add(traceNode);
+            }
+
+            if (!completion.IsSuccess)
+            {
+                if (!string.IsNullOrWhiteSpace(currentPreviousResponseId) &&
+                    LooksLikeOpenAiPreviousResponseError(completion.Error) &&
+                    attempt + 1 < maxFinalizeAttempts)
+                {
+                    currentPreviousResponseId = null;
+                    currentConversationId = null;
+                    currentInput = CreateOpenAiUserMessageInput(
+                        "Сессия continuation недоступна. " +
+                        "Сформируй финальный ответ на основе уже полученных данных. " +
+                        "Не вызывай tools и не задавай уточнений.");
+                    continue;
+                }
+
+                return null;
+            }
+
+            if (!string.IsNullOrWhiteSpace(completion.ResponseId))
+            {
+                currentPreviousResponseId = completion.ResponseId;
+            }
+
+            if (!string.IsNullOrWhiteSpace(completion.ConversationId))
+            {
+                currentConversationId = completion.ConversationId;
+            }
+
+            var answer = ExtractOpenAiResponseContent(completion.RawResponse);
+            if (!string.IsNullOrWhiteSpace(answer))
+            {
+                return answer;
+            }
+
+            if (attempt + 1 >= maxFinalizeAttempts)
+            {
+                return null;
+            }
+
+            var finishReason = completion.FinishReason?.Trim().ToLowerInvariant();
+            currentInput = finishReason is "length" or "incomplete"
+                ? CreateOpenAiUserMessageInput(
+                    "Продолжи предыдущий ответ и закончи финальным текстом. " +
+                    "Tools вызывать нельзя.")
+                : CreateOpenAiUserMessageInput(
+                    "Дай только финальный текст по уже собранным данным. " +
+                    "Без уточнений и без tools.");
+        }
+
+        return null;
+    }
+
+    private async Task<OpenAiResponsesResult> CallOpenAiResponsesAsync(
+        string apiKey,
+        McpOpenAiOptions options,
+        JsonNode input,
+        JsonArray tools,
+        CancellationToken cancellationToken,
+        string? previousResponseId = null,
+        string? conversationId = null)
+    {
+        var endpoint = BuildUrl(options.BaseUrl, "responses");
+        var payload = new JsonObject
+        {
+            ["model"] = options.Model,
+            ["input"] = input.DeepClone()
+        };
+
+        if (tools.Count > 0)
+        {
+            payload["tools"] = tools.DeepClone();
+        }
+
+        if (!string.IsNullOrWhiteSpace(previousResponseId))
+        {
+            payload["previous_response_id"] = previousResponseId;
+        }
+        else if (!string.IsNullOrWhiteSpace(conversationId))
+        {
+            payload["conversation"] = conversationId;
+        }
+        else if (options.UseConversationsApi)
+        {
+            payload["conversation"] = "auto";
+        }
+
+        if (ShouldSendTemperature(options))
+        {
+            payload["temperature"] = options.Temperature;
+        }
+
+        var maxOutputTokens = options.MaxOutputTokens > 0
+            ? options.MaxOutputTokens
+            : options.MaxCompletionTokens;
+        if (maxOutputTokens > 0)
+        {
+            payload["max_output_tokens"] = maxOutputTokens;
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.ReasoningEffort))
+        {
+            payload["reasoning"] = new JsonObject
+            {
+                ["effort"] = options.ReasoningEffort
+            };
+        }
+
+        var httpClient = _httpClientFactory.CreateClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+        var serializedPayload = SerializeOneLine(payload);
+
+        const int maxAttempts = 3;
+        JsonObject? lastRetryDetails = null;
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            HttpResponseMessage httpResponse;
+            string responseContent;
+
+            try
+            {
+                using var httpRequest = new HttpRequestMessage(HttpMethod.Post, endpoint);
+                httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+                if (!string.IsNullOrWhiteSpace(options.Organization))
+                {
+                    httpRequest.Headers.TryAddWithoutValidation("OpenAI-Organization", options.Organization);
+                }
+
+                if (!string.IsNullOrWhiteSpace(options.Project))
+                {
+                    httpRequest.Headers.TryAddWithoutValidation("OpenAI-Project", options.Project);
+                }
+
+                httpRequest.Content = new StringContent(
+                    serializedPayload,
+                    Encoding.UTF8,
+                    "application/json");
+
+                httpResponse = await httpClient.SendAsync(httpRequest, cancellationToken);
+                responseContent = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                var details = new JsonObject
+                {
+                    ["endpoint"] = endpoint,
+                    ["exception"] = ex.Message,
+                    ["attempt"] = attempt,
+                    ["maxAttempts"] = maxAttempts
+                };
+
+                if (attempt < maxAttempts)
+                {
+                    lastRetryDetails = details;
+                    await Task.Delay(GetOpenAiResponsesRetryDelay(attempt), cancellationToken);
+                    continue;
+                }
+
+                return OpenAiResponsesResult.Fail(
+                    "HTTP call to OpenAI Responses failed.",
+                    details);
+            }
+
+            JsonNode? parsedResponse = null;
+            if (!string.IsNullOrWhiteSpace(responseContent))
+            {
+                try
+                {
+                    parsedResponse = JsonNode.Parse(responseContent);
+                }
+                catch (Exception ex)
+                {
+                    var parseDetails = new JsonObject
+                    {
+                        ["statusCode"] = (int)httpResponse.StatusCode,
+                        ["exception"] = ex.Message,
+                        ["raw"] = Clip(responseContent, 4000),
+                        ["attempt"] = attempt,
+                        ["maxAttempts"] = maxAttempts
+                    };
+
+                    if (attempt < maxAttempts &&
+                        ShouldRetryOpenAiResponsesStatus((int)httpResponse.StatusCode))
+                    {
+                        lastRetryDetails = parseDetails;
+                        await Task.Delay(GetOpenAiResponsesRetryDelay(attempt), cancellationToken);
+                        continue;
+                    }
+
+                    return OpenAiResponsesResult.Fail(
+                        "OpenAI Responses JSON parse failed.",
+                        parseDetails);
+                }
+            }
+
+            if (!httpResponse.IsSuccessStatusCode)
+            {
+                var statusCode = (int)httpResponse.StatusCode;
+                var failureDetails = new JsonObject
+                {
+                    ["statusCode"] = statusCode,
+                    ["response"] = parsedResponse?.DeepClone() ?? JsonValue.Create(Clip(responseContent, 4000)),
+                    ["attempt"] = attempt,
+                    ["maxAttempts"] = maxAttempts
+                };
+
+                if (attempt < maxAttempts && ShouldRetryOpenAiResponsesStatus(statusCode))
+                {
+                    lastRetryDetails = failureDetails;
+                    await Task.Delay(GetOpenAiResponsesRetryDelay(attempt), cancellationToken);
+                    continue;
+                }
+
+                return OpenAiResponsesResult.Fail(
+                    "OpenAI Responses returned non-success status code.",
+                    failureDetails);
+            }
+
+            var responseId = parsedResponse?["id"]?.GetValue<string>();
+            var responseConversationId = parsedResponse?["conversation_id"]?.GetValue<string>()
+                                         ?? parsedResponse?["conversation"]?["id"]?.GetValue<string>()
+                                         ?? parsedResponse?["conversation"]?.GetValue<string>();
+            var status = parsedResponse?["status"]?.GetValue<string>();
+
+            if (parsedResponse == null)
+            {
+                var emptyDetails = new JsonObject
+                {
+                    ["attempt"] = attempt,
+                    ["maxAttempts"] = maxAttempts
+                };
+
+                if (attempt < maxAttempts)
+                {
+                    lastRetryDetails = emptyDetails;
+                    await Task.Delay(GetOpenAiResponsesRetryDelay(attempt), cancellationToken);
+                    continue;
+                }
+
+                return OpenAiResponsesResult.Fail(
+                    "OpenAI Responses returned empty payload.",
+                    emptyDetails);
+            }
+
+            return OpenAiResponsesResult.Success(parsedResponse, status, responseId, responseConversationId);
+        }
+
+        return OpenAiResponsesResult.Fail(
+            "OpenAI Responses retries exhausted.",
+            lastRetryDetails ?? new JsonObject());
+    }
+
     private async Task<OpenAiChatResult> CallOpenAiChatCompletionAsync(
         string apiKey,
         McpOpenAiOptions options,
@@ -1403,7 +2560,7 @@ public sealed class McpController : ControllerBase
         return OpenAiChatResult.Success(assistantMessage, parsedResponse, finishReason);
     }
 
-    private static JsonArray BuildOpenAiTools(JsonNode? toolsListResponse)
+    private static JsonArray BuildOpenAiTools(JsonNode? toolsListResponse, bool useResponsesFormat)
     {
         var result = new JsonArray();
         if (toolsListResponse?["result"]?["tools"] is not JsonArray tools)
@@ -1432,16 +2589,29 @@ public sealed class McpController : ControllerBase
                 schema["properties"] = new JsonObject();
             }
 
-            result.Add(new JsonObject
+            if (useResponsesFormat)
             {
-                ["type"] = "function",
-                ["function"] = new JsonObject
+                result.Add(new JsonObject
                 {
+                    ["type"] = "function",
                     ["name"] = name,
                     ["description"] = description,
                     ["parameters"] = schema
-                }
-            });
+                });
+            }
+            else
+            {
+                result.Add(new JsonObject
+                {
+                    ["type"] = "function",
+                    ["function"] = new JsonObject
+                    {
+                        ["name"] = name,
+                        ["description"] = description,
+                        ["parameters"] = schema
+                    }
+                });
+            }
         }
 
         return result;
@@ -1450,6 +2620,7 @@ public sealed class McpController : ControllerBase
     private static JsonArray BuildOpenAiMessages(McpChatRequest request, string message, McpOpenAiOptions options)
     {
         var messages = new JsonArray();
+        var forceNoFollowUps = ShouldForceNoFollowUps(message, request.History);
 
         var systemPrompt = string.IsNullOrWhiteSpace(options.SystemPrompt)
             ? DefaultOpenAiSystemPrompt
@@ -1481,6 +2652,18 @@ public sealed class McpController : ControllerBase
             }
         }
 
+        if (forceNoFollowUps)
+        {
+            messages.Add(new JsonObject
+            {
+                ["role"] = "system",
+                ["content"] =
+                    "Пользователь уже подтвердил выполнение. " +
+                    "Не задавай уточняющих вопросов про формат/перечень полей/подтверждение. " +
+                    "Сразу выполни tool calls и верни финальный ответ."
+            });
+        }
+
         messages.Add(new JsonObject
         {
             ["role"] = "user",
@@ -1488,6 +2671,272 @@ public sealed class McpController : ControllerBase
         });
 
         return messages;
+    }
+
+    private static JsonArray CreateOpenAiUserMessageInput(string text, bool forceNoFollowUps = false)
+    {
+        var input = new JsonArray();
+        if (forceNoFollowUps)
+        {
+            input.Add(new JsonObject
+            {
+                ["role"] = "system",
+                ["content"] =
+                    "Пользователь уже подтвердил выполнение. " +
+                    "Не задавай уточняющих вопросов. " +
+                    "Сразу выполняй нужные действия и давай финальный ответ."
+            });
+        }
+
+        input.Add(new JsonObject
+        {
+            ["role"] = "user",
+            ["content"] = text
+        });
+
+        return input;
+    }
+
+    private static JsonObject CreateOpenAiResponseToolOutputItem(string callId, JsonNode payload)
+    {
+        return new JsonObject
+        {
+            ["type"] = "function_call_output",
+            ["call_id"] = callId,
+            ["output"] = SerializeOneLine(payload)
+        };
+    }
+
+    private static JsonArray BuildOpenAiNativeMcpTools(
+        McpOpenAiOptions options,
+        McpBridgeOptions bridgeOptions,
+        List<string> warnings)
+    {
+        var result = new JsonArray();
+        if (options.NativeMcpServers == null || options.NativeMcpServers.Count == 0)
+        {
+            return result;
+        }
+
+        var sharedAuthToken = TryResolveHttpMcpAuthToken(bridgeOptions);
+
+        foreach (var server in options.NativeMcpServers)
+        {
+            if (server == null)
+            {
+                continue;
+            }
+
+            var serverUrl = server.ServerUrl?.Trim();
+            if (string.IsNullOrWhiteSpace(serverUrl))
+            {
+                warnings.Add("Пропущен native MCP server без ServerUrl.");
+                continue;
+            }
+
+            var tool = new JsonObject
+            {
+                ["type"] = "mcp",
+                ["server_label"] = string.IsNullOrWhiteSpace(server.ServerLabel) ? "stockchart-mcp" : server.ServerLabel.Trim(),
+                ["server_url"] = serverUrl
+            };
+
+            if (!string.IsNullOrWhiteSpace(server.ServerDescription))
+            {
+                tool["server_description"] = server.ServerDescription.Trim();
+            }
+
+            var requireApproval = NormalizeMcpRequireApproval(server.RequireApproval) ?? "never";
+            tool["require_approval"] = requireApproval;
+
+            if (server.AllowedTools is { Count: > 0 })
+            {
+                var allowed = new JsonArray();
+                foreach (var item in server.AllowedTools
+                             .Where(x => !string.IsNullOrWhiteSpace(x))
+                             .Select(x => x.Trim())
+                             .Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    allowed.Add(item);
+                }
+
+                if (allowed.Count > 0)
+                {
+                    tool["allowed_tools"] = allowed;
+                }
+            }
+
+            if (server.Headers is { Count: > 0 })
+            {
+                var headers = new JsonObject();
+                foreach (var pair in server.Headers)
+                {
+                    if (string.IsNullOrWhiteSpace(pair.Key))
+                    {
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(pair.Value))
+                    {
+                        continue;
+                    }
+
+                    headers[pair.Key.Trim()] = pair.Value.Trim();
+                }
+
+                if (headers.Count > 0)
+                {
+                    tool["headers"] = headers;
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(sharedAuthToken))
+            {
+                tool["headers"] = new JsonObject
+                {
+                    ["Authorization"] = $"Bearer {sharedAuthToken}"
+                };
+            }
+            else
+            {
+                warnings.Add(
+                    $"Native MCP server '{tool["server_label"]}' configured without headers and shared MCP token. " +
+                    "Requests may fail with 401.");
+            }
+
+            result.Add(tool);
+        }
+
+        return result;
+    }
+
+    private static string? NormalizeMcpRequireApproval(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var normalized = value.Trim().ToLowerInvariant();
+        return normalized is "always" or "never" or "filter"
+            ? normalized
+            : null;
+    }
+
+    private static string ExtractOpenAiResponseContent(JsonNode? rawResponse)
+    {
+        var texts = new List<string>();
+        AppendOpenAiTextParts(rawResponse?["output_text"], texts);
+        AppendOpenAiTextParts(rawResponse?["text"], texts);
+
+        if (rawResponse?["output"] is JsonArray output)
+        {
+            foreach (var item in output)
+            {
+                var itemType = item?["type"]?.GetValue<string>();
+                if (string.Equals(itemType, "function_call", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(itemType, "function_call_output", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                AppendOpenAiTextParts(item?["content"], texts);
+                AppendOpenAiTextParts(item?["output_text"], texts);
+                AppendOpenAiTextParts(item?["text"], texts);
+                AppendOpenAiTextParts(item?["summary"], texts);
+            }
+        }
+
+        return texts.Count == 0 ? string.Empty : string.Join("\n", texts);
+    }
+
+    private static JsonArray ExtractOpenAiResponseToolCalls(JsonNode? rawResponse)
+    {
+        var result = new JsonArray();
+        if (rawResponse?["output"] is not JsonArray output || output.Count == 0)
+        {
+            return result;
+        }
+
+        foreach (var item in output)
+        {
+            var itemType = item?["type"]?.GetValue<string>();
+            if (!string.Equals(itemType, "function_call", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var name = item?["name"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                continue;
+            }
+
+            var callId = item?["call_id"]?.GetValue<string>()
+                         ?? item?["id"]?.GetValue<string>()
+                         ?? $"call_{Guid.NewGuid():N}";
+
+            var argumentsRaw = "{}";
+            if (item?["arguments"] is JsonValue argumentsValue &&
+                argumentsValue.TryGetValue<string>(out var parsedArguments))
+            {
+                argumentsRaw = parsedArguments;
+            }
+            else if (item?["arguments"] != null)
+            {
+                argumentsRaw = SerializeOneLine(item["arguments"]!);
+            }
+
+            result.Add(new JsonObject
+            {
+                ["id"] = callId,
+                ["type"] = "function",
+                ["function"] = new JsonObject
+                {
+                    ["name"] = name,
+                    ["arguments"] = argumentsRaw
+                }
+            });
+        }
+
+        return result;
+    }
+
+    private static bool HasOpenAiFunctionCallOutputItems(JsonNode? input)
+    {
+        if (input is not JsonArray items || items.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (var item in items)
+        {
+            var type = item?["type"]?.GetValue<string>();
+            if (string.Equals(type, "function_call_output", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool LooksLikeOpenAiToolDispatchLeak(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        var lower = text.Trim().ToLowerInvariant();
+        if (lower.Contains("to=functions.", StringComparison.Ordinal) ||
+            lower.Contains("to=functions_", StringComparison.Ordinal) ||
+            lower.Contains("(to=", StringComparison.Ordinal) && lower.Contains("functions", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return lower.StartsWith("searching ", StringComparison.Ordinal) &&
+               lower.Contains("metric", StringComparison.Ordinal);
     }
 
     private static bool ShouldBypassClarificationLoop(
@@ -1534,6 +2983,47 @@ public sealed class McpController : ControllerBase
             .Where(x => !string.IsNullOrWhiteSpace(x.Content))
             .TakeLast(3)
             .Any(x => LooksLikeProceedSignal(x.Content!));
+    }
+
+    private static bool ShouldForceNoFollowUps(string userMessage, List<McpChatHistoryItem>? history)
+    {
+        if (LooksLikeProceedSignal(userMessage))
+        {
+            return true;
+        }
+
+        if (history == null || history.Count == 0)
+        {
+            return false;
+        }
+
+        var assistantAskedClarification = history
+            .Where(x => string.Equals(x.Role, "assistant", StringComparison.OrdinalIgnoreCase))
+            .Where(x => !string.IsNullOrWhiteSpace(x.Content))
+            .TakeLast(2)
+            .Any(x => LooksLikeClarificationMessage(x.Content!));
+
+        if (!assistantAskedClarification)
+        {
+            return false;
+        }
+
+        var trimmed = (userMessage ?? string.Empty).Trim();
+        if (trimmed.Length == 0)
+        {
+            return false;
+        }
+
+        if (trimmed.Length <= 80)
+        {
+            return true;
+        }
+
+        var lower = trimmed.ToLowerInvariant();
+        return lower.StartsWith("все ", StringComparison.Ordinal) ||
+               string.Equals(lower, "все", StringComparison.Ordinal) ||
+               lower.StartsWith("all ", StringComparison.Ordinal) ||
+               string.Equals(lower, "all", StringComparison.Ordinal);
     }
 
     private static bool LooksLikeProceedSignal(string text)
@@ -2577,6 +4067,32 @@ public sealed class McpController : ControllerBase
         return null;
     }
 
+    private static string NormalizeOpenAiApiMode(string? mode)
+    {
+        if (string.IsNullOrWhiteSpace(mode))
+        {
+            return OpenAiApiModeResponsesCustomTools;
+        }
+
+        var normalized = mode.Trim().ToLowerInvariant();
+        return normalized is OpenAiApiModeLegacy or OpenAiApiModeResponsesCustomTools or OpenAiApiModeResponsesNativeMcp
+            ? normalized
+            : OpenAiApiModeResponsesCustomTools;
+    }
+
+    private static string? NormalizeReasoningEffort(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var normalized = value.Trim().ToLowerInvariant();
+        return normalized is "low" or "medium" or "high"
+            ? normalized
+            : null;
+    }
+
     private static McpOpenAiOptions CloneOpenAiOptions(McpOpenAiOptions source)
     {
         return new McpOpenAiOptions
@@ -2591,8 +4107,25 @@ public sealed class McpController : ControllerBase
             TimeoutSeconds = source.TimeoutSeconds,
             Temperature = source.Temperature,
             MaxCompletionTokens = source.MaxCompletionTokens,
+            MaxOutputTokens = source.MaxOutputTokens,
             MaxToolIterations = source.MaxToolIterations,
-            SystemPrompt = source.SystemPrompt
+            SystemPrompt = source.SystemPrompt,
+            ApiMode = source.ApiMode,
+            UseConversationsApi = source.UseConversationsApi,
+            ReasoningEffort = source.ReasoningEffort,
+            NativeMcpServers = source.NativeMcpServers
+                ?.Select(x => new McpOpenAiNativeMcpServerOptions
+                {
+                    ServerLabel = x.ServerLabel,
+                    ServerUrl = x.ServerUrl,
+                    ServerDescription = x.ServerDescription,
+                    RequireApproval = x.RequireApproval,
+                    AllowedTools = x.AllowedTools?.ToList() ?? [],
+                    Headers = x.Headers != null
+                        ? new Dictionary<string, string>(x.Headers, StringComparer.OrdinalIgnoreCase)
+                        : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                })
+                .ToList() ?? []
         };
     }
 
@@ -2621,9 +4154,13 @@ public sealed class McpController : ControllerBase
             options.OpenAi.ApiKeyEnvVar = "OPENAI_API_KEY";
         }
 
+        options.OpenAi.ApiMode = NormalizeOpenAiApiMode(options.OpenAi.ApiMode);
+        options.OpenAi.ReasoningEffort = NormalizeReasoningEffort(options.OpenAi.ReasoningEffort);
         options.OpenAi.TimeoutSeconds = Math.Clamp(options.OpenAi.TimeoutSeconds, 10, 300);
-        options.OpenAi.MaxToolIterations = Math.Clamp(options.OpenAi.MaxToolIterations, 1, 12);
+        options.OpenAi.MaxToolIterations = Math.Clamp(options.OpenAi.MaxToolIterations, 1, 24);
         options.OpenAi.MaxCompletionTokens = Math.Clamp(options.OpenAi.MaxCompletionTokens, 64, 8192);
+        options.OpenAi.MaxOutputTokens = Math.Clamp(options.OpenAi.MaxOutputTokens, 0, 8192);
+        options.OpenAi.NativeMcpServers ??= [];
 
         return options;
     }
@@ -2658,6 +4195,60 @@ public sealed class McpController : ControllerBase
         }
 
         return $"{normalizedBase}/{normalizedPath}";
+    }
+
+    private static JsonObject BuildOpenAiProviderErrorPayload(JsonObject? error)
+    {
+        var statusCode = error?["details"]?["statusCode"]?.GetValue<int>() ?? 0;
+        var code = statusCode switch
+        {
+            429 => "openai_rate_limited",
+            401 or 403 => "openai_auth_error",
+            _ => "openai_invalid_response"
+        };
+
+        return new JsonObject
+        {
+            ["code"] = code,
+            ["error"] = error?.DeepClone() ?? new JsonObject()
+        };
+    }
+
+    private static bool LooksLikeOpenAiPreviousResponseError(JsonObject? error)
+    {
+        if (error == null)
+        {
+            return false;
+        }
+
+        var details = error["details"] as JsonObject;
+        var responseText = details?["response"]?.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = false
+        }) ?? string.Empty;
+        var messageText = error["message"]?.GetValue<string>() ?? string.Empty;
+
+        var lower = $"{messageText}\n{responseText}".ToLowerInvariant();
+        if (!lower.Contains("previous_response", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return lower.Contains("not found", StringComparison.Ordinal) ||
+               lower.Contains("invalid", StringComparison.Ordinal) ||
+               lower.Contains("expired", StringComparison.Ordinal) ||
+               lower.Contains("unknown", StringComparison.Ordinal);
+    }
+
+    private static bool ShouldRetryOpenAiResponsesStatus(int statusCode)
+    {
+        return statusCode is 408 or 409 or 425 or 429 || statusCode >= 500;
+    }
+
+    private static TimeSpan GetOpenAiResponsesRetryDelay(int attempt)
+    {
+        var milliseconds = Math.Clamp(350 * attempt, 250, 1500);
+        return TimeSpan.FromMilliseconds(milliseconds);
     }
 
     private static bool ShouldSendTemperature(McpOpenAiOptions options)
@@ -3424,6 +5015,16 @@ public sealed class McpController : ControllerBase
             options.ScriptPath = Path.Combine("tools", "mcp_adapter", "stockchart_mcp_server.py");
         }
 
+        if (string.IsNullOrWhiteSpace(options.HttpAuthTokenEnvVar))
+        {
+            options.HttpAuthTokenEnvVar = "MCP_SERVER_AUTH_TOKEN";
+        }
+
+        if (string.IsNullOrWhiteSpace(options.HttpAuthHeaderName))
+        {
+            options.HttpAuthHeaderName = "Authorization";
+        }
+
         options.TimeoutSeconds = Math.Clamp(options.TimeoutSeconds, 5, 180);
         return options;
     }
@@ -3450,6 +5051,153 @@ public sealed class McpController : ControllerBase
         }
 
         return localCandidate;
+    }
+
+    private bool TryAuthorizeHttpMcpRequest(out IActionResult? error)
+    {
+        error = null;
+        var options = ResolveOptions();
+        if (!options.EnableHttpEndpoint)
+        {
+            error = NotFound();
+            return false;
+        }
+
+        var expectedToken = TryResolveHttpMcpAuthToken(options);
+        if (string.IsNullOrWhiteSpace(expectedToken))
+        {
+            error = StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                error = "MCP HTTP endpoint token is not configured.",
+                code = "mcp_http_auth_not_configured"
+            });
+            return false;
+        }
+
+        if (!TryExtractHttpMcpRequestToken(options, out var providedToken) ||
+            !string.Equals(providedToken, expectedToken, StringComparison.Ordinal))
+        {
+            error = Unauthorized(new
+            {
+                error = "Invalid MCP auth token.",
+                code = "mcp_http_auth_invalid"
+            });
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool TryExtractHttpMcpRequestToken(McpBridgeOptions options, out string token)
+    {
+        token = string.Empty;
+        var headerName = string.IsNullOrWhiteSpace(options.HttpAuthHeaderName)
+            ? "Authorization"
+            : options.HttpAuthHeaderName.Trim();
+
+        if (Request.Headers.TryGetValue(headerName, out var headerValues))
+        {
+            var raw = headerValues.FirstOrDefault()?.Trim();
+            if (!string.IsNullOrWhiteSpace(raw))
+            {
+                if (raw.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    token = raw["Bearer ".Length..].Trim();
+                }
+                else
+                {
+                    token = raw;
+                }
+
+                if (!string.IsNullOrWhiteSpace(token))
+                {
+                    return true;
+                }
+            }
+        }
+
+        if (Request.Headers.TryGetValue("X-MCP-AUTH", out var fallbackValues))
+        {
+            var raw = fallbackValues.FirstOrDefault()?.Trim();
+            if (!string.IsNullOrWhiteSpace(raw))
+            {
+                token = raw;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string? TryResolveHttpMcpAuthToken(McpBridgeOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.HttpAuthTokenEnvVar))
+        {
+            var fromEnv = Environment.GetEnvironmentVariable(options.HttpAuthTokenEnvVar.Trim());
+            if (!string.IsNullOrWhiteSpace(fromEnv))
+            {
+                return fromEnv.Trim();
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.HttpAuthToken))
+        {
+            return options.HttpAuthToken.Trim();
+        }
+
+        return null;
+    }
+
+    private static bool IsSupportedHttpMcpMethod(string method)
+    {
+        return string.Equals(method, "tools/list", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(method, "tools/call", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(method, "resources/list", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(method, "resources/templates/list", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(method, "resources/read", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private IActionResult CreateJsonRpcHttpResponse(JsonObject response)
+    {
+        var acceptHeader = Request.Headers.Accept.ToString();
+        if (!string.IsNullOrWhiteSpace(acceptHeader) &&
+            acceptHeader.Contains("text/event-stream", StringComparison.OrdinalIgnoreCase))
+        {
+            var eventPayload = $"data: {SerializeOneLine(response)}\n\n";
+            return Content(eventPayload, "text/event-stream", Encoding.UTF8);
+        }
+
+        return Content(SerializeOneLine(response), "application/json", Encoding.UTF8);
+    }
+
+    private static JsonObject CreateJsonRpcErrorResponse(JsonNode? id, int code, string message, JsonNode? data = null)
+    {
+        var errorNode = new JsonObject
+        {
+            ["code"] = code,
+            ["message"] = message
+        };
+        if (data != null)
+        {
+            errorNode["data"] = data.DeepClone();
+        }
+
+        return new JsonObject
+        {
+            ["jsonrpc"] = "2.0",
+            ["id"] = id?.DeepClone(),
+            ["error"] = errorNode
+        };
+    }
+
+    private static JsonObject CreateJsonRpcResultResponse(JsonNode? id, JsonNode? result)
+    {
+        return new JsonObject
+        {
+            ["jsonrpc"] = "2.0",
+            ["id"] = id?.DeepClone(),
+            ["result"] = result?.DeepClone() ?? new JsonObject()
+        };
     }
 
     private static JsonObject CreateInitializeRequest()
@@ -3615,6 +5363,15 @@ public sealed class McpController : ControllerBase
         public string? Message { get; set; }
         public Guid? ConversationId { get; set; }
         public List<McpChatHistoryItem>? History { get; set; }
+
+        [JsonIgnore]
+        public string? ProviderConversationId { get; set; }
+
+        [JsonIgnore]
+        public string? ProviderLastResponseId { get; set; }
+
+        [JsonIgnore]
+        public string? ProviderApiMode { get; set; }
     }
 
     public sealed class McpChatHistoryItem
@@ -3628,6 +5385,10 @@ public sealed class McpController : ControllerBase
         public bool IsError { get; set; }
         public string Provider { get; set; } = LocalProviderName;
         public string? Model { get; set; }
+        public string? ProviderRunId { get; set; }
+        public string? ProviderConversationId { get; set; }
+        public string? OrchestratorPhase { get; set; }
+        public List<string>? OrchestratorWarnings { get; set; }
         public Guid? ConversationId { get; set; }
         public string? ConversationTitle { get; set; }
         public string Answer { get; set; } = string.Empty;
@@ -3664,6 +5425,9 @@ public sealed class McpController : ControllerBase
         public DateTime? LastMessageAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        public string? ProviderApiMode { get; set; }
+        public string? ProviderConversationId { get; set; }
+        public string? ProviderLastResponseId { get; set; }
         public List<McpConversationMessageView> Messages { get; set; } = [];
     }
 
@@ -3674,6 +5438,7 @@ public sealed class McpController : ControllerBase
         public string Text { get; set; } = string.Empty;
         public string? Provider { get; set; }
         public string? Model { get; set; }
+        public string? ProviderMessageId { get; set; }
         public bool IsError { get; set; }
         public JsonNode? Data { get; set; }
         public List<string>? Suggestions { get; set; }
@@ -3699,6 +5464,10 @@ public sealed class McpController : ControllerBase
         public bool InsecureTls { get; set; }
         public string? DefaultCandlesProfile { get; set; }
         public string? DefaultListProfile { get; set; }
+        public bool EnableHttpEndpoint { get; set; } = true;
+        public string? HttpAuthToken { get; set; }
+        public string HttpAuthTokenEnvVar { get; set; } = "MCP_SERVER_AUTH_TOKEN";
+        public string HttpAuthHeaderName { get; set; } = "Authorization";
     }
 
     private sealed class McpProviderOptions
@@ -3710,17 +5479,32 @@ public sealed class McpController : ControllerBase
     private sealed class McpOpenAiOptions
     {
         public bool Enabled { get; set; } = true;
+        public string ApiMode { get; set; } = OpenAiApiModeResponsesCustomTools;
         public string? ApiKey { get; set; }
         public string ApiKeyEnvVar { get; set; } = "OPENAI_API_KEY";
         public string BaseUrl { get; set; } = "https://api.openai.com/v1";
         public string Model { get; set; } = "gpt-4o-mini";
         public string? Organization { get; set; }
         public string? Project { get; set; }
+        public bool UseConversationsApi { get; set; }
+        public string? ReasoningEffort { get; set; }
         public int TimeoutSeconds { get; set; } = 90;
         public double Temperature { get; set; } = 0.2;
         public int MaxCompletionTokens { get; set; } = 1200;
+        public int MaxOutputTokens { get; set; }
         public int MaxToolIterations { get; set; } = 8;
         public string? SystemPrompt { get; set; }
+        public List<McpOpenAiNativeMcpServerOptions> NativeMcpServers { get; set; } = [];
+    }
+
+    private sealed class McpOpenAiNativeMcpServerOptions
+    {
+        public string? ServerLabel { get; set; }
+        public string? ServerUrl { get; set; }
+        public string? ServerDescription { get; set; }
+        public string? RequireApproval { get; set; }
+        public List<string>? AllowedTools { get; set; }
+        public Dictionary<string, string>? Headers { get; set; }
     }
 
     private sealed class OpenAiChatResult
@@ -3745,6 +5529,45 @@ public sealed class McpController : ControllerBase
         public static OpenAiChatResult Fail(string message, JsonObject? details = null)
         {
             return new OpenAiChatResult
+            {
+                IsSuccess = false,
+                Error = new JsonObject
+                {
+                    ["message"] = message,
+                    ["details"] = details ?? new JsonObject()
+                }
+            };
+        }
+    }
+
+    private sealed class OpenAiResponsesResult
+    {
+        public bool IsSuccess { get; private init; }
+        public JsonNode? RawResponse { get; private init; }
+        public string? FinishReason { get; private init; }
+        public string? ResponseId { get; private init; }
+        public string? ConversationId { get; private init; }
+        public JsonObject? Error { get; private init; }
+
+        public static OpenAiResponsesResult Success(
+            JsonNode rawResponse,
+            string? finishReason,
+            string? responseId,
+            string? conversationId)
+        {
+            return new OpenAiResponsesResult
+            {
+                IsSuccess = true,
+                RawResponse = rawResponse,
+                FinishReason = finishReason,
+                ResponseId = responseId,
+                ConversationId = conversationId
+            };
+        }
+
+        public static OpenAiResponsesResult Fail(string message, JsonObject? details = null)
+        {
+            return new OpenAiResponsesResult
             {
                 IsSuccess = false,
                 Error = new JsonObject

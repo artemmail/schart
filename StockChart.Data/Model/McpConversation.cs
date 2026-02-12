@@ -20,6 +20,17 @@ public class McpConversation
     [MaxLength(512)]
     public string? LastMessagePreview { get; set; }
 
+    [MaxLength(128)]
+    public string? ProviderConversationId { get; set; }
+
+    [MaxLength(128)]
+    public string? ProviderLastResponseId { get; set; }
+
+    public string? ProviderStateJson { get; set; }
+
+    [MaxLength(64)]
+    public string? ProviderApiMode { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastMessageAt { get; set; }

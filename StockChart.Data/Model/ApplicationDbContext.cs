@@ -251,6 +251,9 @@ public partial class ApplicationDbContext
             entity.ToTable("McpConversations");
             entity.Property(e => e.Title).HasMaxLength(200);
             entity.Property(e => e.LastMessagePreview).HasMaxLength(512);
+            entity.Property(e => e.ProviderConversationId).HasMaxLength(128);
+            entity.Property(e => e.ProviderLastResponseId).HasMaxLength(128);
+            entity.Property(e => e.ProviderApiMode).HasMaxLength(64);
             entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
             entity.Property(e => e.LastMessageAt).HasColumnType("datetime2");
@@ -268,6 +271,7 @@ public partial class ApplicationDbContext
             entity.Property(e => e.Role).HasMaxLength(32);
             entity.Property(e => e.Provider).HasMaxLength(64);
             entity.Property(e => e.Model).HasMaxLength(128);
+            entity.Property(e => e.ProviderMessageId).HasMaxLength(128);
             entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
             entity.HasIndex(e => new { e.ConversationId, e.CreatedAt });
             entity.HasOne(e => e.Conversation)

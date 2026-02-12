@@ -26,9 +26,13 @@ public class McpConversationMessage
     [MaxLength(128)]
     public string? Model { get; set; }
 
+    [MaxLength(128)]
+    public string? ProviderMessageId { get; set; }
+
     public bool IsError { get; set; }
 
     public string? DataJson { get; set; }
+    public string? TraceJson { get; set; }
     public string? SuggestionsJson { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
