@@ -1,6 +1,7 @@
 ﻿using DataProvider.Models;
 using DataProvider.Services;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using StockChart.EventBus.Abstractions;
 using System;
 using System.Collections.Concurrent;
@@ -17,26 +18,43 @@ namespace DataProvider
         private readonly IBroadCast _broadCast;
         private readonly IEventBus _eventBus;
         private readonly ILastTradeCache _lastTradeCache;
+        private readonly ILogger<DDEServer> _logger;
         private readonly ConcurrentQueue<DBRecord[]> _dbRecordsQueue = new ConcurrentQueue<DBRecord[]>();
 
         private DDEInfo.InfoServer _ddeServer;
 
-        public DDEServer(ITradesCacherRepository tradesCacher, IBroadCast broadCast, IEventBus eventBus, ILastTradeCache lastTradeCache)
+        public DDEServer(
+            ITradesCacherRepository tradesCacher,
+            IBroadCast broadCast,
+            IEventBus eventBus,
+            ILastTradeCache lastTradeCache,
+            ILogger<DDEServer> logger)
         {
             _tradesCacher = tradesCacher;
             _broadCast = broadCast;
             _eventBus = eventBus;
             _lastTradeCache = lastTradeCache;
+            _logger = logger;
         }
 
         public Task StartAsync(CancellationToken stoppingToken)
         {
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-            _ddeServer = new DDEInfo.InfoServer("excel");
-            _ddeServer.StateChanged += OnDdeServerStateChanged;
-            _ddeServer.DataPoked += OnDdeServerDataPoked;
-            _ddeServer.Register();
+                    _ddeServer = new DDEInfo.InfoServer("excel");
+                    _ddeServer.StateChanged += OnDdeServerStateChanged;
+                    _ddeServer.DataPoked += OnDdeServerDataPoked;
+                    _ddeServer.Register();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to start DDE server.");
+                }
+            }, stoppingToken);
 
             return Task.CompletedTask;
         }

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 using StockChart.Data;
 
@@ -70,40 +71,38 @@ namespace DataProvider.Services
         private ConcurrentDictionary<string, TickerDIC> _tickerDictionary;
 
         private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
+        private readonly ILogger<MarketInfoService> _logger;
 
 
 
-        public MarketInfoService(IDbContextFactory<ApplicationDbContext> contextFactory)
+        public MarketInfoService(IDbContextFactory<ApplicationDbContext> contextFactory, ILogger<MarketInfoService> logger)
 
         {
 
             _contextFactory = contextFactory;
+            _logger = logger;
 
+            try
+            {
+                using var context = _contextFactory.CreateDbContext();
+                var markets = context.Classes
+                    .AsNoTracking()
+                    .Select(x => new MarketInfo
+                    {
+                        MarketId = x.MarketId,
+                        Name = x.Name
+                    })
+                    .ToList();
 
-
-            using var context = _contextFactory.CreateDbContext();
-
-            var markets = context.Classes
-
-                .AsNoTracking()
-
-                .Select(x => new MarketInfo
-
-                {
-
-                    MarketId = x.MarketId,
-
-                    Name = x.Name
-
-                })
-
-                .ToList();
-
-
-
-            _markets = markets.ToDictionary(x => x.Name, x => x);
-
-            _tickerDictionary = LoadTickers();
+                _markets = markets.ToDictionary(x => x.Name, x => x, StringComparer.OrdinalIgnoreCase);
+                _tickerDictionary = LoadTickers();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to preload market metadata. Starting with empty caches.");
+                _markets = new Dictionary<string, MarketInfo>(StringComparer.OrdinalIgnoreCase);
+                _tickerDictionary = new ConcurrentDictionary<string, TickerDIC>(StringComparer.OrdinalIgnoreCase);
+            }
 
         }
 
@@ -166,8 +165,14 @@ namespace DataProvider.Services
         public void RefreshTickers()
 
         {
-
-            _tickerDictionary = LoadTickers();
+            try
+            {
+                _tickerDictionary = LoadTickers();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to refresh ticker cache. Keeping previous cache.");
+            }
 
         }
 

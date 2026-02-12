@@ -18,7 +18,11 @@ namespace DataProvider
         [STAThread]
         public static void Main(string[] args)
         {
-            var builder = WebApplication.CreateBuilder(args);
+            var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+            {
+                Args = args,
+                ContentRootPath = AppContext.BaseDirectory
+            });
             var connectionString = builder.Configuration.GetConnectionString("Stock") ?? throw new InvalidOperationException("Connection string 'Stock' not found.");
             // Add services to the container.
             builder.Services.AddControllers();
