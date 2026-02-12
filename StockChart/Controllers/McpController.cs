@@ -35,7 +35,9 @@ public sealed class McpController : ControllerBase
         "Если вопрос требует фактов и чисел, сначала делай tool calls, затем формируй ответ. " +
         "Если tool вернул VALIDATION_ERROR, исправь аргументы и повтори вызов. " +
         "Для marketCode используй числовой код (для акций MOEX обычно 0). " +
-        "Отвечай кратко и по делу на русском языке.";
+        "Отвечай кратко и по делу на русском языке. " +
+        "Если пользователь просит сделать расчет/сводку/таблицу, выполняй это сразу в текущем ответе. " +
+        "Не повторяй уточняющие вопросы по кругу.";
     private static readonly HashSet<string> MarkowitzTickerStopWords = new(StringComparer.Ordinal)
     {
         "MARKOWITZ",
@@ -62,6 +64,9 @@ public sealed class McpController : ControllerBase
         "STOCK",
         "STOCKS"
     };
+    private static readonly Regex ProceedSignalRegex = new(
+        "\\b(да|ок|окей|подтверждаю|подтверждаем|вперед|впер[её]д|делай|сделай|запускай|продолжай)\\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private readonly IConfiguration _configuration;
     private readonly IWebHostEnvironment _environment;
@@ -849,6 +854,7 @@ public sealed class McpController : ControllerBase
         }
 
         var noTextContinuationAttempts = 0;
+        var clarificationLoopAttempts = 0;
 
         for (var iteration = 0; iteration < openAi.MaxToolIterations; iteration++)
         {
@@ -932,6 +938,28 @@ public sealed class McpController : ControllerBase
             if (toolCalls.Count == 0)
             {
                 var answer = ExtractOpenAiContent(assistantMessage, completion.RawResponse);
+                if (!string.IsNullOrWhiteSpace(answer) &&
+                    ShouldBypassClarificationLoop(
+                        message,
+                        answer,
+                        request.History,
+                        clarificationLoopAttempts,
+                        iteration,
+                        openAi.MaxToolIterations))
+                {
+                    clarificationLoopAttempts++;
+                    warnings.Add("OpenAI зациклился на уточнениях. Продолжаю без повторных вопросов.");
+                    openAiMessages.Add(new JsonObject
+                    {
+                        ["role"] = "system",
+                        ["content"] =
+                            "Пользователь уже подтвердил выполнение. " +
+                            "Не задавай больше уточняющих вопросов (формат, подтверждение, перечень полей). " +
+                            "Выполни необходимые tool calls прямо сейчас и верни финальный ответ."
+                    });
+                    continue;
+                }
+
                 if (string.IsNullOrWhiteSpace(answer))
                 {
                     var finishReason = completion.FinishReason?.Trim();
@@ -961,7 +989,8 @@ public sealed class McpController : ControllerBase
                             ["role"] = "system",
                             ["content"] =
                                 "Ты еще не выдал итоговый ответ пользователю. " +
-                                "Если данных недостаточно, сначала вызови нужные tools, затем обязательно дай финальный текст."
+                                "Если данных недостаточно, сначала вызови нужные tools, затем обязательно дай финальный текст. " +
+                                "Не проси подтверждений и не задавай встречных вопросов."
                         });
                         continue;
                     }
@@ -1198,8 +1227,9 @@ public sealed class McpController : ControllerBase
         {
             ["role"] = "system",
             ["content"] =
-                "Больше не вызывай tools. Дай финальный ответ по уже полученным данным. " +
-                "Ответ коротко, в 6-12 строк."
+                "Больше не вызывай tools. Дай финальный ответ по уже полученным данным в этом сообщении. " +
+                "Не задавай встречных вопросов и не проси подтверждений. " +
+                "Если формат явно не указан, для числовых данных используй markdown-таблицу и затем короткий вывод."
         });
 
         var completion = await CallOpenAiChatCompletionAsync(
@@ -1458,6 +1488,90 @@ public sealed class McpController : ControllerBase
         });
 
         return messages;
+    }
+
+    private static bool ShouldBypassClarificationLoop(
+        string userMessage,
+        string assistantAnswer,
+        List<McpChatHistoryItem>? history,
+        int clarificationLoopAttempts,
+        int iteration,
+        int maxIterations)
+    {
+        if (clarificationLoopAttempts >= 2 || iteration + 1 >= maxIterations)
+        {
+            return false;
+        }
+
+        if (!LooksLikeClarificationMessage(assistantAnswer))
+        {
+            return false;
+        }
+
+        if (LooksLikeProceedSignal(userMessage))
+        {
+            return true;
+        }
+
+        if (history == null || history.Count == 0)
+        {
+            return false;
+        }
+
+        var recentAssistantClarifications = history
+            .Where(x => string.Equals(x.Role, "assistant", StringComparison.OrdinalIgnoreCase))
+            .Where(x => !string.IsNullOrWhiteSpace(x.Content))
+            .TakeLast(4)
+            .Count(x => LooksLikeClarificationMessage(x.Content!));
+
+        if (recentAssistantClarifications < 2)
+        {
+            return false;
+        }
+
+        return history
+            .Where(x => string.Equals(x.Role, "user", StringComparison.OrdinalIgnoreCase))
+            .Where(x => !string.IsNullOrWhiteSpace(x.Content))
+            .TakeLast(3)
+            .Any(x => LooksLikeProceedSignal(x.Content!));
+    }
+
+    private static bool LooksLikeProceedSignal(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        var normalized = text.Trim();
+        if (ProceedSignalRegex.IsMatch(normalized))
+        {
+            return true;
+        }
+
+        var lower = normalized.ToLowerInvariant();
+        return lower.Contains("без лишних вопросов", StringComparison.Ordinal) ||
+               lower.Contains("как знаешь", StringComparison.Ordinal) ||
+               lower.Contains("таблица прямо в сообщ", StringComparison.Ordinal);
+    }
+
+    private static bool LooksLikeClarificationMessage(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        var lower = text.ToLowerInvariant();
+        var hits = 0;
+        if (lower.Contains("подтверд", StringComparison.Ordinal)) hits++;
+        if (lower.Contains("уточн", StringComparison.Ordinal)) hits++;
+        if (lower.Contains("укажите", StringComparison.Ordinal)) hits++;
+        if (lower.Contains("какие тикер", StringComparison.Ordinal)) hits++;
+        if (lower.Contains("формат вывода", StringComparison.Ordinal)) hits++;
+        if (lower.Contains("после подтверждения", StringComparison.Ordinal)) hits++;
+
+        return hits >= 2 || (hits >= 1 && lower.Contains("?", StringComparison.Ordinal));
     }
 
     private static JsonObject CreateOpenAiToolMessage(string toolCallId, JsonNode payload)
