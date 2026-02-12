@@ -361,6 +361,18 @@ export class McpConsoleComponent implements OnInit {
     const isError = (source['isError'] ?? source['IsError'] ?? false) as boolean;
     const provider = (source['provider'] ?? source['Provider']) as string | undefined;
     const model = (source['model'] ?? source['Model']) as string | undefined;
+    const providerRunId = (
+      source['providerRunId'] ?? source['ProviderRunId']
+    ) as string | undefined;
+    const providerConversationId = (
+      source['providerConversationId'] ?? source['ProviderConversationId']
+    ) as string | undefined;
+    const orchestratorPhase = (
+      source['orchestratorPhase'] ?? source['OrchestratorPhase']
+    ) as string | undefined;
+    const orchestratorWarnings = (
+      source['orchestratorWarnings'] ?? source['OrchestratorWarnings']
+    ) as string[] | undefined;
     const conversationId = (
       source['conversationId'] ?? source['ConversationId']
     ) as string | undefined;
@@ -381,6 +393,10 @@ export class McpConsoleComponent implements OnInit {
       isError,
       provider,
       model,
+      providerRunId,
+      providerConversationId,
+      orchestratorPhase,
+      orchestratorWarnings,
       conversationId,
       conversationTitle,
       answer,
@@ -490,6 +506,9 @@ export class McpConsoleComponent implements OnInit {
       text: String(source['text'] ?? source['Text'] ?? ''),
       provider: (source['provider'] ?? source['Provider']) as string | undefined,
       model: (source['model'] ?? source['Model']) as string | undefined,
+      providerMessageId: (source['providerMessageId'] ?? source['ProviderMessageId']) as
+        | string
+        | undefined,
       isError: Boolean(source['isError'] ?? source['IsError'] ?? false),
       data: source['data'] ?? source['Data'],
       suggestions: (source['suggestions'] ?? source['Suggestions']) as string[] | undefined,

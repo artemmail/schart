@@ -289,6 +289,10 @@
         <mat-icon>stacked_line_chart</mat-icon>
         Опционы
       </button>
+      <button mat-menu-item (click)="toggleTheme()">
+        <mat-icon>{{ isDarkTheme ? 'light_mode' : 'dark_mode' }}</mat-icon>
+        {{ themeToggleLabel }}
+      </button>
       <button mat-menu-item [matMenuTriggerFor]="addMenu">
         <mat-icon>menu</mat-icon> Служебное
       </button>

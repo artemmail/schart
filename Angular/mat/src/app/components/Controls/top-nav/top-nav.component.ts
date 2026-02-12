@@ -12,6 +12,7 @@ import { OpenSupportDialogDirective } from 'src/app/directives/open-support-dial
 import { MatDialog } from '@angular/material/dialog';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { YandexAdvComponent } from 'src/app/components/ads/yandex-adv/yandex-adv.component';
+import { MaterialThemeService } from 'src/app/services/theme/material-theme.service';
 import {
   FootprintFavorite,
   FootprintFavoritePayload,
@@ -70,6 +71,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
   isDrawerOpened = true;
   isAdmin: boolean = false; // Добавлено свойство для проверки администратора
   favorites: FootprintFavorite[] = [];
+  isDarkTheme = false;
 
   private destroy$ = new Subject<void>();
 
@@ -81,13 +83,15 @@ export class TopNavComponent implements OnInit, OnDestroy {
     private activatedRoute: ActivatedRoute,
     private favoritesService: FootprintFavoritesService,
     private dialog: MatDialog,
-    private dialogService: DialogService
+    private dialogService: DialogService,
+    private materialThemeService: MaterialThemeService
   ) {
     this.setupRouterEvents();
   }
 
   ngOnInit(): void {
     this.initializeAuthState();
+    this.syncThemeState();
     this.subscribeToAuthStateChanges();
     this.favoritesService.setUserKey(this.user?.Id);
     this.favoritesService.favorites$
@@ -382,5 +386,32 @@ export class TopNavComponent implements OnInit, OnDestroy {
     }
 
     return `Избранное ${this.favorites.length + 1}`;
+  }
+
+  toggleTheme(): void {
+    const nextPreset = this.isDarkTheme ? 'Light' : 'Dark';
+    this.materialThemeService.applyPreset(nextPreset);
+    this.isDarkTheme = nextPreset === 'Dark';
+  }
+
+  get themeToggleLabel(): string {
+    return this.isDarkTheme ? 'Светлая тема' : 'Тёмная тема';
+  }
+
+  private syncThemeState(): void {
+    const storedPreset = this.materialThemeService.getStoredPreset();
+    if (storedPreset) {
+      this.isDarkTheme = storedPreset === 'Dark';
+      return;
+    }
+
+    if (typeof document === 'undefined') {
+      this.isDarkTheme = false;
+      return;
+    }
+
+    this.isDarkTheme =
+      document.documentElement.classList.contains('mat-dark-theme') ||
+      document.body.classList.contains('mat-dark-theme');
   }
 }

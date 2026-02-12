@@ -47,6 +47,9 @@ export interface McpProviderResponse {
     enabled?: boolean;
     model?: string;
     baseUrl?: string;
+    apiMode?: string;
+    useConversationsApi?: boolean;
+    reasoningEffort?: string;
     hasApiKey?: boolean;
     apiKeyEnvVar?: string;
   };
@@ -61,6 +64,10 @@ export interface McpChatResponse {
   isError: boolean;
   provider?: string;
   model?: string;
+  providerRunId?: string;
+  providerConversationId?: string;
+  orchestratorPhase?: string;
+  orchestratorWarnings?: string[];
   conversationId?: string;
   conversationTitle?: string;
   answer: string;
@@ -89,6 +96,7 @@ export interface McpConversationMessageView {
   text: string;
   provider?: string;
   model?: string;
+  providerMessageId?: string;
   isError: boolean;
   data?: unknown;
   suggestions?: string[];
@@ -102,6 +110,9 @@ export interface McpConversationDetails {
   lastMessageAt?: string;
   createdAt: string;
   updatedAt: string;
+  providerApiMode?: string;
+  providerConversationId?: string;
+  providerLastResponseId?: string;
   messages: McpConversationMessageView[];
 }
 
