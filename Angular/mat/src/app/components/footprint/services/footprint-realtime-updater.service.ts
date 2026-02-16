@@ -16,6 +16,10 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
   private canvasElement?: ElementRef;
   private params?: FootPrintParameters;
   private options: FootprintInitOptions = { minimode: false, deltamode: false };
+  private isDestroyed = false;
+  private operationQueue: Promise<void> = Promise.resolve();
+  private hiddenTeardownTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly hiddenTeardownDelayMs = 10000;
 
   private realtimeSubscriptions = new Subscription();
   private activeSubscriptionKey: string | null = null;
@@ -47,13 +51,22 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
   ): Promise<void> {
     this.params = params;
     this.options = options;
-    await this.teardownRealtime();
-    await this.subscribeToRealtime(params);
+    await this.runSerialized(async () => {
+      if (this.isDestroyed) {
+        return;
+      }
+
+      await this.syncRealtimeSubscription(params);
+    });
   }
 
   destroy() {
     this.teardownVisibility();
-    void this.teardownRealtime();
+    this.isDestroyed = true;
+    this.clearHiddenTeardownTimer();
+    void this.runSerialized(async () => {
+      await this.teardownRealtime();
+    });
     this.params = undefined;
     this.options = { minimode: false, deltamode: false };
   }
@@ -65,11 +78,15 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
           if (entry.isIntersecting) {
             if (!this.isVisible) {
               this.isVisible = true;
-              void this.handleComponentVisible();
+              void this.runSerialized(async () => {
+                await this.handleComponentVisible();
+              });
             }
           } else if (this.isVisible) {
             this.isVisible = false;
-            void this.handleComponentHidden();
+            void this.runSerialized(async () => {
+              await this.handleComponentHidden();
+            });
           }
         });
       },
@@ -85,13 +102,14 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
   }
 
   private async handleComponentVisible() {
+    this.clearHiddenTeardownTimer();
     if (this.params) {
-      await this.subscribeToRealtime(this.params);
+      await this.syncRealtimeSubscription(this.params);
     }
   }
 
   private async handleComponentHidden() {
-    await this.teardownRealtime();
+    this.scheduleHiddenTeardown();
   }
 
   private shouldSubscribe(params: FootPrintParameters): boolean {
@@ -173,6 +191,7 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
 
     if (
       this.activeSubscriptionParams &&
+      this.activeSubscriptionKey &&
       this.isSameSubscription(params, this.activeSubscriptionParams)
     ) {
       return;
@@ -195,26 +214,29 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
   }
 
   private teardownVisibility() {
+    this.clearHiddenTeardownTimer();
     if (this.visibilityObserver && this.canvasElement?.nativeElement) {
       this.visibilityObserver.unobserve(this.canvasElement.nativeElement);
       this.visibilityObserver.disconnect();
     }
     this.visibilityObserver = undefined;
     this.canvasElement = undefined;
+    this.isVisible = false;
   }
 
   private async teardownRealtime() {
     this.realtimeSubscriptions.unsubscribe();
     this.realtimeSubscriptions = new Subscription();
+    const subscriptionKey = this.activeSubscriptionKey;
+    this.activeSubscriptionKey = null;
+    this.activeSubscriptionParams = null;
     try {
-      if (this.activeSubscriptionKey) {
-        await this.signalRService.unsubscr(this.activeSubscriptionKey);
+      if (subscriptionKey) {
+        await this.signalRService.unsubscr(subscriptionKey);
       }
     } catch (err) {
       console.error('Ошибка при отписке или остановке SignalRService', err);
     }
-    this.activeSubscriptionKey = null;
-    this.activeSubscriptionParams = null;
   }
 
   private registerRealtimeHandlers(params: FootPrintParameters) {
@@ -262,6 +284,54 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
       current.period === previous.period &&
       current.priceStep === previous.priceStep
     );
+  }
+
+  private scheduleHiddenTeardown(): void {
+    this.clearHiddenTeardownTimer();
+    this.hiddenTeardownTimer = setTimeout(() => {
+      this.hiddenTeardownTimer = null;
+      void this.runSerialized(async () => {
+        if (this.isDestroyed || this.isVisible) {
+          return;
+        }
+
+        await this.teardownRealtime();
+      });
+    }, this.hiddenTeardownDelayMs);
+  }
+
+  private clearHiddenTeardownTimer(): void {
+    if (this.hiddenTeardownTimer !== null) {
+      clearTimeout(this.hiddenTeardownTimer);
+      this.hiddenTeardownTimer = null;
+    }
+  }
+
+  private async syncRealtimeSubscription(params: FootPrintParameters): Promise<void> {
+    const canSubscribe = this.shouldSubscribe(params) && !!params.ticker;
+    if (!canSubscribe) {
+      await this.teardownRealtime();
+      return;
+    }
+
+    if (
+      this.activeSubscriptionParams &&
+      this.activeSubscriptionKey &&
+      this.isSameSubscription(params, this.activeSubscriptionParams)
+    ) {
+      return;
+    }
+
+    await this.teardownRealtime();
+    await this.subscribeToRealtime(params);
+  }
+
+  private runSerialized(task: () => Promise<void>): Promise<void> {
+    const nextTask = this.operationQueue.then(task, task);
+    this.operationQueue = nextTask.catch((err) => {
+      console.error('Footprint realtime operation failed', err);
+    });
+    return nextTask;
   }
 }
 
