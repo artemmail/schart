@@ -20,6 +20,11 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
   private operationQueue: Promise<void> = Promise.resolve();
   private hiddenTeardownTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly hiddenTeardownDelayMs = 10000;
+  private consecutiveMergeFailures = 0;
+  private recoveryReloadInProgress = false;
+  private lastRecoveryReloadAt = 0;
+  private readonly mergeFailureThreshold = 3;
+  private readonly recoveryReloadMinIntervalMs = 30000;
 
   private realtimeSubscriptions = new Subscription();
   private activeSubscriptionKey: string | null = null;
@@ -56,7 +61,9 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
         return;
       }
 
-      await this.syncRealtimeSubscription(params);
+      this.clearHiddenTeardownTimer();
+      await this.teardownRealtime();
+      await this.subscribeToRealtime(params);
     });
   }
 
@@ -273,6 +280,23 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     if (update) {
       this.updatesSubject.next(update);
     }
+
+    if (type === 'ladder') {
+      return;
+    }
+
+    if (update?.merged === true) {
+      this.consecutiveMergeFailures = 0;
+      return;
+    }
+
+    if (update?.merged === false) {
+      this.consecutiveMergeFailures += 1;
+      if (this.consecutiveMergeFailures >= this.mergeFailureThreshold) {
+        this.consecutiveMergeFailures = 0;
+        this.scheduleRecoveryReload(`${type}_merge_failed`);
+      }
+    }
   }
 
   private isSameSubscription(
@@ -332,6 +356,42 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
       console.error('Footprint realtime operation failed', err);
     });
     return nextTask;
+  }
+
+  private scheduleRecoveryReload(reason: string): void {
+    if (this.isDestroyed || this.recoveryReloadInProgress || !this.params) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - this.lastRecoveryReloadAt < this.recoveryReloadMinIntervalMs) {
+      return;
+    }
+
+    this.recoveryReloadInProgress = true;
+    this.lastRecoveryReloadAt = now;
+    const snapshot = { ...this.params };
+
+    void this.runSerialized(async () => {
+      if (this.isDestroyed) {
+        return;
+      }
+
+      console.warn(
+        `Realtime merge stalled (${reason}). Reloading footprint range and re-subscribing.`
+      );
+
+      const loaded = await this.dataLoader.reload(snapshot);
+      if (!loaded) {
+        return;
+      }
+
+      this.params = snapshot;
+      await this.teardownRealtime();
+      await this.subscribeToRealtime(snapshot);
+    }).finally(() => {
+      this.recoveryReloadInProgress = false;
+    });
   }
 }
 
