@@ -593,7 +593,12 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
 
     const visibleMin = Math.min(top, bottom);
     const visibleMax = Math.max(top, bottom);
-    const delta = (local.maxPrice - local.minPrice) / 10;
+    const scale =
+      Number.isFinite(this.data.priceScale) && this.data.priceScale > 0
+        ? this.data.priceScale
+        : 1e-6;
+    const localRange = local.maxPrice - local.minPrice;
+    const delta = Math.max(Math.abs(localRange) / 10, scale);
     const paddedMin = local.minPrice - delta;
     const paddedMax = local.maxPrice + delta;
 

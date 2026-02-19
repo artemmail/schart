@@ -47,6 +47,65 @@ interface LayoutOptions {
 export class FootprintLayoutService {
   constructor(private colorsService: ColorsService) {}
 
+  private clampIndex(value: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  private getVisibleRange(
+    matrix: Matrix,
+    view: Rectangle,
+    data: ClusterData
+  ): { from: number; to: number } | null {
+    const length = data.clusterData.length;
+    if (length <= 0 || view.w <= 0) {
+      return null;
+    }
+
+    let leftX = Number.NaN;
+    let rightX = Number.NaN;
+    try {
+      const inverse = matrix.inverse();
+      leftX = inverse.applyToPoint(view.x, 0).x;
+      rightX = inverse.applyToPoint(view.x + view.w, 0).x;
+    } catch {
+      return null;
+    }
+
+    if (!Number.isFinite(leftX) || !Number.isFinite(rightX)) {
+      return null;
+    }
+
+    const minX = Math.min(leftX, rightX);
+    const maxX = Math.max(leftX, rightX);
+    const from = this.clampIndex(Math.floor(minX) - 1, 0, length - 1);
+    const to = this.clampIndex(Math.ceil(maxX) + 1, 0, length - 1);
+
+    return { from, to };
+  }
+
+  private getPaddedPriceRange(
+    maxPrice: number,
+    minPrice: number,
+    scale: number
+  ): { y1: number; y2: number } | null {
+    if (!Number.isFinite(maxPrice) || !Number.isFinite(minPrice)) {
+      return null;
+    }
+
+    const hi = Math.max(maxPrice, minPrice);
+    const lo = Math.min(maxPrice, minPrice);
+    const normalizedScale = Number.isFinite(scale) && scale > 0 ? scale : 1e-6;
+    const range = hi - lo;
+    const pad = Number.isFinite(range)
+      ? Math.max(Math.abs(range) / 10, normalizedScale)
+      : normalizedScale;
+
+    return {
+      y1: hi + pad,
+      y2: lo - pad,
+    };
+  }
+
   calculateLayout(options: LayoutOptions): FootprintLayoutDto {
     const { canvasWidth, canvasHeight, deltaVolumes, minimode, settings, data } = options;
     let { topLinesCount } = options;
@@ -313,10 +372,9 @@ export class FootprintLayoutService {
     const x1 = matrix.applyToPoint(0, 0).x;
     const x2 = matrix.applyToPoint(data.clusterData.length, 0).x;
     const scale = Number.isFinite(data.priceScale) && data.priceScale > 0 ? data.priceScale : 1e-6;
-    const priceRange = data.maxPrice - data.minPrice;
-    const dp = Math.max(Math.abs(priceRange) / 10, scale);
-    const y1 = matrix.applyToPoint(0, data.maxPrice + dp).y;
-    const y2 = matrix.applyToPoint(0, data.minPrice - dp).y;
+    const globalRange = this.getPaddedPriceRange(data.maxPrice, data.minPrice, scale);
+    const y1 = globalRange ? matrix.applyToPoint(0, globalRange.y1).y : Number.NaN;
+    const y2 = globalRange ? matrix.applyToPoint(0, globalRange.y2).y : Number.NaN;
     let deltaX = 0;
     let deltaY = 0;
 
@@ -330,34 +388,32 @@ export class FootprintLayoutService {
       if (x2 < view.x + view.w) deltaX = view.x + view.w - x2;
     }
 
-    if (y2 - y1 < view.h)
+    if (globalRange && y2 - y1 < view.h)
       matrix = matrix.reassignY(
-        { y1: data.maxPrice + dp, y2: data.minPrice - dp },
+        { y1: globalRange.y1, y2: globalRange.y2 },
         { y1: view.y, y2: view.y + view.h }
       );
-    else {
+    else if (globalRange) {
       if (y1 > view.y) deltaY = view.y - y1;
       if (y2 < view.y + view.h) deltaY = view.y + view.h - y2;
     }
 
     if (deltaX !== 0 || deltaY !== 0) matrix = matrix.getTranslate(deltaX, deltaY);
 
-    if (settings.ShrinkY) {
-      if (
-        data.clusterData.length > 0 &&
-        (!data.local ||
-          !Number.isFinite(data.local.maxPrice) ||
-          !Number.isFinite(data.local.minPrice))
-      ) {
+    if (settings.ShrinkY && data.clusterData.length > 0) {
+      const visible = this.getVisibleRange(matrix, view, data);
+      if (visible) {
+        data.maxFromPeriod?.(visible.from, visible.to);
+      } else {
         data.maxFromPeriod?.(0, data.clusterData.length - 1);
       }
 
       const local = data.getRenderStats(true);
-      if (Number.isFinite(local.maxPrice) && Number.isFinite(local.minPrice)) {
-        const localRange = local.maxPrice - local.minPrice;
-        const localDelta = Math.max(Math.abs(localRange) / 10, scale);
+      const localRange = this.getPaddedPriceRange(local.maxPrice, local.minPrice, scale);
+      const targetRange = localRange ?? globalRange;
+      if (targetRange) {
         matrix = matrix.reassignY(
-          { y1: local.maxPrice + localDelta, y2: local.minPrice - localDelta },
+          { y1: targetRange.y1, y2: targetRange.y2 },
           { y1: view.y, y2: view.y + view.h }
         );
       }
