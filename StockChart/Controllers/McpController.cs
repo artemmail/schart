@@ -34,6 +34,10 @@ public sealed class McpController : ControllerBase
     private const int OpenAiToolPayloadObjectLimit = 40;
     private const int OpenAiToolPayloadStringLimit = 600;
     private const int OpenAiToolPayloadDepthLimit = 6;
+    private const string ChartBlockStrictJsonInstruction =
+        "Для визуализаций используй markdown chart-блоки `bar`, `pie`, `candlestick` (допустим также `chart` с полем `type`). " +
+        "Содержимое chart-блока должно быть только валидным JSON-объектом UTF-8: не используй YAML-стиль `key: value` и не пиши тип отдельной строкой. " +
+        "Для `candlestick` не добавляй внешние URL и указывай `mode` = `candles`.";
     private const string DefaultOpenAiSystemPrompt =
         "Ты ассистент MCP-консоли StockChart. Используй доступные tools для получения данных. " +
         "Если вопрос требует фактов и чисел, сначала делай tool calls, затем формируй ответ. " +
@@ -41,8 +45,7 @@ public sealed class McpController : ControllerBase
         "Для marketCode используй числовой код (для акций MOEX обычно 0). " +
         "Отвечай кратко и по делу на русском языке. " +
         "Если пользователь просит сделать расчет/сводку/таблицу, выполняй это сразу в текущем ответе. " +
-        "Если нужна визуализация сравнения/структуры, добавляй markdown chart-блоки `bar`/`pie`. " +
-        "Если пользователь просит свечной график, добавляй markdown chart-блок `candlestick` с полями ticker, period, rperiod, startDate/endDate и mode='candles'; не добавляй внешние URL. " +
+        ChartBlockStrictJsonInstruction + " " +
         "Не повторяй уточняющие вопросы по кругу.";
     private static readonly HashSet<string> MarkowitzTickerStopWords = new(StringComparer.Ordinal)
     {
@@ -1550,7 +1553,7 @@ public sealed class McpController : ControllerBase
                 "Больше не вызывай tools. Дай финальный ответ по уже полученным данным в этом сообщении. " +
                 "Не задавай встречных вопросов и не проси подтверждений. " +
                 "Если формат явно не указан, для числовых данных используй markdown-таблицу и затем короткий вывод. " +
-                "Если уместна визуализация, используй markdown chart-блоки `bar`/`pie`; для свечного графика — `candlestick` с внутренним маршрутом сервиса (без внешних URL)."
+                ChartBlockStrictJsonInstruction
         });
 
         var completion = await CallOpenAiChatCompletionAsync(
@@ -2149,7 +2152,7 @@ public sealed class McpController : ControllerBase
             "Больше не вызывай tools. Дай финальный ответ по уже полученным данным в этом сообщении. " +
             "Не задавай встречных вопросов и не проси подтверждений. " +
             "Если формат явно не указан, для числовых данных используй markdown-таблицу и затем короткий вывод. " +
-            "Если уместна визуализация, используй markdown chart-блоки `bar`/`pie`; для свечного графика — `candlestick` с внутренним маршрутом сервиса (без внешних URL).");
+            ChartBlockStrictJsonInstruction);
         var currentPreviousResponseId = previousResponseId;
         var currentConversationId = conversationId;
         const int maxFinalizeAttempts = 3;
@@ -4538,7 +4541,7 @@ public sealed class McpController : ControllerBase
             Answer =
                 "Команды: `/tools`, `/tool <name> <json>`, `/rpc <method> <json>`. " +
                 "Также можно писать запросы вроде `дивиденды SBER`, `покажи рынки`, `барометр SBER GAZP`, `свечной график SBER`. " +
-                "Для визуализаций поддерживаются markdown chart-блоки `bar`, `pie`, `candlestick`.",
+                "Для визуализаций поддерживаются markdown chart-блоки `bar`, `pie`, `candlestick` (внутри блока только JSON-объект).",
             Suggestions =
             [
                 "/tools",

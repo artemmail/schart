@@ -210,28 +210,17 @@ export class MarkdownRendererService {
     body: string,
     rawBlock: string
   ): McpParsedBlock {
-    let payload: unknown;
-    try {
-      payload = JSON.parse(body);
-    } catch {
+    const payloadResult = this.parseChartPayload(body);
+    if (!payloadResult.ok) {
       return {
         type: 'chart_error',
-        reason: 'Невалидный JSON в chart-блоке.',
+        reason: payloadResult.reason ?? 'Невалидный JSON в chart-блоке.',
         rawBlock,
         language,
       };
     }
 
-    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-      return {
-        type: 'chart_error',
-        reason: 'Chart-блок должен содержать JSON-объект.',
-        rawBlock,
-        language,
-      };
-    }
-
-    const source = payload as Record<string, unknown>;
+    const source = payloadResult.value as Record<string, unknown>;
     const typeResult = this.resolveChartType(language, source);
     if (!typeResult.ok) {
       return {
@@ -294,6 +283,123 @@ export class MarkdownRendererService {
       spec: parsedCandlestick.value as McpCandlestickChartSpec,
       rawBlock,
     };
+  }
+
+  private parseChartPayload(body: string): ParseResult {
+    const trimmed = (body ?? '').trim();
+    if (!trimmed) {
+      return {
+        ok: false,
+        reason: 'Chart-блок пустой.',
+      };
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return {
+          ok: false,
+          reason: 'Chart-блок должен содержать JSON-объект.',
+        };
+      }
+
+      return {
+        ok: true,
+        value: parsed as Record<string, unknown>,
+      };
+    } catch {
+      const looseParsed = this.tryParseLooseChartPayload(trimmed);
+      if (!looseParsed) {
+        return {
+          ok: false,
+          reason: 'Невалидный JSON в chart-блоке.',
+        };
+      }
+
+      return {
+        ok: true,
+        value: looseParsed,
+      };
+    }
+  }
+
+  private tryParseLooseChartPayload(body: string): Record<string, unknown> | null {
+    const lines = body
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    if (lines.length < 1) {
+      return null;
+    }
+
+    const payload: Record<string, unknown> = {};
+    let index = 0;
+
+    const firstLine = lines[0];
+    if (!firstLine.includes(':')) {
+      const normalizedType = this.normalizeChartType(firstLine);
+      if (!normalizedType) {
+        return null;
+      }
+      payload['type'] = normalizedType;
+      index = 1;
+    }
+
+    for (; index < lines.length; index += 1) {
+      const line = lines[index];
+      const separatorIndex = line.indexOf(':');
+      if (separatorIndex <= 0) {
+        return null;
+      }
+
+      const key = line.slice(0, separatorIndex).trim();
+      if (!key) {
+        return null;
+      }
+
+      const rawValue = line.slice(separatorIndex + 1).trim();
+      payload[key] = this.parseLooseChartValue(rawValue);
+    }
+
+    return Object.keys(payload).length > 0 ? payload : null;
+  }
+
+  private parseLooseChartValue(rawValue: string): unknown {
+    if (!rawValue) {
+      return '';
+    }
+
+    if (rawValue.startsWith('{') || rawValue.startsWith('[') || rawValue.startsWith('"')) {
+      try {
+        return JSON.parse(rawValue);
+      } catch {
+        return rawValue;
+      }
+    }
+
+    if (rawValue.startsWith("'") && rawValue.endsWith("'") && rawValue.length >= 2) {
+      return rawValue.slice(1, -1);
+    }
+
+    const lowered = rawValue.toLowerCase();
+    if (lowered === 'true') {
+      return true;
+    }
+    if (lowered === 'false') {
+      return false;
+    }
+    if (lowered === 'null') {
+      return null;
+    }
+
+    if (/^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$/.test(rawValue)) {
+      const numeric = Number(rawValue);
+      if (Number.isFinite(numeric)) {
+        return numeric;
+      }
+    }
+
+    return rawValue;
   }
 
   private resolveChartType(
