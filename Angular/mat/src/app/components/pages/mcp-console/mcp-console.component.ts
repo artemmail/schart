@@ -23,6 +23,8 @@ import {
 import { DialogService } from 'src/app/service/DialogService.service';
 import { McpChartRendererService } from 'src/app/service/mcp-chart-renderer.service';
 import { McpChartLinkBuilderService } from 'src/app/service/mcp-chart-link-builder.service';
+import { FootprintWidgetComponent } from 'src/app/components/footprint/components/footprint-widget/footprint-widget.component';
+import { FootPrintParameters } from 'src/app/models/Params';
 
 type ChatRole = 'user' | 'assistant' | 'system' | 'error';
 
@@ -48,6 +50,7 @@ interface ChatRenderBlockChartLink {
   label: string;
   url: string;
   ticker: string;
+  params: FootPrintParameters;
 }
 
 interface ChatRenderBlockError {
@@ -111,7 +114,7 @@ interface OpenAiTraceStep {
 @Component({
   standalone: true,
   selector: 'app-mcp-console',
-  imports: [MaterialModule],
+  imports: [MaterialModule, FootprintWidgetComponent],
   templateUrl: './mcp-console.component.html',
   styleUrls: ['./mcp-console.component.css'],
 })
@@ -570,6 +573,7 @@ export class McpConsoleComponent implements OnInit {
 
     if (this.isChartLinkParsedBlock(parsed)) {
       try {
+        const params = this.buildCandlestickMiniParams(parsed);
         return {
           kind: 'chart_link',
           chartType: 'candlestick',
@@ -578,6 +582,7 @@ export class McpConsoleComponent implements OnInit {
           label: parsed.spec.linkLabel || 'Открыть свечной график',
           url: this.chartLinkBuilder.buildCandlestickUrl(parsed.spec),
           ticker: parsed.spec.ticker,
+          params,
         };
       } catch {
         return {
@@ -645,6 +650,38 @@ export class McpConsoleComponent implements OnInit {
         node.scrollTop = node.scrollHeight;
       }
     }, 0);
+  }
+
+  private buildCandlestickMiniParams(parsed: McpChartLinkParsedBlock): FootPrintParameters {
+    const startDate = this.tryParseDate(parsed.spec.startDate);
+    const endDate = this.tryParseDate(parsed.spec.endDate);
+    const period =
+      Number.isFinite(parsed.spec.period) && parsed.spec.period > 0
+        ? Math.trunc(parsed.spec.period)
+        : 1440;
+
+    return {
+      ticker: parsed.spec.ticker,
+      period,
+      rperiod: parsed.spec.rperiod || 'day',
+      priceStep: 1,
+      startDate: startDate ?? undefined,
+      endDate: endDate ?? undefined,
+      candlesOnly: true,
+    };
+  }
+
+  private tryParseDate(value?: string): Date | null {
+    if (!value || typeof value !== 'string') {
+      return null;
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
+
+    return date;
   }
 
   private normalizeConversationSummary(raw: unknown): ConversationItem {

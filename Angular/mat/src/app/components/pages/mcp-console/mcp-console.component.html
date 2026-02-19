@@ -94,6 +94,12 @@
                     <div class="message-chart-title" *ngIf="block.title">{{ block.title }}</div>
                     <div class="message-chart-subtitle" *ngIf="block.subtitle">{{ block.subtitle }}</div>
                   </div>
+                  <div class="message-candlestick-mini">
+                    <app-footprint-widget
+                      [params]="block.params"
+                      [minimode]="true"
+                    ></app-footprint-widget>
+                  </div>
                   <a [href]="block.url" target="_blank" rel="noopener">
                     {{ block.label }}
                   </a>

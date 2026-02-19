@@ -409,6 +409,20 @@
   padding: 10px;
 }
 
+.message-candlestick-mini {
+  height: 312px;
+  width: 100%;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+}
+
+.message-candlestick-mini app-footprint-widget {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: block;
+}
+
 .message-chart-link a {
   color: var(--mcp-chart-link-text);
   font-size: 13px;
@@ -707,6 +721,10 @@
 
   .message-chart-canvas {
     height: 236px;
+  }
+
+  .message-candlestick-mini {
+    height: 260px;
   }
 
   .chat-composer {

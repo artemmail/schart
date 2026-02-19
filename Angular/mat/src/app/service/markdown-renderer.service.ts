@@ -343,6 +343,27 @@ export class MarkdownRendererService {
       }
       payload['type'] = normalizedType;
       index = 1;
+
+      // Support legacy style:
+      // ```chart
+      // candlestick
+      // { ...json... }
+      // ```
+      if (index < lines.length) {
+        const restRaw = lines.slice(index).join('\n');
+        try {
+          const parsedRest = JSON.parse(restRaw);
+          if (parsedRest && typeof parsedRest === 'object' && !Array.isArray(parsedRest)) {
+            const merged = parsedRest as Record<string, unknown>;
+            if (merged['type'] === undefined) {
+              merged['type'] = normalizedType;
+            }
+            return merged;
+          }
+        } catch {
+          // Not a full JSON object after type line, continue with key:value parsing below.
+        }
+      }
     }
 
     for (; index < lines.length; index += 1) {
