@@ -1,6 +1,7 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { DomSanitizer, SafeHtml, Title } from '@angular/platform-browser';
+import { RouterModule } from '@angular/router';
 import { EChartsOption } from 'echarts';
 import { MaterialModule } from 'src/app/material.module';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -14,6 +15,7 @@ import {
 } from 'src/app/service/mcp-console.service';
 import {
   MarkdownRendererService,
+  McpCandlestickChartSpec,
   McpChartErrorParsedBlock,
   McpChartLinkParsedBlock,
   McpChartParsedBlock,
@@ -22,7 +24,6 @@ import {
 } from 'src/app/service/markdown-renderer.service';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { McpChartRendererService } from 'src/app/service/mcp-chart-renderer.service';
-import { McpChartLinkBuilderService } from 'src/app/service/mcp-chart-link-builder.service';
 import { FootprintWidgetComponent } from 'src/app/components/footprint/components/footprint-widget/footprint-widget.component';
 import { FootPrintParameters } from 'src/app/models/Params';
 
@@ -48,7 +49,7 @@ interface ChatRenderBlockChartLink {
   title?: string;
   subtitle?: string;
   label: string;
-  url: string;
+  queryParams: Record<string, string | number | boolean>;
   ticker: string;
   params: FootPrintParameters;
 }
@@ -114,7 +115,7 @@ interface OpenAiTraceStep {
 @Component({
   standalone: true,
   selector: 'app-mcp-console',
-  imports: [MaterialModule, FootprintWidgetComponent],
+  imports: [MaterialModule, RouterModule, FootprintWidgetComponent],
   templateUrl: './mcp-console.component.html',
   styleUrls: ['./mcp-console.component.css'],
 })
@@ -150,7 +151,6 @@ export class McpConsoleComponent implements OnInit {
     private readonly titleService: Title,
     private readonly markdownRenderer: MarkdownRendererService,
     private readonly chartRenderer: McpChartRendererService,
-    private readonly chartLinkBuilder: McpChartLinkBuilderService,
     private readonly sanitizer: DomSanitizer,
     private readonly snackBar: MatSnackBar,
     private readonly dialogService: DialogService
@@ -580,7 +580,7 @@ export class McpConsoleComponent implements OnInit {
           title: parsed.spec.title,
           subtitle: parsed.spec.subtitle,
           label: parsed.spec.linkLabel || 'Открыть свечной график',
-          url: this.chartLinkBuilder.buildCandlestickUrl(parsed.spec),
+          queryParams: this.buildCandlestickLinkQueryParams(parsed.spec),
           ticker: parsed.spec.ticker,
           params,
         };
@@ -669,6 +669,34 @@ export class McpConsoleComponent implements OnInit {
       endDate: endDate ?? undefined,
       candlesOnly: true,
     };
+  }
+
+  private buildCandlestickLinkQueryParams(
+    spec: McpCandlestickChartSpec
+  ): Record<string, string | number | boolean> {
+    const queryParams: Record<string, string | number | boolean> = {
+      ticker: spec.ticker,
+      period:
+        Number.isFinite(spec.period) && spec.period > 0
+          ? Math.trunc(spec.period)
+          : 1440,
+      mode: 'candles',
+    };
+
+    // "day" is default for Candlestick page and can conflict with user preset synchronization.
+    if (spec.rperiod && spec.rperiod !== 'day') {
+      queryParams['rperiod'] = spec.rperiod;
+    }
+
+    if (spec.startDate) {
+      queryParams['startDate'] = spec.startDate;
+    }
+
+    if (spec.endDate) {
+      queryParams['endDate'] = spec.endDate;
+    }
+
+    return queryParams;
   }
 
   private tryParseDate(value?: string): Date | null {

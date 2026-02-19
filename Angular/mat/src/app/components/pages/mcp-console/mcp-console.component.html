@@ -100,7 +100,12 @@
                       [minimode]="true"
                     ></app-footprint-widget>
                   </div>
-                  <a [href]="block.url" target="_blank" rel="noopener">
+                  <a
+                    [routerLink]="['/CandlestickChart']"
+                    [queryParams]="block.queryParams"
+                    target="_blank"
+                    rel="noopener"
+                  >
                     {{ block.label }}
                   </a>
                 </div>
