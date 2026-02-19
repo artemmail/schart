@@ -38,6 +38,9 @@ public sealed class McpController : ControllerBase
         "Для визуализаций используй markdown chart-блоки `bar`, `pie`, `candlestick` (допустим также `chart` с полем `type`). " +
         "Содержимое chart-блока должно быть только валидным JSON-объектом UTF-8: не используй YAML-стиль `key: value` и не пиши тип отдельной строкой. " +
         "Для `candlestick` не добавляй внешние URL и указывай `mode` = `candles`.";
+    private const string CandlestickNoToolInstruction =
+        "Если пользователь просит свечной график, не запрашивай данные через tools: " +
+        "достаточно вернуть markdown-блок `candlestick` с `ticker`, `period` (таймфрейм), `startDate`, `endDate` и `mode` = `candles`.";
     private const string DefaultOpenAiSystemPrompt =
         "Ты ассистент MCP-консоли StockChart. Используй доступные tools для получения данных. " +
         "Если вопрос требует фактов и чисел, сначала делай tool calls, затем формируй ответ. " +
@@ -45,7 +48,7 @@ public sealed class McpController : ControllerBase
         "Для marketCode используй числовой код (для акций MOEX обычно 0). " +
         "Отвечай кратко и по делу на русском языке. " +
         "Если пользователь просит сделать расчет/сводку/таблицу, выполняй это сразу в текущем ответе. " +
-        ChartBlockStrictJsonInstruction + " " +
+        ChartBlockStrictJsonInstruction + " " + CandlestickNoToolInstruction + " " +
         "Не повторяй уточняющие вопросы по кругу.";
     private static readonly HashSet<string> MarkowitzTickerStopWords = new(StringComparer.Ordinal)
     {
@@ -629,16 +632,18 @@ public sealed class McpController : ControllerBase
             return markowitzResponse;
         }
 
-        var providerResponse = await TryHandleOpenAiChatAsync(request, message, cancellationToken);
-        if (providerResponse != null)
-        {
-            return providerResponse;
-        }
-
+        // Candlestick requests are handled locally without tool calls:
+        // ticker/period/startDate/endDate in markdown block are enough for frontend rendering.
         var candlestickResponse = TryHandleCandlestickRequest(message, lower);
         if (candlestickResponse != null)
         {
             return candlestickResponse;
+        }
+
+        var providerResponse = await TryHandleOpenAiChatAsync(request, message, cancellationToken);
+        if (providerResponse != null)
+        {
+            return providerResponse;
         }
 
         if (ContainsAny(lower, "рынк", "market"))
@@ -1553,7 +1558,7 @@ public sealed class McpController : ControllerBase
                 "Больше не вызывай tools. Дай финальный ответ по уже полученным данным в этом сообщении. " +
                 "Не задавай встречных вопросов и не проси подтверждений. " +
                 "Если формат явно не указан, для числовых данных используй markdown-таблицу и затем короткий вывод. " +
-                ChartBlockStrictJsonInstruction
+                ChartBlockStrictJsonInstruction + " " + CandlestickNoToolInstruction
         });
 
         var completion = await CallOpenAiChatCompletionAsync(
@@ -2152,7 +2157,7 @@ public sealed class McpController : ControllerBase
             "Больше не вызывай tools. Дай финальный ответ по уже полученным данным в этом сообщении. " +
             "Не задавай встречных вопросов и не проси подтверждений. " +
             "Если формат явно не указан, для числовых данных используй markdown-таблицу и затем короткий вывод. " +
-            ChartBlockStrictJsonInstruction);
+            ChartBlockStrictJsonInstruction + " " + CandlestickNoToolInstruction);
         var currentPreviousResponseId = previousResponseId;
         var currentConversationId = conversationId;
         const int maxFinalizeAttempts = 3;
