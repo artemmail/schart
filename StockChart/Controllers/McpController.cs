@@ -41,6 +41,8 @@ public sealed class McpController : ControllerBase
         "Для marketCode используй числовой код (для акций MOEX обычно 0). " +
         "Отвечай кратко и по делу на русском языке. " +
         "Если пользователь просит сделать расчет/сводку/таблицу, выполняй это сразу в текущем ответе. " +
+        "Если нужна визуализация сравнения/структуры, добавляй markdown chart-блоки `bar`/`pie`. " +
+        "Если пользователь просит свечной график, добавляй markdown chart-блок `candlestick` с полями ticker, period, rperiod, startDate/endDate и mode='candles'; не добавляй внешние URL. " +
         "Не повторяй уточняющие вопросы по кругу.";
     private static readonly HashSet<string> MarkowitzTickerStopWords = new(StringComparer.Ordinal)
     {
@@ -630,6 +632,12 @@ public sealed class McpController : ControllerBase
             return providerResponse;
         }
 
+        var candlestickResponse = TryHandleCandlestickRequest(message, lower);
+        if (candlestickResponse != null)
+        {
+            return candlestickResponse;
+        }
+
         if (ContainsAny(lower, "рынк", "market"))
         {
             return await ExecuteToolAsChatAsync(
@@ -705,14 +713,15 @@ public sealed class McpController : ControllerBase
 
         return new McpChatResponse
         {
-            Answer = "Понимаю команды `/help`, `/tools`, `/tool ...`, `/rpc ...` и простые запросы вроде `дивиденды SBER`.",
+            Answer = "Понимаю команды `/help`, `/tools`, `/tool ...`, `/rpc ...` и простые запросы вроде `дивиденды SBER`, `свечной график SBER`.",
             Suggestions =
             [
                 "/help",
                 "/tools",
                 "покажи рынки",
                 "дивиденды SBER",
-                "барометр SBER GAZP"
+                "барометр SBER GAZP",
+                "свечной график SBER"
             ]
         };
     }
@@ -1540,7 +1549,8 @@ public sealed class McpController : ControllerBase
             ["content"] =
                 "Больше не вызывай tools. Дай финальный ответ по уже полученным данным в этом сообщении. " +
                 "Не задавай встречных вопросов и не проси подтверждений. " +
-                "Если формат явно не указан, для числовых данных используй markdown-таблицу и затем короткий вывод."
+                "Если формат явно не указан, для числовых данных используй markdown-таблицу и затем короткий вывод. " +
+                "Если уместна визуализация, используй markdown chart-блоки `bar`/`pie`; для свечного графика — `candlestick` с внутренним маршрутом сервиса (без внешних URL)."
         });
 
         var completion = await CallOpenAiChatCompletionAsync(
@@ -2138,7 +2148,8 @@ public sealed class McpController : ControllerBase
         var currentInput = CreateOpenAiUserMessageInput(
             "Больше не вызывай tools. Дай финальный ответ по уже полученным данным в этом сообщении. " +
             "Не задавай встречных вопросов и не проси подтверждений. " +
-            "Если формат явно не указан, для числовых данных используй markdown-таблицу и затем короткий вывод.");
+            "Если формат явно не указан, для числовых данных используй markdown-таблицу и затем короткий вывод. " +
+            "Если уместна визуализация, используй markdown chart-блоки `bar`/`pie`; для свечного графика — `candlestick` с внутренним маршрутом сервиса (без внешних URL).");
         var currentPreviousResponseId = previousResponseId;
         var currentConversationId = conversationId;
         const int maxFinalizeAttempts = 3;
@@ -3444,6 +3455,13 @@ public sealed class McpController : ControllerBase
                 var item = chart[i];
                 lines.Add($"{i + 1}. {item.Ticker} - {item.Percent.ToString("0.##", CultureInfo.InvariantCulture)}%");
             }
+
+            lines.Add(string.Empty);
+            lines.Add("```pie");
+            lines.Add(BuildMarkowitzPiePayloadJson(
+                chart,
+                $"Структура портфеля Марковица ({startDate:yyyy-MM-dd} - {endDate:yyyy-MM-dd})"));
+            lines.Add("```");
         }
         else
         {
@@ -4519,7 +4537,8 @@ public sealed class McpController : ControllerBase
         {
             Answer =
                 "Команды: `/tools`, `/tool <name> <json>`, `/rpc <method> <json>`. " +
-                "Также можно писать запросы вроде `дивиденды SBER`, `покажи рынки`, `барометр SBER GAZP`.",
+                "Также можно писать запросы вроде `дивиденды SBER`, `покажи рынки`, `барометр SBER GAZP`, `свечной график SBER`. " +
+                "Для визуализаций поддерживаются markdown chart-блоки `bar`, `pie`, `candlestick`.",
             Suggestions =
             [
                 "/tools",
@@ -4527,9 +4546,166 @@ public sealed class McpController : ControllerBase
                 "/tool dividends {\"ticker\":\"SBER\"}",
                 "дивиденды GAZP",
                 "барометр SBER GAZP",
+                "свечной график SBER",
                 "подбери портфель марковица из топ 10 акций по объему за прошлый год"
             ]
         };
+    }
+
+    private static McpChatResponse? TryHandleCandlestickRequest(string message, string lower)
+    {
+        if (!ContainsAny(lower, "свеч", "candlestick", "candle", "кандл"))
+        {
+            return null;
+        }
+
+        var ticker = ExtractTickers(message).FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(ticker))
+        {
+            return new McpChatResponse
+            {
+                IsError = true,
+                Answer = "Укажите тикер для свечного графика. Пример: свечной график SBER",
+                Suggestions =
+                [
+                    "свечной график SBER",
+                    "candlestick chart GAZP"
+                ]
+            };
+        }
+
+        var period = ResolveCandlestickPeriod(lower);
+        var rperiod = ResolveCandlestickRperiod(lower);
+        var (startDate, endDate) = ResolveCandlestickRangeUtc(lower);
+        var block = BuildCandlestickMarkdownBlock(
+            ticker,
+            period,
+            rperiod,
+            startDate,
+            endDate,
+            "candles",
+            $"Открыть свечной график {ticker}");
+
+        return new McpChatResponse
+        {
+            Answer = $"Свечной график для `{ticker}`.\n\n{block}",
+            Suggestions =
+            [
+                $"свечной график {ticker}",
+                $"свечной график {ticker} за прошлый месяц"
+            ]
+        };
+    }
+
+    private static int ResolveCandlestickPeriod(string lower)
+    {
+        var match = Regex.Match(lower ?? string.Empty, @"(?:period|период)\s*(?:=|:)?\s*(\d{1,4})", RegexOptions.IgnoreCase);
+        if (match.Success &&
+            int.TryParse(match.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        {
+            return Math.Clamp(parsed, 0, 1440);
+        }
+
+        return 1;
+    }
+
+    private static string ResolveCandlestickRperiod(string lower)
+    {
+        if (ContainsAny(lower, "week", "недел"))
+        {
+            return "week";
+        }
+
+        if (ContainsAny(lower, "month", "месяц"))
+        {
+            return "month";
+        }
+
+        return "day";
+    }
+
+    private static (DateTime? StartDate, DateTime? EndDate) ResolveCandlestickRangeUtc(string lower)
+    {
+        var now = DateTime.UtcNow;
+        if (ContainsAny(lower, "прошл", "last") && ContainsAny(lower, "год", "year"))
+        {
+            return (now.AddYears(-1), now);
+        }
+
+        if (ContainsAny(lower, "прошл", "last") && ContainsAny(lower, "месяц", "month"))
+        {
+            return (now.AddMonths(-1), now);
+        }
+
+        return (null, null);
+    }
+
+    private static string BuildCandlestickMarkdownBlock(
+        string ticker,
+        int period,
+        string rperiod,
+        DateTime? startDate,
+        DateTime? endDate,
+        string mode,
+        string? linkLabel = null)
+    {
+        var payload = new JsonObject
+        {
+            ["type"] = "candlestick",
+            ["ticker"] = ticker,
+            ["period"] = Math.Clamp(period, 0, 1440),
+            ["rperiod"] = string.IsNullOrWhiteSpace(rperiod) ? "day" : rperiod.Trim().ToLowerInvariant(),
+            ["mode"] = string.IsNullOrWhiteSpace(mode) ? "candles" : mode.Trim().ToLowerInvariant()
+        };
+
+        if (startDate.HasValue)
+        {
+            payload["startDate"] = startDate.Value.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
+        }
+
+        if (endDate.HasValue)
+        {
+            payload["endDate"] = endDate.Value.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
+        }
+
+        if (!string.IsNullOrWhiteSpace(linkLabel))
+        {
+            payload["linkLabel"] = linkLabel.Trim();
+        }
+
+        var json = payload.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
+
+        return $"```candlestick\n{json}\n```";
+    }
+
+    private static string BuildMarkowitzPiePayloadJson(IEnumerable<MarkowitzChartLine> chart, string title)
+    {
+        var data = new JsonArray();
+        foreach (var item in chart)
+        {
+            data.Add(new JsonObject
+            {
+                ["name"] = item.Ticker,
+                ["value"] = decimal.Round(item.Percent, 4)
+            });
+        }
+
+        var payload = new JsonObject
+        {
+            ["type"] = "pie",
+            ["title"] = title,
+            ["unit"] = "%",
+            ["donut"] = true,
+            ["data"] = data
+        };
+
+        return payload.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
     }
 
     private static List<string> ExtractToolNames(JsonNode? callResponse)

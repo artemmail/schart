@@ -85,6 +85,7 @@ Static resource URIs:
 - `stockchart://meta/industries`
 - `stockchart://meta/metrics`
 - `stockchart://docs/tooling`
+- `stockchart://docs/markdown-charts` (spec for markdown `bar|pie|candlestick` blocks)
 
 Resource URI templates:
 

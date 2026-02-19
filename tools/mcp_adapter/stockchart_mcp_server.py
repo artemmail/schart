@@ -1247,6 +1247,12 @@ def _resource_defs() -> List[Dict[str, Any]]:
             "description": "Human-readable summary of available tools/resources.",
             "mimeType": "text/markdown",
         },
+        {
+            "uri": "stockchart://docs/markdown-charts",
+            "name": "Markdown charts spec",
+            "description": "Markdown fenced-block spec for bar/pie/candlestick responses.",
+            "mimeType": "text/markdown",
+        },
     ]
 
 
@@ -1393,6 +1399,67 @@ def _docs_tooling_markdown() -> str:
     return "\n".join(lines)
 
 
+def _docs_markdown_charts_markdown() -> str:
+    lines = [
+        "# StockChart markdown charts spec",
+        "",
+        "Supported fenced blocks:",
+        "- `chart`",
+        "- `bar`",
+        "- `pie`",
+        "- `candlestick`",
+        "- `candle`",
+        "",
+        "## General rules",
+        "- Block content must be a JSON object.",
+        "- For `chart`, field `type` is required: `bar|pie|candlestick`.",
+        "- For typed blocks (`bar|pie|candlestick|candle`), `type` is optional.",
+        "- `candle` is treated as `candlestick`.",
+        "",
+        "## bar",
+        "- Data format: `labels[] + values[]` or `data[]` with `{name,value}`.",
+        "- Max items: 30.",
+        "- Values must be finite numbers.",
+        "",
+        "## pie",
+        "- Data format: `data[]` with `{name,value}`.",
+        "- Max items: 20.",
+        "- Values must be finite and non-negative.",
+        "- Sum of values must be > 0.",
+        "",
+        "## candlestick",
+        "- Required: `ticker`.",
+        "- Optional: `period`, `rperiod`, `startDate`, `endDate`, `mode`, `linkLabel`.",
+        "- `mode` must be `candles` when provided.",
+        "- Host must build an internal service link only: `/CandlestickChart?...`.",
+        "- External URLs from model payload must be ignored.",
+        "",
+        "## Examples",
+        "",
+        "```pie",
+        "{",
+        "  \"title\": \"Структура портфеля\",",
+        "  \"donut\": true,",
+        "  \"data\": [",
+        "    { \"name\": \"SBER\", \"value\": 40.0 },",
+        "    { \"name\": \"GAZP\", \"value\": 22.5 }",
+        "  ]",
+        "}",
+        "```",
+        "",
+        "```candlestick",
+        "{",
+        "  \"ticker\": \"SBER\",",
+        "  \"period\": 1,",
+        "  \"rperiod\": \"day\",",
+        "  \"mode\": \"candles\",",
+        "  \"linkLabel\": \"Открыть свечной график\"",
+        "}",
+        "```",
+    ]
+    return "\n".join(lines)
+
+
 def _read_resource(uri: str) -> Tuple[bool, Any]:
     parsed = urllib.parse.urlparse(uri)
     if parsed.scheme.lower() != "stockchart":
@@ -1424,6 +1491,9 @@ def _read_resource(uri: str) -> Tuple[bool, Any]:
 
     if host == "docs" and segments == ["tooling"]:
         return False, _resource_text_result(uri, _docs_tooling_markdown(), mime_type="text/markdown")
+
+    if host == "docs" and segments == ["markdown-charts"]:
+        return False, _resource_text_result(uri, _docs_markdown_charts_markdown(), mime_type="text/markdown")
 
     if host == "candles":
         if len(segments) != 2:
@@ -2041,7 +2111,7 @@ def _handle_request(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                     "resources": {"subscribe": False, "listChanged": False},
                     "logging": {},
                 },
-                "serverInfo": {"name": "StockChart.MCP", "version": "0.3.0"},
+                "serverInfo": {"name": "StockChart.MCP", "version": "0.4.0"},
                 "instructions": "Expose StockChart economic/fundamental dictionaries + series via tools/* and resources/*, including batch candles.",
             },
         )

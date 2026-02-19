@@ -1,6 +1,7 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { DomSanitizer, SafeHtml, Title } from '@angular/platform-browser';
+import { EChartsOption } from 'echarts';
 import { MaterialModule } from 'src/app/material.module';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
@@ -11,17 +12,63 @@ import {
   McpConversationSummary,
   McpProviderResponse,
 } from 'src/app/service/mcp-console.service';
-import { MarkdownRendererService } from 'src/app/service/markdown-renderer.service';
+import {
+  MarkdownRendererService,
+  McpChartErrorParsedBlock,
+  McpChartLinkParsedBlock,
+  McpChartParsedBlock,
+  McpMarkdownParsedBlock,
+  McpParsedBlock,
+} from 'src/app/service/markdown-renderer.service';
 import { DialogService } from 'src/app/service/DialogService.service';
+import { McpChartRendererService } from 'src/app/service/mcp-chart-renderer.service';
+import { McpChartLinkBuilderService } from 'src/app/service/mcp-chart-link-builder.service';
 
 type ChatRole = 'user' | 'assistant' | 'system' | 'error';
+
+interface ChatRenderBlockMarkdown {
+  kind: 'markdown';
+  renderedHtml: SafeHtml;
+}
+
+interface ChatRenderBlockChart {
+  kind: 'chart';
+  chartType: 'bar' | 'pie';
+  title?: string;
+  subtitle?: string;
+  source?: string;
+  options: EChartsOption;
+}
+
+interface ChatRenderBlockChartLink {
+  kind: 'chart_link';
+  chartType: 'candlestick';
+  title?: string;
+  subtitle?: string;
+  label: string;
+  url: string;
+  ticker: string;
+}
+
+interface ChatRenderBlockError {
+  kind: 'chart_error';
+  reason: string;
+  rawBlock: string;
+  language: string;
+}
+
+type ChatRenderBlock =
+  | ChatRenderBlockMarkdown
+  | ChatRenderBlockChart
+  | ChatRenderBlockChartLink
+  | ChatRenderBlockError;
 
 interface ChatMessage {
   id?: number;
   role: ChatRole;
   timestamp: Date;
   text: string;
-  renderedHtml?: SafeHtml;
+  renderBlocks?: ChatRenderBlock[];
   provider?: string;
   model?: string;
   data?: unknown;
@@ -99,6 +146,8 @@ export class McpConsoleComponent implements OnInit {
     private readonly mcpService: McpConsoleService,
     private readonly titleService: Title,
     private readonly markdownRenderer: MarkdownRendererService,
+    private readonly chartRenderer: McpChartRendererService,
+    private readonly chartLinkBuilder: McpChartLinkBuilderService,
     private readonly sanitizer: DomSanitizer,
     private readonly snackBar: MatSnackBar,
     private readonly dialogService: DialogService
@@ -441,7 +490,7 @@ export class McpConsoleComponent implements OnInit {
       id,
       role,
       text,
-      renderedHtml: role === 'user' ? undefined : this.renderMarkdown(text),
+      renderBlocks: role === 'user' ? undefined : this.buildRenderBlocks(text || ''),
       provider,
       model,
       data,
@@ -453,9 +502,140 @@ export class McpConsoleComponent implements OnInit {
     };
   }
 
-  private renderMarkdown(text: string): SafeHtml {
+  private renderMarkdownBlock(text: string): SafeHtml {
     const html = this.markdownRenderer.renderMath(text || '');
     return this.sanitizer.bypassSecurityTrustHtml(html);
+  }
+
+  private buildRenderBlocks(text: string): ChatRenderBlock[] {
+    const parsedBlocks = this.markdownRenderer.extractBlocks(text);
+    if (!parsedBlocks || parsedBlocks.length === 0) {
+      return [
+        {
+          kind: 'markdown',
+          renderedHtml: this.renderMarkdownBlock(text),
+        },
+      ];
+    }
+
+    const blocks: ChatRenderBlock[] = [];
+    for (const parsed of parsedBlocks) {
+      const rendered = this.mapParsedBlockToRenderBlock(parsed);
+      if (rendered) {
+        blocks.push(rendered);
+      }
+    }
+
+    if (blocks.length === 0) {
+      blocks.push({
+        kind: 'markdown',
+        renderedHtml: this.renderMarkdownBlock(text),
+      });
+    }
+
+    return blocks;
+  }
+
+  private mapParsedBlockToRenderBlock(parsed: McpParsedBlock): ChatRenderBlock | null {
+    if (this.isMarkdownParsedBlock(parsed)) {
+      if (!parsed.markdown) {
+        return null;
+      }
+
+      return {
+        kind: 'markdown',
+        renderedHtml: this.renderMarkdownBlock(parsed.markdown),
+      };
+    }
+
+    if (this.isChartParsedBlock(parsed)) {
+      try {
+        return {
+          kind: 'chart',
+          chartType: parsed.spec.type,
+          title: parsed.spec.title,
+          subtitle: parsed.spec.subtitle,
+          source: parsed.spec.source,
+          options: this.chartRenderer.build(parsed.spec),
+        };
+      } catch {
+        return {
+          kind: 'chart_error',
+          reason: 'Не удалось построить chart options.',
+          rawBlock: parsed.rawBlock,
+          language: parsed.spec.type,
+        };
+      }
+    }
+
+    if (this.isChartLinkParsedBlock(parsed)) {
+      try {
+        return {
+          kind: 'chart_link',
+          chartType: 'candlestick',
+          title: parsed.spec.title,
+          subtitle: parsed.spec.subtitle,
+          label: parsed.spec.linkLabel || 'Открыть свечной график',
+          url: this.chartLinkBuilder.buildCandlestickUrl(parsed.spec),
+          ticker: parsed.spec.ticker,
+        };
+      } catch {
+        return {
+          kind: 'chart_error',
+          reason: 'Не удалось сформировать ссылку candlestick.',
+          rawBlock: parsed.rawBlock,
+          language: 'candlestick',
+        };
+      }
+    }
+
+    if (this.isChartErrorParsedBlock(parsed)) {
+      return {
+        kind: 'chart_error',
+        reason: parsed.reason || 'Ошибка парсинга chart-блока.',
+        rawBlock: parsed.rawBlock,
+        language: parsed.language,
+      };
+    }
+
+    return {
+      kind: 'chart_error',
+      reason: 'Ошибка парсинга chart-блока.',
+      rawBlock: '',
+      language: 'chart',
+    };
+  }
+
+  private isMarkdownParsedBlock(block: McpParsedBlock): block is McpMarkdownParsedBlock {
+    return block.type === 'markdown';
+  }
+
+  private isChartParsedBlock(block: McpParsedBlock): block is McpChartParsedBlock {
+    return block.type === 'chart';
+  }
+
+  private isChartLinkParsedBlock(block: McpParsedBlock): block is McpChartLinkParsedBlock {
+    return block.type === 'chart_link';
+  }
+
+  private isChartErrorParsedBlock(block: McpParsedBlock): block is McpChartErrorParsedBlock {
+    return block.type === 'chart_error';
+  }
+
+  isMarkdownBlock(block: ChatRenderBlock): block is ChatRenderBlockMarkdown {
+    return block.kind === 'markdown';
+  }
+
+  isChartBlock(block: ChatRenderBlock): block is ChatRenderBlockChart {
+    return block.kind === 'chart';
+  }
+
+  isChartLinkBlock(block: ChatRenderBlock): block is ChatRenderBlockChartLink {
+    return block.kind === 'chart_link';
+  }
+
+  isChartErrorBlock(block: ChatRenderBlock): block is ChatRenderBlockError {
+    return block.kind === 'chart_error';
   }
 
   private scrollToBottom(): void {
