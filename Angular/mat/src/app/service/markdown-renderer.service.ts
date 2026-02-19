@@ -4,6 +4,7 @@ import * as katex from 'katex';
 
 export type McpChartType = 'bar' | 'pie' | 'candlestick';
 export type McpCandlestickRperiod = 'day' | 'week' | 'month';
+const MCP_CANDLESTICK_PERIOD_MAX = 180000;
 
 export interface McpChartDataPoint {
   name: string;
@@ -704,10 +705,10 @@ export class MarkdownRendererService {
         };
       }
       period = Math.trunc(periodRaw);
-      if (period < 0 || period > 1440) {
+      if (period < 0 || period > MCP_CANDLESTICK_PERIOD_MAX) {
         return {
           ok: false,
-          reason: 'Поле `period` должно быть в диапазоне 0..1440.',
+          reason: `Поле \`period\` должно быть в диапазоне 0..${MCP_CANDLESTICK_PERIOD_MAX}.`,
         };
       }
     }

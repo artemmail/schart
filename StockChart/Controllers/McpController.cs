@@ -34,6 +34,7 @@ public sealed class McpController : ControllerBase
     private const int OpenAiToolPayloadObjectLimit = 40;
     private const int OpenAiToolPayloadStringLimit = 600;
     private const int OpenAiToolPayloadDepthLimit = 6;
+    private const int MaxCandlestickPeriod = 180000;
     private const string ChartBlockStrictJsonInstruction =
         "Для визуализаций используй markdown chart-блоки `bar`, `pie`, `candlestick` (допустим также `chart` с полем `type`). " +
         "Содержимое chart-блока должно быть только валидным JSON-объектом UTF-8: не используй YAML-стиль `key: value` и не пиши тип отдельной строкой. " +
@@ -4683,16 +4684,16 @@ public sealed class McpController : ControllerBase
     {
         var text = lower ?? string.Empty;
 
-        var match = Regex.Match(text, @"(?:period|период)\s*(?:=|:)?\s*(\d{1,4})", RegexOptions.IgnoreCase);
+        var match = Regex.Match(text, @"(?:period|период)\s*(?:=|:)?\s*(\d{1,6})", RegexOptions.IgnoreCase);
         if (match.Success &&
             int.TryParse(match.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
         {
-            return Math.Clamp(parsed, 0, 1440);
+            return Math.Clamp(parsed, 0, MaxCandlestickPeriod);
         }
 
         var tfMatch = Regex.Match(
             text,
-            @"\b(\d{1,4})\s*(m|min|мин|минут|ч|час|h|day|дн|день|d)\b",
+            @"\b(\d{1,6})\s*(m|min|мин|минут|ч|час|h|day|дн|день|d|week|недел|w|month|месяц|mo|mn)\b",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         if (tfMatch.Success &&
             int.TryParse(tfMatch.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var amount))
@@ -4703,15 +4704,27 @@ public sealed class McpController : ControllerBase
                 "m" or "min" or "мин" or "минут" => amount,
                 "ч" or "час" or "h" => amount * 60,
                 "day" or "дн" or "день" or "d" => amount * 1440,
+                "week" or "недел" or "w" => amount * 10080,
+                "month" or "месяц" or "mo" or "mn" => amount * 30000,
                 _ => amount
             };
 
-            return Math.Clamp(minutes, 0, 1440);
+            return Math.Clamp(minutes, 0, MaxCandlestickPeriod);
         }
 
         if (ContainsAny(text, "дневн", "daily"))
         {
             return 1440;
+        }
+
+        if (ContainsAny(text, "недельн", "weekly"))
+        {
+            return 10080;
+        }
+
+        if (ContainsAny(text, "месячн", "monthly"))
+        {
+            return 30000;
         }
 
         if (ContainsAny(text, "часов", "hourly"))
@@ -4834,7 +4847,7 @@ public sealed class McpController : ControllerBase
         {
             ["type"] = "candlestick",
             ["ticker"] = ticker,
-            ["period"] = Math.Clamp(period, 0, 1440),
+            ["period"] = Math.Clamp(period, 0, MaxCandlestickPeriod),
             ["mode"] = string.IsNullOrWhiteSpace(mode) ? "candles" : mode.Trim().ToLowerInvariant()
         };
 
