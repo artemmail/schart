@@ -632,15 +632,33 @@ public sealed class McpController : ControllerBase
             return markowitzResponse;
         }
 
-        // Candlestick requests are handled locally without tool calls:
-        // ticker/period/startDate/endDate in markdown block are enough for frontend rendering.
-        var candlestickResponse = TryHandleCandlestickRequest(message, lower);
-        if (candlestickResponse != null)
+        var isCandlestickRequest = ContainsAny(lower, "свеч", "candlestick", "candle", "кандл");
+        McpChatResponse? providerResponse = null;
+
+        // Hybrid mode for candlestick:
+        // 1) try OpenAI first, 2) validate response, 3) fallback to local deterministic block.
+        if (isCandlestickRequest)
         {
-            return candlestickResponse;
+            providerResponse = await TryHandleOpenAiChatAsync(request, message, cancellationToken);
+            var hasValidCandlestickBlock = IsUsableOpenAiCandlestickResponse(providerResponse);
+            if (hasValidCandlestickBlock)
+            {
+                return providerResponse!;
+            }
+
+            var candlestickResponse = TryHandleCandlestickRequest(message, lower);
+            if (candlestickResponse != null)
+            {
+                return candlestickResponse;
+            }
+
+            if (providerResponse != null)
+            {
+                return providerResponse;
+            }
         }
 
-        var providerResponse = await TryHandleOpenAiChatAsync(request, message, cancellationToken);
+        providerResponse ??= await TryHandleOpenAiChatAsync(request, message, cancellationToken);
         if (providerResponse != null)
         {
             return providerResponse;
@@ -4582,9 +4600,9 @@ public sealed class McpController : ControllerBase
             };
         }
 
-        var period = ResolveCandlestickPeriod(lower);
-        var rperiod = ResolveCandlestickRperiod(lower);
         var (startDate, endDate) = ResolveCandlestickRangeUtc(lower);
+        var period = ResolveCandlestickPeriod(lower, startDate, endDate);
+        var rperiod = ResolveCandlestickRperiod(lower);
         var block = BuildCandlestickMarkdownBlock(
             ticker,
             period,
@@ -4605,16 +4623,145 @@ public sealed class McpController : ControllerBase
         };
     }
 
-    private static int ResolveCandlestickPeriod(string lower)
+    private static bool IsUsableOpenAiCandlestickResponse(McpChatResponse? response)
     {
-        var match = Regex.Match(lower ?? string.Empty, @"(?:period|период)\s*(?:=|:)?\s*(\d{1,4})", RegexOptions.IgnoreCase);
+        if (response == null || response.IsError || string.IsNullOrWhiteSpace(response.Answer))
+        {
+            return false;
+        }
+
+        return ContainsCandlestickChartBlockWithTicker(response.Answer);
+    }
+
+    private static bool ContainsCandlestickChartBlockWithTicker(string answer)
+    {
+        if (string.IsNullOrWhiteSpace(answer))
+        {
+            return false;
+        }
+
+        var matches = Regex.Matches(
+            answer,
+            @"```(?<lang>[a-zA-Z]+)\s*(?<body>[\s\S]*?)```",
+            RegexOptions.CultureInvariant);
+
+        foreach (Match match in matches)
+        {
+            var language = match.Groups["lang"].Value.Trim().ToLowerInvariant();
+            if (language != "candlestick" && language != "chart")
+            {
+                continue;
+            }
+
+            var body = match.Groups["body"].Value;
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                continue;
+            }
+
+            var bodyLower = body.ToLowerInvariant();
+            if (language == "chart" && !bodyLower.Contains("candlestick", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (!Regex.IsMatch(
+                    body,
+                    @"(?<![A-Za-z0-9_])ticker(?![A-Za-z0-9_])",
+                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private static int ResolveCandlestickPeriod(string lower, DateTime? startDate, DateTime? endDate)
+    {
+        var text = lower ?? string.Empty;
+
+        var match = Regex.Match(text, @"(?:period|период)\s*(?:=|:)?\s*(\d{1,4})", RegexOptions.IgnoreCase);
         if (match.Success &&
             int.TryParse(match.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
         {
             return Math.Clamp(parsed, 0, 1440);
         }
 
-        return 1;
+        var tfMatch = Regex.Match(
+            text,
+            @"\b(\d{1,4})\s*(m|min|мин|минут|ч|час|h|day|дн|день|d)\b",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (tfMatch.Success &&
+            int.TryParse(tfMatch.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var amount))
+        {
+            var unit = tfMatch.Groups[2].Value.ToLowerInvariant();
+            var minutes = unit switch
+            {
+                "m" or "min" or "мин" or "минут" => amount,
+                "ч" or "час" or "h" => amount * 60,
+                "day" or "дн" or "день" or "d" => amount * 1440,
+                _ => amount
+            };
+
+            return Math.Clamp(minutes, 0, 1440);
+        }
+
+        if (ContainsAny(text, "дневн", "daily"))
+        {
+            return 1440;
+        }
+
+        if (ContainsAny(text, "часов", "hourly"))
+        {
+            return 60;
+        }
+
+        if (startDate.HasValue && endDate.HasValue && endDate.Value >= startDate.Value)
+        {
+            var days = (endDate.Value - startDate.Value).TotalDays;
+            if (days <= 2)
+            {
+                return 5;
+            }
+
+            if (days <= 10)
+            {
+                return 15;
+            }
+
+            if (days <= 45)
+            {
+                return 60;
+            }
+
+            if (days <= 180)
+            {
+                return 240;
+            }
+
+            return 1440;
+        }
+
+        if (ContainsAny(text, "недел", "week"))
+        {
+            return 60;
+        }
+
+        if (ContainsAny(text, "месяц", "month"))
+        {
+            return 60;
+        }
+
+        if (ContainsAny(text, "квартал", "quarter", "полгод", "год", "year"))
+        {
+            return 1440;
+        }
+
+        // Fallback without explicit timeframe/date range.
+        return 60;
     }
 
     private static string ResolveCandlestickRperiod(string lower)
@@ -4635,17 +4782,43 @@ public sealed class McpController : ControllerBase
     private static (DateTime? StartDate, DateTime? EndDate) ResolveCandlestickRangeUtc(string lower)
     {
         var now = DateTime.UtcNow;
-        if (ContainsAny(lower, "прошл", "last") && ContainsAny(lower, "год", "year"))
+        if (ContainsAny(lower, "за прошлый год", "прошлый год", "last year"))
         {
             return (now.AddYears(-1), now);
         }
 
-        if (ContainsAny(lower, "прошл", "last") && ContainsAny(lower, "месяц", "month"))
+        if (ContainsAny(lower, "за год", "год", "year"))
+        {
+            return (now.AddYears(-1), now);
+        }
+
+        if (ContainsAny(lower, "за полгода", "полгода", "half year", "6 месяцев", "6 мес"))
+        {
+            return (now.AddMonths(-6), now);
+        }
+
+        if (ContainsAny(lower, "за квартал", "квартал", "quarter", "3 месяца", "3 мес"))
+        {
+            return (now.AddMonths(-3), now);
+        }
+
+        if (ContainsAny(lower, "за прошлый месяц", "прошлый месяц", "last month"))
         {
             return (now.AddMonths(-1), now);
         }
 
-        return (null, null);
+        if (ContainsAny(lower, "за месяц", "месяц", "month"))
+        {
+            return (now.AddMonths(-1), now);
+        }
+
+        if (ContainsAny(lower, "за неделю", "недел", "week"))
+        {
+            return (now.AddDays(-7), now);
+        }
+
+        // Keep dates explicit for frontend and link generation.
+        return (now.AddMonths(-1), now);
     }
 
     private static string BuildCandlestickMarkdownBlock(
@@ -4662,9 +4835,16 @@ public sealed class McpController : ControllerBase
             ["type"] = "candlestick",
             ["ticker"] = ticker,
             ["period"] = Math.Clamp(period, 0, 1440),
-            ["rperiod"] = string.IsNullOrWhiteSpace(rperiod) ? "day" : rperiod.Trim().ToLowerInvariant(),
             ["mode"] = string.IsNullOrWhiteSpace(mode) ? "candles" : mode.Trim().ToLowerInvariant()
         };
+
+        var normalizedRperiod = string.IsNullOrWhiteSpace(rperiod)
+            ? "day"
+            : rperiod.Trim().ToLowerInvariant();
+        if (!string.Equals(normalizedRperiod, "day", StringComparison.Ordinal))
+        {
+            payload["rperiod"] = normalizedRperiod;
+        }
 
         if (startDate.HasValue)
         {
