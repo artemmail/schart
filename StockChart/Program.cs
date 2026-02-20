@@ -48,6 +48,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddScoped<DbContext, ApplicationDbContext>();
 builder.Services.AddSingleton<ITickersRepository, TickersRepository>();
 builder.Services.AddScoped<ITopicsRepository, TopicsRepository>();
+builder.Services.AddScoped<UserMenuGuidesTopicsImporter>();
 builder.Services.AddScoped<ICommentsRepository, CommentsRepository>();
 builder.Services.AddScoped<IPortfoiloRepository, PortfoiloRepository>();
 builder.Services.AddScoped<ICandlesRepository, CandlesRepository>();
@@ -141,6 +142,70 @@ builder.Services.AddSpaStaticFiles(configuration =>
     configuration.RootPath = spaOptions.SpaRootPath;
 });
 var app = builder.Build();
+
+// One-off content import: docs -> Topics (HTML) for main page feed.
+// Usage:
+//   dotnet run -- --import-user-menu-guides --import-user=ruticker [--update-existing] [--dry-run] [--notify-yandex]
+if (args.Any(a => string.Equals(a, "--import-user-menu-guides", StringComparison.OrdinalIgnoreCase)))
+{
+    using var scope = app.Services.CreateScope();
+    var sp = scope.ServiceProvider;
+
+    var dryRun = args.Any(a => string.Equals(a, "--dry-run", StringComparison.OrdinalIgnoreCase));
+    var updateExisting = args.Any(a => string.Equals(a, "--update-existing", StringComparison.OrdinalIgnoreCase));
+    var notifyYandex = args.Any(a => string.Equals(a, "--notify-yandex", StringComparison.OrdinalIgnoreCase));
+
+    var userNameArg = args.FirstOrDefault(a => a.StartsWith("--import-user=", StringComparison.OrdinalIgnoreCase));
+    var userName = !string.IsNullOrWhiteSpace(userNameArg)
+        ? userNameArg.Substring("--import-user=".Length)
+        : "ruticker";
+
+    var userManager = sp.GetRequiredService<UserManager<ApplicationUser>>();
+    var user = await userManager.FindByNameAsync(userName);
+    if (user == null)
+    {
+        Console.WriteLine($"User not found: {userName}");
+        return;
+    }
+
+    var importer = sp.GetRequiredService<UserMenuGuidesTopicsImporter>();
+    var result = await importer.ImportAsync(user, new UserMenuGuidesTopicsImportOptions(DryRun: dryRun, UpdateExisting: updateExisting));
+
+    Console.WriteLine(
+        $"UserMenuGuides import: dir='{result.DocsDirectory}' files={result.TotalFiles} created={result.CreatedCount} updated={result.UpdatedCount} skipped={result.SkippedCount} errors={result.Errors.Count}");
+
+    if (notifyYandex && !dryRun && result.CreatedSlugs.Count > 0)
+    {
+        var http = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+        foreach (var slug in result.CreatedSlugs)
+        {
+            try
+            {
+                var baseUrl = "https://yandex.com/indexnow";
+                var url = $"https://stockchart.ru/ServiceNews/Content/{slug}";
+                var key = "f59e3d2c25e394fb";
+                var fullUrl = $"{baseUrl}?url={url}&key={key}";
+
+                var resp = await http.GetAsync(fullUrl);
+                Console.WriteLine($"IndexNow {slug}: {(int)resp.StatusCode}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"IndexNow {slug}: {ex.Message}");
+            }
+        }
+    }
+
+    if (result.Errors.Count > 0)
+    {
+        foreach (var e in result.Errors)
+        {
+            Console.WriteLine(e);
+        }
+    }
+
+    return;
+}
 app.MapHub<CandlesHub>("/CandlesHub");
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

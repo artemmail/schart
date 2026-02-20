@@ -32,6 +32,7 @@ public class ApplicationUser : IdentityUser<Guid>
     public virtual ICollection<Payment> Payments { get; } = new List<Payment>();
     public virtual ICollection<Topic> Topics { get; } = new List<Topic>();
     public virtual ICollection<Comment> TopicComments { get; } = new List<Comment>();
+    public virtual ICollection<TopicLike> TopicLikes { get; } = new List<TopicLike>();
     public virtual ICollection<UserGameBallance> UserGameBallances { get; } = new List<UserGameBallance>();
     public virtual ICollection<UserGameOrder> UserGameOrders { get; } = new List<UserGameOrder>();
     public virtual ICollection<UserGameShare> UserGameShares { get; } = new List<UserGameShare>();
@@ -163,6 +164,7 @@ public partial class ApplicationDbContext
     //public virtual DbSet<MoexStruct1> MoexStructs1 { get; set; }
     public virtual DbSet<Topic> Topics { get; set; }
     public virtual DbSet<Comment> TopicComments { get; set; }
+    public virtual DbSet<TopicLike> TopicLikes { get; set; }
     //   public virtual DbSet<NewsType> NewsTypes { get; set; }
     public virtual DbSet<Payment> Payments { get; set; }
 
@@ -817,6 +819,27 @@ public partial class ApplicationDbContext
         modelBuilder.Entity<Topic>(entity =>
         {
             entity.Property(e => e.Hide).HasDefaultValue(false);
+        });
+
+        modelBuilder.Entity<TopicLike>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("TopicLike");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
+            entity.HasIndex(e => new { e.TopicId, e.UserId }).IsUnique();
+            entity.HasIndex(e => e.UserId);
+
+            entity.HasOne(e => e.Topic)
+                .WithMany(t => t.TopicLikes)
+                .HasForeignKey(e => e.TopicId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_TopicLike_Topic_TopicId");
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.TopicLikes)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_TopicLike_AspNetUsers_UserId");
         });
 
         modelBuilder.Entity<SmartLabImportedLink>(entity =>

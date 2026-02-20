@@ -30,6 +30,9 @@ export class ServiceNewsDetailsComponent implements OnInit {
   isAdmin: boolean = false;
   userComments: Comment[];
   comment: string;
+  likeCount: number = 0;
+  isLikedByCurrentUser: boolean = false;
+  likeLoading: boolean = false;
 
   errorMessage: string | null = null;
   errorCode: number | null = null;
@@ -72,6 +75,8 @@ export class ServiceNewsDetailsComponent implements OnInit {
         this.topicUser = topic.TopicUser;
         this.id = topic.Id;
         this.userComments = topic.UserComments;
+        this.likeCount = topic.LikeCount ?? 0;
+        this.isLikedByCurrentUser = topic.IsLikedByCurrentUser ?? false;
         this.errorMessage = null;
         this.errorCode = null;
 
@@ -113,6 +118,24 @@ export class ServiceNewsDetailsComponent implements OnInit {
         this.loadData();
       });
     }
+  }
+
+  toggleLike(): void {
+    if (!this.signed || this.likeLoading || !this.id) {
+      return;
+    }
+
+    this.likeLoading = true;
+    this.newsService.toggleTopicLike(this.id).subscribe({
+      next: (result) => {
+        this.likeCount = result.LikeCount;
+        this.isLikedByCurrentUser = result.IsLikedByCurrentUser;
+        this.likeLoading = false;
+      },
+      error: () => {
+        this.likeLoading = false;
+      },
+    });
   }
 
   deleteTopic(event: MouseEvent): void {

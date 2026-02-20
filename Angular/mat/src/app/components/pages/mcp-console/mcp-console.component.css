@@ -1,6 +1,8 @@
 :host {
   display: block;
   --mcp-app-offset: 64px;
+  --mcp-console-height: calc(100dvh - var(--mcp-app-offset));
+  --mcp-console-min-height: calc(100vh - var(--mcp-app-offset));
   --mcp-shell-bg: #f7f7f8;
   --mcp-main-bg: #f7f7f8;
   --mcp-sidebar-bg: #ffffff;
@@ -54,8 +56,8 @@
   --mcp-chart-error-bg: #fff5f5;
   --mcp-chart-error-border: #ffd9d9;
   --mcp-katex-error: #b91c1c;
-  height: calc(100dvh - var(--mcp-app-offset));
-  min-height: calc(100vh - var(--mcp-app-offset));
+  height: var(--mcp-console-height);
+  min-height: var(--mcp-console-min-height);
   overflow: hidden;
 }
 
@@ -676,11 +678,6 @@
 }
 
 @media (max-width: 980px) {
-  :host {
-    height: calc(100dvh - var(--mcp-app-offset));
-    min-height: calc(100vh - var(--mcp-app-offset));
-  }
-
   .chatgpt-shell {
     grid-template-columns: 1fr;
   }
@@ -690,7 +687,7 @@
     left: 0;
     max-width: 320px;
     position: fixed;
-    top: 64px;
+    top: var(--mcp-app-offset);
     transform: translateX(-104%);
     transition: transform 0.2s ease;
     width: 88vw;

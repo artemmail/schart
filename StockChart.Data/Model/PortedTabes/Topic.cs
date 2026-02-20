@@ -19,6 +19,7 @@ public partial class Topic
     public bool Hide { get; set; } = false;
 
     public virtual ICollection<Comment> UserComments { get; set; } = new List<Comment>();
+    public virtual ICollection<TopicLike> TopicLikes { get; set; } = new List<TopicLike>();
     [ForeignKey("UserId")]
     public virtual ApplicationUser User { get; set; } = null!;
 }

@@ -33,6 +33,8 @@ import { OptionDetailsComponent } from '../components/pages/option-details/optio
 import { ContractGroupsComponent } from '../components/pages/contract-groups/contract-groups.component';
 import { FuturesDetailsComponent } from '../components/pages/futures-details/futures-details.component';
 import { ExternalLinkComponent } from '../components/pages/external-link/external-link.component';
+import { McpConsoleComponent } from '../components/pages/mcp-console/mcp-console.component';
+import { AuthGuard } from '../service/AuthGurad.service';
 
 
 export const routes: Routes = [
@@ -62,6 +64,8 @@ export const routes: Routes = [
 
   { path: 'FuturesList', component: ContractGroupsComponent },
   { path: 'futures/:ticker', component: FuturesDetailsComponent },
+  { path: 'McpConsole', component: McpConsoleComponent, canActivate: [AuthGuard] },
+  { path: 'Admin/McpConsole', redirectTo: 'McpConsole', pathMatch: 'full' },
 
 
   

@@ -45,6 +45,18 @@ export class NewsService {
     );
   }
 
+  toggleTopicLike(topicId: number): Observable<{
+    TopicId: number;
+    LikeCount: number;
+    IsLikedByCurrentUser: boolean;
+  }> {
+    return this.http.post<{
+      TopicId: number;
+      LikeCount: number;
+      IsLikedByCurrentUser: boolean;
+    }>(`${environment.apiUrl}/api/topics/${topicId}/likes/toggle`, {});
+  }
+
   createTopic(header: string, text: string): Observable<any> {
     return this.http.post<any>(`${environment.apiUrl}/api/topics`, { Header: header, Text: text });
   }

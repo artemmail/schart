@@ -246,7 +246,7 @@ public sealed class SmartLabTop24hImportService
                 Date = DateTime.Now,
                 Header = rewriteResult.Title,
                 Text = rewriteResult.Html,
-                Hide = false,
+                Hide = true,
                 Slug = slug
             };
 

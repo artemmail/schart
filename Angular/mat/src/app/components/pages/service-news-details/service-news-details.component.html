@@ -19,6 +19,22 @@
 
       <b>{{ topicUser?.UserName }}</b>&nbsp; <i>{{ date | date: 'd MMM yyyy, H:mm' }}</i>
       <br />
+      <div class="topic-engagement-row">
+        <span class="topic-comments-count"><b>Число ответов:</b> {{ userComments?.length || 0 }}</span>
+        <span class="topic-engagement-spacer"></span>
+        <button
+          type="button"
+          class="topic-heart-button"
+          [class.topic-heart-button--active]="isLikedByCurrentUser"
+          [disabled]="!signed || likeLoading"
+          (click)="toggleLike()"
+          aria-label="Поставить лайк"
+        >
+          <mat-icon>{{ isLikedByCurrentUser ? 'favorite' : 'favorite_border' }}</mat-icon>
+        </button>
+        <span class="topic-heart-count">{{ likeCount }}</span>
+        <span class="topic-likes-hint" *ngIf="!signed">Войдите, чтобы ставить лайки</span>
+      </div>
       <div [innerHTML]="text" class="content"></div>
       
       <p>

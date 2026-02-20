@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StockChart.Model;
 using StockChart.Repository.Interfaces;
+using StockChart.Repository.Services;
+using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -18,13 +20,15 @@ namespace StockChart.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ApplicationDbContext _context;
         private readonly HttpClient _httpClient;
+        private readonly UserMenuGuidesTopicsImporter _userMenuGuidesTopicsImporter;
 
-        public TopicsController(HttpClient httpClient, ITopicsRepository topicsRepository, UserManager<ApplicationUser> userManager, ApplicationDbContext context)
+        public TopicsController(HttpClient httpClient, ITopicsRepository topicsRepository, UserManager<ApplicationUser> userManager, ApplicationDbContext context, UserMenuGuidesTopicsImporter userMenuGuidesTopicsImporter)
         {
             _httpClient = httpClient;
             _topicsRepository = topicsRepository;
             _userManager = userManager;
             _context = context;
+            _userMenuGuidesTopicsImporter = userMenuGuidesTopicsImporter;
         }
 
         [HttpGet("page")]
@@ -39,14 +43,14 @@ namespace StockChart.Controllers
             {
                 return BadRequest("Page and pageSize must be greater than 0.");
             }
+
+            var currentUserId = await TryGetCurrentUserIdAsync();
             var totalItems = await _context.Topics.CountAsync(x => x.Text != null && !x.Hide);
             var topics = await _context.Topics
                 .Where(x => x.Text != null && !x.Hide)
                 .OrderByDescending(x => x.Date)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Include(x => x.UserComments)
-                .Include(x => x.User)
                 .Select(x => new Line
                 {
                     Id = x.Id,
@@ -54,7 +58,10 @@ namespace StockChart.Controllers
                     CommentCount = x.UserComments.Count,
                     Header = x.Header,
                     Author = x.User.UserName,
-                    Slug = x.Slug // Новое поле Slug
+                    Slug = x.Slug,
+                    LikeCount = x.TopicLikes.Count,
+                    IsLikedByCurrentUser = currentUserId.HasValue
+                        && x.TopicLikes.Any(like => like.UserId == currentUserId.Value)
                 })
                 .ToListAsync();
 
@@ -81,14 +88,14 @@ namespace StockChart.Controllers
             {
                 return BadRequest("Page and pageSize must be greater than 0.");
             }
+
+            var currentUserId = await TryGetCurrentUserIdAsync();
             var totalItems = await _context.Topics.CountAsync(x => !x.Hide);
             var topics = await _context.Topics
                 .Where(x => !x.Hide)
                 .OrderByDescending(x => x.Date)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Include(x => x.UserComments)
-                .Include(x => x.User)
                 .Select(x => new Topic
                 {
                     Id = x.Id,
@@ -97,7 +104,10 @@ namespace StockChart.Controllers
                     Header = x.Header,
                     Author = x.User.UserName,
                     Text = x.Text,
-                    Slug = x.Slug // Новое поле Slug
+                    Slug = x.Slug,
+                    LikeCount = x.TopicLikes.Count,
+                    IsLikedByCurrentUser = currentUserId.HasValue
+                        && x.TopicLikes.Any(like => like.UserId == currentUserId.Value)
                 })
 
                 .ToListAsync();
@@ -122,6 +132,9 @@ namespace StockChart.Controllers
                 return NotFound();
             }
 
+            var currentUserId = await TryGetCurrentUserIdAsync();
+            var likeState = await GetTopicLikeStateAsync(topic.Id, currentUserId);
+
             var response = new
             {
                 Id = topic.Id,
@@ -135,6 +148,8 @@ namespace StockChart.Controllers
                     topic.User.Id,
                     topic.User.UserName
                 },
+                likeState.LikeCount,
+                likeState.IsLikedByCurrentUser,
                 UserComments = topic.UserComments?.Select(comment => new
                 {
                     comment.Id,
@@ -166,6 +181,9 @@ namespace StockChart.Controllers
                 return NotFound();
             }
 
+            var currentUserId = await TryGetCurrentUserIdAsync();
+            var likeState = await GetTopicLikeStateAsync(topic.Id, currentUserId);
+
             var response = new
             {
                 Id = topic.Id,
@@ -179,6 +197,8 @@ namespace StockChart.Controllers
                     topic.User.Id,
                     topic.User.UserName
                 },
+                likeState.LikeCount,
+                likeState.IsLikedByCurrentUser,
                 UserComments = topic.UserComments?.Select(comment => new
                 {
                     comment.Id,
@@ -193,6 +213,44 @@ namespace StockChart.Controllers
             };
 
             return Ok(response);
+        }
+
+        [HttpPost("{id}/likes/toggle")]
+        [Authorize]
+        public async Task<IActionResult> ToggleLike(int id)
+        {
+            var loggedUser = await _userManager.GetUserAsync(User);
+            if (loggedUser == null)
+            {
+                return Unauthorized();
+            }
+
+            var topicExists = await _context.Topics.AnyAsync(x => x.Id == id);
+            if (!topicExists)
+            {
+                return NotFound();
+            }
+
+            var existingLike = await _context.TopicLikes
+                .FirstOrDefaultAsync(x => x.TopicId == id && x.UserId == loggedUser.Id);
+
+            if (existingLike == null)
+            {
+                _context.TopicLikes.Add(new TopicLike
+                {
+                    TopicId = id,
+                    UserId = loggedUser.Id,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                _context.TopicLikes.Remove(existingLike);
+            }
+
+            await _context.SaveChangesAsync();
+            var likeState = await GetTopicLikeStateAsync(id, loggedUser.Id);
+            return Ok(likeState);
         }
 
         [HttpPost]
@@ -215,6 +273,36 @@ namespace StockChart.Controllers
 
 
 
+
+        [HttpPost("import-user-menu-guides")]
+        [Authorize]
+        [Admin]
+        public async Task<IActionResult> ImportUserMenuGuides(
+            [FromQuery] bool dryRun = false,
+            [FromQuery] bool updateExisting = false,
+            [FromQuery] bool notifyYandex = false)
+        {
+            var loggedUser = await _userManager.GetUserAsync(User);
+            if (loggedUser == null)
+            {
+                return Unauthorized();
+            }
+
+            var result = await _userMenuGuidesTopicsImporter.ImportAsync(
+                loggedUser,
+                new UserMenuGuidesTopicsImportOptions(DryRun: dryRun, UpdateExisting: updateExisting),
+                HttpContext.RequestAborted);
+
+            if (!dryRun && notifyYandex && result.CreatedSlugs.Count > 0)
+            {
+                foreach (var slug in result.CreatedSlugs)
+                {
+                    await NotifyYandexAsync(slug);
+                }
+            }
+
+            return Ok(result);
+        }
 
         [HttpGet("importFromExternal")]
         [Authorize]
@@ -455,6 +543,31 @@ namespace StockChart.Controllers
             return NoContent();
         }
 
+        private async Task<Guid?> TryGetCurrentUserIdAsync()
+        {
+            if (User?.Identity?.IsAuthenticated != true)
+            {
+                return null;
+            }
+
+            var loggedUser = await _userManager.GetUserAsync(User);
+            return loggedUser?.Id;
+        }
+
+        private async Task<TopicLikeStateResponse> GetTopicLikeStateAsync(int topicId, Guid? userId)
+        {
+            var likeCount = await _context.TopicLikes.CountAsync(x => x.TopicId == topicId);
+            var isLiked = userId.HasValue
+                && await _context.TopicLikes.AnyAsync(x => x.TopicId == topicId && x.UserId == userId.Value);
+
+            return new TopicLikeStateResponse
+            {
+                TopicId = topicId,
+                LikeCount = likeCount,
+                IsLikedByCurrentUser = isLiked
+            };
+        }
+
         private async Task<bool> NotifyYandexAsync(string slug)
         {
             string baseUrl = "https://yandex.com/indexnow";
@@ -500,7 +613,9 @@ namespace StockChart.Controllers
             public int CommentCount { get; set; }
             public string Header { get; set; }
             public string Author { get; set; }
-            public string Slug { get; set; } // Новое поле Slug
+            public string Slug { get; set; }
+            public int LikeCount { get; set; }
+            public bool IsLikedByCurrentUser { get; set; }
         }
 
         public class Topic
@@ -512,7 +627,16 @@ namespace StockChart.Controllers
             public string Author { get; set; }
 
             public string Text { get; set; }
-            public string Slug { get; set; } // Новое поле Slug
+            public string Slug { get; set; }
+            public int LikeCount { get; set; }
+            public bool IsLikedByCurrentUser { get; set; }
+        }
+
+        public class TopicLikeStateResponse
+        {
+            public int TopicId { get; set; }
+            public int LikeCount { get; set; }
+            public bool IsLikedByCurrentUser { get; set; }
         }
 
 

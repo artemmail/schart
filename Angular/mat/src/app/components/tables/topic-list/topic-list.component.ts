@@ -3,6 +3,7 @@ import { NewsService } from 'src/app/service/news.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MaterialModule } from 'src/app/material.module';
 import { InfiniteScrollModule } from 'ngx-infinite-scroll';
+import { AuthService } from 'src/app/service/auth.service';
 
 @Component({
   standalone: true,
@@ -13,15 +14,20 @@ import { InfiniteScrollModule } from 'ngx-infinite-scroll';
 })
 export class TopicListComponent implements OnInit, AfterViewInit {
   topics: Array<{
+    id: number,
     header: string, 
     text: SafeHtml, 
     user: any, 
     date: Date, 
     slug: string, 
     CommentCount: number,
+    likeCount: number,
+    isLikedByCurrentUser: boolean,
+    likeLoading: boolean,
     collapsed: boolean, // текст свернут или нет
     textIsTooLong: boolean // флаг для проверки длины текста
   }> = [];
+  signed: boolean = false;
   loading: boolean = false;
   page: number = 1; // текущая страница
   pageSize: number = 5; // количество тем за один запрос
@@ -31,10 +37,12 @@ export class TopicListComponent implements OnInit, AfterViewInit {
 
   constructor(
     private newsService: NewsService,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
+    this.signed = this.authService.isAuthenticated();
     this.configureScrollContainer();
     this.loadTopics();
   }
@@ -53,12 +61,16 @@ export class TopicListComponent implements OnInit, AfterViewInit {
         const textIsTooLong = this.checkIfTextIsTooLong(topic.Text);
   
         this.topics.push({
+          id: topic.Id,
           header: topic.Header,
           text: safeText,
           user: topic.Author,
           date: new Date(topic.Date),
           slug: topic.Slug,
           CommentCount: topic.CommentCount,
+          likeCount: topic.LikeCount ?? 0,
+          isLikedByCurrentUser: topic.IsLikedByCurrentUser ?? false,
+          likeLoading: false,
           collapsed: textIsTooLong, // если текст длинный – по умолчанию свернут
           textIsTooLong: textIsTooLong
         });
@@ -76,6 +88,29 @@ export class TopicListComponent implements OnInit, AfterViewInit {
 
   toggleCollapse(topic: any): void {
     topic.collapsed = !topic.collapsed;
+  }
+
+  toggleLike(topic: {
+    id: number;
+    likeCount: number;
+    isLikedByCurrentUser: boolean;
+    likeLoading: boolean;
+  }): void {
+    if (!this.signed || topic.likeLoading) {
+      return;
+    }
+
+    topic.likeLoading = true;
+    this.newsService.toggleTopicLike(topic.id).subscribe({
+      next: (result) => {
+        topic.likeCount = result.LikeCount;
+        topic.isLikedByCurrentUser = result.IsLikedByCurrentUser;
+        topic.likeLoading = false;
+      },
+      error: () => {
+        topic.likeLoading = false;
+      },
+    });
   }
 
   // Метод для загрузки дополнительных тем (для десктопа)

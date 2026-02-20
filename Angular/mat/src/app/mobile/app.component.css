@@ -32,6 +32,8 @@ app-header {
   min-height: 0;
   overflow: auto;
   padding: 0;
+  --mcp-console-height: 100%;
+  --mcp-console-min-height: 0px;
 }
 
 /* Стили для элементов навигации */

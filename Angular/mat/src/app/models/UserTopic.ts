@@ -10,8 +10,10 @@ export interface UserTopic {
   Date: string;
   Header: string;
   CommentCount: number;
+  LikeCount: number;
+  IsLikedByCurrentUser: boolean;
   Author: string;
-  Slug: string; // Новое поле Slug
+  Slug: string;
 }
 
 export interface UserTopicText {
@@ -19,9 +21,11 @@ export interface UserTopicText {
   Date: Date;
   Header: string;
   CommentCount: number;
+  LikeCount: number;
+  IsLikedByCurrentUser: boolean;
   Author: string;
   Text: string;
-  Slug: string; // Новое поле Slug
+  Slug: string;
 }
 
 
@@ -48,7 +52,9 @@ export interface Topic {
   Text: string;
   Date: Date;
   Hide?: boolean;
-  Slug: string; // Новое поле Slug
+  Slug: string;
+  LikeCount: number;
+  IsLikedByCurrentUser: boolean;
   TopicUser: ApplicationUser;
   UserComments: Comment[];
 }
