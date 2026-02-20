@@ -692,13 +692,11 @@ export class MarkdownRendererService {
       };
     }
 
-    const ticker = tickerRaw.trim().toUpperCase();
-    if (!/^[A-Z0-9._-]{1,32}$/.test(ticker)) {
-      return {
-        ok: false,
-        reason: 'Поле `ticker` содержит недопустимые символы.',
-      };
+    const tickerResult = this.parseCandlestickTicker(tickerRaw);
+    if (!tickerResult.ok) {
+      return tickerResult;
     }
+    const ticker = tickerResult.value as string;
 
     let period = 1;
     let inferredRperiod: McpCandlestickRperiod | undefined;
@@ -783,6 +781,34 @@ export class MarkdownRendererService {
         mode,
         linkLabel: linkLabelValue,
       },
+    };
+  }
+
+  private parseCandlestickTicker(value: string): ParseResult {
+    const normalized = value.trim().toUpperCase();
+    if (!normalized) {
+      return {
+        ok: false,
+        reason: 'Для candlestick требуется поле `ticker`.',
+      };
+    }
+
+    const prefixedMatch = normalized.match(
+      /^([A-Z0-9][A-Z0-9._-]{0,15}):([A-Z0-9._-]{1,32})$/
+    );
+    const candidate = prefixedMatch ? prefixedMatch[2] : normalized;
+
+    if (!/^[A-Z0-9._-]{1,32}$/.test(candidate)) {
+      return {
+        ok: false,
+        reason:
+          'Поле `ticker` содержит недопустимые символы. Используйте, например, `GAZP` или `MOEX:GAZP`.',
+      };
+    }
+
+    return {
+      ok: true,
+      value: candidate,
     };
   }
 
