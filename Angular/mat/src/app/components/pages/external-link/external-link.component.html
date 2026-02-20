@@ -1,0 +1,19 @@
+<div class="external-link-page">
+  <h1>Внешняя ссылка</h1>
+  <p>Вы переходите по внешней ссылке:</p>
+
+  @if (externalUrl) {
+    <a
+      class="external-link-page__url"
+      [href]="externalUrl"
+      rel="noopener noreferrer nofollow"
+      target="_blank"
+    >
+      {{ externalUrl }}
+    </a>
+  } @else {
+    <p class="external-link-page__error">
+      Ссылка не передана или имеет неверный формат.
+    </p>
+  }
+</div>

@@ -2473,6 +2473,37 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                     b.ToTable("ShareholderSnapshots", (string)null);
                 });
 
+            modelBuilder.Entity("StockChart.Model.SmartLabImportedLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Header")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<DateTime>("ImportedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("TopicId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TopicId");
+
+                    b.HasIndex("Url")
+                        .IsUnique();
+
+                    b.ToTable("SmartLabImportedLinks", (string)null);
+                });
+
             modelBuilder.Entity("StockChart.Model.Structure", b =>
                 {
                     b.Property<string>("Owner")
@@ -3420,6 +3451,16 @@ namespace StockChart.Migrations.ApplicationDbContext2Migrations
                         .HasConstraintName("FK_ShareholderSnapshots_Dictionary");
 
                     b.Navigation("Dictionary");
+                });
+
+            modelBuilder.Entity("StockChart.Model.SmartLabImportedLink", b =>
+                {
+                    b.HasOne("StockChart.Model.Topic", "Topic")
+                        .WithMany()
+                        .HasForeignKey("TopicId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Topic");
                 });
 
             modelBuilder.Entity("StockChart.Model.Topic", b =>

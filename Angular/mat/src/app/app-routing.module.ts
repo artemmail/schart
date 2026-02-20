@@ -62,6 +62,7 @@ import { VolatilityGraphComponent } from './components/pages/volatility-graph/vo
 import { BondsPageComponent } from './components/pages/bonds-page/bonds-page.component';
 import { BondDetailsComponent } from './components/pages/bond-details/bond-details.component';
 import { McpConsoleComponent } from './components/pages/mcp-console/mcp-console.component';
+import { ExternalLinkComponent } from './components/pages/external-link/external-link.component';
 
 
 const routes: Routes = [
@@ -75,6 +76,7 @@ const routes: Routes = [
   },
 
   { path: 'statements/:ticker', component: StatementsComponent },
+  { path: 'r.php', component: ExternalLinkComponent },
   { path: 'Dividends/:ticker', component: DividendsComponent },
   { path: 'ShareHolders/:ticker', component: ShareHoldersComponent },
   { path: 'Financial/:ticker', component: FinancialComponent },

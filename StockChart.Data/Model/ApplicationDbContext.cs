@@ -81,6 +81,7 @@ public partial class ApplicationDbContext
     public virtual DbSet<SinglePageTable> SinglePageTable { get; set; }
 
     public virtual DbSet<FileEntity> FileEntities { get; set; }
+    public virtual DbSet<SmartLabImportedLink> SmartLabImportedLinks { get; set; }
 
     public virtual DbSet<UserLoginHistory> UserLoginHistory { get; set; }
 
@@ -816,6 +817,19 @@ public partial class ApplicationDbContext
         modelBuilder.Entity<Topic>(entity =>
         {
             entity.Property(e => e.Hide).HasDefaultValue(false);
+        });
+
+        modelBuilder.Entity<SmartLabImportedLink>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("SmartLabImportedLinks");
+            entity.Property(e => e.Url).HasMaxLength(1024);
+            entity.Property(e => e.Header).HasMaxLength(512);
+            entity.Property(e => e.ImportedAt).HasColumnType("datetime2");
+            entity.HasIndex(e => e.Url).IsUnique();
+            entity.HasOne(e => e.Topic).WithMany()
+                .HasForeignKey(e => e.TopicId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Lot>(entity =>

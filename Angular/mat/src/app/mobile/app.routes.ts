@@ -32,6 +32,7 @@ import { TopicListComponent } from '../components/tables/topic-list/topic-list.c
 import { OptionDetailsComponent } from '../components/pages/option-details/option-details.component';
 import { ContractGroupsComponent } from '../components/pages/contract-groups/contract-groups.component';
 import { FuturesDetailsComponent } from '../components/pages/futures-details/futures-details.component';
+import { ExternalLinkComponent } from '../components/pages/external-link/external-link.component';
 
 
 export const routes: Routes = [
@@ -51,6 +52,7 @@ export const routes: Routes = [
   { path: 'LeadersBinance', component: LeadersBinanceComponent },
   { path: 'ServiceNews/List', component: TopicListComponent },
   { path: 'statements/:ticker', component: StatementsComponent },
+  { path: 'r.php', component: ExternalLinkComponent },
   { path: 'Dividends/:ticker', component: DividendsComponent },
   { path: 'ShareHolders/:ticker', component: ShareHoldersComponent },
 

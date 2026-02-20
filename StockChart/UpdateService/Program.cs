@@ -26,6 +26,15 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 builder.Services.AddHttpClient<IMoexApiService, MoexApiService>();
+builder.Services.AddHttpClient("SmartLabImportClient", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(60);
+    client.DefaultRequestHeaders.TryAddWithoutValidation(
+        "User-Agent",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36");
+    client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7");
+});
+builder.Services.AddHttpClient("OpenAiRewriteClient");
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.Configure<YooMoneyOptions>(builder.Configuration.GetSection("YooMoney"));
@@ -38,6 +47,8 @@ builder.Services.AddScoped<IYooMoneyRepository, YooMoneyRepository>();
 builder.Services.AddScoped<IBillingRepository, BillingRepository>();
 builder.Services.AddScoped<BatchImportOpenPositionsServiceNew>();
 builder.Services.AddScoped<LotSizeFileUpdateService>();
+builder.Services.AddScoped<OpenAiRewriteService>();
+builder.Services.AddScoped<SmartLabTop24hImportService>();
 
 builder.Services
     .AddOptions<UpdateServiceScheduleOptions>()
@@ -49,6 +60,14 @@ builder.Services
     .Bind(builder.Configuration.GetSection("UpdateService:LotSizeFile"))
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<LotSizeFileOptions>, LotSizeFileOptionsValidator>();
+builder.Services
+    .AddOptions<SmartLabTop24hOptions>()
+    .Bind(builder.Configuration.GetSection("UpdateService:SmartLabTop24h"))
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<SmartLabTop24hOptions>, SmartLabTop24hOptionsValidator>();
+builder.Services
+    .AddOptions<OpenAiRewriteOptions>()
+    .Bind(builder.Configuration.GetSection("McpProvider:OpenAi"));
 
 builder.Services.AddQuartz();
 
@@ -76,6 +95,12 @@ static async Task ConfigureQuartzSchedulesAsync(IServiceProvider services)
         new JobKey("MoexSyncJob"),
         "MoexSyncJob.Trigger",
         options.MoexSyncInterval);
+
+    await ScheduleJobAsync<SmartLabTop24hImportJob>(
+        scheduler,
+        new JobKey("SmartLabTop24hImportJob"),
+        "SmartLabTop24hImportJob.Trigger",
+        options.SmartLabTop24hInterval);
     /*
     await ScheduleJobAsync<YooMoneyJob>(
         scheduler,

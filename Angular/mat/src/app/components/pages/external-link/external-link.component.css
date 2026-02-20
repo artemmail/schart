@@ -1,0 +1,15 @@
+.external-link-page {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 16px;
+  line-height: 1.5;
+}
+
+.external-link-page__url {
+  display: inline-block;
+  word-break: break-all;
+}
+
+.external-link-page__error {
+  color: #b00020;
+}

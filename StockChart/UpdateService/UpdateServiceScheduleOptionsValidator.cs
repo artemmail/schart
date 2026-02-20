@@ -14,6 +14,7 @@ public sealed class UpdateServiceScheduleOptionsValidator : IValidateOptions<Upd
         ValidateSchedule(failures, "MoexSyncInterval", options.MoexSyncInterval);
         ValidateSchedule(failures, "YooMoneyInterval", options.YooMoneyInterval);
         ValidateSchedule(failures, "LotSizeFileInterval", options.LotSizeFileInterval);
+        ValidateSchedule(failures, "SmartLabTop24hInterval", options.SmartLabTop24hInterval);
         ValidateSchedule(failures, "NightlyBatchImportCron", options.NightlyBatchImportCron);
 
         return failures.Count > 0 ? ValidateOptionsResult.Fail(failures) : ValidateOptionsResult.Success;
