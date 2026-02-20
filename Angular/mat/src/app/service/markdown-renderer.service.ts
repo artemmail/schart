@@ -82,6 +82,11 @@ interface ParseResult {
   reason?: string;
 }
 
+interface ParsedCandlestickPeriod {
+  period: number;
+  inferredRperiod?: McpCandlestickRperiod;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -696,24 +701,18 @@ export class MarkdownRendererService {
     }
 
     let period = 1;
-    const periodRaw = source['period'];
-    if (periodRaw !== undefined) {
-      if (typeof periodRaw !== 'number' || !Number.isFinite(periodRaw)) {
-        return {
-          ok: false,
-          reason: 'Поле `period` должно быть числом.',
-        };
-      }
-      period = Math.trunc(periodRaw);
-      if (period < 0 || period > MCP_CANDLESTICK_PERIOD_MAX) {
-        return {
-          ok: false,
-          reason: `Поле \`period\` должно быть в диапазоне 0..${MCP_CANDLESTICK_PERIOD_MAX}.`,
-        };
-      }
+    let inferredRperiod: McpCandlestickRperiod | undefined;
+    const periodResult = this.parseCandlestickPeriod(source['period']);
+    if (!periodResult.ok) {
+      return periodResult;
+    }
+    const parsedPeriod = periodResult.value as ParsedCandlestickPeriod | undefined;
+    if (parsedPeriod) {
+      period = parsedPeriod.period;
+      inferredRperiod = parsedPeriod.inferredRperiod;
     }
 
-    let rperiod: McpCandlestickRperiod = 'day';
+    let rperiod: McpCandlestickRperiod = inferredRperiod ?? 'day';
     const rperiodRaw = source['rperiod'];
     if (rperiodRaw !== undefined) {
       if (typeof rperiodRaw !== 'string') {
@@ -785,6 +784,160 @@ export class MarkdownRendererService {
         linkLabel: linkLabelValue,
       },
     };
+  }
+
+  private parseCandlestickPeriod(value: unknown): ParseResult {
+    if (value === undefined || value === null || value === '') {
+      return {
+        ok: true,
+        value: undefined,
+      };
+    }
+
+    if (typeof value === 'number') {
+      return this.normalizeCandlestickPeriodNumber(value);
+    }
+
+    if (typeof value !== 'string') {
+      return {
+        ok: false,
+        reason:
+          'Поле `period` должно быть числом или строкой таймфрейма (например `1d`, `4h`, `15m`).',
+      };
+    }
+
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) {
+      return {
+        ok: false,
+        reason:
+          'Поле `period` должно быть числом или строкой таймфрейма (например `1d`, `4h`, `15m`).',
+      };
+    }
+
+    if (/^[-+]?(?:\d+\.?\d*|\.\d+)$/.test(normalized)) {
+      const numeric = Number(normalized);
+      return this.normalizeCandlestickPeriodNumber(numeric);
+    }
+
+    const timeframeMatch = normalized.match(/^([-+]?(?:\d+\.?\d*|\.\d+))\s*([a-z]+)$/);
+    if (!timeframeMatch) {
+      return {
+        ok: false,
+        reason:
+          'Неверный формат `period`. Используйте число или таймфрейм вида `15m`, `4h`, `1d`, `1w`, `1mo`.',
+      };
+    }
+
+    const valueRaw = timeframeMatch[1];
+    const unitRaw = timeframeMatch[2];
+    const numeric = Number(valueRaw);
+    if (!Number.isFinite(numeric)) {
+      return {
+        ok: false,
+        reason:
+          'Поле `period` должно быть числом или строкой таймфрейма (например `1d`, `4h`, `15m`).',
+      };
+    }
+
+    const unit = this.normalizeCandlestickTimeframeUnit(unitRaw);
+    if (!unit) {
+      return {
+        ok: false,
+        reason:
+          'Неподдерживаемая единица `period`. Поддерживаются: `m`, `h`, `d`, `w`, `mo`.',
+      };
+    }
+
+    const period = Math.trunc(numeric * unit.multiplier);
+    if (!Number.isFinite(period)) {
+      return {
+        ok: false,
+        reason:
+          'Поле `period` должно быть числом или строкой таймфрейма (например `1d`, `4h`, `15m`).',
+      };
+    }
+
+    if (period < 0 || period > MCP_CANDLESTICK_PERIOD_MAX) {
+      return {
+        ok: false,
+        reason: `Поле \`period\` должно быть в диапазоне 0..${MCP_CANDLESTICK_PERIOD_MAX}.`,
+      };
+    }
+
+    return {
+      ok: true,
+      value: {
+        period,
+        inferredRperiod: unit.inferredRperiod,
+      } as ParsedCandlestickPeriod,
+    };
+  }
+
+  private normalizeCandlestickPeriodNumber(value: number): ParseResult {
+    if (!Number.isFinite(value)) {
+      return {
+        ok: false,
+        reason:
+          'Поле `period` должно быть числом или строкой таймфрейма (например `1d`, `4h`, `15m`).',
+      };
+    }
+
+    const period = Math.trunc(value);
+    if (period < 0 || period > MCP_CANDLESTICK_PERIOD_MAX) {
+      return {
+        ok: false,
+        reason: `Поле \`period\` должно быть в диапазоне 0..${MCP_CANDLESTICK_PERIOD_MAX}.`,
+      };
+    }
+
+    return {
+      ok: true,
+      value: {
+        period,
+      } as ParsedCandlestickPeriod,
+    };
+  }
+
+  private normalizeCandlestickTimeframeUnit(
+    unit: string
+  ): { multiplier: number; inferredRperiod?: McpCandlestickRperiod } | null {
+    switch (unit) {
+      case 'm':
+      case 'min':
+      case 'mins':
+      case 'minute':
+      case 'minutes':
+        return { multiplier: 1 };
+      case 'h':
+      case 'hr':
+      case 'hrs':
+      case 'hour':
+      case 'hours':
+        return { multiplier: 60 };
+      case 'd':
+      case 'day':
+      case 'days':
+        return { multiplier: 1440, inferredRperiod: 'day' };
+      case 'w':
+      case 'wk':
+      case 'wks':
+      case 'week':
+      case 'weeks':
+        return { multiplier: 10080, inferredRperiod: 'week' };
+      case 'mo':
+      case 'mon':
+      case 'month':
+      case 'months':
+        return { multiplier: 30000, inferredRperiod: 'month' };
+      case 'q':
+      case 'qtr':
+      case 'quarter':
+      case 'quarters':
+        return { multiplier: 90000 };
+      default:
+        return null;
+    }
   }
 
   private parseNamedValueData(
