@@ -7,30 +7,33 @@
         </mat-card-title>
       </mat-card-header>
       <mat-card-content>
-        <b>{{ topic.user }}</b>&nbsp;
-        <i>{{ topic.date | date: 'd MMM yyyy, H:mm' }}</i>
-        <div class="topic-engagement-row">
-          <a
-            *ngIf="topic.CommentCount > 0"
-            class="topic-comments-link"
-            [routerLink]="['/ServiceNews/Content', topic.slug]"
-          >
-            <span><b>Число ответов:</b> {{ topic.CommentCount }}</span>
-          </a>
-          <span class="topic-engagement-spacer"></span>
-          <button
-            type="button"
-            class="topic-heart-button"
-            [class.topic-heart-button--active]="topic.isLikedByCurrentUser"
-            [disabled]="!signed || topic.likeLoading"
-            (click)="toggleLike(topic)"
-            aria-label="Поставить лайк"
-          >
-            <mat-icon>{{ topic.isLikedByCurrentUser ? 'favorite' : 'favorite_border' }}</mat-icon>
-          </button>
-          <span class="topic-heart-count">{{ topic.likeCount }}</span>
-          <span class="topic-likes-hint" *ngIf="!signed">Войдите, чтобы ставить лайки</span>
+        <div class="topic-meta-row">
+          <div class="topic-meta-main">
+            <b>{{ topic.user }}</b>&nbsp;
+            <i>{{ topic.date | date: 'd MMM yyyy, H:mm' }}</i>
+          </div>
+          <div class="topic-meta-actions">
+            <span class="topic-likes-hint" *ngIf="!signed">Войдите, чтобы ставить лайки</span>
+            <span class="topic-heart-count">{{ topic.likeCount }}</span>
+            <button
+              type="button"
+              class="topic-heart-button"
+              [class.topic-heart-button--active]="topic.isLikedByCurrentUser"
+              [disabled]="!signed || topic.likeLoading"
+              (click)="toggleLike(topic)"
+              aria-label="Поставить лайк"
+            >
+              <mat-icon>{{ topic.isLikedByCurrentUser ? 'favorite' : 'favorite_border' }}</mat-icon>
+            </button>
+          </div>
         </div>
+        <a
+          *ngIf="topic.CommentCount > 0"
+          class="topic-comments-link"
+          [routerLink]="['/ServiceNews/Content', topic.slug]"
+        >
+          <span><b>Число ответов:</b> {{ topic.CommentCount }}</span>
+        </a>
 
         <div [class.collapsed]="topic.collapsed" class="content" [innerHTML]="topic.text"></div>
         <p *ngIf="topic.textIsTooLong">
