@@ -1,8 +1,9 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { DomSanitizer, SafeHtml, Title } from '@angular/platform-browser';
 import { RouterModule } from '@angular/router';
 import { EChartsOption } from 'echarts';
+import { Subscription } from 'rxjs';
 import { MaterialModule } from 'src/app/material.module';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
@@ -26,6 +27,7 @@ import { DialogService } from 'src/app/service/DialogService.service';
 import { McpChartRendererService } from 'src/app/service/mcp-chart-renderer.service';
 import { FootprintWidgetComponent } from 'src/app/components/footprint/components/footprint-widget/footprint-widget.component';
 import { FootPrintParameters } from 'src/app/models/Params';
+import { McpMobileDrawerService } from 'src/app/service/mcp-mobile-drawer.service';
 
 type ChatRole = 'user' | 'assistant' | 'system' | 'error';
 
@@ -119,8 +121,9 @@ interface OpenAiTraceStep {
   templateUrl: './mcp-console.component.html',
   styleUrls: ['./mcp-console.component.css'],
 })
-export class McpConsoleComponent implements OnInit {
+export class McpConsoleComponent implements OnInit, OnDestroy {
   @ViewChild('scrollContainer') scrollContainer?: ElementRef<HTMLDivElement>;
+  private readonly subscriptions = new Subscription();
 
   readonly defaultConversationTitle = 'Новый диалог';
   messages: ChatMessage[] = [];
@@ -153,14 +156,22 @@ export class McpConsoleComponent implements OnInit {
     private readonly chartRenderer: McpChartRendererService,
     private readonly sanitizer: DomSanitizer,
     private readonly snackBar: MatSnackBar,
-    private readonly dialogService: DialogService
+    private readonly dialogService: DialogService,
+    private readonly mcpMobileDrawerService: McpMobileDrawerService
   ) {
     this.titleService.setTitle('MCP Console');
   }
 
   ngOnInit(): void {
+    this.subscriptions.add(
+      this.mcpMobileDrawerService.toggleRequested$.subscribe(() => this.toggleSidebar())
+    );
     this.loadProviderInfo();
     this.loadConversations();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 
   sendMessage(): void {
@@ -275,6 +286,10 @@ export class McpConsoleComponent implements OnInit {
 
   toggleSidebar(): void {
     this.mobileSidebarOpen = !this.mobileSidebarOpen;
+  }
+
+  closeSidebar(): void {
+    this.mobileSidebarOpen = false;
   }
 
   toggleMessageDetails(message: ChatMessage): void {

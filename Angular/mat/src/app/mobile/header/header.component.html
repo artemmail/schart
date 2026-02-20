@@ -12,6 +12,14 @@
 
   <span class="right-actions">
     <button
+      *ngIf="showMcpDrawerButton"
+      mat-icon-button
+      (click)="mcpDrawerToggle.emit()"
+      aria-label="Open MCP chats drawer"
+    >
+      <mat-icon>chat</mat-icon>
+    </button>
+    <button
       *ngIf="showSettingsButton && fullscreenSupported"
       mat-icon-button
       (click)="toggleFullscreen()"

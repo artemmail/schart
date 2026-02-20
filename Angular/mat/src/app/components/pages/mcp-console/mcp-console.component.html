@@ -1,4 +1,12 @@
 <div class="chatgpt-shell">
+  <button
+    type="button"
+    class="chatgpt-sidebar-overlay"
+    *ngIf="mobileSidebarOpen"
+    (click)="closeSidebar()"
+    aria-label="Закрыть список диалогов"
+  ></button>
+
   <aside class="chatgpt-sidebar" [class.open]="mobileSidebarOpen">
     <div class="sidebar-header">
       <button mat-flat-button class="new-chat-btn" (click)="startNewConversation()">

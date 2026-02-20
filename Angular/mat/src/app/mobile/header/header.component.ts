@@ -18,8 +18,10 @@ import { PLATFORM_ID } from '@angular/core';
 export class HeaderComponent implements OnInit, OnDestroy {
   @Output() menuToggle = new EventEmitter<void>();
   @Output() settingsClicked = new EventEmitter<void>();
+  @Output() mcpDrawerToggle = new EventEmitter<void>();
 
   showSettingsButton = false;
+  showMcpDrawerButton = false;
   fullscreenSupported = false;
   isFullscreen = false;
 
@@ -38,7 +40,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   ) {
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
-        this.updateSettingsButton(event.url);
+        this.updateButtonsState(event.urlAfterRedirects || event.url);
       }
     });
   }
@@ -52,6 +54,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.fullscreenSupported = !!docEl?.requestFullscreen;
     this.isFullscreen = !!this.document.fullscreenElement;
     this.document.addEventListener('fullscreenchange', this.fullscreenChangeHandler);
+    this.updateButtonsState(this.router.url || '/');
   }
 
   ngOnDestroy(): void {
@@ -62,9 +65,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.document.removeEventListener('fullscreenchange', this.fullscreenChangeHandler);
   }
 
-  updateSettingsButton(url: string) {
+  private updateButtonsState(url: string): void {
     this.showSettingsButton =
       url.includes('FootPrint') || url.includes('CandlestickChart');
+    this.showMcpDrawerButton = url.includes('McpConsole');
   }
 
   openSettings() {

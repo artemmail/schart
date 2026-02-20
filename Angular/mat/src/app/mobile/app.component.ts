@@ -12,6 +12,7 @@ import { MaterialModule } from 'src/app/material.module';
 import { HeaderComponent } from './header/header.component';
 import { MaterialThemeService } from 'src/app/services/theme/material-theme.service';
 import { YandexAdvComponent } from 'src/app/components/ads/yandex-adv/yandex-adv.component';
+import { McpMobileDrawerService } from '../service/mcp-mobile-drawer.service';
 
 import * as Hammer from 'hammerjs';
 
@@ -55,7 +56,8 @@ export class AppMobileComponent implements AfterViewInit, OnInit, OnDestroy {
     private http: HttpClient,
     private router: Router,
     @Inject(PLATFORM_ID) private platformId: Object,
-    private materialThemeService: MaterialThemeService
+    private materialThemeService: MaterialThemeService,
+    private mcpMobileDrawerService: McpMobileDrawerService
   ) {
     this.isBrowser = !isPlatformServer(this.platformId);
     // SSR: на сервере метрику/роутер-ивенты не трогаем
@@ -105,6 +107,10 @@ export class AppMobileComponent implements AfterViewInit, OnInit, OnDestroy {
 
   onPanStart = (): void => {
     this.sidenav.close();
+  }
+
+  toggleMcpDrawerFromHeader(): void {
+    this.mcpMobileDrawerService.requestToggle();
   }
 
   ngOnInit(): void {
