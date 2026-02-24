@@ -3,6 +3,8 @@ using System.Text.RegularExpressions;
 using HtmlAgilityPack;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
 using StockChart.Model;
 
 namespace StockChart.UpdateService.Services;
@@ -19,6 +21,7 @@ public sealed class SmartLabTop24hImportService
 {
     private const string YandexIndexNowBaseUrl = "https://yandex.com/indexnow";
     private const string YandexIndexNowKey = "f59e3d2c25e394fb";
+    private const int WebpLossyQuality = 60;
 
     private sealed record ParsedArticle(string Title, string ContentHtml);
 
@@ -246,7 +249,7 @@ public sealed class SmartLabTop24hImportService
                 Date = DateTime.Now,
                 Header = rewriteResult.Title,
                 Text = rewriteResult.Html,
-                Hide = true,
+                Hide = false,
                 Slug = slug
             };
 
@@ -430,6 +433,7 @@ public sealed class SmartLabTop24hImportService
 
             var contentType = response.Content.Headers.ContentType?.MediaType;
             var extension = ResolveImageExtension(imageUrl, contentType);
+            bytes = ConvertToWebpIfNeeded(bytes, extension, imageUrl, out extension);
             var fileName = $"{Path.GetRandomFileName().Replace(".", "x")}{extension}";
 
             context.FileEntities.Add(new FileEntity
@@ -485,6 +489,40 @@ public sealed class SmartLabTop24hImportService
         }
 
         return ImageExtensions.Contains(extension) ? extension.ToLowerInvariant() : ".jpg";
+    }
+
+    private byte[] ConvertToWebpIfNeeded(byte[] sourceBytes, string sourceExtension, string imageUrl, out string resultExtension)
+    {
+        resultExtension = sourceExtension;
+        if (!sourceExtension.Equals(".jpg", StringComparison.OrdinalIgnoreCase)
+            && !sourceExtension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase)
+            && !sourceExtension.Equals(".png", StringComparison.OrdinalIgnoreCase))
+        {
+            return sourceBytes;
+        }
+
+        try
+        {
+            using var image = Image.Load(sourceBytes);
+            using var output = new MemoryStream();
+            image.Save(output, new WebpEncoder
+            {
+                FileFormat = WebpFileFormatType.Lossy,
+                Quality = WebpLossyQuality
+            });
+
+            resultExtension = ".webp";
+            return output.ToArray();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "SmartLab import: failed to convert image to webp, using original format for {Url}",
+                imageUrl);
+
+            return sourceBytes;
+        }
     }
 
     private static bool TryParseArticle(string html, out ParsedArticle parsedArticle)
