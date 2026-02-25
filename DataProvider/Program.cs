@@ -40,12 +40,18 @@ namespace DataProvider
 
             builder.Services.AddSingleton<IBroadCast, BroadCast>();
             builder.Services.AddSingleton<ILastTradeCache, LastTradeCache>();
+            builder.Services.AddSingleton<QuikImportQueueService>();
+            builder.Services.AddSingleton<IQuikImportQueue>(sp => sp.GetRequiredService<QuikImportQueueService>());
 
 
-            builder.Services.AddHostedService<HostetBinanceService>();
+            //builder.Services.AddHostedService<HostetBinanceService>();
             builder.Services.AddHostedService<HostetDBWriterService>();
             builder.Services.AddHostedService<MissingIntervalsFetcherService>();
-            builder.Services.AddHostedService<DDEServer>();
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<QuikImportQueueService>());
+            if (builder.Configuration.GetValue<bool>("Import:UseDde"))
+            {
+                builder.Services.AddHostedService<DDEServer>();
+            }
 
             builder.Services.AddRabbitMq(builder.Configuration.GetSection("EventBus"));
             builder.Services.AddSubscriber<Subscriber>();
