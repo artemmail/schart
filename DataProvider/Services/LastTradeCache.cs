@@ -22,7 +22,10 @@ namespace DataProvider
             _logger = logger;
         }
 
-        public async Task<long> GetLastTradeNumberAsync(int tickerId, CancellationToken cancellationToken = default)
+        public async Task<long> GetLastTradeNumberAsync(
+            int tickerId,
+            bool includeTradesFallback = true,
+            CancellationToken cancellationToken = default)
         {
             if (_cache.TryGetValue(tickerId, out var cachedNumber))
                 return cachedNumber;
@@ -36,7 +39,7 @@ namespace DataProvider
                 .Select(x => (long?)x.MaxNumber)
                 .FirstOrDefaultAsync(cancellationToken) ?? 0;
 
-            if (lastNumber <= 0)
+            if (includeTradesFallback && lastNumber <= 0)
             {
                 var tradesMaxNumber = await context.Trades
                     .AsNoTracking()

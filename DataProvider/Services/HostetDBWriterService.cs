@@ -78,6 +78,7 @@ namespace DataProvider
                         var newDictionaryRecords = queue
                             .Select(x => new { Record = x, Key = TickerKey.Normalize(x.ticker) })
                             .Where(x => !string.IsNullOrEmpty(x.Key) && !tickerDictionary.ContainsKey(x.Key))
+                         //   .Where(x=>x.Record.datetime> new DateTime(2026,2,25))
                             .GroupBy(x => x.Key)
                             .Select(g => g.First().Record)
                             .Select(record => new Dictionary

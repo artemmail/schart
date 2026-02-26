@@ -97,7 +97,10 @@ public sealed class QuikImportQueueService : BackgroundService, IQuikImportQueue
             }
             long lastNumber = 0;
             if (hasTickerInfo)
-                lastNumber = await _lastTradeCache.GetLastTradeNumberAsync(tickerInfo.id, cancellationToken);
+                lastNumber = await _lastTradeCache.GetLastTradeNumberAsync(
+                    tickerInfo.id,
+                    includeTradesFallback: true,
+                    cancellationToken: cancellationToken);
 
             foreach (var trade in orderedTrades)
             {
@@ -138,7 +141,7 @@ public sealed class QuikImportQueueService : BackgroundService, IQuikImportQueue
             price = trade.Price,
             quantity = trade.Quantity,
             volume = trade.Price * trade.Quantity,
-            OI = 0,
+            OI = trade.OpenInterest,
             direction = direction
         };
     }

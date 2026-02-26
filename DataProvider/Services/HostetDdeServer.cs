@@ -20,6 +20,7 @@ namespace DataProvider
         private readonly ILastTradeCache _lastTradeCache;
         private readonly ILogger<DDEServer> _logger;
         private readonly ConcurrentQueue<DBRecord[]> _dbRecordsQueue = new ConcurrentQueue<DBRecord[]>();
+        private readonly SemaphoreSlim _processGate = new SemaphoreSlim(1, 1);
 
         private DDEInfo.InfoServer _ddeServer;
 
@@ -93,14 +94,31 @@ namespace DataProvider
 
         private async void OnDdeServerDataPoked(object sender, DDEInfo.DataPokedEventArgs dataArgs)
         {
-            var records = ConvertDdeDataToRecords(dataArgs);
-            await ProcessRecordsAsync(records);
+            var lockTaken = false;
+            try
+            {
+                await _processGate.WaitAsync();
+                lockTaken = true;
+
+                var records = ConvertDdeDataToRecords(dataArgs);
+                await ProcessRecordsAsync(records);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to process DDE data poke.");
+            }
+            finally
+            {
+                if (lockTaken)
+                    _processGate.Release();
+            }
         }
 
         private async Task<bool> ShouldEnqueueAsync(int tickerId, long number)
         {
-            var lastNumber = await _lastTradeCache.GetLastTradeNumberAsync(tickerId);
-            if (number > lastNumber)
+            // DDE branch must use MaxTrades only; Trades fallback can skip valid older-in-order records.
+            var lastNumber = await _lastTradeCache.GetLastTradeNumberAsync(tickerId, includeTradesFallback: false);
+                    if (number > lastNumber)
             {
                 _lastTradeCache.UpdateLastTradeNumber(tickerId, number);
                 return true;
@@ -117,6 +135,7 @@ namespace DataProvider
         public void Dispose()
         {
             _ddeServer?.Dispose();
+            _processGate.Dispose();
         }
     }
 }

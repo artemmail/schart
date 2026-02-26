@@ -5,7 +5,10 @@ namespace DataProvider
 {
     public interface ILastTradeCache
     {
-        Task<long> GetLastTradeNumberAsync(int tickerId, CancellationToken cancellationToken = default);
+        Task<long> GetLastTradeNumberAsync(
+            int tickerId,
+            bool includeTradesFallback = true,
+            CancellationToken cancellationToken = default);
 
         void UpdateLastTradeNumber(int tickerId, long number);
     }

@@ -51,7 +51,7 @@ public static class QuikImportTextParser
             if (line.Length == 0)
                 continue;
 
-            // ticker|class|tradeNumber|tradeTimeMs|price|quantity|direction|flags
+            // ticker|class|tradeNumber|tradeTimeMs|price|quantity|direction|flags[|openInterest]
             var parts = line.Split('|');
             if (parts.Length < 8)
             {
@@ -96,6 +96,20 @@ public static class QuikImportTextParser
             if (!int.TryParse(parts[7], NumberStyles.Integer, CultureInfo.InvariantCulture, out var flags))
                 flags = 0;
 
+            var openInterest = 0;
+            if (parts.Length > 8)
+            {
+                if (long.TryParse(parts[8], NumberStyles.Integer, CultureInfo.InvariantCulture, out var oiRaw))
+                {
+                    if (oiRaw > int.MaxValue)
+                        openInterest = int.MaxValue;
+                    else if (oiRaw < 0)
+                        openInterest = 0;
+                    else
+                        openInterest = (int)oiRaw;
+                }
+            }
+
             if (direction != 0 && direction != 1)
                 direction = (flags & 1) == 1 ? 1 : 0;
 
@@ -107,6 +121,7 @@ public static class QuikImportTextParser
                 TradeTimeMs = tradeTimeMs,
                 Price = price,
                 Quantity = quantity,
+                OpenInterest = openInterest,
                 Direction = direction,
                 Flags = flags
             });

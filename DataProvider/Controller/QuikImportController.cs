@@ -19,6 +19,7 @@ namespace DataProvider;
 public sealed class QuikImportController : ControllerBase
 {
     private const int MaxBatchSize = 20000;
+    private const int HistoryStartMarginMinutes = 5;
     private readonly IQuikImportQueue _queue;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ILogger<QuikImportController> _logger;
@@ -92,6 +93,50 @@ public sealed class QuikImportController : ControllerBase
         }
 
         return Content(sb.ToString(), "text/plain");
+    }
+
+    [HttpPost("historyfrom/text")]
+    [Consumes("text/plain")]
+    [Produces("text/plain")]
+    public async Task<IActionResult> HistoryFromText(CancellationToken cancellationToken)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
+
+        string source = "MaxTrades";
+        DateTime? maxPeriod = await context.MaxTrades
+            .AsNoTracking()
+            .Select(x => (DateTime?)x.MaxTime)
+            .MaxAsync(cancellationToken);
+
+        if (maxPeriod == null || maxPeriod <= DateTime.UnixEpoch)
+        {
+            source = "Candles";
+            maxPeriod = await context.Candles
+                .AsNoTracking()
+                .Select(x => (DateTime?)x.Period)
+                .MaxAsync(cancellationToken);
+        }
+
+        if (maxPeriod == null)
+        {
+            _logger.LogInformation("QUIK historyfrom: no source rows, return 0");
+            return Content("0", "text/plain");
+        }
+
+        var fromLocal = DateTime.SpecifyKind(maxPeriod.Value, DateTimeKind.Local)
+            .AddMinutes(-HistoryStartMarginMinutes);
+        var fromUnixMs = new DateTimeOffset(fromLocal).ToUnixTimeMilliseconds();
+        if (fromUnixMs < 0)
+            fromUnixMs = 0;
+
+        _logger.LogInformation(
+            "QUIK historyfrom: source={Source}, maxPeriod={MaxPeriod:o}, marginMinutes={MarginMinutes}, fromUnixMs={FromUnixMs}",
+            source,
+            maxPeriod.Value,
+            HistoryStartMarginMinutes,
+            fromUnixMs);
+
+        return Content(fromUnixMs.ToString(), "text/plain");
     }
 
     private static Dictionary<string, int> ResolveTickerIds(IReadOnlyList<string> tickers)

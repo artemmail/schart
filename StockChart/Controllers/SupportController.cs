@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using StockChart.Hubs;
 using StockChart.Model;
 using StockChart.Repository.Interfaces;
 using System.Net.Mail;
@@ -15,12 +17,21 @@ namespace StockChart.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IImageStoreRepository _imageStoreRepository;
+        private readonly SmtpOptions _smtpOptions;
+        private readonly ILogger<SupportController> _logger;
 
-        public SupportController(IImageStoreRepository imageStoreRepository, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+        public SupportController(
+            IImageStoreRepository imageStoreRepository,
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            IOptions<SmtpOptions> smtpOptions,
+            ILogger<SupportController> logger)
         {
             _imageStoreRepository = imageStoreRepository;
             _userManager = userManager;
             _signInManager = signInManager;
+            _smtpOptions = smtpOptions.Value;
+            _logger = logger;
         }
 
         [HttpPost]
@@ -43,14 +54,21 @@ namespace StockChart.Controllers
                 return Unauthorized("User is not authenticated");
             }
 
+            if (string.IsNullOrWhiteSpace(_smtpOptions.UserName) || string.IsNullOrWhiteSpace(_smtpOptions.Password))
+            {
+                return StatusCode(500, "SMTP credentials are not configured.");
+            }
+
             var emailBody = await _imageStoreRepository.ConvertFromBlob(loggedUser, model.Text);
             var mailMessage = CreateMailMessage(model, loggedUser, emailBody);
 
-            using var smtpClient = new SmtpClient("smtp.gmail.com")
+            using var smtpClient = new SmtpClient(_smtpOptions.Host)
             {
-                Port = 587,
-                Credentials = new System.Net.NetworkCredential("artemmail@gmail.com", "wwix xirb kuey gsre"),
-                EnableSsl = true
+                Port = _smtpOptions.Port,
+                Credentials = new System.Net.NetworkCredential(_smtpOptions.UserName, _smtpOptions.Password),
+                EnableSsl = _smtpOptions.EnableSsl,
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                UseDefaultCredentials = false
             };
 
             try
@@ -59,6 +77,7 @@ namespace StockChart.Controllers
             }
             catch (SmtpException ex)
             {
+                _logger.LogError(ex, "Error sending support email for user {UserId}", loggedUser.Id);
                 return StatusCode(500, $"Error sending email: {ex.Message}");
             }
 
@@ -67,7 +86,14 @@ namespace StockChart.Controllers
 
         private MailMessage CreateMailMessage(SupportFormModel model, ApplicationUser loggedUser, string emailBody)
         {
-            var fromAddress = new MailAddress(loggedUser.Email, loggedUser.UserName);
+            var fromEmail = string.IsNullOrWhiteSpace(_smtpOptions.FromEmail)
+                ? _smtpOptions.UserName
+                : _smtpOptions.FromEmail;
+            var fromName = string.IsNullOrWhiteSpace(_smtpOptions.FromName)
+                ? fromEmail
+                : _smtpOptions.FromName;
+
+            var fromAddress = new MailAddress(fromEmail, fromName);
             var toAddress = new MailAddress("ruticker@gmail.com");
 
             var mailMessage = new MailMessage(fromAddress, toAddress)
@@ -79,7 +105,10 @@ namespace StockChart.Controllers
                 Body = $"{emailBody}<p>От пользователя: {loggedUser.UserName} Email: {loggedUser.Email}</p>"
             };
 
-            mailMessage.ReplyToList.Add(fromAddress);
+            if (!string.IsNullOrWhiteSpace(loggedUser.Email))
+            {
+                mailMessage.ReplyToList.Add(new MailAddress(loggedUser.Email, loggedUser.UserName));
+            }
 
             if (model.UploadedFile != null)
             {

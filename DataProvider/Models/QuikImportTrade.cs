@@ -10,6 +10,7 @@ public sealed class QuikImportTrade
     public long TradeTimeMs { get; init; }
     public decimal Price { get; init; }
     public decimal Quantity { get; init; }
+    public int OpenInterest { get; init; }
     public int Direction { get; init; }
     public int Flags { get; init; }
 }

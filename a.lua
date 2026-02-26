@@ -173,28 +173,28 @@ local ok_luacom, luacom_or_err = pcall(require, "luacom")
 local luacom = ok_luacom and luacom_or_err or nil
 local err_luacom = ok_luacom and "" or tostring(luacom_or_err)
 
-if ok_http then
-    http.TIMEOUT = 2
-end
-
 local BASE_URLS = {
     "http://127.0.0.1:5226",
     "http://127.0.0.1:7065"
 }
 
-local ENDPOINT_MAX = "/api/quikimport/maxtrades/text"
 local ENDPOINT_TRADES = "/api/quikimport/trades/text"
+local ENDPOINT_HISTORY_FROM = "/api/quikimport/historyfrom/text"
 
 local HISTORY_CHUNK = 3000
 local SEND_BATCH = 500
 local SEND_INTERVAL_MS = 100
-local MAX_SYNC_INTERVAL_MS = 15000
 local RETRY_BASE_MS = 500
 local RETRY_MAX_MS = 10000
 local MAX_BUFFERED = 200000
 local MAX_DISCONNECT_MS = 300000
-local FILTER_LOG_INTERVAL_MS = 5000
 local ALLOW_EXTERNAL_PROCESS_TRANSPORT = false
+local HTTP_TIMEOUT_SEC = 10
+local HTTP_TIMEOUT_MS = HTTP_TIMEOUT_SEC * 1000
+
+if ok_http then
+    http.TIMEOUT = HTTP_TIMEOUT_SEC
+end
 
 local TMP_DIR = getScriptPath()
 local CURL_IN_FILE = TMP_DIR .. "\\quik_http_in.txt"
@@ -214,22 +214,18 @@ local had_success = false
 local retry_delay = RETRY_BASE_MS
 local next_retry_ts = 0
 local last_send_ts = 0
-local last_max_sync_ts = 0
-local need_max_sync = true
+local need_history_sync = true
+local history_sync_reason = "startup"
+local history_from_ts = 0
 
 local pending_batch = nil
 
 local seen_trade_ids = {}
 local known_tickers = {}
-local max_limits = {}
 local curl_available = nil
 local curl_bin = nil
 local powershell_available = nil
 local transport_name = "none"
-local filtered_by_limit_total = 0
-local filtered_by_limit_since_log = 0
-local last_filtered_log_ts = 0
-local last_max_limits_summary = ""
 
 local function shellQuote(value)
     local v = tostring(value or "")
@@ -446,7 +442,7 @@ local function postViaRawSocket(url, body)
         return false, 0, "", tostring(create_err or "socket_create_failed")
     end
 
-    tcp:settimeout(2)
+    tcp:settimeout(HTTP_TIMEOUT_SEC)
 
     local connected, connect_err = tcp:connect(host, port)
     if connected == nil then
@@ -508,7 +504,7 @@ local function postViaWinHttp(url, body)
 
     local ok_call, status_code, response_text = pcall(function()
         local req = luacom.CreateObject("WinHttp.WinHttpRequest.5.1")
-        req:SetTimeouts(2000, 2000, 2000, 2000)
+        req:SetTimeouts(HTTP_TIMEOUT_MS, HTTP_TIMEOUT_MS, HTTP_TIMEOUT_MS, HTTP_TIMEOUT_MS)
         req:Open("POST", url, false)
         req:SetRequestHeader("Content-Type", "text/plain")
         req:Send(body)
@@ -540,7 +536,9 @@ local function postViaCurl(url, body)
 
     os.remove(CURL_OUT_FILE)
 
-    local cmd = "cmd /C curl -sS -o "
+    local cmd = "cmd /C curl -sS --max-time "
+        .. tostring(HTTP_TIMEOUT_SEC)
+        .. " -o "
         .. shellQuote(CURL_OUT_FILE)
         .. " -w \"%{http_code}\" -X POST -H \"Content-Type: text/plain\" --data-binary "
         .. shellQuote("@" .. CURL_IN_FILE)
@@ -549,7 +547,9 @@ local function postViaCurl(url, body)
         .. " 2>nul"
 
     if curl_bin ~= nil and curl_bin ~= "curl" then
-        cmd = "cmd /C " .. curl_bin .. " -sS -o "
+        cmd = "cmd /C " .. curl_bin .. " -sS --max-time "
+        .. tostring(HTTP_TIMEOUT_SEC)
+        .. " -o "
         .. shellQuote(CURL_OUT_FILE)
         .. " -w \"%{http_code}\" -X POST -H \"Content-Type: text/plain\" --data-binary "
         .. shellQuote("@" .. CURL_IN_FILE)
@@ -597,7 +597,7 @@ local function postViaPowerShell(url, body)
         "$codePath=" .. psSingleQuote(PS_CODE_FILE) .. ";" ..
         "$body=[System.IO.File]::ReadAllText($inPath,[System.Text.Encoding]::UTF8);" ..
         "try{" ..
-        "$resp=Invoke-WebRequest -UseBasicParsing -Uri $uri -Method Post -ContentType 'text/plain; charset=utf-8' -Body $body -TimeoutSec 5;" ..
+        "$resp=Invoke-WebRequest -UseBasicParsing -Uri $uri -Method Post -ContentType 'text/plain; charset=utf-8' -Body $body -TimeoutSec " .. tostring(HTTP_TIMEOUT_SEC) .. ";" ..
         "[System.IO.File]::WriteAllText($outPath,[string]$resp.Content,[System.Text.Encoding]::UTF8);" ..
         "[System.IO.File]::WriteAllText($codePath,[string]$resp.StatusCode,[System.Text.Encoding]::ASCII);" ..
         "}catch{" ..
@@ -780,6 +780,15 @@ local function normalizeTrade(src)
 
     local flags = tonumber(src.flags) or 0
     local direction = (flags % 2 == 1) and 1 or 0
+    local oi = tonumber(src.open_interest)
+        or tonumber(src.openinterest)
+        or tonumber(src.oi)
+        or tonumber(src.OI)
+        or 0
+    oi = math.floor(oi)
+    if oi < 0 then
+        oi = 0
+    end
 
     return {
         ticker = ticker,
@@ -788,6 +797,7 @@ local function normalizeTrade(src)
         dt = dt,
         price = price,
         qty = qty,
+        oi = oi,
         flags = flags,
         direction = direction
     }
@@ -847,129 +857,98 @@ local function postText(path, body)
     return false, 0, "", "all_endpoints_failed"
 end
 
-local function scheduleRescan(reason)
+local function tradeUnixMs(item)
+    if item == nil or item.datetime == nil then
+        return 0
+    end
+
+    return toUnixMs(item.datetime)
+end
+
+local function findHistoryStartPos(total, from_ts)
+    if total <= 0 or from_ts <= 0 then
+        return 0
+    end
+
+    local left = 0
+    local right = total - 1
+    local answer = total
+
+    while left <= right do
+        local mid = math.floor((left + right) / 2)
+        local item = getItem("all_trades", mid)
+        local item_ts = tradeUnixMs(item)
+
+        if item_ts > 0 and item_ts >= from_ts then
+            answer = mid
+            right = mid - 1
+        else
+            left = mid + 1
+        end
+    end
+
+    if answer < 0 then
+        return 0
+    end
+
+    if answer > total then
+        return total
+    end
+
+    return answer
+end
+
+local function scheduleRescan(reason, from_ts)
     rescan_total = getNumberOf("all_trades") or 0
-    rescan_pos = 0
+    local start_ts = tonumber(from_ts) or 0
+    if start_ts < 0 then
+        start_ts = 0
+    end
+
+    rescan_pos = findHistoryStartPos(rescan_total, start_ts)
     history_done = false
-    message("QUIK import: history rescan " .. tostring(reason) .. ", rows=" .. tostring(rescan_total), 1)
+
+    message(
+        "QUIK import: history rescan " .. tostring(reason)
+            .. ", rows=" .. tostring(rescan_total)
+            .. ", from_ts=" .. tostring(start_ts)
+            .. ", start_pos=" .. tostring(rescan_pos),
+        1
+    )
 end
 
-local function collectTickers()
-    local tickers = {}
-    for ticker, _ in pairs(known_tickers) do
-        tickers[#tickers + 1] = ticker
-    end
-
-    table.sort(tickers)
-    return tickers
-end
-
-local function syncMaxTrades(now_ts)
-    local tickers = collectTickers()
-    if #tickers == 0 then
-        need_max_sync = false
-        last_max_sync_ts = now_ts
-        return true
-    end
-
-    local chunk_size = 500
-    for i = 1, #tickers, chunk_size do
-        local max_i = math.min(i + chunk_size - 1, #tickers)
-        local payload = table.concat(tickers, "\n", i, max_i)
-
-        local ok, _, response = postText(ENDPOINT_MAX, payload)
-        if not ok then
-            disconnected = true
-            if disconnected_since_ts == 0 then
-                disconnected_since_ts = now_ts
-            end
-            need_max_sync = true
-            next_retry_ts = now_ts + retry_delay
-            retry_delay = math.min(retry_delay * 2, RETRY_MAX_MS)
-            return false
+local function syncHistoryFrom(now_ts)
+    local ok, _, response = postText(ENDPOINT_HISTORY_FROM, "")
+    if not ok then
+        disconnected = true
+        if disconnected_since_ts == 0 then
+            disconnected_since_ts = now_ts
         end
-
-        for line in response:gmatch("[^\r\n]+") do
-            local ticker, has_limit_s, max_s = line:match("^([^|]+)|([^|]+)|([^|]+)$")
-            if ticker ~= nil then
-                local has_limit = has_limit_s == "1"
-                local max_number = tonumber(max_s) or 0
-                local current = max_limits[ticker]
-
-                if current == nil then
-                    max_limits[ticker] = {
-                        has_limit = has_limit,
-                        max = max_number
-                    }
-                else
-                    if has_limit then
-                        current.has_limit = true
-                        current.max = math.max(current.max or 0, max_number)
-                    else
-                        current.has_limit = false
-                    end
-                end
-            end
-        end
-    end
-
-    local with_limit = 0
-    for i = 1, #tickers do
-        local ticker = tickers[i]
-        local limit = max_limits[ticker]
-        if limit ~= nil and limit.has_limit then
-            with_limit = with_limit + 1
-        end
-    end
-
-    local without_limit = #tickers - with_limit
-    local summary_key = tostring(#tickers) .. "|" .. tostring(with_limit) .. "|" .. tostring(without_limit)
-    if summary_key ~= last_max_limits_summary then
-        message(
-            "QUIK import: maxtrades sync tickers=" .. tostring(#tickers)
-                .. ", with_limit=" .. tostring(with_limit)
-                .. ", without_limit=" .. tostring(without_limit),
-            1
-        )
-        last_max_limits_summary = summary_key
-    end
-
-    disconnected = false
-    disconnected_since_ts = 0
-    need_max_sync = false
-    retry_delay = RETRY_BASE_MS
-    next_retry_ts = 0
-    last_max_sync_ts = now_ts
-    return true
-end
-
-local function shouldPassLimit(tr)
-    local limit = max_limits[tr.ticker]
-    if limit == nil then
-        return true
-    end
-
-    if limit.has_limit and tr.trade_num <= (limit.max or 0) then
+        next_retry_ts = now_ts + retry_delay
+        retry_delay = math.min(retry_delay * 2, RETRY_MAX_MS)
         return false
     end
 
+    local text = tostring(response or ""):gsub("%s+", "")
+    local from_ts = tonumber(text) or 0
+    if from_ts < 0 then
+        from_ts = 0
+    end
+
+    history_from_ts = from_ts
+    disconnected = false
+    disconnected_since_ts = 0
+    retry_delay = RETRY_BASE_MS
+    next_retry_ts = 0
+    need_history_sync = false
+
+    local reason = history_sync_reason
+    if reason == nil or reason == "" then
+        reason = "history_sync"
+    end
+    history_sync_reason = ""
+    scheduleRescan(reason, history_from_ts)
     return true
-end
-
-local function advanceLimit(tr)
-    local limit = max_limits[tr.ticker]
-    if limit == nil then
-        max_limits[tr.ticker] = {
-            has_limit = true,
-            max = tr.trade_num
-        }
-        return
-    end
-
-    if tr.trade_num > (limit.max or 0) then
-        limit.max = tr.trade_num
-        limit.has_limit = true
-    end
 end
 
 local function buildPendingBatch()
@@ -981,9 +960,7 @@ local function buildPendingBatch()
             break
         end
 
-        if shouldPassLimit(tr) then
-            batch[#batch + 1] = tr
-        end
+        batch[#batch + 1] = tr
     end
 
     if #batch == 0 then
@@ -993,36 +970,13 @@ local function buildPendingBatch()
     return batch
 end
 
-local function filterBatchByLimits(batch)
-    if batch == nil or #batch == 0 then
-        return nil, 0
-    end
-
-    local filtered = {}
-    local dropped = 0
-    for i = 1, #batch do
-        local tr = batch[i]
-        if shouldPassLimit(tr) then
-            filtered[#filtered + 1] = tr
-        else
-            dropped = dropped + 1
-        end
-    end
-
-    if #filtered == 0 then
-        return nil, dropped
-    end
-
-    return filtered, dropped
-end
-
 local function encodeBatch(batch)
     local lines = {}
 
     for i = 1, #batch do
         local tr = batch[i]
         local line = string.format(
-            "%s|%s|%d|%d|%s|%s|%d|%d",
+            "%s|%s|%d|%d|%s|%s|%d|%d|%d",
             tr.ticker,
             tr.class_code,
             tr.trade_num,
@@ -1030,7 +984,8 @@ local function encodeBatch(batch)
             decimalToString(tr.price),
             decimalToString(tr.qty),
             tr.direction,
-            tr.flags
+            tr.flags,
+            tr.oi or 0
         )
 
         lines[#lines + 1] = line
@@ -1045,29 +1000,11 @@ local function trySendPending(now_ts)
         return true
     end
 
-    if need_max_sync and not syncMaxTrades(now_ts) then
-        return false
-    end
-
-    local dropped_by_limit = 0
-    pending_batch, dropped_by_limit = filterBatchByLimits(pending_batch)
-    if dropped_by_limit ~= nil and dropped_by_limit > 0 then
-        filtered_by_limit_total = filtered_by_limit_total + dropped_by_limit
-        filtered_by_limit_since_log = filtered_by_limit_since_log + dropped_by_limit
-    end
-    if pending_batch == nil then
-        return true
-    end
-
     local payload = encodeBatch(pending_batch)
     local ok = false
     ok = postText(ENDPOINT_TRADES, payload)
 
     if ok then
-        for i = 1, #pending_batch do
-            advanceLimit(pending_batch[i])
-        end
-
         local was_disconnected = disconnected
         pending_batch = nil
         disconnected = false
@@ -1077,8 +1014,8 @@ local function trySendPending(now_ts)
         last_send_ts = now_ts
 
         if had_success and was_disconnected then
-            need_max_sync = true
-            scheduleRescan("after_reconnect")
+            need_history_sync = true
+            history_sync_reason = "after_reconnect"
         end
 
         had_success = true
@@ -1089,7 +1026,6 @@ local function trySendPending(now_ts)
     if disconnected_since_ts == 0 then
         disconnected_since_ts = now_ts
     end
-    need_max_sync = true
     next_retry_ts = now_ts + retry_delay
     retry_delay = math.min(retry_delay * 2, RETRY_MAX_MS)
     return false
@@ -1129,7 +1065,7 @@ local function moveInputToSendQueue()
         moved = moved + 1
     end
 
-    if history_done and qLen(historyQ) == 0 then
+    if history_done and qLen(historyQ) == 0 and not need_history_sync then
         while qLen(liveQ) > 0 and moved < 4000 do
             local tr = qPop(liveQ)
             if tr ~= nil then
@@ -1190,7 +1126,9 @@ function OnInit()
     end
 
     message("QUIK import: started, transport=" .. transport_name, 1)
-    scheduleRescan("startup")
+    need_history_sync = true
+    history_sync_reason = "startup"
+    history_from_ts = 0
 end
 
 function OnAllTrade(trade)
@@ -1227,21 +1165,15 @@ function main()
     while running do
         local now_ts = nowMs()
 
-        if not history_done then
+        if need_history_sync and now_ts >= next_retry_ts then
+            syncHistoryFrom(now_ts)
+        end
+
+        if not history_done and not need_history_sync then
             scanHistoryChunk()
         end
 
         moveInputToSendQueue()
-
-        if now_ts >= next_retry_ts and (need_max_sync or (now_ts - last_max_sync_ts) >= MAX_SYNC_INTERVAL_MS) then
-            syncMaxTrades(now_ts)
-        end
-
-        if filtered_by_limit_since_log > 0 and (now_ts - last_filtered_log_ts) >= FILTER_LOG_INTERVAL_MS then
-            message("QUIK import: maxtrades filtered " .. tostring(filtered_by_limit_since_log) .. " trades (total " .. tostring(filtered_by_limit_total) .. ")", 1)
-            filtered_by_limit_since_log = 0
-            last_filtered_log_ts = now_ts
-        end
 
         if disconnected and disconnected_since_ts > 0 and (now_ts - disconnected_since_ts) >= MAX_DISCONNECT_MS then
             running = false

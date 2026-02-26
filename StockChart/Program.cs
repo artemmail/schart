@@ -80,6 +80,7 @@ builder.Services.AddSingleton<BatchImportOpenPositionsServiceNew>();
 builder.Services.Configure<CacheConfiguration>(builder.Configuration.GetSection("CacheConfiguration"));
 builder.Services.Configure<RecieverOptions>(builder.Configuration.GetSection("RecieverOptions"));
 builder.Services.Configure<YooMoneyOptions>(builder.Configuration.GetSection("YooMoney"));
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
 builder.Services.AddRabbitMq(builder.Configuration.GetSection("EventBus"));
 builder.Services.AddSubscriber<ClusterSubscriber>();
 //For In-Memory Caching
