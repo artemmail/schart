@@ -129,13 +129,18 @@ public sealed class QuikImportQueueService : BackgroundService, IQuikImportQueue
         var direction = trade.Direction is 0 or 1
             ? trade.Direction
             : ((trade.Flags & 1) == 1 ? 1 : 0);
+        var classCode = trade.ClassCode?.Trim() ?? string.Empty;
+        byte marketId = 0;
+
+        if (MarketInfoServiceHolder.TryGetMarket(classCode, out var marketInfo))
+            marketId = marketInfo.MarketId;
 
         return new DBRecord
         {
             ticker = ticker,
             name = ticker,
-            market = 0,
-            marketcode = trade.ClassCode,
+            market = marketId,
+            marketcode = classCode,
             number = trade.TradeNumber,
             datetime = tradeDate,
             price = trade.Price,
