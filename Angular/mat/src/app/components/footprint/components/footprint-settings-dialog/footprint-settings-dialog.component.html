@@ -214,7 +214,13 @@
             </mat-expansion-panel-header>
 
             <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-              <mat-checkbox [(ngModel)]="ind.visible" (change)="onChange($event)">Visible</mat-checkbox>
+              <mat-checkbox
+                *ngIf="showVisibilityToggle(ind.type)"
+                [(ngModel)]="ind.visible"
+                (change)="onChange($event)"
+              >
+                Visible
+              </mat-checkbox>
 
               <mat-form-field *ngIf="!isPanelFixed(ind.type)" appearance="fill" style="min-width: 240px;">
                 <mat-label>Panel</mat-label>

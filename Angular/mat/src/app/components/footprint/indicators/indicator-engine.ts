@@ -6,6 +6,8 @@ import {
   IndicatorContext,
   IndicatorDefinition,
   IndicatorInstance,
+  IndicatorRuntimeMeta,
+  OpenPositionsLoadResult,
   PanelRef,
   ParamField,
   ParamSchema,
@@ -61,6 +63,10 @@ export class FootprintIndicatorEngine {
     private panelsApi: {
       ensurePanel: (kind: 'chart' | 'new', preferredId?: string) => PanelRef;
       getPanelHeight: (panelId: string) => number;
+    },
+    private contextApi?: {
+      getMeta?: () => IndicatorRuntimeMeta;
+      loadOpenPositionsByTicker?: (ticker: string) => Promise<OpenPositionsLoadResult>;
     }
   ) {}
 
@@ -320,6 +326,18 @@ export class FootprintIndicatorEngine {
       },
       ensurePanel: (kind: 'chart' | 'new', preferredId?: string) =>
         this.panelsApi.ensurePanel(kind, preferredId),
+      getMeta: () => this.contextApi?.getMeta?.() ?? {},
+      loadOpenPositionsByTicker: async (ticker: string) => {
+        const loader = this.contextApi?.loadOpenPositionsByTicker;
+        if (!loader) {
+          return {
+            status: 'error',
+            message: 'Сервис открытых позиций недоступен.',
+          };
+        }
+
+        return loader(ticker);
+      },
     };
   }
 

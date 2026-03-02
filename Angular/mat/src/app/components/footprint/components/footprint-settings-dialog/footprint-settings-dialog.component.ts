@@ -126,6 +126,10 @@ export class FootPrintSettingsDialogComponent {
     return def?.panelBehavior === 'fixed';
   }
 
+  showVisibilityToggle(type: string): boolean {
+    return type !== 'open-positions-interest';
+  }
+
   addIndicator(): void {
     if (!this.fp) return;
     this.ensureIndicatorsStorage();

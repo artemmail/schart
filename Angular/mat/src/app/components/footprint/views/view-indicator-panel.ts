@@ -25,7 +25,13 @@ export class viewIndicatorPanel extends canvasPart {
     if (!ctx) return;
 
     const range = this.computeMinMax(parent, series);
-    if (!range) return;
+    if (!range) {
+      const panelMessage = this.resolvePanelMessage(series);
+      if (panelMessage) {
+        this.drawPanelMessage(ctx, view, panelMessage);
+      }
+      return;
+    }
 
     // draw zebra background + scale like built-in footprint panels
     ctx.restore();
@@ -75,6 +81,113 @@ export class viewIndicatorPanel extends canvasPart {
       }
     }
 
+    ctx.restore();
+    this.drawOpenPositionsLegend(ctx, parent, view, series);
+  }
+
+  private drawOpenPositionsLegend(
+    ctx: CanvasRenderingContext2D,
+    parent: FootPrintComponent,
+    view: Rectangle,
+    series: DataSeries[]
+  ): void {
+    const from = Math.max(0, Math.floor(parent.minIndex ?? 0));
+    const to = Math.max(from, Math.floor(parent.maxIndex ?? Math.max(0, parent.data?.clusterData.length ?? 0)));
+
+    const hasVisiblePoint = (s: DataSeries): boolean => {
+      for (let i = from; i <= to; i++) {
+        if (isFinite(s.values[i])) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const items = series
+      .filter((s) => hasVisiblePoint(s))
+      .map((s) => {
+        switch (s.id) {
+          case 'OPI_PL':
+            return { color: s.color ?? this.palette.up, text: 'Физ Long' };
+          case 'OPI_PS':
+            return { color: s.color ?? this.palette.down, text: 'Физ Short' };
+          case 'OPI_JL':
+            return { color: s.color ?? this.palette.accent, text: 'Юр Long' };
+          case 'OPI_JS':
+            return { color: s.color ?? this.palette.gridZero, text: 'Юр Short' };
+          case 'OPI_VSJ':
+            return { color: s.color ?? this.palette.accentSoft, text: 'Позиции Юр-Позиции Физ' };
+          default:
+            return null;
+        }
+      })
+      .filter((x): x is { color: string; text: string } => !!x);
+
+    if (!items.length) {
+      return;
+    }
+
+    const unique = new Map<string, { color: string; text: string }>();
+    for (const item of items) {
+      unique.set(item.text, item);
+    }
+    const legendItems = [...unique.values()];
+    if (!legendItems.length) {
+      return;
+    }
+
+    const top = Math.round(view.y + 6);
+    const left = Math.round(view.x + 8);
+    const rowH = Math.max(12, Math.round(12 * this.colorsService.sscale()));
+    const box = Math.max(8, Math.round(8 * this.colorsService.sscale()));
+    const gap = 10;
+    let x = left;
+    let y = top;
+
+    ctx.save();
+    ctx.font = `${Math.max(10, Math.round(10 * this.colorsService.sscale()))}px sans-serif`;
+    ctx.textBaseline = 'top';
+
+    for (const item of legendItems) {
+      const textW = Math.ceil(ctx.measureText(item.text).width);
+      const itemW = box + 4 + textW + gap;
+      if (x + itemW > view.x + view.w - 8) {
+        x = left;
+        y += rowH;
+      }
+
+      ctx.fillStyle = item.color;
+      ctx.fillRect(x, y + 2, box, box);
+      ctx.strokeStyle = this.palette.grid;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y + 2, box, box);
+
+      ctx.fillStyle = this.palette.text;
+      ctx.fillText(item.text, x + box + 4, y);
+      x += itemW;
+    }
+
+    ctx.restore();
+  }
+
+  private resolvePanelMessage(series: DataSeries[]): string | null {
+    for (const s of series) {
+      const msg = s.panelMessage?.trim();
+      if (msg) {
+        return msg;
+      }
+    }
+
+    return null;
+  }
+
+  private drawPanelMessage(ctx: CanvasRenderingContext2D, view: Rectangle, message: string): void {
+    ctx.save();
+    ctx.fillStyle = this.palette.textMuted ?? this.palette.text;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `${Math.max(11, Math.round(11 * this.colorsService.sscale()))}px sans-serif`;
+    ctx.fillText(message, view.x + view.w / 2, view.y + view.h / 2);
     ctx.restore();
   }
 

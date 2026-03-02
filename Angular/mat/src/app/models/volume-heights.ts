@@ -20,6 +20,8 @@ export const VolumeHeightKeyOrder: ReadonlyArray<VolumeHeightKey> = [
   VolumeHeightKeys.DeltaBars,
 ];
 
+export const MIN_VOLUME_BLOCK_HEIGHT = 20;
+
 export const DEFAULT_VOLUME_HEIGHTS: VolumeHeightMap = {
   SeparateVolume: 50,
   OI: 50,
@@ -49,7 +51,10 @@ export function normalizeVolumeHeights(raw: unknown, fallback: VolumeHeightMap):
     for (let i = 0; i < VolumeHeightKeyOrder.length; i++) {
       const value = Number(raw[i]);
       if (Number.isFinite(value)) {
-        normalized[VolumeHeightKeyOrder[i]] = value;
+        normalized[VolumeHeightKeyOrder[i]] = Math.max(
+          MIN_VOLUME_BLOCK_HEIGHT,
+          value
+        );
       }
     }
     return normalized;
@@ -60,7 +65,7 @@ export function normalizeVolumeHeights(raw: unknown, fallback: VolumeHeightMap):
     for (const key of VolumeHeightKeyOrder) {
       const value = Number(record[key]);
       if (Number.isFinite(value)) {
-        normalized[key] = value;
+        normalized[key] = Math.max(MIN_VOLUME_BLOCK_HEIGHT, value);
       }
     }
   }

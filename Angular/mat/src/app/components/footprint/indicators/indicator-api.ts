@@ -52,6 +52,10 @@ export interface DataSeries {
     min: number;
     max: number;
   };
+  /**
+   * Optional text drawn in panel center when series has no drawable values.
+   */
+  panelMessage?: string | null;
 }
 
 export type PanelRef = 'chart' | { id: string };
@@ -83,6 +87,44 @@ export interface IndicatorContext {
   requestRecalc: () => void;
 
   ensurePanel: (kind: 'chart' | 'new', preferredId?: string) => PanelRef;
+
+  getMeta: () => IndicatorRuntimeMeta;
+  loadOpenPositionsByTicker: (
+    ticker: string
+  ) => Promise<OpenPositionsLoadResult>;
+}
+
+export interface IndicatorRuntimeMeta {
+  ticker?: string | null;
+  period?: number | null;
+  rperiod?: string | null;
+  candlesOnly?: boolean | null;
+}
+
+export interface OpenPositionsSnapshot {
+  dateMs: number;
+  juridicalLong: number;
+  juridicalShort: number;
+  physicalLong: number;
+  physicalShort: number;
+  juridicalLongCount: number;
+  juridicalShortCount: number;
+  physicalLongCount: number;
+  physicalShortCount: number;
+}
+
+export type OpenPositionsLoadStatus =
+  | 'ok'
+  | 'noData'
+  | 'notFuture'
+  | 'forbidden'
+  | 'error';
+
+export interface OpenPositionsLoadResult {
+  status: OpenPositionsLoadStatus;
+  message?: string;
+  contractName?: string;
+  positions?: OpenPositionsSnapshot[];
 }
 
 export interface IndicatorDefinition<P extends object = any> {

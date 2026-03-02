@@ -568,9 +568,27 @@ class Matrix {
     return m;
   }
   reassignX(from: any, to: any): Matrix {
+    let fromX1 = Number(from?.x1);
+    let fromX2 = Number(from?.x2);
+    let toX1 = Number(to?.x1);
+    let toX2 = Number(to?.x2);
+
+    if (!Number.isFinite(fromX1)) fromX1 = 0;
+    if (!Number.isFinite(fromX2)) fromX2 = fromX1 + 1;
+    if (!Number.isFinite(toX1)) toX1 = 0;
+    if (!Number.isFinite(toX2)) toX2 = toX1 + 1;
+
+    // Prevent degenerate triangles when source/target X ranges collapse.
+    if (Math.abs(fromX2 - fromX1) < 1e-12) {
+      fromX2 = fromX1 + 1e-6;
+    }
+    if (Math.abs(toX2 - toX1) < 1e-12) {
+      toX2 = toX1 + 1e-6;
+    }
+
     var m = Matrix.fromTriangles(
-      [from.x1, 0, from.x2, 0, from.x1, 1],
-      [to.x1, 0, to.x2, 0, to.x1, 1]
+      [fromX1, 0, fromX2, 0, fromX1, 1],
+      [toX1, 0, toX2, 0, toX1, 1]
     );
     m.b = this.b;
     m.d = this.d;
@@ -578,11 +596,27 @@ class Matrix {
     return m;
   }
   reassignY(from: any, to: any): Matrix {
-    if(from.y1 === from.y2)
-      from.y2 *=  1.01;
+    let fromY1 = Number(from?.y1);
+    let fromY2 = Number(from?.y2);
+    let toY1 = Number(to?.y1);
+    let toY2 = Number(to?.y2);
+
+    if (!Number.isFinite(fromY1)) fromY1 = 0;
+    if (!Number.isFinite(fromY2)) fromY2 = fromY1 + 1;
+    if (!Number.isFinite(toY1)) toY1 = 0;
+    if (!Number.isFinite(toY2)) toY2 = toY1 + 1;
+
+    // Prevent degenerate triangles when source/target Y ranges collapse.
+    if (Math.abs(fromY2 - fromY1) < 1e-12) {
+      fromY2 = fromY1 + 1e-6;
+    }
+    if (Math.abs(toY2 - toY1) < 1e-12) {
+      toY2 = toY1 + 1e-6;
+    }
+
     var m = Matrix.fromTriangles(
-      [0, from.y1, 0, from.y2, 1, from.y1],
-      [0, to.y1, 0, to.y2, 1, to.y1]
+      [0, fromY1, 0, fromY2, 1, fromY1],
+      [0, toY1, 0, toY2, 1, toY1]
     );
     m.a = this.a;
     m.c = this.c;

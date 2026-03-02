@@ -144,8 +144,20 @@ Each entry lists: **type** (settings key), **panel**, **series**, and **params**
   - `mid = (open + close) / 2`
   - `cumV += dOI * mid`
   - `cumOi += dOI`
-  - output = `cumV / cumOi` (close-only update)
+- output = `cumV / cumOi` (close-only update)
 - **Params:** `color`, `width`.
+
+### Open Positions
+- **type:** `open-positions-interest`, **panel:** new panel (fixed), **series:** 4 lines
+- **Purpose:** Shows open positions for legal/physical participants (long/short) in FootPrint.
+- **Data source:** `/api/common/futinfo/{ticker}` + `/api/common/positions/{contract}` via existing Angular services.
+- **Params:** `valueMode` (`Позиции` / `Число лиц`), 4 visibility checkboxes (juridical/physical long/short).
+- **Timeframe mapping:**
+  - `period < 1440`: repeat daily value for all intraday bars.
+  - `period = 1440`: map by day.
+  - `period > 1440`: show latest available value.
+- **No-data states:** renders text in panel for non-futures, missing data, subscription access, and load errors.
+- **Detailed doc:** `docs/open-positions-interest.md`.
 
 ## Notes for Codex
 - Use `paramsSchema` as the single source of truth for UI controls.

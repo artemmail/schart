@@ -6,11 +6,16 @@ import HammerManager = Hammer.HammerManager;
 import HammerInput = Hammer.HammerInput;
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 import {
+  MIN_VOLUME_BLOCK_HEIGHT,
+  VolumeHeightKey,
   VolumeHeightKeyOrder,
   getVolumeHeightDefaults,
   normalizeVolumeHeights,
 } from 'src/app/models/volume-heights';
 import { viewIndicatorPanel } from '../views/view-indicator-panel';
+
+const MIN_RESIZABLE_BLOCK_HEIGHT = 20;
+const MIN_MAIN_CLUSTER_HEIGHT = 20;
 
 export class MouseAndTouchManager {
   footprint: FootPrintComponent;
@@ -20,6 +25,10 @@ export class MouseAndTouchManager {
   private hammer: HammerManager;
   private dragIndicatorPanelId: string | null = null;
   private dragIndicatorStartHeight: number | null = null;
+  private dragVolumeKey: VolumeHeightKey | null = null;
+  private dragVolumeStartHeight: number | null = null;
+  private dragBottomTotalStart: number | null = null;
+  private dragBottomMax: number | null = null;
   private hoverView: any | null = null;
   private isMouseDown: boolean = false;
 
@@ -114,6 +123,10 @@ export class MouseAndTouchManager {
         this.footprint.dragMode = null;
         this.dragIndicatorPanelId = null;
         this.dragIndicatorStartHeight = null;
+        this.dragVolumeKey = null;
+        this.dragVolumeStartHeight = null;
+        this.dragBottomTotalStart = null;
+        this.dragBottomMax = null;
         return;
       }
 
@@ -124,12 +137,19 @@ export class MouseAndTouchManager {
         if (dragKey) {
           const defaults = getVolumeHeightDefaults(!!FPsettings.CandlesOnly);
           const volumesHeight = normalizeVolumeHeights(FPsettings.VolumesHeight, defaults);
-          volumesHeight[dragKey] += deltaVolume;
+          volumesHeight[dragKey] = Math.max(
+            MIN_VOLUME_BLOCK_HEIGHT,
+            volumesHeight[dragKey] + deltaVolume
+          );
           this.footprint.FPsettings = { ...FPsettings, VolumesHeight: volumesHeight };
           this.footprint.saveSettings();
         }
       }
       this.footprint.dragMode = null;
+      this.dragVolumeKey = null;
+      this.dragVolumeStartHeight = null;
+      this.dragBottomTotalStart = null;
+      this.dragBottomMax = null;
       return;
     }
 
@@ -322,11 +342,15 @@ export class MouseAndTouchManager {
           this.dragIndicatorPanelId = panelId;
           this.dragIndicatorStartHeight =
             this.footprint.FPsettings.IndicatorPanels?.[panelId]?.height ??
-            Math.max(30, Math.floor(resizable.view?.h ?? 90));
+            Math.max(MIN_RESIZABLE_BLOCK_HEIGHT, Math.floor(resizable.view?.h ?? 90));
         }
 
-        const startH = this.dragIndicatorStartHeight ?? Math.max(30, Math.floor(resizable.view?.h ?? 90));
-        const nextH = Math.max(30, Math.floor(startH + Delta));
+        const startH = this.dragIndicatorStartHeight ?? Math.max(MIN_RESIZABLE_BLOCK_HEIGHT, Math.floor(resizable.view?.h ?? 90));
+        const maxAllowed = this.resolveDragMaxHeight(startH);
+        const nextH = Math.max(
+          MIN_RESIZABLE_BLOCK_HEIGHT,
+          Math.min(maxAllowed, Math.floor(startH + Delta))
+        );
 
         const settings = this.footprint.FPsettings;
         const panels = { ...(settings.IndicatorPanels ?? {}) };
@@ -340,14 +364,13 @@ export class MouseAndTouchManager {
 
       const dragKey = VolumeHeightKeyOrder[this.footprint.dragMode];
       if (dragKey) {
-        const defaults = getVolumeHeightDefaults(!!this.footprint.FPsettings.CandlesOnly);
-        const volumesHeight = normalizeVolumeHeights(
-          this.footprint.FPsettings.VolumesHeight,
-          defaults
+        const startH = this.dragVolumeStartHeight ?? this.resolveCurrentVolumeHeight(dragKey);
+        const maxAllowed = this.resolveDragMaxHeight(startH);
+        const nextH = Math.max(
+          MIN_VOLUME_BLOCK_HEIGHT,
+          Math.min(maxAllowed, Math.floor(startH + Delta))
         );
-        if (volumesHeight[dragKey] + Delta > 10) {
-          this.footprint.updateDeltaVolume(this.footprint.dragMode, Delta);
-        }
+        this.footprint.updateDeltaVolume(this.footprint.dragMode, nextH - startH);
       }
 
       this.footprint.translateMatrix = null;
@@ -401,11 +424,20 @@ export class MouseAndTouchManager {
           this.dragIndicatorPanelId = dragged.panelId;
           this.dragIndicatorStartHeight =
             this.footprint.FPsettings.IndicatorPanels?.[dragged.panelId]?.height ??
-            Math.max(30, Math.floor(dragged.view?.h ?? 90));
+            Math.max(MIN_RESIZABLE_BLOCK_HEIGHT, Math.floor(dragged.view?.h ?? 90));
+          this.dragVolumeKey = null;
+          this.dragVolumeStartHeight = null;
         } else {
           this.dragIndicatorPanelId = null;
           this.dragIndicatorStartHeight = null;
+          const dragKey = VolumeHeightKeyOrder[this.footprint.dragMode];
+          this.dragVolumeKey = dragKey ?? null;
+          this.dragVolumeStartHeight = dragKey ? this.resolveCurrentVolumeHeight(dragKey) : null;
         }
+
+        const bounds = this.captureBottomResizeBounds();
+        this.dragBottomTotalStart = bounds?.totalBottom ?? null;
+        this.dragBottomMax = bounds?.maxBottom ?? null;
         return;
       }
     for (const view in this.footprint.views)
@@ -429,6 +461,66 @@ export class MouseAndTouchManager {
     this.isMouseDown = false;
     window.removeEventListener('mousemove', this.onWindowMouseMove);
     window.removeEventListener('mouseup', this.onWindowMouseUp);
+  }
+
+  private resolveCurrentVolumeHeight(key: VolumeHeightKey): number {
+    const defaults = getVolumeHeightDefaults(!!this.footprint.FPsettings.CandlesOnly);
+    const volumesHeight = normalizeVolumeHeights(this.footprint.FPsettings.VolumesHeight, defaults);
+    return Math.max(MIN_VOLUME_BLOCK_HEIGHT, Math.floor(volumesHeight[key] ?? MIN_VOLUME_BLOCK_HEIGHT));
+  }
+
+  private resolveDragMaxHeight(startHeight: number): number {
+    const totalStart = this.dragBottomTotalStart;
+    const maxBottom = this.dragBottomMax;
+    if (!Number.isFinite(totalStart) || !Number.isFinite(maxBottom)) {
+      return Number.POSITIVE_INFINITY;
+    }
+
+    const extraRoom = maxBottom - totalStart;
+    return Math.max(
+      MIN_RESIZABLE_BLOCK_HEIGHT,
+      Math.floor(startHeight + extraRoom)
+    );
+  }
+
+  private captureBottomResizeBounds(): { totalBottom: number; maxBottom: number } | null {
+    const layout = this.footprint.viewsManager?.layout;
+    const canvas = this.footprint.canvas;
+    const data = this.footprint.data;
+    if (!layout || !canvas || !data) {
+      return null;
+    }
+
+    const settings = this.footprint.FPsettings;
+    let totalBottom = 0;
+
+    if (settings.SeparateVolume) {
+      totalBottom += Math.max(0, layout.clusterVolumesView.h);
+    }
+    if (data.ableOI() && settings.OI) {
+      totalBottom += Math.max(0, layout.clusterOIView.h);
+    }
+    if (settings.Delta) {
+      totalBottom += Math.max(0, layout.clusterDeltaView.h);
+    }
+    if (settings.DeltaBars) {
+      totalBottom += Math.max(0, layout.clusterDeltaBarsView.h);
+    }
+    if (data.ableOI() && settings.OIDelta) {
+      totalBottom += Math.max(0, layout.clusterOIDeltaView.h);
+    }
+    for (const panel of layout.indicatorPanels ?? []) {
+      totalBottom += Math.max(0, panel?.view?.h ?? 0);
+    }
+
+    const graphTopSpace = Math.max(0, layout.clusterView.y);
+    const datesHeight = Math.max(0, layout.clusterDatesView.h);
+    const maxBottom = Math.max(
+      MIN_RESIZABLE_BLOCK_HEIGHT,
+      canvas.height - graphTopSpace - datesHeight - MIN_MAIN_CLUSTER_HEIGHT
+    );
+
+    return { totalBottom, maxBottom };
   }
 
   onTap = (event: MouseEvent): void => {
