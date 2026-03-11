@@ -1,12 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { AuthService } from 'src/app/service/auth.service';
+import { AuthService, ExternalAuthProvider } from 'src/app/service/auth.service';
 import { DialogService } from 'src/app/service/DialogService.service';
 
 @Component({
@@ -30,15 +30,21 @@ export class RegisterComponent implements OnInit {
   done = false;
   errorMessage: string = '';
   errorMessages: any[] = [];
+  externalProviders: ExternalAuthProvider[] = [];
+  returnUrl: string = '/';
 
   constructor(
     private formBuilder: FormBuilder,
     private authService: AuthService,
     private router: Router,
+    private route: ActivatedRoute,
     private dialog: DialogService
   ) {}
 
   ngOnInit(): void {
+    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+    this.errorMessage = this.route.snapshot.queryParams['externalError'] || '';
+
     this.registerForm = this.formBuilder.group(
       {
         UserName: ['', Validators.required],
@@ -50,6 +56,15 @@ export class RegisterComponent implements OnInit {
         validator: this.MustMatch('Password', 'ConfirmPassword'),
       }
     );
+
+    this.authService.getExternalProviders().subscribe({
+      next: (providers) => {
+        this.externalProviders = providers;
+      },
+      error: () => {
+        this.externalProviders = [];
+      }
+    });
   }
 
   get f() {
@@ -83,6 +98,10 @@ export class RegisterComponent implements OnInit {
         }
       }
     );
+  }
+
+  loginWithProvider(providerName: string): void {
+    this.authService.beginExternalLogin(providerName, this.returnUrl);
   }
 
   MustMatch(controlName: string, matchingControlName: string) {

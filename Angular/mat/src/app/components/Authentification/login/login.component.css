@@ -22,13 +22,34 @@ mat-card {
     margin-top: 20px;
   }
   
-  .error-message {
-    color: red;
-    margin-top: 20px;
-  }
+.error-message {
+  color: red;
+  margin-top: 20px;
+}
 
-  .links-container {
-    display: flex;
+.external-login-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.external-login-title {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.68);
+}
+
+.external-login-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.external-login-button {
+  flex: 1 1 0;
+}
+
+.links-container {
+  display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;

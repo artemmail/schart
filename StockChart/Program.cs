@@ -1,4 +1,6 @@
 
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.Identity;
@@ -17,6 +19,7 @@ using StockChart.Repository.Interfaces;
 using StockChart.Repository.Moex.OptionCalc;
 using StockChart.Repository.Services;
 using System.Net;
+using System.Security.Claims;
 using System.Text.Json;
 var MyAllowSpecificOrigins = "AllowSpecificOrigin";// "_myAllowSpecificOrigins";
 var builder = WebApplication.CreateBuilder(args);
@@ -32,6 +35,105 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.R
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+var yandexClientId = builder.Configuration["Authentication:Yandex:ClientId"];
+var yandexClientSecret = builder.Configuration["Authentication:Yandex:ClientSecret"];
+var authenticationBuilder = builder.Services.AddAuthentication();
+
+if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
+{
+    authenticationBuilder.AddGoogle("Google", options =>
+    {
+        options.ClientId = googleClientId;
+        options.ClientSecret = googleClientSecret;
+        options.CallbackPath = "/signin-google";
+        options.SaveTokens = true;
+        options.Scope.Add("email");
+        options.AuthorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
+        options.TokenEndpoint = "https://www.googleapis.com/oauth2/v4/token";
+        options.UserInformationEndpoint = "https://www.googleapis.com/oauth2/v3/userinfo";
+
+        var backchannelHandler = new HttpClientHandler
+        {
+            AllowAutoRedirect = false,
+            UseCookies = false
+        };
+
+        if (backchannelHandler.SupportsAutomaticDecompression)
+        {
+            backchannelHandler.AutomaticDecompression =
+                DecompressionMethods.GZip | DecompressionMethods.Deflate;
+        }
+
+        var backchannelClient = new HttpClient(backchannelHandler)
+        {
+            Timeout = options.BackchannelTimeout,
+            DefaultRequestVersion = HttpVersion.Version11,
+#if NET8_0_OR_GREATER
+            DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower,
+#endif
+            MaxResponseContentBufferSize = 1024 * 1024 * 10
+        };
+
+        backchannelClient.DefaultRequestHeaders.Accept.Add(
+            new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+        backchannelClient.DefaultRequestHeaders.UserAgent.Add(
+            new System.Net.Http.Headers.ProductInfoHeaderValue("Microsoft.AspNetCore.Authentication.OAuth", "1.0"));
+        backchannelClient.DefaultRequestHeaders.UserAgent.Add(
+            new System.Net.Http.Headers.ProductInfoHeaderValue("Microsoft.AspNetCore.Authentication.Google", "1.0"));
+
+        options.BackchannelHttpHandler = backchannelHandler;
+        options.Backchannel = backchannelClient;
+    });
+}
+
+if (!string.IsNullOrWhiteSpace(yandexClientId) && !string.IsNullOrWhiteSpace(yandexClientSecret))
+{
+    authenticationBuilder.AddOAuth("Yandex", "Yandex", options =>
+    {
+        options.ClientId = yandexClientId;
+        options.ClientSecret = yandexClientSecret;
+        options.CallbackPath = "/signin-yandex";
+        options.AuthorizationEndpoint = "https://oauth.yandex.com/authorize";
+        options.TokenEndpoint = "https://oauth.yandex.com/token";
+        options.UserInformationEndpoint = "https://login.yandex.ru/info?format=json";
+        options.SaveTokens = true;
+        options.Scope.Add("login:email");
+
+        options.ClaimActions.Clear();
+        options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "id");
+        options.ClaimActions.MapJsonKey(ClaimTypes.Name, "real_name");
+        options.ClaimActions.MapJsonKey(ClaimTypes.Email, "default_email");
+        options.ClaimActions.MapJsonKey("urn:yandex:login", "login");
+        options.ClaimActions.MapJsonKey("urn:yandex:display_name", "display_name");
+
+        options.Events = new OAuthEvents
+        {
+            OnCreatingTicket = async context =>
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, context.Options.UserInformationEndpoint);
+                request.Headers.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("OAuth", context.AccessToken);
+
+                using var response = await context.Backchannel.SendAsync(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    context.HttpContext.RequestAborted);
+
+                response.EnsureSuccessStatusCode();
+
+                await using var responseStream =
+                    await response.Content.ReadAsStreamAsync(context.HttpContext.RequestAborted);
+                using var payload = await JsonDocument.ParseAsync(
+                    responseStream,
+                    cancellationToken: context.HttpContext.RequestAborted);
+
+                context.RunClaimActions(payload.RootElement);
+            }
+        };
+    });
+}
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.HttpOnly = true;

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
@@ -11,6 +12,7 @@ using StockChart.Areas.Identity.Pages.Account;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using StockChart.Repository.Interfaces;
+using System.Security.Claims;
 
 namespace YourNamespace.Controllers
 {
@@ -55,7 +57,130 @@ namespace YourNamespace.Controllers
 
             var hasActiveSubscription = await _usersRepository.UserHasActiveSubscription(user);
             var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
-            return Ok(new { user.Id, user.UserName, hasActiveSubscription, isAdmin });
+            var roles = await _userManager.GetRolesAsync(user);
+            return Ok(new { user.Id, user.UserName, hasActiveSubscription, isAdmin, roles });
+        }
+
+        [HttpGet("external-providers")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetExternalProviders()
+        {
+            var providers = (await _signInManager.GetExternalAuthenticationSchemesAsync())
+                .Select(scheme => new
+                {
+                    name = scheme.Name,
+                    displayName = scheme.DisplayName ?? scheme.Name
+                });
+
+            return Ok(providers);
+        }
+
+        [HttpGet("external-login/{provider}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ExternalLogin(string provider, [FromQuery] string? returnUrl = null)
+        {
+            var normalizedReturnUrl = NormalizeReturnUrl(returnUrl);
+            if (!TryGetExternalProvider(provider, out var scheme))
+            {
+                return Redirect(BuildLoginErrorRedirect(normalizedReturnUrl, "Провайдер внешнего входа недоступен."));
+            }
+
+            var availableProviders = await _signInManager.GetExternalAuthenticationSchemesAsync();
+            if (!availableProviders.Any(item => string.Equals(item.Name, scheme, StringComparison.OrdinalIgnoreCase)))
+            {
+                return Redirect(BuildLoginErrorRedirect(normalizedReturnUrl, "Внешний вход не настроен."));
+            }
+
+            var redirectUrl = Url.Action(nameof(ExternalLoginCallback), "Auth", new { returnUrl = normalizedReturnUrl });
+            if (string.IsNullOrWhiteSpace(redirectUrl))
+            {
+                return Redirect(BuildLoginErrorRedirect(normalizedReturnUrl, "Не удалось подготовить внешний вход."));
+            }
+
+            var properties = _signInManager.ConfigureExternalAuthenticationProperties(scheme, redirectUrl);
+            return Challenge(properties, scheme);
+        }
+
+        [HttpGet("external-callback")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ExternalLoginCallback([FromQuery] string? returnUrl = null, [FromQuery] string? remoteError = null)
+        {
+            var normalizedReturnUrl = NormalizeReturnUrl(returnUrl);
+            if (!string.IsNullOrWhiteSpace(remoteError))
+            {
+                return Redirect(BuildLoginErrorRedirect(normalizedReturnUrl, $"Ошибка внешнего входа: {remoteError}"));
+            }
+
+            var info = await _signInManager.GetExternalLoginInfoAsync();
+            if (info == null)
+            {
+                return Redirect(BuildLoginErrorRedirect(normalizedReturnUrl, "Не удалось получить данные внешнего входа."));
+            }
+
+            var signInResult = await _signInManager.ExternalLoginSignInAsync(
+                info.LoginProvider,
+                info.ProviderKey,
+                isPersistent: true,
+                bypassTwoFactor: true);
+
+            if (signInResult.Succeeded)
+            {
+                var existingUser = await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
+                if (existingUser != null)
+                {
+                    await RecordLoginAsync(existingUser);
+                }
+
+                return Redirect(BuildSpaCallbackRedirect(normalizedReturnUrl));
+            }
+
+            if (signInResult.IsLockedOut)
+            {
+                return Redirect(BuildLoginErrorRedirect(normalizedReturnUrl, "Учётная запись заблокирована."));
+            }
+
+            var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return Redirect(BuildLoginErrorRedirect(normalizedReturnUrl, "Провайдер не вернул email пользователя."));
+            }
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                user = new ApplicationUser
+                {
+                    Email = email,
+                    UserName = await BuildUniqueUserNameAsync(email),
+                    EmailConfirmed = true
+                };
+
+                var createResult = await _userManager.CreateAsync(user);
+                if (!createResult.Succeeded)
+                {
+                    return Redirect(BuildLoginErrorRedirect(normalizedReturnUrl, JoinErrors(createResult.Errors)));
+                }
+            }
+            else if (!user.EmailConfirmed)
+            {
+                user.EmailConfirmed = true;
+                var updateResult = await _userManager.UpdateAsync(user);
+                if (!updateResult.Succeeded)
+                {
+                    return Redirect(BuildLoginErrorRedirect(normalizedReturnUrl, JoinErrors(updateResult.Errors)));
+                }
+            }
+
+            var addLoginResult = await _userManager.AddLoginAsync(user, info);
+            if (!addLoginResult.Succeeded &&
+                !addLoginResult.Errors.Any(error => error.Code == "LoginAlreadyAssociated"))
+            {
+                return Redirect(BuildLoginErrorRedirect(normalizedReturnUrl, JoinErrors(addLoginResult.Errors)));
+            }
+
+            await _signInManager.SignInAsync(user, isPersistent: true, info.LoginProvider);
+            await RecordLoginAsync(user);
+            return Redirect(BuildSpaCallbackRedirect(normalizedReturnUrl));
         }
 
         [HttpPost("login")]
@@ -81,7 +206,7 @@ namespace YourNamespace.Controllers
                 };
 
                 _db.Add(u);
-                _db.SaveChanges();
+                await _db.SaveChangesAsync();
 
                 return Ok(new { message = "Login successful", roles }); // Возврат ролей в ответе
             }
@@ -284,6 +409,109 @@ namespace YourNamespace.Controllers
                 Code = state.Key,
                 Description = error.ErrorMessage
             })).ToList();
+        }
+
+        private async Task RecordLoginAsync(ApplicationUser user)
+        {
+            var loginHistory = new UserLoginHistory
+            {
+                IpAddress = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                UserId = user.Id,
+                LoginTime = DateTime.Now,
+                UserAgent = _httpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString() ?? "none",
+                Location = ""
+            };
+
+            _db.Add(loginHistory);
+            await _db.SaveChangesAsync();
+        }
+
+        private bool TryGetExternalProvider(string provider, out string scheme)
+        {
+            scheme = provider?.Trim().ToLowerInvariant() switch
+            {
+                "google" => "Google",
+                "yandex" => "Yandex",
+                _ => string.Empty
+            };
+
+            return !string.IsNullOrWhiteSpace(scheme);
+        }
+
+        private string NormalizeReturnUrl(string? returnUrl)
+        {
+            if (string.IsNullOrWhiteSpace(returnUrl))
+            {
+                return "/";
+            }
+
+            if (Url.IsLocalUrl(returnUrl))
+            {
+                return returnUrl;
+            }
+
+            if (Uri.TryCreate(returnUrl, UriKind.Absolute, out var absoluteUrl))
+            {
+                var currentHost = Request.Host.Host;
+                if (!string.IsNullOrWhiteSpace(currentHost) &&
+                    string.Equals(absoluteUrl.Host, currentHost, StringComparison.OrdinalIgnoreCase))
+                {
+                    var localUrl = absoluteUrl.PathAndQuery + absoluteUrl.Fragment;
+                    return Url.IsLocalUrl(localUrl) ? localUrl : "/";
+                }
+            }
+
+            return "/";
+        }
+
+        private string BuildSpaCallbackRedirect(string returnUrl)
+        {
+            return QueryHelpers.AddQueryString("/auth/callback", "returnUrl", returnUrl);
+        }
+
+        private string BuildLoginErrorRedirect(string returnUrl, string message)
+        {
+            return QueryHelpers.AddQueryString(
+                "/Identity/Account/Login",
+                new Dictionary<string, string?>
+                {
+                    ["returnUrl"] = returnUrl,
+                    ["externalError"] = message
+                });
+        }
+
+        private async Task<string> BuildUniqueUserNameAsync(string email)
+        {
+            if (await _userManager.FindByNameAsync(email) == null)
+            {
+                return email;
+            }
+
+            var baseUserName = email.Split('@')[0];
+            if (string.IsNullOrWhiteSpace(baseUserName))
+            {
+                baseUserName = "user";
+            }
+
+            var candidate = baseUserName;
+            var suffix = 1;
+            while (await _userManager.FindByNameAsync(candidate) != null)
+            {
+                candidate = $"{baseUserName}_{suffix++}";
+            }
+
+            return candidate;
+        }
+
+        private static string JoinErrors(IEnumerable<IdentityError> errors)
+        {
+            var message = string.Join(" ", errors
+                .Select(error => error.Description)
+                .Where(description => !string.IsNullOrWhiteSpace(description)));
+
+            return string.IsNullOrWhiteSpace(message)
+                ? "Не удалось выполнить операцию внешнего входа."
+                : message;
         }
     }
 }

@@ -20,6 +20,20 @@
       <div *ngIf="errorMessage" class="error-message">
         {{ errorMessage }}
       </div>
+      <div *ngIf="externalProviders.length" class="external-login-section">
+        <div class="external-login-title">Или войдите через внешний аккаунт</div>
+        <div class="external-login-buttons">
+          <button
+            *ngFor="let provider of externalProviders"
+            mat-raised-button
+            color="primary"
+            type="button"
+            class="external-login-button"
+            (click)="loginWithProvider(provider.name)">
+            {{ provider.displayName }}
+          </button>
+        </div>
+      </div>
     </mat-card-content>
     <div>
       <a mat-button id="forgot-password" routerLink="/Identity/Account/ForgotPassword">Забыли пароль?</a>

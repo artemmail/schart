@@ -47,7 +47,29 @@
             </form>
         </section>
     </div>
-    
+    @if ((Model.ExternalLogins?.Count ?? 0) > 0)
+    {
+        <div class="col-md-4 offset-md-1">
+            <section>
+                <h2>Или войдите через</h2>
+                <hr />
+                <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+                    <div class="d-grid gap-2">
+                        @foreach (var provider in Model.ExternalLogins)
+                        {
+                            <button type="submit"
+                                    class="btn btn-outline-secondary"
+                                    name="provider"
+                                    value="@provider.Name"
+                                    title="Войти через @provider.DisplayName">
+                                @provider.DisplayName
+                            </button>
+                        }
+                    </div>
+                </form>
+            </section>
+        </div>
+    }
 </div>
 
 @section Scripts {

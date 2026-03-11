@@ -24,6 +24,7 @@ import { ForgotPasswordComponent } from './components/Authentification/forgot-pa
 import { ForgotPasswordConfirmationComponent } from './components/Authentification/forgot-password-confirmation/forgot-password-confirmation.component';
 import { ResendEmailConfirmationComponent } from './components/Authentification/resend-email-confirmation/resend-email-confirmation.component';
 import { ResetPasswordComponent } from './components/Authentification/reset-password/reset-password.component';
+import { AuthCallbackComponent } from './components/Authentification/auth-callback/auth-callback.component';
 import { TotalVolumeComponent } from './components/Reports/total-volume/total-volume.component';
 import { CandlesStatComponent } from './components/Reports/candles-stat/candles-stat.component';
 
@@ -146,6 +147,7 @@ const routes: Routes = [
   
   { path: 'ShareImage', component: ImageUploaderComponent },
   { path: 'Payment', component: SubscriptionPlansComponent },
+  { path: 'auth/callback', component: AuthCallbackComponent },
   { path: 'Portfolio', redirectTo: 'ServiceNews/Content/Portfolio', pathMatch: 'full' },
   { path: 'Portfolio/Optimization', component: PortfolioOptimizationComponent },
   { path: 'MultiCandles', 

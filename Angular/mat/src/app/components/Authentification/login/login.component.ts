@@ -8,7 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { LoginModel } from 'src/app/models/login';
 import { AuthEventService } from 'src/app/service/AuthEventService';
-import { AuthService } from 'src/app/service/auth.service';
+import { AuthService, ExternalAuthProvider } from 'src/app/service/auth.service';
 
 @Component({
   standalone: true,
@@ -30,6 +30,7 @@ export class LoginComponent implements OnInit {
   password: string;
   errorMessage: string;
   returnUrl: string; // Переменная для хранения returnUrl
+  externalProviders: ExternalAuthProvider[] = [];
 
   constructor(
     private authService: AuthService,
@@ -41,6 +42,16 @@ export class LoginComponent implements OnInit {
   ngOnInit(): void {
     // Извлекаем returnUrl из queryParams, если он был передан
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+    this.errorMessage = this.route.snapshot.queryParams['externalError'] || '';
+
+    this.authService.getExternalProviders().subscribe({
+      next: (providers) => {
+        this.externalProviders = providers;
+      },
+      error: () => {
+        this.externalProviders = [];
+      }
+    });
   }
 
   login() {
@@ -50,12 +61,16 @@ export class LoginComponent implements OnInit {
       data => {
         this.authEventService.emitAuthStateChange(true);
         // Перенаправление на returnUrl или на главную страницу, если returnUrl не передан
-        this.router.navigate([this.returnUrl]); 
+        this.router.navigateByUrl(this.returnUrl); 
 
       },
       err => {
         this.errorMessage = 'Invalid login attempt';
       }
     );
+  }
+
+  loginWithProvider(providerName: string): void {
+    this.authService.beginExternalLogin(providerName, this.returnUrl);
   }
 }
