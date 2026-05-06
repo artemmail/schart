@@ -172,7 +172,7 @@ describe('FootprintIndicatorEngine', () => {
     expect(bid!.values[2]).toBeCloseTo(10);
   });
 
-  test('calculates VWAP from turnover weighted by quantity', () => {
+  test('calculates WAP line from per-bar turnover and quantity', () => {
     const data = makeClusterData([100, 1], [20, 20], [20, 20], [2, 1]);
     const engine = makeEngine();
 
@@ -180,18 +180,11 @@ describe('FootprintIndicatorEngine', () => {
     engine.setSettings({
       Indicators: [
         {
-          id: 'vw1',
-          type: 'vwap',
+          id: 'wap1',
+          type: 'weightedAveragePrice',
           params: {
-            anchor: 'session',
-            showBands: false,
-            bandMode: 'stdev',
-            bandValue: 1,
-            color: '#16a085',
-            bandColor: '#1abc9c',
-            width: 1,
+            color: '#f39c12',
             lineStyle: 'solid',
-            priceSource: 'hlc3',
           },
           panel: 'chart',
           visible: true,
@@ -202,13 +195,13 @@ describe('FootprintIndicatorEngine', () => {
 
     engine.prepare();
 
-    const vwap = engine.getChartSeries().find((s) => s.id === 'VWAP');
-    expect(vwap).toBeTruthy();
-    expect(vwap!.values[0]).toBeCloseTo(10);
-    expect(vwap!.values[1]).toBeCloseTo(40 / 3);
+    const wap = engine.getChartSeries().find((s) => s.id === 'WAP');
+    expect(wap).toBeTruthy();
+    expect(wap!.values[0]).toBeCloseTo(10);
+    expect(wap!.values[1]).toBeCloseTo(20);
   });
 
-  test('uses VolumePerQuantity when converting quantity to VWAP weight', () => {
+  test('uses VolumePerQuantity when converting quantity to WAP denominator', () => {
     const data = makeClusterData([100, 1], [20, 20], [20, 20], [2, 1], 10);
     const engine = makeEngine();
 
@@ -216,16 +209,10 @@ describe('FootprintIndicatorEngine', () => {
     engine.setSettings({
       Indicators: [
         {
-          id: 'vw1',
-          type: 'vwap',
+          id: 'wap1',
+          type: 'weightedAveragePrice',
           params: {
-            anchor: 'session',
-            showBands: false,
-            bandMode: 'stdev',
-            bandValue: 1,
-            color: '#16a085',
-            bandColor: '#1abc9c',
-            width: 1,
+            color: '#f39c12',
             lineStyle: 'solid',
           },
           panel: 'chart',
@@ -237,10 +224,10 @@ describe('FootprintIndicatorEngine', () => {
 
     engine.prepare();
 
-    const vwap = engine.getChartSeries().find((s) => s.id === 'VWAP');
-    expect(vwap).toBeTruthy();
-    expect(vwap!.values[0]).toBeCloseTo(1);
-    expect(vwap!.values[1]).toBeCloseTo(40 / 30);
+    const wap = engine.getChartSeries().find((s) => s.id === 'WAP');
+    expect(wap).toBeTruthy();
+    expect(wap!.values[0]).toBeCloseTo(1);
+    expect(wap!.values[1]).toBeCloseTo(2);
   });
 
   test('calculates Stochastic in fixed 0..100 subpanel', () => {

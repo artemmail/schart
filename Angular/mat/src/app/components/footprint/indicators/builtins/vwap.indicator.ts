@@ -5,11 +5,13 @@ import {
   IndicatorInstance,
   LineStyle,
   ParamSchema,
+  SourceType,
 } from '../indicator-api';
 import { dayKey, isoWeekKey, lineStyleField, monthKey } from './indicator-utils';
 
 export type VwapParams = {
   anchor: 'session' | 'day' | 'week' | 'month';
+  priceSource: SourceType;
   showBands: boolean;
   bandMode: 'stdev' | 'percent';
   bandValue: number;
@@ -29,6 +31,17 @@ const vwapParamsSchema: ParamSchema<VwapParams> = {
       { value: 'day', label: 'Day' },
       { value: 'week', label: 'Week' },
       { value: 'month', label: 'Month' },
+    ],
+  },
+  priceSource: {
+    type: 'enum',
+    title: 'Price Source',
+    default: 'hlc3',
+    options: [
+      { value: 'hlc3', label: 'HLC3' },
+      { value: 'hl2', label: 'HL2' },
+      { value: 'ohlc4', label: 'OHLC4' },
+      { value: 'close', label: 'Close' },
     ],
   },
   showBands: { type: 'bool', title: 'Show Bands', default: false },
@@ -93,32 +106,32 @@ export const VwapIndicator: IndicatorDefinition<VwapParams> = {
     };
     lowerSeries.values.fill(NaN);
 
-    let cumTurnover = new Float64Array(ctx.barsCount());
-    let cumQuantity = new Float64Array(ctx.barsCount());
-    let cumWeightedPriceSq = new Float64Array(ctx.barsCount());
-    cumTurnover.fill(NaN);
-    cumQuantity.fill(NaN);
-    cumWeightedPriceSq.fill(NaN);
+    let cumPV = new Float64Array(ctx.barsCount());
+    let cumVol = new Float64Array(ctx.barsCount());
+    let cumPV2 = new Float64Array(ctx.barsCount());
+    cumPV.fill(NaN);
+    cumVol.fill(NaN);
+    cumPV2.fill(NaN);
 
     const ensureArrays = () => {
       const len = ctx.barsCount();
-      if (cumTurnover.length !== len) {
+      if (cumPV.length !== len) {
         const next = new Float64Array(len);
         next.fill(NaN);
-        next.set(cumTurnover.subarray(0, Math.min(cumTurnover.length, len)));
-        cumTurnover = next;
+        next.set(cumPV.subarray(0, Math.min(cumPV.length, len)));
+        cumPV = next;
       }
-      if (cumQuantity.length !== len) {
+      if (cumVol.length !== len) {
         const next = new Float64Array(len);
         next.fill(NaN);
-        next.set(cumQuantity.subarray(0, Math.min(cumQuantity.length, len)));
-        cumQuantity = next;
+        next.set(cumVol.subarray(0, Math.min(cumVol.length, len)));
+        cumVol = next;
       }
-      if (cumWeightedPriceSq.length !== len) {
+      if (cumPV2.length !== len) {
         const next = new Float64Array(len);
         next.fill(NaN);
-        next.set(cumWeightedPriceSq.subarray(0, Math.min(cumWeightedPriceSq.length, len)));
-        cumWeightedPriceSq = next;
+        next.set(cumPV2.subarray(0, Math.min(cumPV2.length, len)));
+        cumPV2 = next;
       }
     };
 
@@ -135,15 +148,17 @@ export const VwapIndicator: IndicatorDefinition<VwapParams> = {
       }
     };
 
+    const getPrice = (bar: number) => ctx.source(bar, params.priceSource);
+
     const calcBar = (bar: number) => {
       ensureArrays();
       if (bar === 0) {
         vwapSeries.values.fill(NaN);
         upperSeries.values.fill(NaN);
         lowerSeries.values.fill(NaN);
-        cumTurnover.fill(NaN);
-        cumQuantity.fill(NaN);
-        cumWeightedPriceSq.fill(NaN);
+        cumPV.fill(NaN);
+        cumVol.fill(NaN);
+        cumPV2.fill(NaN);
       }
 
       const candle = ctx.candles[bar];
@@ -152,42 +167,27 @@ export const VwapIndicator: IndicatorDefinition<VwapParams> = {
       const prevKey = bar > 0 ? getKey(new Date(ctx.candles[bar - 1].t)) : null;
       const isNewPeriod = bar === 0 || key !== prevKey;
 
-      const prevTurnover =
-        !isNewPeriod && isFinite(cumTurnover[bar - 1])
-          ? cumTurnover[bar - 1]
-          : 0;
-      const prevQuantity =
-        !isNewPeriod && isFinite(cumQuantity[bar - 1])
-          ? cumQuantity[bar - 1]
-          : 0;
-      const prevWeightedPriceSq =
-        !isNewPeriod && isFinite(cumWeightedPriceSq[bar - 1])
-          ? cumWeightedPriceSq[bar - 1]
-          : 0;
+      const prevPV = !isNewPeriod && isFinite(cumPV[bar - 1]) ? cumPV[bar - 1] : 0;
+      const prevVol = !isNewPeriod && isFinite(cumVol[bar - 1]) ? cumVol[bar - 1] : 0;
+      const prevPV2 = !isNewPeriod && isFinite(cumPV2[bar - 1]) ? cumPV2[bar - 1] : 0;
 
-      const turnover = ctx.source(bar, 'volume');
-      const quantity = ctx.source(bar, 'quantity');
-      const validQuantity = isFinite(quantity) && quantity > 0 ? quantity : 0;
-      const validTurnover =
-        validQuantity > 0 && isFinite(turnover) ? turnover : 0;
-      const barVwap = validQuantity > 0 ? validTurnover / validQuantity : NaN;
+      const volume = ctx.source(bar, 'volume');
+      const price = getPrice(bar);
+      const vol = isFinite(volume) ? volume : 0;
 
-      cumTurnover[bar] = prevTurnover + validTurnover;
-      cumQuantity[bar] = prevQuantity + validQuantity;
-      cumWeightedPriceSq[bar] =
-        prevWeightedPriceSq +
-        (validQuantity > 0 && isFinite(barVwap)
-          ? barVwap * barVwap * validQuantity
-          : 0);
+      const pv = vol > 0 ? price * vol : 0;
+      cumPV[bar] = prevPV + pv;
+      cumVol[bar] = prevVol + vol;
+      cumPV2[bar] = prevPV2 + (vol > 0 ? price * price * vol : 0);
 
-      if (cumQuantity[bar] <= 0) {
+      if (cumVol[bar] <= 0) {
         vwapSeries.values[bar] = NaN;
         upperSeries.values[bar] = NaN;
         lowerSeries.values[bar] = NaN;
         return;
       }
 
-      const vwap = cumTurnover[bar] / cumQuantity[bar];
+      const vwap = cumPV[bar] / cumVol[bar];
       vwapSeries.values[bar] = vwap;
 
       if (!params.showBands) {
@@ -201,7 +201,7 @@ export const VwapIndicator: IndicatorDefinition<VwapParams> = {
         upperSeries.values[bar] = vwap * (1 + pct);
         lowerSeries.values[bar] = vwap * (1 - pct);
       } else {
-        const meanSq = cumWeightedPriceSq[bar] / cumQuantity[bar];
+        const meanSq = cumPV2[bar] / cumVol[bar];
         const variance = Math.max(0, meanSq - vwap * vwap);
         const stdev = Math.sqrt(variance);
         const k = params.bandValue;
@@ -238,9 +238,9 @@ export const VwapIndicator: IndicatorDefinition<VwapParams> = {
         vwapSeries.values.fill(NaN);
         upperSeries.values.fill(NaN);
         lowerSeries.values.fill(NaN);
-        cumTurnover.fill(NaN);
-        cumQuantity.fill(NaN);
-        cumWeightedPriceSq.fill(NaN);
+        cumPV.fill(NaN);
+        cumVol.fill(NaN);
+        cumPV2.fill(NaN);
         ctx.requestRecalc();
       },
     };

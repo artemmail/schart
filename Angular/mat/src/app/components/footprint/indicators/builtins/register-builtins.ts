@@ -7,6 +7,7 @@ import { EmaIndicator } from './ema.indicator';
 import { WmaIndicator } from './wma.indicator';
 import { RmaIndicator } from './rma.indicator';
 import { VwapIndicator } from './vwap.indicator';
+import { WeightedAveragePriceIndicator } from './weighted-average-price.indicator';
 import { DonchianIndicator } from './donchian.indicator';
 import { KeltnerIndicator } from './keltner.indicator';
 import { SuperTrendIndicator } from './supertrend.indicator';
@@ -27,6 +28,7 @@ export function registerFootprintBuiltInIndicators(registry: IndicatorRegistry):
   registry.register(VolumeIndicator);
   registry.register(BollingerBandsIndicator);
   registry.register(VwapIndicator);
+  registry.register(WeightedAveragePriceIndicator);
   registry.register(DonchianIndicator);
   registry.register(KeltnerIndicator);
   registry.register(SuperTrendIndicator);
