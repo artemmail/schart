@@ -6,12 +6,14 @@ import { canvasPart } from '../views/canvas-part';
 import { Matrix, Point } from '../models/matrix';
 import { FormattingService } from 'src/app/service/FootPrint/Formating/formatting.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
+import { calculateWeightedAveragePrice } from './hint-vwap';
 
 interface HintRenderOptions {
   event: MyMouseEvent;
   mtx: Matrix;
   clusterData: ColumnEx[] | null | undefined;
   priceScale: number;
+  volumePerQuantity: number;
   views: Array<canvasPart>;
   settings: ChartSettings;
   formatService: FormattingService;
@@ -70,6 +72,15 @@ export class HintContainerService implements OnDestroy {
     const col: ColumnEx = clusterData[n] as ColumnEx;
     const item = (label: string, val: string | number | never) =>
       `<li style='font-size: 12px;'><b>${label}: </b>${val}</li>`;
+    const weightedAveragePrice = calculateWeightedAveragePrice(
+      col.v,
+      col.q,
+      options.volumePerQuantity
+    );
+    const weightedAveragePriceRow =
+      weightedAveragePrice !== null && Number.isFinite(weightedAveragePrice)
+        ? item('VWAP', drob(weightedAveragePrice))
+        : '';
 
     let data = '';
 
@@ -79,6 +90,7 @@ export class HintContainerService implements OnDestroy {
       data += item('Contracts', col.q);
       data += item('Direction', col.bq ? 'Buy' : 'Sell');
       data += item('Volume', MoneyToStr(col.v));
+      data += weightedAveragePriceRow;
     } else {
       data += item('Opn', (col as ColumnEx).o);
       data += item('Cls', col.c);
@@ -98,6 +110,7 @@ export class HintContainerService implements OnDestroy {
       }
 
       data += item('Volume', MoneyToStr(col.v));
+      data += weightedAveragePriceRow;
     }
 
     for (const view of options.views) {

@@ -371,6 +371,8 @@ export class FootprintIndicatorEngine {
         return (c.o + c.h + c.l + c.c) / 4;
       case 'volume':
         return c.v ?? 0;
+      case 'quantity':
+        return this.sourceQuantity(c.q);
       case 'oi':
         return c.oi ?? 0;
       case 'askVolume': {
@@ -401,11 +403,27 @@ export class FootprintIndicatorEngine {
         h: c.h,
         l: c.l,
         c: c.c,
+        q: c.q ?? 0,
         v: c.v ?? 0,
         bv: c.bv ?? 0,
         oi: c.oi ?? 0,
       }));
     }
+  }
+
+  private sourceQuantity(quantity: number | null | undefined): number {
+    const q = quantity ?? 0;
+    if (!isFinite(q) || q <= 0) {
+      return 0;
+    }
+
+    const volumePerQuantity = this.data?.volumePerQuantity ?? 1;
+    const multiplier =
+      isFinite(volumePerQuantity) && volumePerQuantity > 0
+        ? volumePerQuantity
+        : 1;
+
+    return q * multiplier;
   }
 
   private ensureSeriesCapacity(instance: IndicatorInstance<any>, barsCount: number): void {

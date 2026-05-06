@@ -7,6 +7,7 @@ export type SourceType =
   | 'hlc3'
   | 'ohlc4'
   | 'volume'
+  | 'quantity'
   | 'oi'
   | 'askVolume'
   | 'bidVolume';
@@ -17,6 +18,7 @@ export interface Candle {
   h: number;
   l: number;
   c: number;
+  q?: number;
   v?: number;
   bv?: number;
   oi?: number;

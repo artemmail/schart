@@ -269,6 +269,7 @@ interruptSwipe() {
       mtx: this.mtx,
       clusterData: this.parent.data.clusterData,
       priceScale: this.parent.data.priceScale,
+      volumePerQuantity: this.parent.data.volumePerQuantity,
       views: this.parent.views,
       settings: this.parent.FPsettings,
       formatService: this.formatService,

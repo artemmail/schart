@@ -6,7 +6,9 @@ import { ClusterData } from '../../models/cluster-data';
 function makeClusterData(
   closes: number[],
   volumes: number[] = closes.map(() => 0),
-  buyVolumes: number[] = volumes
+  buyVolumes: number[] = volumes,
+  quantities: number[] = closes.map(() => 1),
+  volumePerQuantity: number = 1
 ) {
   const start = new Date('2026-01-01T00:00:00.000Z').getTime();
   const cols = closes.map((c, i) => ({
@@ -16,14 +18,14 @@ function makeClusterData(
     h: c,
     l: c,
     c,
-    q: 1,
-    bq: 1,
+    q: quantities[i] ?? 1,
+    bq: quantities[i] ?? 1,
     v: volumes[i] ?? 0,
     bv: buyVolumes[i] ?? 0,
     oi: 0,
   }));
 
-  return new ClusterData({ clusterData: cols, priceScale: 1, VolumePerQuantity: 1 });
+  return new ClusterData({ clusterData: cols, priceScale: 1, VolumePerQuantity: volumePerQuantity });
 }
 
 function makeEngine() {
@@ -168,6 +170,77 @@ describe('FootprintIndicatorEngine', () => {
     expect(bid!.values[0]).toBeCloseTo(6);
     expect(bid!.values[1]).toBeCloseTo(8);
     expect(bid!.values[2]).toBeCloseTo(10);
+  });
+
+  test('calculates VWAP from turnover weighted by quantity', () => {
+    const data = makeClusterData([100, 1], [20, 20], [20, 20], [2, 1]);
+    const engine = makeEngine();
+
+    engine.setData(data);
+    engine.setSettings({
+      Indicators: [
+        {
+          id: 'vw1',
+          type: 'vwap',
+          params: {
+            anchor: 'session',
+            showBands: false,
+            bandMode: 'stdev',
+            bandValue: 1,
+            color: '#16a085',
+            bandColor: '#1abc9c',
+            width: 1,
+            lineStyle: 'solid',
+            priceSource: 'hlc3',
+          },
+          panel: 'chart',
+          visible: true,
+        },
+      ],
+      IndicatorPanels: {},
+    } as any);
+
+    engine.prepare();
+
+    const vwap = engine.getChartSeries().find((s) => s.id === 'VWAP');
+    expect(vwap).toBeTruthy();
+    expect(vwap!.values[0]).toBeCloseTo(10);
+    expect(vwap!.values[1]).toBeCloseTo(40 / 3);
+  });
+
+  test('uses VolumePerQuantity when converting quantity to VWAP weight', () => {
+    const data = makeClusterData([100, 1], [20, 20], [20, 20], [2, 1], 10);
+    const engine = makeEngine();
+
+    engine.setData(data);
+    engine.setSettings({
+      Indicators: [
+        {
+          id: 'vw1',
+          type: 'vwap',
+          params: {
+            anchor: 'session',
+            showBands: false,
+            bandMode: 'stdev',
+            bandValue: 1,
+            color: '#16a085',
+            bandColor: '#1abc9c',
+            width: 1,
+            lineStyle: 'solid',
+          },
+          panel: 'chart',
+          visible: true,
+        },
+      ],
+      IndicatorPanels: {},
+    } as any);
+
+    engine.prepare();
+
+    const vwap = engine.getChartSeries().find((s) => s.id === 'VWAP');
+    expect(vwap).toBeTruthy();
+    expect(vwap!.values[0]).toBeCloseTo(1);
+    expect(vwap!.values[1]).toBeCloseTo(40 / 30);
   });
 
   test('calculates Stochastic in fixed 0..100 subpanel', () => {
