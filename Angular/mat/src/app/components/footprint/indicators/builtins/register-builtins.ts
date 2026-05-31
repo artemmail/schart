@@ -19,6 +19,11 @@ import { FractalsIndicator } from './fractals.indicator';
 import { ZigZagIndicator } from './zigzag.indicator';
 import { StochasticIndicator } from './stochastic.indicator';
 import { OpenPositionsInterestIndicator } from './open-positions-interest.indicator';
+import { RsiIndicator } from './rsi.indicator';
+import { MacdIndicator } from './macd.indicator';
+import { AtrIndicator } from './atr.indicator';
+import { AdxIndicator } from './adx.indicator';
+import { CciIndicator } from './cci.indicator';
 
 export function registerFootprintBuiltInIndicators(registry: IndicatorRegistry): void {
   registry.register(SmaIndicator);
@@ -39,6 +44,11 @@ export function registerFootprintBuiltInIndicators(registry: IndicatorRegistry):
   registry.register(FractalsIndicator);
   registry.register(ZigZagIndicator);
   registry.register(StochasticIndicator);
+  registry.register(RsiIndicator);
+  registry.register(MacdIndicator);
+  registry.register(AtrIndicator);
+  registry.register(AdxIndicator);
+  registry.register(CciIndicator);
   registry.register(MidPriceOiCumWeightedIndicator);
   registry.register(OpenPositionsInterestIndicator);
 }

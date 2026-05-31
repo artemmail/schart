@@ -133,6 +133,7 @@ export interface IndicatorDefinition<P extends object = any> {
   type: string;
   displayName: string;
   category?: string;
+  provider?: 'stockchart' | 'technicalindicators';
 
   defaultPanel: 'chart' | 'newPanel';
   panelBehavior?: 'fixed' | 'configurable';

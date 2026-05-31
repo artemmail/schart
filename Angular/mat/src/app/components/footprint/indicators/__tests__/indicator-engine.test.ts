@@ -2,6 +2,7 @@ import { FootprintIndicatorEngine } from '../indicator-engine';
 import { IndicatorRegistry } from '../indicator-registry';
 import { registerFootprintBuiltInIndicators } from '../builtins/register-builtins';
 import { ClusterData } from '../../models/cluster-data';
+import { atr, macd, rsi } from 'technicalindicators';
 
 function makeClusterData(
   closes: number[],
@@ -286,5 +287,154 @@ describe('FootprintIndicatorEngine', () => {
 
     expect(k!.fixedRange).toEqual({ min: 0, max: 100 });
     expect(d!.fixedRange).toEqual({ min: 0, max: 100 });
+  });
+
+  test('calculates RSI through technicalindicators adapter', () => {
+    const closes = Array.from({ length: 20 }, (_, i) => i + 1);
+    const data = makeClusterData(closes);
+    const engine = makeEngine();
+
+    engine.setData(data);
+    engine.setSettings({
+      Indicators: [
+        {
+          id: 'rsi1',
+          type: 'rsi',
+          params: {
+            source: 'close',
+            period: 14,
+            showLevels: true,
+            overbought: 70,
+            oversold: 30,
+            rsiColor: '#7e57c2',
+            levelsColor: '#95a5a6',
+            width: 2,
+            levelsWidth: 1,
+            lineStyle: 'solid',
+            levelsLineStyle: 'dashed',
+          },
+          panel: { id: 'rsi' },
+          visible: true,
+        },
+      ],
+      IndicatorPanels: { rsi: { height: 100 } },
+    } as any);
+
+    engine.prepare();
+
+    const series = engine.getPanelSeries('rsi');
+    const rsiLine = series.find((s) => s.id === 'RSI');
+    const overbought = series.find((s) => s.id === 'RSI_OB');
+    const oversold = series.find((s) => s.id === 'RSI_OS');
+    const expected = rsi({ period: 14, values: closes });
+    const offset = closes.length - expected.length;
+
+    expect(rsiLine).toBeTruthy();
+    expect(overbought).toBeTruthy();
+    expect(oversold).toBeTruthy();
+    expect(Number.isNaN(rsiLine!.values[offset - 1])).toBe(true);
+    expect(rsiLine!.values[offset]).toBeCloseTo(expected[0]);
+    expect(rsiLine!.values[closes.length - 1]).toBeCloseTo(expected[expected.length - 1]);
+    expect(overbought!.values[0]).toBeCloseTo(70);
+    expect(oversold!.values[0]).toBeCloseTo(30);
+    expect(rsiLine!.fixedRange).toEqual({ min: 0, max: 100 });
+  });
+
+  test('calculates MACD through technicalindicators adapter', () => {
+    const closes = Array.from({ length: 20 }, (_, i) => i + 1);
+    const data = makeClusterData(closes);
+    const engine = makeEngine();
+
+    engine.setData(data);
+    engine.setSettings({
+      Indicators: [
+        {
+          id: 'macd1',
+          type: 'macd-ti',
+          params: {
+            source: 'close',
+            fastPeriod: 3,
+            slowPeriod: 6,
+            signalPeriod: 3,
+            simpleMAOscillator: false,
+            simpleMASignal: false,
+            macdColor: '#1f77b4',
+            signalColor: '#ff7f0e',
+            histogramUpColor: '#2ecc71',
+            histogramDownColor: '#e74c3c',
+            width: 2,
+            lineStyle: 'solid',
+            histogramWidthRatio: 0.8,
+          },
+          panel: { id: 'macd' },
+          visible: true,
+        },
+      ],
+      IndicatorPanels: { macd: { height: 100 } },
+    } as any);
+
+    engine.prepare();
+
+    const series = engine.getPanelSeries('macd');
+    const macdLine = series.find((s) => s.id === 'MACD');
+    const signalLine = series.find((s) => s.id === 'MACD_SIGNAL');
+    const histogramUp = series.find((s) => s.id === 'MACD_HIST_UP');
+    const histogramDown = series.find((s) => s.id === 'MACD_HIST_DOWN');
+    const expected = macd({
+      values: closes,
+      fastPeriod: 3,
+      slowPeriod: 6,
+      signalPeriod: 3,
+      SimpleMAOscillator: false,
+      SimpleMASignal: false,
+    });
+    const offset = closes.length - expected.length;
+    const firstSignalIndex = expected.findIndex((x) => typeof x.signal === 'number');
+
+    expect(macdLine).toBeTruthy();
+    expect(signalLine).toBeTruthy();
+    expect(histogramUp).toBeTruthy();
+    expect(histogramDown).toBeTruthy();
+    expect(macdLine!.values[offset]).toBeCloseTo(expected[0].MACD!);
+    expect(Number.isNaN(signalLine!.values[offset])).toBe(true);
+    expect(signalLine!.values[offset + firstSignalIndex]).toBeCloseTo(expected[firstSignalIndex].signal!);
+    expect(histogramUp!.values[offset + firstSignalIndex]).toBeCloseTo(expected[firstSignalIndex].histogram!);
+    expect(Number.isNaN(histogramDown!.values[offset + firstSignalIndex])).toBe(true);
+  });
+
+  test('calculates ATR through technicalindicators adapter', () => {
+    const closes = Array.from({ length: 20 }, (_, i) => i + 1);
+    const data = makeClusterData(closes);
+    const engine = makeEngine();
+
+    engine.setData(data);
+    engine.setSettings({
+      Indicators: [
+        {
+          id: 'atr1',
+          type: 'atr-ti',
+          params: {
+            period: 14,
+            color: '#00acc1',
+            width: 2,
+            lineStyle: 'solid',
+          },
+          panel: { id: 'atr' },
+          visible: true,
+        },
+      ],
+      IndicatorPanels: { atr: { height: 100 } },
+    } as any);
+
+    engine.prepare();
+
+    const atrLine = engine.getPanelSeries('atr').find((s) => s.id === 'ATR');
+    const expected = atr({ high: closes, low: closes, close: closes, period: 14 });
+    const offset = closes.length - expected.length;
+
+    expect(atrLine).toBeTruthy();
+    expect(Number.isNaN(atrLine!.values[offset - 1])).toBe(true);
+    expect(atrLine!.values[offset]).toBeCloseTo(expected[0]);
+    expect(atrLine!.values[closes.length - 1]).toBeCloseTo(expected[expected.length - 1]);
   });
 });

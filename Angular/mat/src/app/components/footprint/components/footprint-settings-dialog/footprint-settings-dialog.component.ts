@@ -11,6 +11,9 @@ import {
 import { FootPrintComponent } from '../footprint/footprint.component';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { MaterialModule } from 'src/app/material.module';
+import { IndicatorDefinition } from '../../indicators/indicator-api';
+
+type IndicatorProvider = 'stockchart' | 'technicalindicators';
 
 @Component({
   standalone: true,
@@ -37,6 +40,7 @@ export class FootPrintSettingsDialogComponent {
   settingsRutickerVisible = true;
   settingsDeltaVisible = true;
   newIndicatorType: string | null = null;
+  newTechnicalIndicatorType: string | null = null;
 
   // Добавляем поле fp
   @Input() fp: FootPrintComponent;
@@ -107,8 +111,40 @@ export class FootPrintSettingsDialogComponent {
     return this.fp?.FPsettings.Indicators ?? [];
   }
 
+  getDefinitionsForProvider(provider: IndicatorProvider) {
+    return this.indicatorDefinitions.filter((def) => this.getDefinitionProvider(def) === provider);
+  }
+
+  getIndicatorsForProvider(provider: IndicatorProvider) {
+    return this.indicators.filter((ind) => this.getDefinitionProvider(this.findIndicatorDefinition(ind.type)) === provider);
+  }
+
+  getNewIndicatorType(provider: IndicatorProvider): string | null {
+    return provider === 'technicalindicators' ? this.newTechnicalIndicatorType : this.newIndicatorType;
+  }
+
+  setNewIndicatorType(provider: IndicatorProvider, type: string | null): void {
+    if (provider === 'technicalindicators') {
+      this.newTechnicalIndicatorType = type;
+      return;
+    }
+
+    this.newIndicatorType = type;
+  }
+
+  addIndicatorForProvider(provider: IndicatorProvider): void {
+    const added = this.addIndicatorByType(this.getNewIndicatorType(provider));
+    if (added) {
+      this.setNewIndicatorType(provider, null);
+    }
+  }
+
   private findIndicatorDefinition(type: string) {
     return this.indicatorDefinitions.find((d) => d.type === type);
+  }
+
+  private getDefinitionProvider(def: IndicatorDefinition | undefined): IndicatorProvider {
+    return def?.provider === 'technicalindicators' ? 'technicalindicators' : 'stockchart';
   }
 
   getIndicatorDisplayName(type: string): string {
@@ -131,13 +167,16 @@ export class FootPrintSettingsDialogComponent {
   }
 
   addIndicator(): void {
-    if (!this.fp) return;
+    this.addIndicatorForProvider('stockchart');
+  }
+
+  private addIndicatorByType(type: string | null): boolean {
+    if (!this.fp) return false;
     this.ensureIndicatorsStorage();
-    const type = this.newIndicatorType;
-    if (!type) return;
+    if (!type) return false;
 
     const def = this.indicatorDefinitions.find((d) => d.type === type);
-    if (!def) return;
+    if (!def) return false;
 
     const id = `${type}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
     const params: any = {};
@@ -155,8 +194,8 @@ export class FootPrintSettingsDialogComponent {
 
     const nextIndicators = [...(this.fp.FPsettings.Indicators ?? []), { id, type, params, visible: true, panel }];
     this.applyIndicators(nextIndicators);
-    this.newIndicatorType = null;
     this.onChange(null);
+    return true;
   }
 
   removeIndicator(id: string): void {
