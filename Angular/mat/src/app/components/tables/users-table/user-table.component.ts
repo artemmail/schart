@@ -14,6 +14,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatSortModule } from '@angular/material/sort';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { UserService } from 'src/app/service/users.service';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { Title } from '@angular/platform-browser';
@@ -33,6 +34,7 @@ import { ApplicationUserModel } from 'src/app/models/UsersTable.model';
     MatButtonModule,
     MatIconModule,
     MatDialogModule,
+    MatTooltipModule,
   ],
   templateUrl: './user-table.component.html',
   styleUrls: ['./user-table.component.css']
@@ -111,6 +113,27 @@ export class UserTableComponent implements OnInit {
             },
             (error) => {
               this.dialogService.info(`Ошибка при удалении пользователя: ${error.error}`);
+            }
+          );
+        }
+      });
+  }
+
+  confirmRegistration(user: ApplicationUserModel): void {
+    if (user.EmailConfirmed) {
+      return;
+    }
+
+    this.dialogService.confirm(`Подтвердить регистрацию пользователя ${user.UserName || user.Email}?`)
+      .subscribe((result) => {
+        if (result) {
+          this.userService.confirmRegistration(user.Id).subscribe(
+            (response) => {
+              this.dialogService.info(response.message);
+              this.loadUsers();
+            },
+            (error) => {
+              this.dialogService.info(`Ошибка при подтверждении регистрации: ${error.error?.message || error.error || error.message}`);
             }
           );
         }

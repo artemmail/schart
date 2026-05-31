@@ -74,6 +74,14 @@ export class UserService {
   }
 
   /**
+   * Подтвердить регистрацию пользователя администратором
+   * @param id - идентификатор пользователя
+   */
+  confirmRegistration(id: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiUrl}/${id}/confirm-registration`, {});
+  }
+
+  /**
    * Получить список возвращённых пользователей
    */
   getReturnedUsers(): Observable<ReturnedUser[]> {

@@ -13,6 +13,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using StockChart.Repository.Interfaces;
 using System.Security.Claims;
+using StockChart.Logging;
 
 namespace YourNamespace.Controllers
 {
@@ -259,8 +260,31 @@ namespace YourNamespace.Controllers
 
                     var callbackUrl = $"{Request.Scheme}://{Request.Host}/Identity/Account/ConfirmEmail?userId={userId}&code={code}";
 
-                    await _emailSender.SendEmailAsync(model.Email, "Confirm your email",
-                        $"Please confirm your account {model.UserName} by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                    try
+                    {
+                        await _emailSender.SendEmailAsync(model.Email, "Confirm your email",
+                            $"Please confirm your account {model.UserName} by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Registration email send failed for user {UserId} and email {Email}. Confirming registration automatically.", userId, model.Email);
+                        RegistrationFileLogger.WriteError(
+                            $"Registration email send failed. UserId={userId}; UserName={model.UserName}; Email={model.Email}. Confirming registration automatically.",
+                            ex);
+
+                        user.EmailConfirmed = true;
+                        var updateResult = await _userManager.UpdateAsync(user);
+                        if (!updateResult.Succeeded)
+                        {
+                            var updateErrors = string.Join("; ", updateResult.Errors.Select(error => $"{error.Code}: {error.Description}"));
+                            RegistrationFileLogger.WriteInfo($"Automatic registration confirmation failed. UserId={userId}; Email={model.Email}; Errors={updateErrors}");
+                            return BadRequest(updateResult.Errors);
+                        }
+
+                        RegistrationFileLogger.WriteInfo($"Registration confirmed automatically. UserId={userId}; UserName={model.UserName}; Email={model.Email}");
+                        return Ok(new { message = "Registration successful. Confirmation email was not sent, registration confirmed automatically." });
+                    }
+
                     return Ok(new { message = "Registration successful, please confirm your email." });
                 }
                 return BadRequest(result.Errors);

@@ -7,6 +7,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { OperationDetailsDialogComponent } from '../operation-details-dialog/operation-details-dialog.component';
 import { BillDetailsDialogComponent } from '../bill-details-dialog/bill-details-dialog.component';
 import { MaterialModule } from 'src/app/material.module';
+import { ActivatedRoute } from '@angular/router';
 
 
 @Component({
@@ -26,19 +27,34 @@ export class YooMoneyOperationsComponent implements OnInit {
   totalItems: number = 1000;
   pageSize: number = 20;
   pageIndex: number = 0;
+  statusMessage: string | null = null;
+  statusKind: 'success' | 'error' | null = null;
+  loadErrorMessage: string | null = null;
 
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
-  constructor(private yooMoneyService: YooMoneyService, private dialog: MatDialog) { }
+  constructor(
+    private yooMoneyService: YooMoneyService,
+    private dialog: MatDialog,
+    private route: ActivatedRoute
+  ) { }
 
   ngOnInit() {
+    this.applyOauthStatusFromQuery();
     this.loadOperations();
   }
 
   loadOperations() {
-    this.yooMoneyService.getOperationHistory(this.pageIndex*this.pageSize, this.pageSize).subscribe((operations: OperationHistory[]) => {
-      this.dataSource.data = operations;
-      this.totalItems = this.pageSize * this.pageIndex + 100;
+    this.loadErrorMessage = null;
+    this.yooMoneyService.getOperationHistory(this.pageIndex*this.pageSize, this.pageSize).subscribe({
+      next: (operations: OperationHistory[]) => {
+        this.dataSource.data = operations;
+        this.totalItems = this.pageSize * this.pageIndex + 100;
+      },
+      error: () => {
+        this.dataSource.data = [];
+        this.loadErrorMessage = 'Не удалось загрузить операции YooMoney. Обновите токен и повторите попытку.';
+      }
     });
   }
 
@@ -60,5 +76,29 @@ export class YooMoneyOperationsComponent implements OnInit {
       width: '600px',
       data: { billId: billId },
     });
+  }
+
+  refreshToken(): void {
+    this.yooMoneyService.beginAuthorization('/YooMoney');
+  }
+
+  private applyOauthStatusFromQuery(): void {
+    const oauthStatus = this.route.snapshot.queryParamMap.get('oauth');
+    const message = this.route.snapshot.queryParamMap.get('message');
+
+    if (oauthStatus === 'success') {
+      this.statusKind = 'success';
+      this.statusMessage = 'Токен YooMoney обновлён.';
+      return;
+    }
+
+    if (oauthStatus === 'error') {
+      this.statusKind = 'error';
+      this.statusMessage = message || 'Не удалось обновить токен YooMoney.';
+      return;
+    }
+
+    this.statusKind = null;
+    this.statusMessage = null;
   }
 }

@@ -4,6 +4,23 @@
     </mat-card-header>
     
     <mat-card-content>
+      <div class="toolbar">
+        <button mat-raised-button color="primary" (click)="refreshToken()">
+          Обновить токен
+        </button>
+        <button mat-stroked-button (click)="loadOperations()">
+          Обновить операции
+        </button>
+      </div>
+
+      <div *ngIf="statusMessage" class="status" [class.status-success]="statusKind === 'success'" [class.status-error]="statusKind === 'error'">
+        {{ statusMessage }}
+      </div>
+
+      <div *ngIf="loadErrorMessage" class="status status-error">
+        {{ loadErrorMessage }}
+      </div>
+
       <table mat-table [dataSource]="dataSource" class="custom-table">
         
         <!-- Столбец Operation ID -->

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { map, Observable } from 'rxjs';
+import { map, Observable, of } from 'rxjs';
 import { OperationDetails, OperationHistory } from '../models/YooMoneyModels';
 import { environment } from '../environment';
 
@@ -11,6 +11,12 @@ import { environment } from '../environment';
     private apiUrl = `${environment.apiUrl}/api/YooMoney`;
   
     constructor(private http: HttpClient) {}
+
+    beginAuthorization(returnUrl: string = '/YooMoney'): void {
+      const normalizedReturnUrl = returnUrl?.trim() ? returnUrl : '/YooMoney';
+      const url = `${this.apiUrl}/authorize?returnUrl=${encodeURIComponent(normalizedReturnUrl)}`;
+      window.location.assign(url);
+    }
   
     // Получение деталей операции с десериализацией даты
     getOperationDetails(operationId: string): Observable<OperationDetails> {
@@ -50,14 +56,14 @@ import { environment } from '../environment';
     }
   
     // Авторизация (возвращает URL для перехода)
-    authorize(): Observable<string> {
-      const url = `${this.apiUrl}/authorize`;
-      return this.http.get<string>(url);
+    authorize(returnUrl: string = '/YooMoney'): Observable<string> {
+      const url = `${this.apiUrl}/authorize?returnUrl=${encodeURIComponent(returnUrl)}`;
+      return of(url);
     }
   
     // Получение токена
-    getToken(code: string): Observable<string> {
+    getToken(code: string): Observable<unknown> {
       const url = `${this.apiUrl}/token`;
-      return this.http.post<string>(url, { code });
+      return this.http.post(url, { code });
     }
   }

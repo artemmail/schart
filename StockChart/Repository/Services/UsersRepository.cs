@@ -81,5 +81,22 @@ namespace StockChart.Repository
             _dbContext.Users.RemoveRange(users);
             _dbContext.SaveChanges();
         }
+
+        public bool ConfirmRegistration(Guid userId)
+        {
+            var user = _dbContext.Users.FirstOrDefault(x => x.Id == userId);
+            if (user == null)
+            {
+                return false;
+            }
+
+            if (!user.EmailConfirmed)
+            {
+                user.EmailConfirmed = true;
+                _dbContext.SaveChanges();
+            }
+
+            return true;
+        }
     }
 }

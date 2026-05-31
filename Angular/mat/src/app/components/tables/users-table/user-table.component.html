@@ -43,9 +43,19 @@
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef>Действия</th>
         <td mat-cell *matCellDef="let user">
-          <button mat-icon-button color="warn" (click)="deleteUser(user.Id)">
-            <mat-icon>delete</mat-icon>
-          </button>
+          <div class="actions-cell">
+            <button
+              *ngIf="!user.EmailConfirmed"
+              mat-icon-button
+              color="primary"
+              matTooltip="Подтвердить регистрацию"
+              (click)="confirmRegistration(user)">
+              <mat-icon>verified_user</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" matTooltip="Удалить пользователя" (click)="deleteUser(user.Id)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
         </td>
       </ng-container>
 

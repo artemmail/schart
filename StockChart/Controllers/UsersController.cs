@@ -6,6 +6,7 @@ using StockChart.Repository.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using System.Linq.Dynamic.Core.Exceptions;
 using System.Linq.Dynamic.Core;
+using StockChart.Logging;
 
 
 namespace StockChart.Controllers
@@ -27,6 +28,20 @@ namespace StockChart.Controllers
         {
             Guid[] ids = { id };
             _usersRepository.Destroy(ids);
+        }
+
+        [Admin]
+        [HttpPost("{id}/confirm-registration")]
+        public IActionResult ConfirmRegistration(Guid id)
+        {
+            var confirmed = _usersRepository.ConfirmRegistration(id);
+            if (!confirmed)
+            {
+                return NotFound(new { message = "Пользователь не найден." });
+            }
+
+            RegistrationFileLogger.WriteInfo($"Registration confirmed by admin. Admin={User?.Identity?.Name ?? "unknown"}; UserId={id}");
+            return Ok(new { message = "Регистрация пользователя подтверждена." });
         }
 
         [HttpGet("GetUsers")]

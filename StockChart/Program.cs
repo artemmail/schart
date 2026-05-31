@@ -190,6 +190,7 @@ builder.Services.AddMemoryCache();
 ///builder.Services.Configure<AuthMessageSenderOptions>(builder.Configuration);
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.AddScoped<IYooMoneyRepository, YooMoneyRepository>();
+builder.Services.AddScoped<YooMoneyTokenConfigStoreMain>();
 builder.Services.AddTransient<MemoryCacheService>();
 builder.Services.AddTransient<RedisCacheService>();
 builder.Services.AddTransient<Func<CacheTech, ICacheService>>(serviceProvider => key =>

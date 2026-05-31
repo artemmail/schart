@@ -87,9 +87,7 @@ export function wrapText(context, text, x, y, maxWidth, lineHeight) {
 }
 
 export function MoscowTimeShift(date) {
-  var x = new Date();
-  var currentTime = (3 * 60 + x.getTimezoneOffset()) * 60 * 1000;
-  return new Date(date.getTime() + currentTime);
+  return new Date(date);
 }
 
 export function inttodate(i: number) {

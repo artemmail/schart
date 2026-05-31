@@ -10,6 +10,7 @@ namespace StockChart.Repository.Interfaces
         public bool IsPayed(ApplicationUser user, string ticker);
         public ApplicationUserModel UserToModel(ApplicationUser user);
         public void Destroy(IEnumerable<Guid> userIds);
+        public bool ConfirmRegistration(Guid userId);
         public IQueryable<ApplicationUser> GetAll();
     }
 }

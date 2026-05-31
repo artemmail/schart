@@ -28,3 +28,10 @@
   width: 100%;
   margin-bottom: 20px;
 }
+
+.actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 96px;
+}

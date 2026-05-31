@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using StockChart.Model;
+using StockChart.Logging;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -113,10 +114,45 @@ namespace StockChart.Areas.Identity.Pages.Account
                         pageHandler: null,
                         values: new { area = "Identity", userId = userId, code = code, returnUrl = returnUrl },
                         protocol: Request.Scheme);
-                    await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
-                        $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                    var emailSent = true;
+                    try
+                    {
+                        await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
+                            $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                    }
+                    catch (Exception ex)
+                    {
+                        emailSent = false;
+                        _logger.LogError(ex, "Registration email send failed for user {UserId} and email {Email}. Confirming registration automatically.", userId, Input.Email);
+                        RegistrationFileLogger.WriteError(
+                            $"Registration email send failed. UserId={userId}; UserName={Input.UserName}; Email={Input.Email}. Confirming registration automatically.",
+                            ex);
+
+                        user.EmailConfirmed = true;
+                        var updateResult = await _userManager.UpdateAsync(user);
+                        if (!updateResult.Succeeded)
+                        {
+                            var updateErrors = string.Join("; ", updateResult.Errors.Select(error => $"{error.Code}: {error.Description}"));
+                            RegistrationFileLogger.WriteInfo($"Automatic registration confirmation failed. UserId={userId}; Email={Input.Email}; Errors={updateErrors}");
+                            foreach (var error in updateResult.Errors)
+                            {
+                                ModelState.AddModelError(string.Empty, error.Description);
+                            }
+
+                            return Page();
+                        }
+
+                        RegistrationFileLogger.WriteInfo($"Registration confirmed automatically. UserId={userId}; UserName={Input.UserName}; Email={Input.Email}");
+                    }
+
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {
+                        if (!emailSent)
+                        {
+                            await _signInManager.SignInAsync(user, isPersistent: false);
+                            return LocalRedirect(returnUrl);
+                        }
+
                         return RedirectToPage("RegisterConfirmation", new { email = Input.Email, returnUrl = returnUrl });
                     }
                     else

@@ -51,9 +51,10 @@ export class FormattingService {
   public year: any = 365 * this.day;
 
   public MoscowTimeShift(date: Date) {
-    var x = new Date();
-    var currentTime = (3 * 60 + x.getTimezoneOffset()) * 60 * 1000;
-    return new Date(date.getTime() + currentTime);
+    // Footprint timestamps are already normalized before rendering.
+    // Applying an extra browser-region based shift flips the sign for
+    // users outside Moscow (for example, Ufa was getting -2h instead of +2h).
+    return new Date(date);
   }
 
   public isValid(str: string) {

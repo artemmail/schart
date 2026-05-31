@@ -46,9 +46,8 @@ export class DateToolsService {
   public year: any = 365 * this.day;
 
   public MoscowTimeShift(date: Date) {
-    var x = new Date();
-    var currentTime = (3 * 60 + x.getTimezoneOffset()) * 60 * 1000;
-    return new Date(date.getTime() + currentTime);
+    // Keep footprint dates as-is; the upstream layer already normalizes them.
+    return new Date(date);
   }
 
   public isValid(str: string) {

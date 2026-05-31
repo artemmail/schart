@@ -1,26 +1,25 @@
-﻿
 using Microsoft.Extensions.Options;
-using System;
-using System.Net;
-using StockChart.Repository;
-using Yoomoney.model;
 using Newtonsoft.Json;
-
+using StockChart.Repository;
+using System.Text;
+using System.Net.Http.Headers;
+using Yoomoney.model;
 
 namespace StockChart.Repository.Services
 {
-    public class YooMoneyRepository: IYooMoneyRepository
+    public class YooMoneyRepository : IYooMoneyRepository
     {
+        private const string Scope = "account-info operation-history operation-details";
+        private static readonly HttpClient SharedHttpClient = new HttpClient();
+
         private readonly string _clientId;
         private readonly string _bearer;
-        private readonly string _redirect;
 
         public YooMoneyRepository(IOptions<YooMoneyOptions> options)
         {
             var settings = options.Value;
             _clientId = settings.ClientId ?? throw new ArgumentNullException(nameof(settings.ClientId));
             _bearer = settings.Bearer ?? throw new ArgumentNullException(nameof(settings.Bearer));
-            _redirect = settings.RedirectUri ?? throw new ArgumentNullException(nameof(settings.RedirectUri));
         }
 
         public OperationDetails? operationDetails(string operationId)
@@ -34,37 +33,79 @@ namespace StockChart.Repository.Services
             var responseJson = request("api/operation-history", $"records={count}&start_record={from}");
             var operationHistoryResponse = JsonConvert.DeserializeObject<OperationHistoryResponse>(responseJson);
             return operationHistoryResponse?.Operations;
-        }     
+        }
 
-        public string authorize()
+        public string authorize(string redirectUri, string? state = null)
         {
-            var data = $"client_id={_clientId}&response_type=code&redirect_uri={_redirect}t&scope=account-info%20operation-history%20operation-details";
-            return request("oauth/authorize", data, false);
+            var query = new List<string>
+            {
+                $"client_id={Uri.EscapeDataString(_clientId)}",
+                "response_type=code",
+                $"redirect_uri={Uri.EscapeDataString(redirectUri)}",
+                $"scope={Uri.EscapeDataString(Scope)}"
+            };
+
+            if (!string.IsNullOrWhiteSpace(state))
+            {
+                query.Add($"state={Uri.EscapeDataString(state)}");
+            }
+
+            return $"https://yoomoney.ru/oauth/authorize?{string.Join("&", query)}";
         }
-        public string token(string code)
+
+        public async Task<YooMoneyTokenResponse> tokenAsync(
+            string code,
+            string redirectUri,
+            CancellationToken cancellationToken = default)
         {
-            var data = $"code={code}&client_id={_clientId}&grant_type=authorization_code&&redirect_uri={_redirect}";
-            return request("oauth/authorize", data, false);
+            using var client = new HttpClient();
+            using var content = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["code"] = code,
+                ["client_id"] = _clientId,
+                ["grant_type"] = "authorization_code",
+                ["redirect_uri"] = redirectUri
+            });
+
+            using var response = await client.PostAsync(
+                "https://yoomoney.ru/oauth/token",
+                content,
+                cancellationToken);
+
+            var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+            var parsed = JsonConvert.DeserializeObject<YooMoneyTokenResponse>(payload)
+                ?? new YooMoneyTokenResponse
+                {
+                    error = "invalid_response",
+                    error_description = "Empty response from YooMoney token endpoint."
+                };
+
+            if (!response.IsSuccessStatusCode &&
+                string.IsNullOrWhiteSpace(parsed.error))
+            {
+                parsed.error = $"http_{(int)response.StatusCode}";
+                parsed.error_description = payload;
+            }
+
+            return parsed;
         }
-        string request(string function, string data, bool token = true)
+
+        private string request(string function, string data, bool token = true)
         {
             var url = $"https://yoomoney.ru/{function}";
-         
-            var httpRequest = (HttpWebRequest)WebRequest.Create(url);
-            httpRequest.Method = "POST";
-            
+            using var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded")
+            };
+
             if (token)
-                httpRequest.Headers["Authorization"] = $"Bearer {_bearer}";
-            httpRequest.ContentType = "application/x-www-form-urlencoded";
-            using (var streamWriter = new StreamWriter(httpRequest.GetRequestStream()))
             {
-                streamWriter.Write(data);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _bearer);
             }
-            var httpResponse = (HttpWebResponse)httpRequest.GetResponse();
-            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
-            {
-                return streamReader.ReadToEnd();
-            }
+
+            using var response = SharedHttpClient.Send(request);
+            response.EnsureSuccessStatusCode();
+            return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
         }
     }
 }
