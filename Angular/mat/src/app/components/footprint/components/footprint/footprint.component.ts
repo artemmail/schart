@@ -80,6 +80,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   private _ctx: CanvasRenderingContext2D | null = null;
   private themeSubscription?: Subscription;
   private themePreset: ThemePreset = DEFAULT_THEME_PRESET;
+  private indicatorRenderRafId: number | null = null;
 
   palette: StockChartPalette = { ...STOCK_CHART_DEFAULT_PALETTE };
   animButtonState = {
@@ -172,8 +173,8 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.indicatorEngine = new FootprintIndicatorEngine(
       this.indicatorRegistry,
       {
-        requestRender: () => this.drawClusterView(),
-        requestRecalc: () => this.drawClusterView(),
+        requestRender: () => this.scheduleIndicatorRender(false),
+        requestRecalc: () => this.scheduleIndicatorRender(true),
       },
       {
         ensurePanel: (kind: 'chart' | 'new', preferredId?: string) => this.ensureIndicatorPanel(kind, preferredId),
@@ -449,6 +450,25 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
 
   drawClusterView() {
     this.viewsManager.drawClusterView();
+  }
+
+  private scheduleIndicatorRender(recalculate: boolean): void {
+    if (recalculate) {
+      this.indicatorEngine?.requestFullRecalc();
+    }
+
+    if (this.indicatorRenderRafId !== null) {
+      return;
+    }
+
+    this.indicatorRenderRafId = requestAnimationFrame(() => {
+      this.indicatorRenderRafId = null;
+      if (!this.viewInitialized || !this.viewsManager || !this.data) {
+        return;
+      }
+
+      this.drawClusterView();
+    });
   }
 
   @HostListener('window:resize')
@@ -959,6 +979,10 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     if (this.realtimeRafId !== null) {
       cancelAnimationFrame(this.realtimeRafId);
       this.realtimeRafId = null;
+    }
+    if (this.indicatorRenderRafId !== null) {
+      cancelAnimationFrame(this.indicatorRenderRafId);
+      this.indicatorRenderRafId = null;
     }
     this.themeSubscription?.unsubscribe();
     this.hintContainer.destroy();

@@ -91,6 +91,9 @@ export class ClusterData {
   maxt2: number;
 
   private oiDeltaDivideBy2 = false;
+  private readonly fallbackPeriodMs = 60 * 1000;
+  private readonly realtimeTailColumns = 5;
+  private readonly minRealtimeTailMs = 5 * 60 * 1000;
 
   constructor(data: ClusterDataInit) {
     this.lastPrice = data.clusterData[data.clusterData.length - 1].c;
@@ -200,9 +203,161 @@ export class ClusterData {
     });
   }
 
-  isWrongMerge(data: ClusterData): boolean {
+  private getColumnTime(column: any): number | null {
+    if (!(column?.x instanceof Date)) {
+      return null;
+    }
+
+    const time = column.x.getTime();
+    return Number.isFinite(time) ? time : null;
+  }
+
+  private getColumnNumber(column: any): number | null {
+    const value = column?.Number;
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  }
+
+  private inferPeriodMs(): number {
+    if (this.clusterData.length < 2) {
+      return this.fallbackPeriodMs;
+    }
+
+    const diffs: number[] = [];
+    const startIndex = Math.max(1, this.clusterData.length - 20);
+    for (let i = startIndex; i < this.clusterData.length; i++) {
+      const current = this.getColumnTime(this.clusterData[i]);
+      const previous = this.getColumnTime(this.clusterData[i - 1]);
+      if (current === null || previous === null) {
+        continue;
+      }
+
+      const diff = current - previous;
+      if (Number.isFinite(diff) && diff > 0) {
+        diffs.push(diff);
+      }
+    }
+
+    if (!diffs.length) {
+      return this.fallbackPeriodMs;
+    }
+
+    diffs.sort((a, b) => a - b);
+    return diffs[Math.floor(diffs.length / 2)];
+  }
+
+  private getRealtimeTailMs(): number {
+    return Math.max(
+      this.inferPeriodMs() * this.realtimeTailColumns,
+      this.minRealtimeTailMs
+    );
+  }
+
+  private filterRealtimeTail<T extends { clusterData: any[] }>(data: T): T | null {
+    if (!data.clusterData.length || !this.clusterData.length) {
+      return data;
+    }
+
+    const lastExistingTime = this.getColumnTime(
+      this.clusterData[this.clusterData.length - 1]
+    );
+    if (lastExistingTime === null) {
+      return data;
+    }
+
+    const earliestAllowedTime = lastExistingTime - this.getRealtimeTailMs();
+    const filtered = data.clusterData.filter((column) => {
+      const time = this.getColumnTime(column);
+      return time === null || time >= earliestAllowedTime;
+    });
+
+    if (!filtered.length) {
+      return null;
+    }
+
+    if (filtered.length === data.clusterData.length) {
+      return data;
+    }
+
+    return { ...data, clusterData: filtered } as T;
+  }
+
+  private findColumnByTime(time: number): ColumnEx | null {
+    const byIndex = this.ColumnNumberByDate[new Date(time).toISOString()];
+    if (byIndex !== undefined) {
+      return this.clusterData[byIndex] ?? null;
+    }
+
     return (
-      this.clusterData[this.clusterData.length - 1].x < data.clusterData[0].x
+      this.clusterData.find((column) => this.getColumnTime(column) === time) ??
+      null
+    );
+  }
+
+  private canUseNumberMerge(
+    data: ClusterData,
+    firstIncomingNumber: number,
+    lastExistingNumber: number
+  ): boolean {
+    if (firstIncomingNumber >= lastExistingNumber) {
+      return true;
+    }
+
+    const firstIncomingTime = this.getColumnTime(data.clusterData[0]);
+    if (firstIncomingTime === null) {
+      return false;
+    }
+
+    const existingAtIncomingTime = this.findColumnByTime(firstIncomingTime);
+    return (
+      existingAtIncomingTime !== null &&
+      this.getColumnNumber(existingAtIncomingTime) === firstIncomingNumber
+    );
+  }
+
+  private normalizeTimestampMergeNumber(
+    newColumn: any,
+    existingColumn: ColumnEx | undefined
+  ): ColumnEx {
+    const existingNumber = this.getColumnNumber(existingColumn);
+    if (existingNumber !== null) {
+      return { ...newColumn, Number: existingNumber } as ColumnEx;
+    }
+
+    const lastExisting = this.clusterData[this.clusterData.length - 1];
+    const lastExistingNumber = this.getColumnNumber(lastExisting);
+    const incomingNumber = this.getColumnNumber(newColumn);
+    const newTime = this.getColumnTime(newColumn);
+    const lastTime = this.getColumnTime(lastExisting);
+
+    if (
+      lastExistingNumber !== null &&
+      newTime !== null &&
+      lastTime !== null &&
+      newTime > lastTime &&
+      (incomingNumber === null || incomingNumber <= lastExistingNumber)
+    ) {
+      return { ...newColumn, Number: lastExistingNumber + 1 } as ColumnEx;
+    }
+
+    return newColumn as ColumnEx;
+  }
+
+  isWrongMerge(data: ClusterData): boolean {
+    if (!data.clusterData.length || !this.clusterData.length) {
+      return false;
+    }
+
+    const incomingLastTime = this.getColumnTime(
+      data.clusterData[data.clusterData.length - 1]
+    );
+    const lastExistingTime = this.getColumnTime(
+      this.clusterData[this.clusterData.length - 1]
+    );
+
+    return (
+      incomingLastTime !== null &&
+      lastExistingTime !== null &&
+      incomingLastTime < lastExistingTime - this.getRealtimeTailMs()
     );
   }
 
@@ -213,12 +368,7 @@ export class ClusterData {
       });
 
       const data = { clusterData: answ } as ClusterData;
-      if (this.isWrongMerge(data)) {
-        // Handle wrong merge if necessary
-        return false;
-      } else {
-        return this.mergeData(data);
-      }
+      return this.mergeData(data);
     } catch {
       return false;
     }
@@ -241,7 +391,7 @@ export class ClusterData {
       })),
     } as ClusterData;
 
-    return this.mergeData(data);
+    return this.mergeData(data, true);
   }
 
   public handleLadder(ladder: Record<string, number>) {
@@ -332,22 +482,24 @@ export class ClusterData {
     return nearestIndex;
   }
 
-  mergeData(data: ClusterData): boolean {
+  mergeData(data: ClusterData, preferTimestampMerge = false): boolean {
+    const realtimeData = this.filterRealtimeTail(data);
+    if (!realtimeData) {
+        return true;
+    }
+    data = realtimeData as ClusterData;
+
     if (data.clusterData.length > 0) {
         // Sort data.clusterData before using it
         data.clusterData.sort((a, b) => a.x.getTime() - b.x.getTime());
         this.lastPrice = data.clusterData[data.clusterData.length - 1].c;
     }
 
-    const getNumber = (column: any): number | null => {
-        const value = column?.Number;
-        return typeof value === 'number' && Number.isFinite(value) ? value : null;
-    };
     const lastExistingNumber = this.clusterData.length
-        ? getNumber(this.clusterData[this.clusterData.length - 1])
+        ? this.getColumnNumber(this.clusterData[this.clusterData.length - 1])
         : null;
     const firstIncomingNumber = data.clusterData.length
-        ? getNumber(data.clusterData[0])
+        ? this.getColumnNumber(data.clusterData[0])
         : null;
 
     // Use Number-based merge only when both sides contain valid Number values.
@@ -356,15 +508,17 @@ export class ClusterData {
     if (
         data.clusterData.length > 0 &&
         this.clusterData.length > 0 &&
+        !preferTimestampMerge &&
         lastExistingNumber !== null &&
-        firstIncomingNumber !== null
+        firstIncomingNumber !== null &&
+        this.canUseNumberMerge(data, firstIncomingNumber, lastExistingNumber)
     ) {
         // Ensure data.clusterData is sorted by Number
-        data.clusterData.sort((a, b) => ((getNumber(a) ?? 0) - (getNumber(b) ?? 0)));
+        data.clusterData.sort((a, b) => ((this.getColumnNumber(a) ?? 0) - (this.getColumnNumber(b) ?? 0)));
 
         while (
             this.clusterData.length &&
-            (getNumber(this.clusterData[this.clusterData.length - 1]) ?? Number.NEGATIVE_INFINITY) >=
+            (this.getColumnNumber(this.clusterData[this.clusterData.length - 1]) ?? Number.NEGATIVE_INFINITY) >=
                 firstIncomingNumber
         ) {
             this.clusterData.pop();
@@ -389,10 +543,16 @@ export class ClusterData {
             const existingCandle = existingDataMap.get(time);
 
             if (!existingCandle) {
-                existingDataMap.set(time, newCandle);
+                existingDataMap.set(
+                    time,
+                    this.normalizeTimestampMergeNumber(newCandle, undefined)
+                );
             } else {
                 if (existingCandle.q < newCandle.q) {
-                    existingDataMap.set(time, newCandle);
+                    existingDataMap.set(
+                        time,
+                        this.normalizeTimestampMergeNumber(newCandle, existingCandle)
+                    );
                 } else {
                     existingCandle.c = newCandle.c;
                 }

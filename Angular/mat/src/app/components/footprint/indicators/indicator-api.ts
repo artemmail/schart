@@ -1,3 +1,5 @@
+import type { ClusterData } from '../models/cluster-data';
+
 export type SourceType =
   | 'close'
   | 'open'
@@ -60,6 +62,33 @@ export interface DataSeries {
   panelMessage?: string | null;
 }
 
+export type ClusterOverlayShape =
+  | 'rectangle'
+  | 'triangle'
+  | 'diamond'
+  | 'circle'
+  | 'selectionOnly';
+
+export interface ClusterOverlayItem {
+  bar: number;
+  priceLow: number;
+  priceHigh: number;
+  value: number;
+  selectionColor?: string;
+  objectFillColor?: string;
+  objectBorderColor?: string;
+  objectShape?: ClusterOverlayShape;
+  objectSize?: number;
+  label?: string;
+}
+
+export interface ClusterOverlaySeries {
+  id: string;
+  name: string;
+  items: ClusterOverlayItem[];
+  visible?: boolean;
+}
+
 export type PanelRef = 'chart' | { id: string };
 
 export type ParamType = 'int' | 'float' | 'bool' | 'color' | 'enum';
@@ -81,6 +110,7 @@ export interface IndicatorContext {
   candles: Candle[];
 
   source: (bar: number, src: SourceType) => number;
+  getClusterData: () => ClusterData | null;
 
   currentBar: () => number;
   barsCount: () => number;
@@ -150,6 +180,7 @@ export interface IndicatorInstance<P extends object = any> {
   denyToChangePanel?: boolean;
 
   series: DataSeries[];
+  clusterOverlays?: ClusterOverlaySeries[];
 
   warmupPeriod?: number; // how many previous bars are required
 

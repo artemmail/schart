@@ -2,6 +2,7 @@ import { ChartSettings } from 'src/app/models/ChartSettings';
 import { ClusterData } from '../models/cluster-data';
 import {
   Candle,
+  ClusterOverlaySeries,
   DataSeries,
   IndicatorContext,
   IndicatorDefinition,
@@ -49,6 +50,7 @@ export class FootprintIndicatorEngine {
 
   private runtimes = new Map<string, Runtime>();
   private chartSeries: DataSeries[] = [];
+  private chartOverlays: ClusterOverlaySeries[] = [];
   private panelSeries = new Map<string, DataSeries[]>();
   private panels: EnginePanel[] = [];
 
@@ -94,6 +96,10 @@ export class FootprintIndicatorEngine {
 
   getChartSeries(): DataSeries[] {
     return this.chartSeries;
+  }
+
+  getClusterOverlays(): ClusterOverlaySeries[] {
+    return this.chartOverlays;
   }
 
   getPanelSeries(panelId: string): DataSeries[] {
@@ -145,6 +151,9 @@ export class FootprintIndicatorEngine {
     if (barsCount > 0) {
       for (const runtime of this.runtimes.values()) {
         this.ensureSeriesCapacity(runtime.instance, barsCount);
+        if (calcMode === 'full') {
+          runtime.instance.onReset?.();
+        }
 
         const warmup = Math.max(0, runtime.instance.warmupPeriod ?? 0);
         const start = calcMode === 'full' ? 0 : Math.max(0, fromBar - warmup);
@@ -227,6 +236,9 @@ export class FootprintIndicatorEngine {
         }
         if (s.visible === undefined) s.visible = config.visible ?? true;
       });
+      instance.clusterOverlays?.forEach((overlay) => {
+        if (overlay.visible === undefined) overlay.visible = config.visible ?? true;
+      });
 
       this.runtimes.set(config.id, { configId: config.id, def, instance, panel: instance.panel });
       this.needsFullRecalc = true;
@@ -255,6 +267,7 @@ export class FootprintIndicatorEngine {
 
       const nextVisible = config.visible ?? true;
       rt.instance.series.forEach((s) => (s.visible = nextVisible));
+      rt.instance.clusterOverlays?.forEach((overlay) => (overlay.visible = nextVisible));
 
       const nextParams = this.coerceParams(rt.def.paramsSchema as ParamSchema<any>, config.params ?? {});
       if (JSON.stringify(nextParams) !== JSON.stringify(rt.instance.params)) {
@@ -289,24 +302,30 @@ export class FootprintIndicatorEngine {
 
   private rebuildSeriesIndex(): void {
     const chartSeries: DataSeries[] = [];
+    const chartOverlays: ClusterOverlaySeries[] = [];
     const panelSeries = new Map<string, DataSeries[]>();
 
     for (const rt of this.runtimes.values()) {
       const panel = rt.instance.panel;
       const series = rt.instance.series.filter((s) => s.visible !== false);
-      if (!series.length) continue;
-
-      if (panel === 'chart') {
-        chartSeries.push(...series);
-        continue;
+      if (series.length) {
+        if (panel === 'chart') {
+          chartSeries.push(...series);
+        } else {
+          const existing = panelSeries.get(panel.id) ?? [];
+          existing.push(...series);
+          panelSeries.set(panel.id, existing);
+        }
       }
 
-      const existing = panelSeries.get(panel.id) ?? [];
-      existing.push(...series);
-      panelSeries.set(panel.id, existing);
+      const overlays = rt.instance.clusterOverlays?.filter((o) => o.visible !== false) ?? [];
+      if (overlays.length) {
+        chartOverlays.push(...overlays);
+      }
     }
 
     this.chartSeries = chartSeries;
+    this.chartOverlays = chartOverlays;
     this.panelSeries = panelSeries;
   }
 
@@ -317,12 +336,13 @@ export class FootprintIndicatorEngine {
         return getCandles();
       },
       source: (bar: number, src: SourceType) => this.sourceAt(bar, src),
+      getClusterData: () => this.data,
       currentBar: () => Math.max(0, getCandles().length - 1),
       barsCount: () => getCandles().length,
       requestRender: () => this.callbacks.requestRender(),
       requestRecalc: () => {
-        this.callbacks.requestRecalc();
         this.needsFullRecalc = true;
+        this.callbacks.requestRecalc();
       },
       ensurePanel: (kind: 'chart' | 'new', preferredId?: string) =>
         this.panelsApi.ensurePanel(kind, preferredId),
@@ -485,6 +505,7 @@ export class FootprintIndicatorEngine {
     }
     this.runtimes.clear();
     this.chartSeries = [];
+    this.chartOverlays = [];
     this.panelSeries.clear();
     this.panels = [];
     this.candlesCache = [];

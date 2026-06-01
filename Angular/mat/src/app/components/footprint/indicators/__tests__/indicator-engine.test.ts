@@ -2,7 +2,7 @@ import { FootprintIndicatorEngine } from '../indicator-engine';
 import { IndicatorRegistry } from '../indicator-registry';
 import { registerFootprintBuiltInIndicators } from '../builtins/register-builtins';
 import { ClusterData } from '../../models/cluster-data';
-import { atr, macd, rsi } from 'technicalindicators';
+import { atr, macd, roc, rsi } from 'technicalindicators';
 
 function makeClusterData(
   closes: number[],
@@ -29,6 +29,51 @@ function makeClusterData(
   return new ClusterData({ clusterData: cols, priceScale: 1, VolumePerQuantity: volumePerQuantity });
 }
 
+function makeFootprintClusterData() {
+  const start = new Date('2026-01-01T10:00:00.000Z').getTime();
+  return new ClusterData({
+    priceScale: 1,
+    VolumePerQuantity: 1,
+    clusterData: [
+      {
+        Number: 1,
+        x: new Date(start),
+        o: 100,
+        h: 101,
+        l: 100,
+        c: 101,
+        q: 300,
+        bq: 150,
+        v: 300,
+        bv: 150,
+        oi: 0,
+        cl: [
+          { p: 100, q: 100, bq: 70, ct: 10, mx: 0 },
+          { p: 101, q: 200, bq: 80, ct: 20, mx: 0 },
+        ],
+      },
+      {
+        Number: 2,
+        x: new Date(start + 60_000),
+        o: 101,
+        h: 102,
+        l: 100,
+        c: 100,
+        q: 470,
+        bq: 310,
+        v: 470,
+        bv: 310,
+        oi: 0,
+        cl: [
+          { p: 100, q: 50, bq: 10, ct: 5, mx: 0 },
+          { p: 101, q: 300, bq: 240, ct: 30, mx: 0 },
+          { p: 102, q: 120, bq: 60, ct: 10, mx: 0 },
+        ],
+      },
+    ],
+  });
+}
+
 function makeEngine() {
   const registry = new IndicatorRegistry();
   registerFootprintBuiltInIndicators(registry);
@@ -46,6 +91,36 @@ function makeEngine() {
 }
 
 describe('FootprintIndicatorEngine', () => {
+  test('lists technicalindicators catalog definitions', () => {
+    const registry = new IndicatorRegistry();
+    registerFootprintBuiltInIndicators(registry);
+
+    const types = registry
+      .list()
+      .filter((definition) => definition.provider === 'technicalindicators')
+      .map((definition) => definition.type);
+
+    for (const type of [
+      'rsi',
+      'macd-ti',
+      'atr-ti',
+      'adx-ti',
+      'cci-ti',
+      'roc-ti',
+      'williamsr-ti',
+      'mfi-ti',
+      'obv-ti',
+      'forceindex-ti',
+      'ao-ti',
+      'trix-ti',
+      'bb-ti',
+    ]) {
+      expect(types).toContain(type);
+    }
+
+    expect(registry.list().map((definition) => definition.type)).toContain('cluster-search');
+  });
+
   test('calculates SMA correctly', () => {
     const data = makeClusterData([1, 2, 3, 4, 5]);
     const engine = makeEngine();
@@ -436,5 +511,142 @@ describe('FootprintIndicatorEngine', () => {
     expect(Number.isNaN(atrLine!.values[offset - 1])).toBe(true);
     expect(atrLine!.values[offset]).toBeCloseTo(expected[0]);
     expect(atrLine!.values[closes.length - 1]).toBeCloseTo(expected[expected.length - 1]);
+  });
+
+  test('registers catalog technical indicators without a custom wrapper class', () => {
+    const closes = Array.from({ length: 10 }, (_, i) => i + 1);
+    const data = makeClusterData(closes);
+    const engine = makeEngine();
+
+    engine.setData(data);
+    engine.setSettings({
+      Indicators: [
+        {
+          id: 'roc1',
+          type: 'roc-ti',
+          params: {
+            source: 'close',
+            period: 3,
+            color: '#26a69a',
+            width: 2,
+            lineStyle: 'solid',
+          },
+          panel: { id: 'roc' },
+          visible: true,
+        },
+      ],
+      IndicatorPanels: { roc: { height: 100 } },
+    } as any);
+
+    engine.prepare();
+
+    const rocLine = engine.getPanelSeries('roc').find((s) => s.id === 'ROC');
+    const expected = roc({ values: closes, period: 3 });
+    const offset = closes.length - expected.length;
+
+    expect(rocLine).toBeTruthy();
+    expect(Number.isNaN(rocLine!.values[offset - 1])).toBe(true);
+    expect(rocLine!.values[offset]).toBeCloseTo(expected[0]);
+    expect(rocLine!.values[closes.length - 1]).toBeCloseTo(expected[expected.length - 1]);
+  });
+
+  test('finds cluster search hits in cluster cells', () => {
+    const data = makeFootprintClusterData();
+    const engine = makeEngine();
+
+    engine.setData(data);
+    engine.setSettings({
+      Indicators: [
+        {
+          id: 'cs1',
+          type: 'cluster-search',
+          params: {
+            dataType: 'volume',
+            minimum: 250,
+          },
+          panel: 'chart',
+          visible: true,
+        },
+      ],
+      IndicatorPanels: {},
+    } as any);
+
+    engine.prepare();
+
+    const overlays = engine.getClusterOverlays();
+    expect(overlays.length).toBe(1);
+    expect(overlays[0].items.length).toBe(1);
+    expect(overlays[0].items[0].bar).toBe(1);
+    expect(overlays[0].items[0].priceLow).toBe(101);
+    expect(overlays[0].items[0].priceHigh).toBe(101);
+    expect(overlays[0].items[0].value).toBe(300);
+  });
+
+  test('merges prices and applies bid ask imbalance in cluster search', () => {
+    const data = makeFootprintClusterData();
+    const engine = makeEngine();
+
+    engine.setData(data);
+    engine.setSettings({
+      Indicators: [
+        {
+          id: 'cs1',
+          type: 'cluster-search',
+          params: {
+            dataType: 'ask',
+            minimum: 90,
+            priceRange: 2,
+            priceRangeDirection: 'upward',
+            bidAskImbalance: 150,
+          },
+          panel: 'chart',
+          visible: true,
+        },
+      ],
+      IndicatorPanels: {},
+    } as any);
+
+    engine.prepare();
+
+    const items = engine.getClusterOverlays()[0].items;
+    const mergedHit = items.find(
+      (item) =>
+        item.bar === 1 &&
+        item.priceLow === 100 &&
+        item.priceHigh === 101 &&
+        item.value === 250
+    );
+    expect(mergedHit).toBeTruthy();
+  });
+
+  test('keeps one largest cluster search hit per bar when single selection is enabled', () => {
+    const data = makeFootprintClusterData();
+    const engine = makeEngine();
+
+    engine.setData(data);
+    engine.setSettings({
+      Indicators: [
+        {
+          id: 'cs1',
+          type: 'cluster-search',
+          params: {
+            dataType: 'volume',
+            minimum: 100,
+            singleSelection: true,
+          },
+          panel: 'chart',
+          visible: true,
+        },
+      ],
+      IndicatorPanels: {},
+    } as any);
+
+    engine.prepare();
+
+    const items = engine.getClusterOverlays()[0].items;
+    expect(items.filter((item) => item.bar === 0).length).toBe(1);
+    expect(items.filter((item) => item.bar === 1).length).toBe(1);
+    expect(items.find((item) => item.bar === 0)?.value).toBe(200);
+    expect(items.find((item) => item.bar === 1)?.value).toBe(300);
   });
 });

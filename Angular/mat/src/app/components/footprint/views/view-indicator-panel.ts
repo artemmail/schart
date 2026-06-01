@@ -14,6 +14,22 @@ export class viewIndicatorPanel extends canvasPart {
     super(parent, view, mtx, DraggableEnum.Top);
   }
 
+  override drawCanvas(): void {
+    const rightScaleWidth = this.getRightScaleWidth();
+
+    this.ctx.save();
+    this.ctx.beginPath();
+    this.ctx.myRect({
+      x: this.view.x,
+      y: this.view.y,
+      w: this.view.w + rightScaleWidth,
+      h: this.view.h,
+    } as Rectangle);
+    this.ctx.clip();
+    this.draw(this.parent, this.view, this.mtx);
+    this.ctx.restore();
+  }
+
   override draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
     const engine = parent.indicatorEngine;
     if (!engine) return;
@@ -34,7 +50,7 @@ export class viewIndicatorPanel extends canvasPart {
     }
 
     // draw zebra background + scale like built-in footprint panels
-    ctx.restore();
+    this.drawRightScaleBackground(ctx, view);
     this.DrawZebra(ctx, view.x, view.y, view.w, view.h, range.min, range.max);
     this.drawVertical();
 
@@ -83,6 +99,94 @@ export class viewIndicatorPanel extends canvasPart {
 
     ctx.restore();
     this.drawOpenPositionsLegend(ctx, parent, view, series);
+  }
+
+  onMouseDown(_point: any): void {
+    this.parent.viewsManager?.viewMain?.interruptSwipe?.();
+  }
+
+  onMouseMovePressed(point: any): void {
+    const manager = this.parent.mouseAndTouchManager;
+    if (!manager) return;
+
+    this.parent.hideHint();
+    this.parent.translateMatrix = new Matrix().translate(
+      -(manager.pressd.x - point.x),
+      0
+    );
+    this.parent.drawClusterView();
+  }
+
+  onMouseUp(_point: any): void {
+    this.commitHorizontalMove();
+    this.parent.drawClusterView();
+  }
+
+  onMouseWheel(ev: any, wheelDistance: number): void {
+    const view = this.parent.viewsManager?.clusterView;
+    if (!view) return;
+
+    const s = Math.pow(1.05, wheelDistance);
+    const x = ev.position.x;
+    const y = view.y + view.h / 2;
+    const m = Matrix.fromTriangles(
+      [x, y, x + 1, y + 1, x + 1, y - 1],
+      [x, y, x + s, y + s, x + s, y - s]
+    );
+
+    this.parent.viewsManager.mtx = this.parent.alignMatrix(
+      m.multiply(this.parent.viewsManager.mtx),
+      this.parent.isPriceVisible()
+    );
+    this.parent.drawClusterView();
+  }
+
+  onPanStart(event: any): void {
+    this.parent.viewsManager?.viewMain?.interruptSwipe?.();
+    this.parent.translateMatrix = new Matrix().translate(event.deltaX ?? 0, 0);
+    this.parent.drawClusterView();
+  }
+
+  onPan(event: any): void {
+    this.onPanStart(event);
+  }
+
+  onPanEnd(_event: any): void {
+    this.commitHorizontalMove();
+  }
+
+  onSwipe(event: any): void {
+    this.parent.viewsManager?.viewMain?.onSwipe?.(event);
+  }
+
+  private commitHorizontalMove(): void {
+    if (this.parent.translateMatrix == null) return;
+    this.parent.viewsManager.mtx = this.parent.alignMatrix(
+      this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+    );
+    this.parent.translateMatrix = null;
+  }
+
+  private getRightScaleWidth(): number {
+    const canvasWidth = this.parent.canvas?.width ?? 0;
+    const viewRight = this.view.x + this.view.w;
+    if (canvasWidth > viewRight) {
+      return canvasWidth - viewRight;
+    }
+
+    return Math.max(
+      0,
+      this.parent.viewsManager?.clusterPricesView?.w ??
+        this.colorsService.LegendPriceWidth(this.parent.minimode)
+    );
+  }
+
+  private drawRightScaleBackground(ctx: CanvasRenderingContext2D, view: Rectangle): void {
+    const w = this.getRightScaleWidth();
+    if (w <= 0) return;
+
+    ctx.fillStyle = this.palette.bg;
+    ctx.fillRect(view.x + view.w, view.y, w, view.h);
   }
 
   private drawOpenPositionsLegend(

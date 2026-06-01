@@ -156,19 +156,43 @@ export class FootprintLayoutService {
       volumesHeight[3] += volumeHeights.OIDelta;
     }
 
-    const totalVerticalHeight =
+    let totalVerticalHeight =
       volumesHeight[0] + volumesHeight[1] + volumesHeight[2] + volumesHeight[3] + volumesHeight[4];
-    const indicatorPanelsHeight = indicatorPanels.reduce((sum, p) => sum + (p?.height ?? 0), 0);
-    const totalBottomHeight = totalVerticalHeight + indicatorPanelsHeight;
+    let indicatorPanelHeights = indicatorPanels.map((p) => ({
+      id: p.id,
+      height: Math.max(0, Math.floor(p?.height ?? 0)),
+    }));
+    let indicatorPanelsHeight = indicatorPanelHeights.reduce((sum, p) => sum + p.height, 0);
+    let totalBottomHeight = totalVerticalHeight + indicatorPanelsHeight;
+    const dateHeight = this.colorsService.LegendDateHeight(minimode);
+    const availableBelowHeader = Math.max(0, canvasHeight - graphTopSpace - dateHeight);
+    const minClusterHeight = minimode
+      ? 0
+      : Math.min(
+          availableBelowHeader,
+          Math.max(80, Math.round(120 * this.colorsService.sscale()))
+        );
+    const maxBottomHeight = Math.max(0, availableBelowHeader - minClusterHeight);
+    if (totalBottomHeight > maxBottomHeight && totalBottomHeight > 0) {
+      const scale = maxBottomHeight / totalBottomHeight;
+      for (let i = 0; i < volumesHeight.length; i++) {
+        volumesHeight[i] = Math.max(0, Math.floor(volumesHeight[i] * scale));
+      }
+      indicatorPanelHeights = indicatorPanelHeights.map((p) => ({
+        ...p,
+        height: Math.max(0, Math.floor(p.height * scale)),
+      }));
+      totalVerticalHeight =
+        volumesHeight[0] + volumesHeight[1] + volumesHeight[2] + volumesHeight[3] + volumesHeight[4];
+      indicatorPanelsHeight = indicatorPanelHeights.reduce((sum, p) => sum + p.height, 0);
+      totalBottomHeight = totalVerticalHeight + indicatorPanelsHeight;
+    }
 
     const clusterView: Rectangle = new Rectangle(
       totalLen + deltaVolumes[4],
       graphTopSpace,
       canvasWidth - this.colorsService.LegendPriceWidth(minimode) - totalLen - deltaVolumes[4],
-      canvasHeight -
-        this.colorsService.LegendDateHeight(minimode) -
-        graphTopSpace -
-        totalBottomHeight
+      Math.max(0, canvasHeight - dateHeight - graphTopSpace - totalBottomHeight)
     );
 
     if (newTotal) {
@@ -292,7 +316,7 @@ export class FootprintLayoutService {
 
     yCursor += volumesHeight[3];
     const indicatorPanelViews: Array<{ id: string; view: Rectangle }> = [];
-    for (const panel of indicatorPanels) {
+    for (const panel of indicatorPanelHeights) {
       const h = panel?.height ?? 0;
       if (h <= 0) continue;
       indicatorPanelViews.push({
@@ -473,5 +497,6 @@ export class FootprintLayoutService {
     return { mtxMain, mtxtotal, mtxprice, mtxhead, mtxanim };
   }
 }
+
 
 

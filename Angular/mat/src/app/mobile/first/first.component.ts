@@ -37,6 +37,7 @@ import {
   DEFAULT_ARBITRAGE_PORTFOLIO_2,
   resolveFootprintMode,
 } from 'src/app/models/footprint-mode';
+import { normalizeFootprintQueryParams } from 'src/app/models/footprint-query-params';
 
 
 @Component({
@@ -101,7 +102,8 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
 
 
 
-    this.route.queryParams.subscribe((params) => {
+    this.route.queryParams.subscribe((rawParams) => {
+      const params = normalizeFootprintQueryParams(rawParams);
       const isPairTradingRoute = this.router.url.includes(
         '/CandlestickChart/PairTrading'
       );

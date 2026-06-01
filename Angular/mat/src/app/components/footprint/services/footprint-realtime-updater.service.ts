@@ -25,6 +25,9 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
   private lastRecoveryReloadAt = 0;
   private readonly mergeFailureThreshold = 3;
   private readonly recoveryReloadMinIntervalMs = 30000;
+  private readonly realtimeTimeZone = 'Europe/Moscow';
+  private readonly realtimeStartMinute = 6 * 60 + 45;
+  private readonly realtimeEndMinute = 23 * 60 + 59;
 
   private realtimeSubscriptions = new Subscription();
   private activeSubscriptionKey: string | null = null;
@@ -125,6 +128,10 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     }
 
     const now = new Date();
+    if (!this.isRealtimeWindowOpen(now)) {
+      return false;
+    }
+
     const startDate = this.parseLocalDate(params.startDate);
     const endDate = this.parseLocalDate(params.endDate);
     if (!endDate) {
@@ -141,6 +148,75 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     }
 
     return this.normalizeDay(endDate) >= this.normalizeDay(now);
+  }
+
+  private isRealtimeWindowOpen(now: Date): boolean {
+    const parts = this.getZonedTimeParts(now, this.realtimeTimeZone);
+    const day = parts?.dayOfWeek ?? now.getDay();
+    const hour = parts?.hour ?? now.getHours();
+    const minute = parts?.minute ?? now.getMinutes();
+
+    if (day === 0 || day === 6) {
+      return false;
+    }
+
+    const minutes = hour * 60 + minute;
+    return minutes >= this.realtimeStartMinute && minutes <= this.realtimeEndMinute;
+  }
+
+  private getZonedTimeParts(
+    date: Date,
+    timeZone: string
+  ): { dayOfWeek: number; hour: number; minute: number } | null {
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        weekday: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      });
+
+      const parts = formatter.formatToParts(date);
+      const get = (type: string) => parts.find((part) => part.type === type)?.value;
+      const weekday = get('weekday');
+      const dayOfWeek = this.parseWeekday(weekday);
+      const hour = Number(get('hour'));
+      const minute = Number(get('minute'));
+
+      if (
+        dayOfWeek === null ||
+        !Number.isFinite(hour) ||
+        !Number.isFinite(minute)
+      ) {
+        return null;
+      }
+
+      return { dayOfWeek, hour, minute };
+    } catch {
+      return null;
+    }
+  }
+
+  private parseWeekday(value: string | undefined): number | null {
+    switch (value) {
+      case 'Sun':
+        return 0;
+      case 'Mon':
+        return 1;
+      case 'Tue':
+        return 2;
+      case 'Wed':
+        return 3;
+      case 'Thu':
+        return 4;
+      case 'Fri':
+        return 5;
+      case 'Sat':
+        return 6;
+      default:
+        return null;
+    }
   }
 
   private parseLocalDate(value: unknown): Date | null {

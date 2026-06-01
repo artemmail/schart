@@ -47,6 +47,7 @@ import {
   DEFAULT_ARBITRAGE_PORTFOLIO_2,
   resolveFootprintMode,
 } from 'src/app/models/footprint-mode';
+import { normalizeFootprintQueryParams } from 'src/app/models/footprint-query-params';
 
 import { Title } from '@angular/platform-browser';
 
@@ -131,9 +132,11 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   }
 
   private sidenavInitialized = false;
+  private pendingInitialLoad = false;
 
   ngOnInit(): void {
-    this.route.queryParams.subscribe((params) => {
+    this.route.queryParams.subscribe((rawParams) => {
+      const params = normalizeFootprintQueryParams(rawParams);
       const isPairTradingRoute = this.router.url.includes(
         '/CandlestickChart/PairTrading'
       );
@@ -187,11 +190,8 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
             .join('/')
             .includes('CandlestickChart') || requestedMode === 'candles';
           this.isInited = true;
-
-          if (this.footPrintParamsComponent) {
-            this.footPrintParamsComponent.applyPreset(this.params);
-            this.load();
-          }
+          this.pendingInitialLoad = true;
+          this.tryLoadFootprint();
         });
     });
   }
@@ -201,11 +201,14 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
       this.navService.setSidenav(this.appDrawer);
       this.sidenavInitialized = true;
     }
+
+    this.tryLoadFootprint();
   }
 
   ngAfterViewInit(): void {
     // Передаем MatSidenav в NavService после инициализации представления
     this.navService.setSidenav(this.appDrawer);
+    this.tryLoadFootprint();
   }
 
   public load() {
@@ -216,8 +219,28 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   }
 
   private requestFootprint(): void {
+    if (!this.footPrintParamsComponent || !this.footPrint) {
+      return;
+    }
+
     const model: any = this.footPrintParamsComponent.GetModel();
     this.footPrint.serverRequest(model);
+  }
+
+  private tryLoadFootprint(): void {
+    if (
+      !this.pendingInitialLoad ||
+      !this.isInited ||
+      !this.params ||
+      !this.footPrintParamsComponent ||
+      !this.footPrint
+    ) {
+      return;
+    }
+
+    this.pendingInitialLoad = false;
+    this.footPrintParamsComponent.applyPreset(this.params);
+    this.load();
   }
 
   onVirtualPortfolioTickerSelected(ticker: string): void {

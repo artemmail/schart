@@ -92,7 +92,9 @@ export class FootprintDataLoaderService implements OnDestroy {
         merged = this.currentData.handleCluster(payload);
         break;
       case 'ticks':
-        merged = this.currentData.handleTicks(payload);
+        merged = this.shouldApplyTickUpdates()
+          ? this.currentData.handleTicks(payload)
+          : true;
         break;
       case 'ladder':
         this.currentData.handleLadder(payload);
@@ -103,6 +105,11 @@ export class FootprintDataLoaderService implements OnDestroy {
     // Pushing the same object through data$ on every tick causes an
     // extra render/update path and can freeze UI under fast streams.
     return { type, merged };
+  }
+
+  private shouldApplyTickUpdates(): boolean {
+    const period = Number(this.paramsSubject.value?.period);
+    return Number.isFinite(period) && period === 0;
   }
 
   private async applySettingsAndLoadData(
