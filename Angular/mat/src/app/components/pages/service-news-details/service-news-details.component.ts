@@ -1,15 +1,14 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatDialog } from '@angular/material/dialog';
 import { ApplicationUser, Topic, Comment } from 'src/app/models/UserTopic';
 import { AuthService } from 'src/app/service/auth.service';
 import { NewsService } from 'src/app/service/news.service';
-import { ConfirmDialogComponent } from '../../Dialogs/confirm-dialog/confirm-dialog.component';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { DomSanitizer, SafeHtml, Title } from '@angular/platform-browser';
 import { MaterialModule } from 'src/app/material.module';
 import { EditorComponent } from '../../Controls/timy-mce/app-editor.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   standalone: true,
@@ -44,11 +43,14 @@ export class ServiceNewsDetailsComponent implements OnInit {
     private router: Router,
     private dialogService: DialogService,
     private sanitizer: DomSanitizer,
-    private titleService: Title
+    private titleService: Title,
+    private destroyRef: DestroyRef
   ) {}
 
   ngOnInit(): void {
-    this.route.params.subscribe((params) => {
+    this.route.params
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
       this.slug = params['id'];
       this.loadData();
     });

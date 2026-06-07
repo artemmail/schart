@@ -9,6 +9,16 @@ import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
 import { StockChartPalette } from 'src/app/services/theme/theme.model';
 
+type TimeAxisLayout = {
+  barWidth: number;
+  fontSize: number;
+  lineHeight: number;
+  timeLabelStride: number;
+  dateLabelStride: number;
+  drawTimeLabels: boolean;
+  denseGrid: boolean;
+};
+
 export abstract class canvasPart {
   public ctx: any;
   public view: Rectangle;
@@ -36,6 +46,40 @@ export abstract class canvasPart {
 
   protected get palette(): StockChartPalette {
     return this.parent.palette;
+  }
+
+  protected getTimeAxisLayout(parent: FootPrintComponent, mtx: Matrix): TimeAxisLayout {
+    const sscale = this.colorsService.sscale();
+    const barWidth = Math.max(Math.abs(parent.getBar(mtx).w), 0.001);
+    let fontSize = Math.max(
+      9 * sscale,
+      Math.min(12 * sscale, barWidth / 8)
+    );
+    fontSize = Math.round(fontSize);
+    const period = parent.params?.period ?? 0;
+    const timeLabelWidth = period >= 1 ? 7 : 12;
+    const drawTimeLabels = period < 1440;
+
+    return {
+      barWidth,
+      fontSize,
+      lineHeight: fontSize + 2,
+      timeLabelStride: Math.max(1, Math.ceil((timeLabelWidth * fontSize) / barWidth)),
+      dateLabelStride: Math.max(1, Math.ceil((12 * fontSize) / barWidth)),
+      drawTimeLabels,
+      denseGrid: barWidth < Math.max(10 * sscale, fontSize),
+    };
+  }
+
+  protected shouldDrawTimeAxisGridLine(columnIndex: number, axis: TimeAxisLayout): boolean {
+    if (!axis.denseGrid) {
+      return true;
+    }
+
+    return (
+      (axis.drawTimeLabels && columnIndex % axis.timeLabelStride === 0) ||
+      columnIndex % axis.dateLabelStride === 0
+    );
   }
 
   protected calculatePriceRange(view: Rectangle, mtx: Matrix): { startPrice: number; finishPrice: number; step: number; fontSize: number; skip: number } {

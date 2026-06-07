@@ -195,7 +195,6 @@ export class SignalRService implements OnDestroy {
 
       this.hubConnection = undefined;
       this.startPromise = null;
-      console.log('SignalR connection closed');
 
       const hasSubscriptions = this.hasActiveSubscriptions();
       if (this.isStopping || !hasSubscriptions) return;
@@ -212,7 +211,6 @@ export class SignalRService implements OnDestroy {
 
     connection.onreconnected(async () => {
       if (this.hubConnection !== connection) return;
-      console.log('SignalR connection reconnected');
       this.reconnectAttempt = 0;
       this.clearReconnectTimer();
       if (!this.isStopping) {
@@ -228,7 +226,6 @@ export class SignalRService implements OnDestroy {
         if (this.isStopping) {
           return Promise.reject('Connection start cancelled due to stop request');
         }
-        console.log('SignalR connection started');
         this.reconnectAttempt = 0;
         return Promise.resolve();
       })
@@ -374,7 +371,6 @@ export class SignalRService implements OnDestroy {
   private async resubscribeAll() {
     if (!this.hasActiveSubscriptions()) return;
 
-    console.log('Resubscribing active SignalR subscriptions');
     const connected = await this.ensureConnected();
     if (!connected || !this.hubConnection) {
       console.warn('Cannot resubscribe: hubConnection is not connected');
@@ -388,7 +384,7 @@ export class SignalRService implements OnDestroy {
         if (subscribeLadder) {
           ladderSubscribedTickers.add(subscription.ticker);
         }
-        return this.invokeSubscribe(subscription, false, subscribeLadder);
+        return this.invokeSubscribe(subscription, subscribeLadder);
       }
     );
 
@@ -403,8 +399,7 @@ export class SignalRService implements OnDestroy {
   }
 
   public async Subscribe(
-    params: FootprintSubscribeParams,
-    logParams: boolean = true
+    params: FootprintSubscribeParams
   ): Promise<string | null> {
     const connected = await this.ensureConnected();
     if (!connected || !this.hubConnection) {
@@ -420,7 +415,6 @@ export class SignalRService implements OnDestroy {
     const shouldSubscribeLadder = this.getLadderSubscriptionCount(params.ticker) === 0;
     const subscribed = await this.invokeSubscribe(
       params,
-      logParams,
       shouldSubscribeLadder
     );
     if (subscribed) {
@@ -475,7 +469,6 @@ export class SignalRService implements OnDestroy {
       if (shouldUnsubscribeLadder) {
         await this.hubConnection.invoke('UnSubscribeLadder', params.ticker);
       }
-      console.log('Unsubscribed from ' + params.ticker);
       await removeLocalTracking();
       return true;
     } catch (err) {
@@ -582,7 +575,6 @@ export class SignalRService implements OnDestroy {
 
   private async invokeSubscribe(
     params: FootprintSubscribeParams,
-    logParams: boolean,
     subscribeLadder: boolean
   ): Promise<boolean> {
     if (!this.hubConnection) {
@@ -604,10 +596,6 @@ export class SignalRService implements OnDestroy {
           }
           throw ladderError;
         }
-      }
-
-      if (logParams) {
-        console.log(`Subscribed to ${params.ticker} (${params.period}/${params.step})`);
       }
       return true;
     } catch (err) {
@@ -699,7 +687,6 @@ export class SignalRService implements OnDestroy {
       if (this.hubConnection && this.hubConnection.state !== signalR.HubConnectionState.Disconnected) {
         try {
           await this.hubConnection.stop();
-          console.log('SignalR connection stopped');
         } catch (err) {
           console.warn('Error while stopping SignalR connection: ' + err);
         }

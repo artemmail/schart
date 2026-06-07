@@ -57,7 +57,6 @@ export class SettingsDialogComponent {
   applySettings() {
     const updatedParams = this.footPrintParamsComponent.GetModel();
    // updatedParams.presetIndex = this.presetIndex;
-    console.log('Applying Settings:', updatedParams);
     this.dialogRef.close(updatedParams);
   }
 

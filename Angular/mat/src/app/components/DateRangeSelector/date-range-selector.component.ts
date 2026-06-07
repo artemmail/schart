@@ -1,10 +1,10 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { Observable, of } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SelectListItemParams, SelectListItemText } from 'src/app/models/preserts';
 import { FootPrintRequestParams } from 'src/app/models/FootPrintPar';
 import { CommonService } from 'src/app/service/common.service';
-import { switchMap } from 'rxjs/operators';
 import { MaterialModule } from 'src/app/material.module';
 
 @Component({
@@ -26,7 +26,10 @@ export class PresetSelectorComponent1 implements OnInit {
   Dic: { [rperiod: string]: FootPrintRequestParams } = {};
   private valueChangesInitialized = false;
 
-  constructor(private commonService: CommonService) {}
+  constructor(
+    private commonService: CommonService,
+    private destroyRef: DestroyRef
+  ) {}
 
   ngOnInit(): void {
     this.loadPeriodPresets();
@@ -44,7 +47,9 @@ export class PresetSelectorComponent1 implements OnInit {
 
     this.periodPresets$ = this.commonService.PresetsItems(this.ticker);
 
-    this.periodPresets$.subscribe((markets) => {
+    this.periodPresets$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((markets) => {
       if (markets && markets.length > 0) {
         this.presets = this.transformList(markets);
         this.Dic = this.createRperiodDictionary(markets);
@@ -59,8 +64,10 @@ export class PresetSelectorComponent1 implements OnInit {
 
     // Подписка на изменения выбора пресета
     if (!this.valueChangesInitialized) {
-      this.marketControl.valueChanges.subscribe((value) => {
-        if (this.Dic && value in this.Dic && value !== 'custom') {
+      this.marketControl.valueChanges
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((value) => {
+        if (this.Dic && typeof value === 'string' && value in this.Dic && value !== 'custom') {
           this.selectionChange.emit(this.Dic[value]);
         }
       });

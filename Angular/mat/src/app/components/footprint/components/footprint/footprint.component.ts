@@ -532,7 +532,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
       this.markupManager = new MarkUpManager(this.markupRegistry, this);
       this.markupEnabled = true;
     } catch (e) {
-      console.log('markup error');
+      console.warn('Markup manager initialization failed', e);
       this.markupEnabled = false;
     }
     this.markViewInitialized();

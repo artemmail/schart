@@ -1,13 +1,13 @@
 import {
   Component,
+  DestroyRef,
   EventEmitter,
-  forwardRef,
   Input,
-  input,
   OnInit,
   Output,
 } from '@angular/core';
-import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { FormControl } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SelectListItemText } from 'src/app/models/preserts';
 import { CommonService } from 'src/app/service/common.service';
 import { MaterialModule } from 'src/app/material.module';
@@ -35,12 +35,17 @@ export class CategorySelectorComponent implements OnInit {
   @Output() categoriesChangeString = new EventEmitter<string>();
 
   categories: SelectListItemText[] = [];
-  categoryControl = new FormControl();
+  categoryControl = new FormControl<string[]>([]);
 
-  constructor(private categoryService: CommonService) { }
+  constructor(
+    private categoryService: CommonService,
+    private destroyRef: DestroyRef
+  ) { }
 
   ngOnInit() {
-    this.categoryService.Categories().subscribe(data => {
+    this.categoryService.Categories()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(data => {
       this.categories = data;
 
       // Если categories уже установлены в selectedCategories как пустая строка
@@ -50,15 +55,16 @@ export class CategorySelectorComponent implements OnInit {
       }*/
     });
 
-    this.categoryControl.valueChanges.subscribe(value => {
-      
-      this.categoriesChangeString.emit(value.join(','));
+    this.categoryControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(value => {
+      this.categoriesChangeString.emit((value ?? []).join(','));
     });
   }
 
 
   onSelectionChange() {
-    const selectedValues = this.categoryControl.value;  
+    const selectedValues = this.categoryControl.value ?? [];
     this.categoriesChangeString.emit(selectedValues.join(','));
   }
 }

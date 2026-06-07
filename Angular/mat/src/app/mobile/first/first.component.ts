@@ -221,7 +221,6 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
     this.settingsDialogRef.afterClosed().subscribe((result: TickerPresetNew) => {
       this.settingsDialogRef = null;
       if (result) {
-        console.log('Received Updated Params:', result);
         this.params = result;
         this.load();
       }

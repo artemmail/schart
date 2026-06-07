@@ -27,6 +27,7 @@ export class viewBackgroundRange extends canvasPart {
 
     // ───── «шахматка»/гор.полосы ─────
     this.drawHorizontalBackground(parent, view, mtx);
+    const axis = this.getTimeAxisLayout(parent, mtx);
     const dateDelimiterXs: number[] = [];
     let lastBarRect: Rectangle | null = null;
 
@@ -34,7 +35,8 @@ export class viewBackgroundRange extends canvasPart {
     for (let i = parent.minIndex; i <= parent.maxIndex; i++) {
       const barRect = parent.clusterRect(data[i].o, i, mtx);
       lastBarRect = barRect;
-      ctx.myLine(barRect.x, view.y, barRect.x, view.y + view.h);
+      if (this.shouldDrawTimeAxisGridLine(i, axis))
+        ctx.myLine(barRect.x, view.y, barRect.x, view.y + view.h);
 
       if (
         i > 0 &&

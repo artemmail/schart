@@ -41,10 +41,7 @@ export class ImageUploaderComponent {
   }
 
   copy(): void {
-    navigator.clipboard.writeText(this.filename!).then(
-      () => {
-        console.log('Async: Copying to clipboard was successful!');
-      },
+    navigator.clipboard.writeText(this.filename!).catch(
       (err) => {
         console.error('Async: Could not copy text: ', err);
       }

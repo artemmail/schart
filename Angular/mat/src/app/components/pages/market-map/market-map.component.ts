@@ -89,9 +89,7 @@ export class MarketMapComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  onCategoriesChange(selectedCategories: string[]) {
-    console.log('Выбранные категории (массив):', selectedCategories);
-  }
+  onCategoriesChange(selectedCategories: string[]) {}
 
   onCategoriesChangeString(selectedCategoriesString: string) {
     this.initialCategories = selectedCategoriesString;

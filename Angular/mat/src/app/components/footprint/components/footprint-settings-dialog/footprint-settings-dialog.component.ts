@@ -1,6 +1,6 @@
-import { Component, Inject, Input, ViewChild, ViewEncapsulation } from '@angular/core';
+import { Component, Input, Optional, ViewEncapsulation } from '@angular/core';
 import { firstValueFrom, tap } from 'rxjs';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatDialogRef } from '@angular/material/dialog';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import {
   SelectListItemText,
@@ -47,7 +47,10 @@ export class FootPrintSettingsDialogComponent {
   @Input() reloadData?: () => Promise<void> | void;
   @Input() reloadPresets?: () => Promise<void> | void;
 
-  constructor(private chartSettingsService: ChartSettingsService) {
+  constructor(
+    private chartSettingsService: ChartSettingsService,
+    @Optional() private dialogRef?: MatDialogRef<FootPrintSettingsDialogComponent>
+  ) {
     /*if (data) {
       this.fp = data.fp;
     }*/
@@ -336,7 +339,7 @@ export class FootPrintSettingsDialogComponent {
   }
 
   close() {
-    this.close();
+    this.dialogRef?.close();
   }
 
   presetChange(a: number) {
@@ -350,11 +353,7 @@ export class FootPrintSettingsDialogComponent {
     });
   }
 
-  changecolor(event: any) {
-    console.log('Color change event:', event);
-  }
+  changecolor(event: any) {}
 
-  changecomment(event: any) {
-    console.log('Comment change event:', event);
-  }
+  changecomment(event: any) {}
 }

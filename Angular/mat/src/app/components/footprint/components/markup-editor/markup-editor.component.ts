@@ -2,12 +2,11 @@ import { Component, Input, HostListener } from '@angular/core';
 import { FootPrintComponent } from '../footprint/footprint.component';
 import { MarkupMode } from '../../markup/shape-type';
 import { MaterialModule } from 'src/app/material.module';
-import { PalettePickerComponent } from 'src/lib/palette-picker.component';
 
 @Component({
   standalone: true,
   selector: 'app-markup-editor',
-  imports: [MaterialModule, PalettePickerComponent],
+  imports: [MaterialModule],
   templateUrl: './markup-editor.component.html',
   styleUrls: ['./markup-editor.component.css'],
 })
