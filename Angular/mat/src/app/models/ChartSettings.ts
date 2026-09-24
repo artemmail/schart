@@ -12,6 +12,7 @@ export interface ChartSettings {
   totalMode: string;
   TopVolumes: boolean;
   SeparateVolume: boolean;
+  VolumeInCandleColor?: boolean;
   ShrinkY: boolean;
   ToolTip: boolean;
   ExtendedToolTip: boolean;

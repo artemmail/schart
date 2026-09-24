@@ -5,6 +5,7 @@ import { ColumnEx } from '../columns/cluster-column-base';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
+import { getVolumeCandleColor } from './volume-candle-color';
 
 
 export class viewVolumesSeparated extends canvasPart {
@@ -88,7 +89,7 @@ export class viewVolumesSeparated extends canvasPart {
     this.ctx.clip();
     let drawVolumeColumn = this.drawVolumeColumnTotal.bind(this);
 
-    if (FPsettings.style != 'Volume')
+    if (!FPsettings.VolumeInCandleColor && FPsettings.style != 'Volume')
       switch (FPsettings.classic) {
         case 'ASK':
           drawVolumeColumn = this.drawVolumeColumnAsk.bind(this);
@@ -144,6 +145,13 @@ export class viewVolumesSeparated extends canvasPart {
   drawVolumeColumnTotal(column: ColumnEx, number: number, mtx: Matrix) {
     this.setQ(column);
     var ctx = this.ctx;
+    if (this.parent.FPsettings.VolumeInCandleColor) {
+      ctx.fillStyle = getVolumeCandleColor(
+        column, this.q, this.bq, this.palette, column === this.parent.selectedColumn
+      );
+      ctx.mFillRectangle(number + 0.1, 0, 0.8, this.q);
+      return;
+    }
     ctx.fillStyle =
       column == this.parent.selectedColumn
         ? this.palette.upStrong

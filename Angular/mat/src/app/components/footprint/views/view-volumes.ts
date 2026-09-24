@@ -5,6 +5,7 @@ import { ColumnEx } from '../columns/cluster-column-base';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { drob } from 'src/app/service/FootPrint/utils';
+import { getVolumeCandleColor } from './volume-candle-color';
 
 export class viewVolumes extends canvasPart {
   data: any;
@@ -34,7 +35,7 @@ export class viewVolumes extends canvasPart {
       maxQuantityBid = stats.sv;
     }
     let drawVolumeColumn = this.drawVolumeColumnTotal.bind(this).bind(this);
-    if (FPsettings.style != 'Volume')
+    if (!FPsettings.VolumeInCandleColor && FPsettings.style != 'Volume')
       switch (FPsettings.classic) {
         case 'ASK':
           drawVolumeColumn = this.drawVolumeColumnAsk.bind(this).bind(this);
@@ -99,10 +100,22 @@ export class viewVolumes extends canvasPart {
   drawVolumeColumnTotal(column: ColumnEx, number: number, mtx: Matrix) {
     this.setQ(column);
     var ctx = this.ctx;
-    ctx.fillStyle = this.palette.upSoft;
-    ctx.mFillRectangle(number, 0, 1, this.bq);
-    ctx.fillStyle = this.palette.downSoft;
-    ctx.mFillRectangle(number, this.bq, 1, this.q - this.bq);
+    if (this.parent.FPsettings.VolumeInCandleColor) {
+      ctx.fillStyle = getVolumeCandleColor(
+        column,
+        this.q,
+        this.bq,
+        this.palette,
+        column === this.parent.selectedColumn,
+        true
+      );
+      ctx.mFillRectangle(number, 0, 1, this.q);
+    } else {
+      ctx.fillStyle = this.palette.upSoft;
+      ctx.mFillRectangle(number, 0, 1, this.bq);
+      ctx.fillStyle = this.palette.downSoft;
+      ctx.mFillRectangle(number, this.bq, 1, this.q - this.bq);
+    }
     this.drawVolumeColumnText(
       column,
       number,

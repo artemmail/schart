@@ -26,6 +26,10 @@
           <mat-checkbox [(ngModel)]="fp.FPsettings.SeparateVolume" (change)="onChange($event)">Объемы</mat-checkbox>
         </div>
         <div>
+          <mat-checkbox [(ngModel)]="fp.FPsettings.VolumeInCandleColor" (change)="onChange($event)"
+            matTooltip="Единый столбик в цвет свечи. Если открытие равно закрытию, цвет определяется преобладающим направлением сделок.">Объем в цвет свечи</mat-checkbox>
+        </div>
+        <div>
           <mat-checkbox [(ngModel)]="fp.FPsettings.OI" (change)="onChange($event)">OI</mat-checkbox>
         </div>
         <div>

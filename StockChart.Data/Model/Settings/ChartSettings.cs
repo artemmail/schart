@@ -28,6 +28,7 @@ public partial class ChartSettings
     public string totalMode { get; set; }
     public bool TopVolumes { get; set; }
     public bool SeparateVolume { get; set; }
+    public bool VolumeInCandleColor { get; set; }
     public bool ShrinkY { get; set; }
     public bool ToolTip { get; set; }
     public bool ExtendedToolTip { get; set; }

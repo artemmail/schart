@@ -21,6 +21,7 @@ public class ChartSettingsDTO
     public string totalMode { get; set; }
     public bool TopVolumes { get; set; }
     public bool SeparateVolume { get; set; }
+    public bool VolumeInCandleColor { get; set; }
     public bool ShrinkY { get; set; }
     public bool ToolTip { get; set; }
     public bool ExtendedToolTip { get; set; }
@@ -70,6 +71,7 @@ public class ChartSettingsDTO
         chartSettings.totalMode = totalMode;
         chartSettings.TopVolumes = TopVolumes;
         chartSettings.SeparateVolume = SeparateVolume;
+        chartSettings.VolumeInCandleColor = VolumeInCandleColor;
         chartSettings.ShrinkY = ShrinkY;
         chartSettings.ToolTip = ToolTip;
         chartSettings.ExtendedToolTip = ExtendedToolTip;
@@ -110,6 +112,7 @@ public class ChartSettingsDTO
         totalMode = chartSettings.totalMode;
         TopVolumes = chartSettings.TopVolumes;
         SeparateVolume = chartSettings.SeparateVolume;
+        VolumeInCandleColor = chartSettings.VolumeInCandleColor;
         ShrinkY = chartSettings.ShrinkY;
         ToolTip = chartSettings.ToolTip;
         ExtendedToolTip = chartSettings.ExtendedToolTip;
