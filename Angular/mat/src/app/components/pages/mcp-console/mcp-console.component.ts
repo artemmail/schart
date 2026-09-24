@@ -1,6 +1,6 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { DomSanitizer, SafeHtml, Title } from '@angular/platform-browser';
+import { SafeHtml, Title } from '@angular/platform-browser';
 import { RouterModule } from '@angular/router';
 import { EChartsOption } from 'echarts';
 import { Subscription } from 'rxjs';
@@ -154,7 +154,6 @@ export class McpConsoleComponent implements OnInit, OnDestroy {
     private readonly titleService: Title,
     private readonly markdownRenderer: MarkdownRendererService,
     private readonly chartRenderer: McpChartRendererService,
-    private readonly sanitizer: DomSanitizer,
     private readonly snackBar: MatSnackBar,
     private readonly dialogService: DialogService,
     private readonly mcpMobileDrawerService: McpMobileDrawerService
@@ -521,8 +520,7 @@ export class McpConsoleComponent implements OnInit, OnDestroy {
   }
 
   private renderMarkdownBlock(text: string): SafeHtml {
-    const html = this.markdownRenderer.renderMath(text || '');
-    return this.sanitizer.bypassSecurityTrustHtml(html);
+    return this.markdownRenderer.renderMath(text || '');
   }
 
   private buildRenderBlocks(text: string): ChatRenderBlock[] {
@@ -1037,10 +1035,9 @@ export class McpConsoleComponent implements OnInit, OnDestroy {
         ? paymentUrlRaw.trim()
         : '/Payment';
 
-    const message =
-      `Для работы с MCP Console нужна активная подписка.<br>` +
-      `<a href="${paymentUrl}">Перейти к тарифам</a>`;
-
-    this.dialogService.info(message).subscribe();
+    this.dialogService.info(
+      'Для работы с MCP Console нужна активная подписка.',
+      { url: paymentUrl, label: 'Перейти к тарифам' }
+    ).subscribe();
   }
 }

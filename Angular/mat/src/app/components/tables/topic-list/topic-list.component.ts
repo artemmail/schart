@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit } from '@angular/core';
 import { NewsService } from 'src/app/service/news.service';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { SafeHtml } from '@angular/platform-browser';
+import { SafeHtmlService } from 'src/app/service/safe-html.service';
 import { MaterialModule } from 'src/app/material.module';
 import { InfiniteScrollModule } from 'ngx-infinite-scroll';
 import { AuthService } from 'src/app/service/auth.service';
@@ -37,7 +38,7 @@ export class TopicListComponent implements OnInit, AfterViewInit {
 
   constructor(
     private newsService: NewsService,
-    private sanitizer: DomSanitizer,
+    private safeHtml: SafeHtmlService,
     private authService: AuthService
   ) {}
 
@@ -55,9 +56,7 @@ export class TopicListComponent implements OnInit, AfterViewInit {
     this.loading = true;
     this.newsService.getUserTopics2(this.page, this.pageSize).subscribe((data) => {
       data.Items.forEach(topic => {
-        const safeText = this.sanitizer.bypassSecurityTrustHtml(
-          "<style> .content img {max-width:100%} </style>" + topic.Text
-        );
+        const safeText = this.safeHtml.sanitizeForBinding(topic.Text);
         const textIsTooLong = this.checkIfTextIsTooLong(topic.Text);
   
         this.topics.push({

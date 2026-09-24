@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfirmDialogComponent } from '../components/Dialogs/confirm-dialog/confirm-dialog.component';
-import { InformationDialogComponent } from '../components/Dialogs/information-dialog/information-dialog.component';
+import { InformationDialogComponent, InformationDialogData } from '../components/Dialogs/information-dialog/information-dialog.component';
 import { Observable } from 'rxjs';
 import { SaveImageDialogComponent } from '../components/Dialogs/save-image-dialog/save-image-dialog.component';
 import { SupportDialogComponent } from '../components/Dialogs/support-dialog/support-dialog.component';
@@ -22,11 +22,11 @@ export class DialogService {
     return dialogRef.afterClosed();
   }
 
-  info(message: string): Observable<void> {
+  info(message: string, link?: InformationDialogData['link']): Observable<void> {
     
     const dialogRef = this.dialog.open(InformationDialogComponent, {
       width: '250px',
-      data: { message: message },
+      data: { message, link },
     });
     return dialogRef.afterClosed();
   }

@@ -11,7 +11,8 @@ import {
   ViewContainerRef,
 } from '@angular/core';
 
-import { DomSanitizer, SafeHtml, Title } from '@angular/platform-browser';
+import { SafeHtml, Title } from '@angular/platform-browser';
+import { SafeHtmlService } from 'src/app/service/safe-html.service';
 import { TickerAutocompleteComponent } from '../../Controls/ticker-autocomplete/ticker-autocomplete.component';
 import { ReportsService } from 'src/app/service/reports.service';
 import { MaterialModule } from 'src/app/material.module';
@@ -81,7 +82,7 @@ export class SeasonalityComponent implements OnInit, AfterViewInit, OnDestroy {
   
 
   constructor(
-    private sanitizer: DomSanitizer,
+    private safeHtml: SafeHtmlService,
     private reportsService: ReportsService,
     private titleService: Title,
     private colorSchemeService: ColorSchemeService,
@@ -146,7 +147,7 @@ export class SeasonalityComponent implements OnInit, AfterViewInit, OnDestroy {
     for (let i = 0; i < data.length; i++) {
       const row = Array.isArray(data[i]) ? data[i] : [];
       const rowYear = i > 0 ? this.parseYear(row[0]) : null;
-      res += '<table style="background: transparent; border-collapse: collapse;">';
+      res += '<table style="background-color: transparent; border-collapse: collapse;">';
       res += '<tr>';
       for (let j = 0; j < row.length; j++) {
         let color = "transparent";
@@ -177,7 +178,7 @@ export class SeasonalityComponent implements OnInit, AfterViewInit, OnDestroy {
       res += '</tr>';
     }
     res += '</table>';
-    return this.sanitizer.bypassSecurityTrustHtml( res);
+    return this.safeHtml.sanitizeForBinding(res);
   }
 
   madediv(
@@ -191,7 +192,7 @@ export class SeasonalityComponent implements OnInit, AfterViewInit, OnDestroy {
     // Используйте обратные кавычки для поддержки интерполяции строк
     const hasMeta = Number.isFinite(year) && Number.isFinite(month);
     const meta = hasMeta ? ` data-year="${year}" data-month="${month}"` : '';
-    return `<td${meta} style="border: 1px solid ${borderColor}; background:${color}; color:${textColor};"><div style="padding: 0.9em 0; text-align: center; font-size: 13pt; width: 74px;">${data}</div></td>`;
+    return `<td${meta} style="border: 1px solid ${borderColor}; background-color:${color}; color:${textColor};"><div style="padding: 0.9em 0; text-align: center; font-size: 13pt; width: 74px;">${data}</div></td>`;
   }
 
   private applyThemePreset(): void {

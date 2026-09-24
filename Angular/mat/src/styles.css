@@ -8,6 +8,13 @@ body {
   color: var(--mat-sys-on-background, #1a1b1f);
 }
 
+/* innerHTML content does not receive Angular's scoped style attributes. */
+app-topic-list .content img,
+app-service-news-details .content img {
+  max-width: 100%;
+  height: auto;
+}
+
 html:not(.mat-dark-theme),
 body:not(.mat-dark-theme) {
   --mat-sys-background: #EDEEF0;

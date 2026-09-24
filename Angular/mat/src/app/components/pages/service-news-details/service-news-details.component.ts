@@ -5,7 +5,8 @@ import { ApplicationUser, Topic, Comment } from 'src/app/models/UserTopic';
 import { AuthService } from 'src/app/service/auth.service';
 import { NewsService } from 'src/app/service/news.service';
 import { DialogService } from 'src/app/service/DialogService.service';
-import { DomSanitizer, SafeHtml, Title } from '@angular/platform-browser';
+import { SafeHtml, Title } from '@angular/platform-browser';
+import { SafeHtmlService } from 'src/app/service/safe-html.service';
 import { MaterialModule } from 'src/app/material.module';
 import { EditorComponent } from '../../Controls/timy-mce/app-editor.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -27,7 +28,7 @@ export class ServiceNewsDetailsComponent implements OnInit {
   loggedUser: ApplicationUser;
   signed: boolean;
   isAdmin: boolean = false;
-  userComments: Comment[];
+  userComments: Array<Comment & { safeText: SafeHtml }>;
   comment: string;
   likeCount: number = 0;
   isLikedByCurrentUser: boolean = false;
@@ -42,7 +43,7 @@ export class ServiceNewsDetailsComponent implements OnInit {
     private newsService: NewsService,
     private router: Router,
     private dialogService: DialogService,
-    private sanitizer: DomSanitizer,
+    private safeHtml: SafeHtmlService,
     private titleService: Title,
     private destroyRef: DestroyRef
   ) {}
@@ -69,14 +70,14 @@ export class ServiceNewsDetailsComponent implements OnInit {
         this.titleService.setTitle(topic.Header);
         this.header = topic.Header;
 
-        // Устанавливаем HTML-текст в безопасном формате:
-        this.text = this.sanitizer.bypassSecurityTrustHtml(
-          "<style>.content img {max-width:100%}</style>" + topic.Text
-        );
+        this.text = this.safeHtml.sanitizeForBinding(topic.Text);
         this.date = topic.Date;
         this.topicUser = topic.TopicUser;
         this.id = topic.Id;
-        this.userComments = topic.UserComments;
+        this.userComments = (topic.UserComments ?? []).map(comment => ({
+          ...comment,
+          safeText: this.safeHtml.sanitizeForBinding(comment.Text),
+        }));
         this.likeCount = topic.LikeCount ?? 0;
         this.isLikedByCurrentUser = topic.IsLikedByCurrentUser ?? false;
         this.errorMessage = null;

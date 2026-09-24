@@ -1,351 +1,175 @@
+export type OptionSettlementType = 'Премиальный' | 'Маржируемый';
+export type OptionType = 'Колл' | 'Пут';
+export type OptionExpirationType = 'Американский' | 'Европейский';
+
 export interface OptionData {
-  assetCode: string;        // Код актива (например, "SR", "RI", "BR")
-  strike: number;           // Цена страйка (например, 240, 130000 или -10)
-  settlementType: string;   // Тип расчетов (например, "Премиальный" или "Маржируемый")
-  expirationDate: string;   // Дата исполнения (например, "2024-01-31")
-  optionType?: string;      // Тип опциона (например, "Колл" или "Пут")
-  expirationType?: string;  // Тип экспирации (например, "Американский" или "Европейский")
-  isWeekly?: boolean;       // Флаг, указывающий, является ли опцион недельным
+  assetCode: string;
+  strike: number;
+  settlementType: OptionSettlementType;
+  /** Основной формат YYYY-MM-DD; DD.MM.YY поддерживается для 2000–2099 годов. */
+  expirationDate: string;
+  optionType: OptionType;
+  expirationType: OptionExpirationType;
+  isWeekly?: boolean;
+  /** Полный код базового актива; для опциона на фьючерс обязательна серия, например BR-7.20. */
+  underlyingCode?: string;
 }
 
+/** Строго проверяет календарную дату, возвращая полночь UTC без зависимости от часового пояса. */
+export function parseExpirationDate(value: string): Date {
+  const iso = typeof value === 'string' ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(value) : null;
+  const legacy = typeof value === 'string' ? /^(\d{2})\.(\d{2})\.(\d{2})$/.exec(value) : null;
+  const parts = iso ?? legacy;
+  if (!parts || parts[0] !== value) {
+    throw new Error(`Некорректный формат даты экспирации: ${value}. Ожидается YYYY-MM-DD или DD.MM.YY.`);
+  }
+
+  const year = iso ? Number(parts[1]) : 2000 + Number(parts[3]);
+  const month = Number(parts[2]);
+  const day = Number(parts[iso ? 3 : 1]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  // Полный код содержит только две цифры года: явно ограничиваем поддерживаемый век.
+  if (year < 2000 || year > 2099 || date.getUTCFullYear() !== year ||
+      date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+    throw new Error(`Некорректная дата экспирации: ${value}. Ожидается календарная дата 2000–2099 годов.`);
+  }
+  return date;
+}
+
+// Спецификация и контрольные примеры: https://www.moex.com/s205
+const MONTH_CODES: Readonly<Record<OptionType, string>> = {
+  'Колл': 'ABCDEFGHIJKL',
+  'Пут': 'MNOPQRSTUVWX',
+};
+const WEEK_CODES = 'ABCDE';
+const SHORT_SETTLEMENT_TYPES: Readonly<Record<string, {
+  settlementType: OptionSettlementType;
+  expirationType: OptionExpirationType;
+}>> = {
+  A: { settlementType: 'Премиальный', expirationType: 'Американский' },
+  B: { settlementType: 'Маржируемый', expirationType: 'Американский' },
+  C: { settlementType: 'Премиальный', expirationType: 'Европейский' },
+};
+// Для остальных активов полный код передаётся явно через underlyingCode.
+const SPOT_ASSET_CODES = new Map([
+  ['SR', 'SBER'], ['SP', 'SBERP'], ['GZ', 'GAZP'],
+  ['Si', 'Si'], ['Eu', 'Eu'], ['CR', 'CNY'],
+]);
+
 export class OptionCodeParser {
-  // Словарь для типов расчетов краткого кода
-  private shortSettlementTypes: { [key: string]: string } = {
-    'A': 'Премиальный',
-    'M': 'Маржируемый',  // Исправлено с 'B' на 'M'
-    'C': 'Премиальный'
-  };
-
-  // Словарь для месяцев краткого кода (поле "Месяц")
-  private monthCodes: { [key: string]: string } = {
-    'Январь': 'A',
-    'Февраль': 'B',
-    'Март': 'C',
-    'Апрель': 'D',
-    'Май': 'E',
-    'Июнь': 'F',
-    'Июль': 'G',
-    'Август': 'H',
-    'Сентябрь': 'I',
-    'Октябрь': 'J',
-    'Ноябрь': 'K',
-    'Декабрь': 'L'
-  };
-
-  // Массив названий месяцев по индексу
-  private monthNames: string[] = [
-    'Январь',
-    'Февраль',
-    'Март',
-    'Апрель',
-    'Май',
-    'Июнь',
-    'Июль',
-    'Август',
-    'Сентябрь',
-    'Октябрь',
-    'Ноябрь',
-    'Декабрь'
-  ];
-
-  // Словарь для полного кодов активов
-  private fullAssetCodes: { [key: string]: string } = {
-    'RI': 'RTS',
-    'SR': 'SBER',
-    'BR': 'BR',
-    // Добавьте другие по необходимости
-  };
-
-  // Словарь для типов расчетов полного кода (поле "K")
-  private settlementTypes: { [key: string]: string } = { 
-    'Премиальный': 'P',
-    'Маржируемый': 'M'
-  };
-
-  // Словарь для типов опционов полного кода (поле "T")
-  private optionTypes: { [key: string]: string } = {
-    'Колл': 'C',
-    'Пут': 'P'
-  };
-
-  // Словарь для типов экспирации полного кода (поле "E")
-  private expirationTypes: { [key: string]: string } = {
-    'Американский': 'A',
-    'Европейский': 'E'
-  };
-
-  // Словарь для недельных кодов
-  private weekCodes: { [key: string]: string } = {
-    'A': 'A', // 1-я неделя месяца
-    'B': 'B', // 2-я неделя месяца
-    'C': 'C', // 3-я неделя месяца
-    'D': 'D', // 4-я неделя месяца
-    'E': 'E'  // 5-я неделя месяца (если есть)
-  };
-
-  // Разбор короткого кода опциона
-  parseShortCode(code: string): OptionData {
-    let assetCode: string;
-    let strike: number;
-    let settlementType: string;
-    let month: string;
-    let year: number;
-    let week: string | undefined;
-    let isWeekly: boolean;
-
-    if (code.length === 12) {
-      // Недельный опцион
-      assetCode = code.slice(0, 2);
-      const strikeStr = code.slice(2, 8);
-      strike = parseFloat(strikeStr);
-      const settlementTypeCode = code.charAt(8);
-      settlementType = this.shortSettlementTypes[settlementTypeCode];
-      const monthCode = code.charAt(9);
-      month = this.getMonthName(monthCode);
-      const yearDigit = parseInt(code.charAt(10), 10);
-      year = 2020 + yearDigit;
-      week = code.charAt(11);
-      isWeekly = true;
-    } else if (code.length === 8) {
-      // Месячный опцион (Исправлено с 7 на 8)
-      assetCode = code.slice(0, 2);
-      const strikeStr = code.slice(2, 5); // Например, '-10'
-      strike = parseFloat(strikeStr);
-      const settlementTypeCode = code.charAt(5);
-      settlementType = this.shortSettlementTypes[settlementTypeCode];
-      const monthCode = code.charAt(6);
-      month = this.getMonthName(monthCode);
-      const yearDigit = parseInt(code.charAt(7), 10);
-      year = 2020 + yearDigit;
-      isWeekly = false;
-    } else {
-      throw new Error('Некорректная длина короткого кода опциона.');
+  /**
+   * Короткий код не содержит точного дня исполнения и десятилетия.
+   * expirationDate берётся из данных контракта и проверяется по полям M/Y/W;
+   * календарь праздников и дата месячной экспирации здесь не угадываются.
+   */
+  parseShortCode(code: string, expirationDate: string): OptionData {
+    const match = typeof code === 'string'
+      ? /^([A-Za-z0-9]{2})(-?\d+(?:\.\d+)?)([ABC])([A-X])(\d)([A-E])?$/.exec(code)
+      : null;
+    if (!match || match[0] !== code) {
+      throw new Error(`Некорректный короткий код опциона: ${code}`);
     }
 
-    let expirationDate: Date;
-    
-    if (isWeekly) {
-      // Определение первого четверга месяца
-      const firstThursday = this.getFirstThursdayOfMonth(year, month);
-      
-      // Определение даты экспирации на основе недели
-      expirationDate = this.getExpirationDate(firstThursday, week!);
-    } else {
-      // Для месячного опциона дата экспирации задается фиксированно (последний четверг месяца)
-      expirationDate = this.getMonthlyExpirationDate(year, month);
+    const [, assetCode, strikeText, settlementCode, monthCode, yearDigit, weekCode] = match;
+    const date = parseExpirationDate(expirationDate);
+    const optionType: OptionType = MONTH_CODES['Колл'].includes(monthCode) ? 'Колл' : 'Пут';
+    const isWeekly = weekCode !== undefined;
+    if (this.getExpirationCode(date, optionType, isWeekly) !== `${monthCode}${yearDigit}${weekCode ?? ''}`) {
+      throw new Error(`Дата экспирации ${expirationDate} не соответствует короткому коду ${code}.`);
     }
 
+    const strike = Number(strikeText);
+    this.formatStrike(strike);
     return {
       assetCode,
       strike,
-      settlementType,
-      expirationDate: this.formatDate(expirationDate), // Формат YYYY-MM-DD
-      isWeekly
+      ...SHORT_SETTLEMENT_TYPES[settlementCode],
+      expirationDate: date.toISOString().slice(0, 10),
+      optionType,
+      isWeekly,
     };
   }
 
-  // Метод для определения первого четверга месяца
-  private getFirstThursdayOfMonth(year: number, month: string): Date {
-    const monthIndex = this.getMonthIndex(month); // Преобразование названия месяца в индекс (0-11)
-    let date = new Date(year, monthIndex, 1);
-    
-    while (date.getDay() !== 4) { // 4 соответствует четвергу
-      date.setDate(date.getDate() + 1);
-    }
-    
-    return date;
-  }
-
-  // Метод для вычисления даты экспирации недельного опциона
-  private getExpirationDate(firstThursday: Date, week: string): Date {
-    const weekNumber = week.charCodeAt(0) - 'A'.charCodeAt(0) + 1; // 'A' = 1, 'B' = 2, и т.д.
-    const expirationDate = new Date(firstThursday);
-    
-    expirationDate.setDate(firstThursday.getDate() + 7 * (weekNumber - 1));
-    
-    // Проверка и корректировка на неторговые дни
-    return this.adjustForNonTradingDay(expirationDate);
-  }
-
-  // Метод для вычисления даты экспирации месячного опциона (последний четверг месяца)
-  private getMonthlyExpirationDate(year: number, month: string): Date {
-    const monthIndex = this.getMonthIndex(month);
-    // Начинаем с последнего дня месяца
-    let date = new Date(year, monthIndex + 1, 0); // День 0 следующего месяца = последний день текущего
-    // Находим последний четверг
-    while (date.getDay() !== 4) {
-      date.setDate(date.getDate() - 1);
-    }
-    return this.adjustForNonTradingDay(date);
-  }
-
-  // Метод для преобразования названия месяца в индекс (0-11)
-  private getMonthIndex(monthName: string): number {
-    const index = this.monthNames.indexOf(monthName);
-    if (index === -1) {
-      throw new Error(`Неизвестное название месяца: ${monthName}`);
-    }
-    return index;
-  }
-
-  // Метод для корректировки даты на рабочий день, если она выпадает на выходной
-  private adjustForNonTradingDay(date: Date): Date {
-    const day = date.getDay();
-    if (day === 0) { // Воскресенье
-      date.setDate(date.getDate() - 2);
-    } else if (day === 6) { // Суббота
-      date.setDate(date.getDate() - 1);
-    }
-    // Дополнительная логика для праздничных дней может быть добавлена здесь
-    return date;
-  }
-
-  // Вспомогательная функция для получения названия месяца из кода
-  private getMonthName(monthCode: string): string {
-    const reverseMonthCodes: { [key: string]: string } = {
-      'A': 'Январь',
-      'B': 'Февраль',
-      'C': 'Март',
-      'D': 'Апрель',
-      'E': 'Май',
-      'F': 'Июнь',
-      'G': 'Июль',
-      'H': 'Август',
-      'I': 'Сентябрь',
-      'J': 'Октябрь',
-      'K': 'Ноябрь',
-      'L': 'Декабрь'
-    };
-    return reverseMonthCodes[monthCode] || '';
-  }
-
-  // Вспомогательная функция для форматирования даты в YYYY-MM-DD
-  private formatDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = (`0${date.getMonth() + 1}`).slice(-2); // Месяцы начинаются с 0
-    const day = (`0${date.getDate()}`).slice(-2);
-    return `${year}-${month}-${day}`;
-  }
-
-  // Генерация короткого кода
   generateShortCode(optionData: OptionData): string {
-    const { assetCode, strike, settlementType, expirationDate, isWeekly } = optionData;
-
-    // Генерация кода типа расчетов для короткого кода
-    const settlementTypeCode = Object.keys(this.shortSettlementTypes).find(
-      key => this.shortSettlementTypes[key] === settlementType
-    );
-    if (!settlementTypeCode) {
-      throw new Error(`Неизвестный тип расчетов: ${settlementType}`);
-    }
-
-    // Получение даты четверга недели экспирации
-    const thursday = this.getThursday(expirationDate);
-    const yearDigit = thursday.getFullYear() % 10;
-    const monthIndex = thursday.getMonth(); // 0=Январь, 1=Февраль,...11=Декабрь
-    const monthName = this.monthNames[monthIndex];
-    const monthCode = this.monthCodes[monthName];
-    if (!monthCode) {
-      throw new Error(`Неизвестный месяц: ${monthName}`);
-    }
-
-    let weekCode = '';
-    if (isWeekly) {
-      const weekNumber = this.getWeekOfMonth(thursday);
-      weekCode = this.getWeekCode(weekNumber);
-      if (!weekCode) {
-        throw new Error(`Неизвестный номер недели: ${weekNumber}`);
-      }
-    }
-
-    // Формирование строки страйка с учётом возможного отрицательного значения и фиксированной длины
-    let strikeStr: string;
-    if (isWeekly) {
-      strikeStr = strike < 0 
-        ? `-${Math.abs(strike).toString().padStart(5, '0')}` 
-        : strike.toString().padStart(6, '0');
-    } else {
-      strikeStr = strike < 0 
-        ? `-${Math.abs(strike)}` 
-        : strike.toString();
-    }
-
-    // Формирование короткого кода
-    if (isWeekly) {
-      return `${assetCode}${strikeStr}${settlementTypeCode}${monthCode}${yearDigit}${weekCode}`;
-    } else {
-      return `${assetCode}${strikeStr}${settlementTypeCode}${monthCode}${yearDigit}`;
-    }
+    const { date, strike, settlementCode } = this.validateOptionData(optionData);
+    const expirationCode = this.getExpirationCode(date, optionData.optionType, optionData.isWeekly ?? false);
+    return `${optionData.assetCode}${strike}${settlementCode}${expirationCode}`;
   }
 
-  // Метод для получения даты четверга из строки даты
-  private getThursday(expirationDate: string): Date {
-    const parts = expirationDate.split('-'); // Ожидается формат YYYY-MM-DD
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // Месяц в Date начинается с 0
-    const day = parseInt(parts[2], 10);
-    const date = new Date(year, month, day);
-    return date;
-  }
-
-  // Функция для определения номера недели в месяце
-  private getWeekOfMonth(date: Date): number {
-    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
-    const firstThursday = this.getFirstThursdayOfMonth(date.getFullYear(), this.monthNames[date.getMonth()]);
-    const diff = date.getDate() - firstThursday.getDate();
-    return Math.floor(diff / 7) + 1;
-  }
-
-  // Вспомогательная функция для получения кода недели
-  private getWeekCode(weekNumber: number): string {
-    const weekCodeMap: { [key: number]: string } = {
-      1: 'A',
-      2: 'B',
-      3: 'C',
-      4: 'D',
-      5: 'E'
-    };
-    return weekCodeMap[weekNumber] || '';
-  }
-
-  // Генерация длинного кода
   generateLongCode(optionData: OptionData): string {
-    const { assetCode, settlementType, expirationDate, optionType, expirationType, strike } = optionData;
+    const { date, strike } = this.validateOptionData(optionData);
+    const underlyingCode = this.getUnderlyingCode(optionData);
+    const settlementCode = optionData.settlementType === 'Маржируемый' ? 'M' : 'P';
+    const optionTypeCode = optionData.optionType === 'Колл' ? 'C' : 'P';
+    const expirationTypeCode = optionData.expirationType === 'Американский' ? 'A' : 'E';
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const year = String(date.getUTCFullYear()).slice(-2);
+    return `${underlyingCode}${settlementCode}${day}${month}${year}${optionTypeCode}${expirationTypeCode}${strike}`;
+  }
 
-    // Получение полного кода актива
-    const fullAssetCode = this.fullAssetCodes[assetCode] || assetCode;
+  private validateOptionData(optionData: OptionData): { date: Date; strike: string; settlementCode: string } {
+    if (typeof optionData.assetCode !== 'string' || optionData.assetCode.length !== 2 ||
+        !/^[A-Za-z0-9]{2}$/.test(optionData.assetCode)) {
+      throw new Error(`Некорректный код актива: ${optionData.assetCode}`);
+    }
+    if (optionData.optionType !== 'Колл' && optionData.optionType !== 'Пут') {
+      throw new Error(`Неизвестный тип опциона: ${optionData.optionType}`);
+    }
+    if (optionData.expirationType !== 'Американский' && optionData.expirationType !== 'Европейский') {
+      throw new Error(`Неизвестный тип экспирации: ${optionData.expirationType}`);
+    }
+    if (optionData.settlementType !== 'Маржируемый' && optionData.settlementType !== 'Премиальный') {
+      throw new Error(`Неизвестный тип расчетов: ${optionData.settlementType}`);
+    }
+    if (optionData.settlementType === 'Маржируемый' && optionData.expirationType === 'Европейский') {
+      throw new Error('Маржируемый опцион должен иметь американский тип экспирации.');
+    }
+    const settlementCode = optionData.settlementType === 'Маржируемый' ? 'B'
+      : optionData.expirationType === 'Американский' ? 'A' : 'C';
+    return {
+      date: parseExpirationDate(optionData.expirationDate),
+      strike: this.formatStrike(optionData.strike),
+      settlementCode,
+    };
+  }
 
-    // Генерация кода типа расчетов для длинного кода
-    const settlementTypeCode = this.settlementTypes[settlementType];
-    if (!settlementTypeCode) {
-      throw new Error(`Неизвестный тип расчетов: ${settlementType}`);
+  private formatStrike(strike: number): string {
+    const text = String(strike);
+    if (!Number.isFinite(strike) || !/^-?\d+(?:\.\d+)?$/.test(text)) {
+      throw new Error(`Некорректный страйк: ${strike}`);
+    }
+    // MOEX использует переменную длину страйка, без дополнения нулями.
+    return text;
+  }
+
+  private getExpirationCode(date: Date, optionType: OptionType, isWeekly: boolean): string {
+    const referenceDate = new Date(date.getTime());
+    if (isWeekly) {
+      // Четверг той же недели (понедельник–воскресенье), включая переход месяца/года.
+      const weekdayFromMonday = (referenceDate.getUTCDay() + 6) % 7;
+      referenceDate.setUTCDate(referenceDate.getUTCDate() + 3 - weekdayFromMonday);
+    }
+    const monthCode = MONTH_CODES[optionType][referenceDate.getUTCMonth()];
+    const yearDigit = referenceDate.getUTCFullYear() % 10;
+    const weekCode = isWeekly ? WEEK_CODES[Math.floor((referenceDate.getUTCDate() - 1) / 7)] : '';
+    return `${monthCode}${yearDigit}${weekCode}`;
+  }
+
+  private getUnderlyingCode(optionData: OptionData): string {
+    if (optionData.expirationType === 'Американский') {
+      // Серия базового фьючерса не выводится из даты исполнения самого опциона.
+      const code = optionData.underlyingCode;
+      if (!code || /^[A-Za-z0-9]+-(?:[1-9]|1[0-2])\.\d{2}$/.exec(code)?.[0] !== code) {
+        throw new Error('Для полного кода опциона на фьючерс требуется underlyingCode с серией, например BR-7.20.');
+      }
+      return code;
     }
 
-    // Генерация кода типа опциона
-    const optionTypeCode = optionType ? this.optionTypes[optionType] : '';
-    if (optionType && !optionTypeCode) {
-      throw new Error(`Неизвестный тип опциона: ${optionType}`);
+    const code = optionData.underlyingCode ?? SPOT_ASSET_CODES.get(optionData.assetCode);
+    if (!code || /^[A-Za-z0-9]+$/.exec(code)?.[0] !== code) {
+      throw new Error(`Для актива ${optionData.assetCode} требуется полный код underlyingCode.`);
     }
-
-    // Генерация кода типа экспирации
-    const expirationTypeCode = expirationType ? this.expirationTypes[expirationType] : '';
-    if (expirationType && !expirationTypeCode) {
-      throw new Error(`Неизвестный тип экспирации: ${expirationType}`);
-    }
-
-    // Форматирование даты в ДДММГГ (например, 310124 для 31.01.24)
-    const dateParts = expirationDate.split('-'); // Ожидается формат YYYY-MM-DD
-    if (dateParts.length !== 3) {
-      throw new Error(`Некорректный формат даты: ${expirationDate}`);
-    }
-    const formattedDate = `${dateParts[2]}${dateParts[1]}${dateParts[0].slice(-2)}`;
-
-    // Формирование строки страйка с учётом возможного отрицательного значения
-    const strikeStr = strike < 0 
-      ? `-${Math.abs(strike)}`
-      : strike.toString();
-
-    // Формирование длинного кода
-    return `${fullAssetCode}${settlementTypeCode}${formattedDate}${optionTypeCode}${expirationTypeCode}${strikeStr}`;
+    return code;
   }
 }

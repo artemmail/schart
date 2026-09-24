@@ -57,7 +57,7 @@
   <ng-container *ngFor="let comment of userComments">
     <mat-card class="blogblock ">
       <mat-card-content>
-        <div [innerHTML]="comment.Text" class="content"></div>
+        <div [innerHTML]="comment.safeText" class="content"></div>
         <b>{{ comment.User.UserName }}</b>&nbsp;
         <i>{{ comment.Date | date: 'd MMM yyyy, H:mm' }}</i>
         <ng-container *ngIf="signed && comment.User.Id === loggedUser?.Id">&nbsp;

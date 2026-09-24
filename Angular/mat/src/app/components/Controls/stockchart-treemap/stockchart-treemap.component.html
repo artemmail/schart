@@ -6,6 +6,7 @@
     class="tm-treemap"
     [data]="data"
     [options]="treemapOptions"
+    [colorResolver]="colorResolver"
     (tileClick)="onTileClick($event)"
     (tileHover)="onTileHover($event)"
   ></stockchart-treemap>

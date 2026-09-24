@@ -234,7 +234,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin",
             builder => builder
-                .WithOrigins("http://localhost:4200")
+                .WithOrigins("http://localhost:4200", "http://127.0.0.1:4200")
                 .AllowCredentials()
                 .AllowAnyHeader()
                 .AllowAnyMethod());
@@ -368,11 +368,29 @@ app.MapWhen(ShouldUseAngular, appBuilder =>
             name: "api",
             pattern: "api/{controller=Home}/{action=Index}/{id?}");
     });
+    if (app.Environment.IsDevelopment())
+    {
+        appBuilder.Use(async (context, next) =>
+        {
+            var path = context.Request.Path.Value ?? string.Empty;
+            var isSpaNavigation =
+                (HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method)) &&
+                !Path.HasExtension(path);
+
+            if (isSpaNavigation)
+            {
+                context.Request.Path = "/";
+            }
+
+            await next();
+        });
+    }
     appBuilder.UseSpa(spa =>
     {
         spa.Options.SourcePath = "ClientApp";
         if (app.Environment.IsDevelopment())
-            spa.UseProxyToSpaDevelopmentServer("http://localhost:4200");
+            spa.UseProxyToSpaDevelopmentServer(
+                builder.Configuration["SpaOptions:DevServerUrl"] ?? "http://localhost:4200");
         else
             spa.Options.DefaultPage = "/index.html";
     });

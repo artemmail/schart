@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
+import { SafeHtml } from '@angular/platform-browser';
 import { marked } from 'marked';
 import * as katex from 'katex';
+import { SafeHtmlService } from './safe-html.service';
 
 export type McpChartType = 'bar' | 'pie' | 'candlestick';
 export type McpCandlestickRperiod = 'day' | 'week' | 'month';
@@ -91,6 +93,8 @@ interface ParsedCandlestickPeriod {
   providedIn: 'root',
 })
 export class MarkdownRendererService {
+  constructor(private readonly safeHtml: SafeHtmlService) {}
+
   private readonly chartFenceRegex = /```([^\r\n`]*)\r?\n([\s\S]*?)```/g;
   private readonly chartLanguages = new Set([
     'chart',
@@ -143,34 +147,20 @@ export class MarkdownRendererService {
     return this.mergeMarkdownBlocks(blocks);
   }
 
-  renderMath(content: string): string {
+  renderMath(content: string): SafeHtml {
     if (!content) {
-      return '';
+      return this.safeHtml.sanitizeForBinding('');
     }
 
     let source = content.replace(/\\\$/g, '$$$$$$');
 
-    source = source.replace(/\$\$([\s\S]+?)\$\$/g, (_, equation) => {
-      try {
-        return `<div class="katex-block">${katex.renderToString(equation, {
-          throwOnError: false,
-          displayMode: true,
-        })}</div>`;
-      } catch {
-        return `<div class="katex-error">${equation}</div>`;
-      }
-    });
+    source = source.replace(/\$\$([\s\S]+?)\$\$/g, (_, equation) =>
+      this.renderEquation(equation, true)
+    );
 
-    source = source.replace(/\\\[([\s\S]+?)\\\]/g, (_, equation) => {
-      try {
-        return `<div class="katex-block">${katex.renderToString(equation, {
-          throwOnError: false,
-          displayMode: true,
-        })}</div>`;
-      } catch {
-        return `<div class="katex-error">${equation}</div>`;
-      }
-    });
+    source = source.replace(/\\\[([\s\S]+?)\\\]/g, (_, equation) =>
+      this.renderEquation(equation, true)
+    );
 
     source = source.replace(
       /(?<!\\)\$(?!\$)([\s\S]+?)(?<!\\)\$(?!\$)/g,
@@ -183,32 +173,35 @@ export class MarkdownRendererService {
           return `$${equation}$`;
         }
 
-        try {
-          return `<span class="katex-inline">${katex.renderToString(equation, {
-            throwOnError: false,
-            displayMode: false,
-          })}</span>`;
-        } catch {
-          return `<span class="katex-error">${equation}</span>`;
-        }
+        return this.renderEquation(equation, false);
       }
     );
 
-    source = source.replace(/\\\(([\s\S]+?)\\\)/g, (_, equation) => {
-      try {
-        return `<span class="katex-inline">${katex.renderToString(equation, {
-          throwOnError: false,
-          displayMode: false,
-        })}</span>`;
-      } catch {
-        return `<span class="katex-error">${equation}</span>`;
-      }
-    });
+    source = source.replace(/\\\(([\s\S]+?)\\\)/g, (_, equation) =>
+      this.renderEquation(equation, false)
+    );
 
     source = source.replace(/\$\$\$\$\$\$/g, '\\$');
 
     const parsed = marked.parse(source);
-    return typeof parsed === 'string' ? parsed : '';
+    return this.safeHtml.sanitizeForBinding(typeof parsed === 'string' ? parsed : '');
+  }
+
+  private renderEquation(equation: string, displayMode: boolean): string {
+    const tag = displayMode ? 'div' : 'span';
+    try {
+      const html = katex.renderToString(equation, {
+        throwOnError: false,
+        displayMode,
+        trust: false,
+        maxExpand: 1000,
+        maxSize: 20,
+      });
+      return `<${tag} class="katex-${displayMode ? 'block' : 'inline'}">${html}</${tag}>`;
+    } catch {
+      const escaped = equation.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return `<${tag} class="katex-error">${escaped}</${tag}>`;
+    }
   }
 
   private parseChartBlock(

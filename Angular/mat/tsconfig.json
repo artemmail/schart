@@ -15,6 +15,7 @@
     "downlevelIteration": true,
     "experimentalDecorators": true,
     "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
     "importHelpers": true,
     "target": "ES2022",
     "module": "ES2022",
@@ -23,14 +24,8 @@
     "typeRoots": ["node_modules/@types", "src/types"],
     "paths": {
       "stockchart-treemap": [
-        "./projects/stockchart-treemap/src/public-api.ts",
-        "./dist/stockchart-treemap"
-      ],
-      "tinymce": ["tinymce/tinymce.min"],
-      "tinymce/*": ["tinymce/*"],
-      "tinymce/plugins/*": ["tinymce/plugins/*/plugin.min"],
-      "tinymce/themes/*": ["tinymce/themes/*/theme.min"],
-      "tinymce/icons/*": ["tinymce/icons/*/icons.min"]
+        "./projects/stockchart-treemap/src/public-api.ts"
+      ]
     },
     "lib": [
       "ES2022",

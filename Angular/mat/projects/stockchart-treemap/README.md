@@ -69,6 +69,8 @@ refreshMs = 5000; // poll every 5s
 - Palette: `colors: ['#5B8FF9', '#5AD8A6', ...]` or pairs `[min, max]` to generate a gradient per level.
 - Value-driven gradient: `colorScale: { min, center?, max }` + `colorValueField` (defaults to `valueField`).
 - If your data has no `color` field, the shade is computed automatically.
+- `colorResolver`: optional input `(dataItem, color, host) => color` applied after palette/scale calculation. Use it to composite transparent colors against the application's background without adding application dependencies to the library.
+- Set CSS properties `--sc-treemap-title-background` and `--sc-treemap-title-color` on the host to theme container titles.
 
 ## Layouts
 - `type: 'squarified'` (default, aims for square tiles).
@@ -113,7 +115,22 @@ onTile(ev: TreeMapEvent<MyNode>) {
 - `colors` — palette of strings or `[min, max]` pairs; empty array enables gray fallback.
 - `titleSize` (px), `showTopLevelTitles` (bool) — title rendering control.
 - `deriveParentValueFromChildren` — if a container has no value, sum is derived from children.
+- `keepZeroValueNodes` — keep zero-valued leaves in the hierarchy and click/hover paths (default `false`). They occupy no area; small containers retain their children even when those children cannot be drawn.
 - `roundDecimals` — coordinate rounding; `minTileSize` — minimum tile size to recurse.
+
+Children may be arrays, .NET collection wrappers (`$values` or `values`), or iterable collections.
+
+## Workspace development
+
+The application and both examples import `stockchart-treemap` through the workspace
+TypeScript alias pointing to `src/public-api.ts`. This library is the only implementation;
+there is no separate npm dependency or application copy to update.
+
+```sh
+npm run ng -- build stockchart-treemap
+npm run test:stockchart-treemap
+npm run build:stockchart-treemap-examples
+```
 
 ## Exports
 Package exports: `TreeMapComponent`, types `TreeMapOptions`, `TreeMapType`, `TreeMapColorScale`, and utilities like `projectColorByValue`, `colorsByLength`, `roundN` for working with colors and layout math.

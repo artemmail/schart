@@ -101,7 +101,7 @@ import { MY_DATE_FORMATS } from './service/date-formats';
 import { MarkupEditorComponent } from './components/footprint/components/markup-editor/markup-editor.component';
 
 import { GoogleChartsModule } from 'angular-google-charts';
-import { TreeMapComponent } from './components/Controls/tree-map/tree-map.component';
+import { TreeMapComponent } from 'stockchart-treemap';
 import { MarketMapComponent } from './components/pages/market-map/market-map.component';
 import { TreemapComponent2 } from './components/Controls/treemap2/treemap2.component';
 import { CustomTooltipComponent } from './components/Controls/custom-tooltip/custom-tooltip.component';

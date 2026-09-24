@@ -17,7 +17,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Observable, Subscription, defer, from, isObservable, of, timer } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
-import { Coord, Layout, TreeMapEvent, TreeMapOptions, TreeMapTileContext, TreeNode } from './tree-map.models';
+import { Coord, Layout, TreeMapColorResolver, TreeMapEvent, TreeMapOptions, TreeMapTileContext, TreeNode } from './tree-map.models';
 import { SliceAndDiceLayout, SquarifiedLayout } from './tree-map.layouts';
 import { colorBrightness, colorsByLength, defined, getField, projectColorByValue, roundN, toNumber } from './tree-map.utils';
 
@@ -44,6 +44,7 @@ export class TreeMapComponent<T = any> implements AfterViewInit, OnChanges, OnDe
   @Input() refreshMs: number | null = null; // например 5000. null/0 = без polling
 
   @Input() options: Partial<TreeMapOptions> = {};
+  @Input() colorResolver?: TreeMapColorResolver<T>;
 
   @Input() tileTemplate?: TemplateRef<TreeMapTileContext<T>>;
   @Input() titleTemplate?: TemplateRef<TreeMapTileContext<T>>;
@@ -79,6 +80,7 @@ export class TreeMapComponent<T = any> implements AfterViewInit, OnChanges, OnDe
       titleSize: 26,
       showTopLevelTitles: true,
       deriveParentValueFromChildren: true,
+      keepZeroValueNodes: false,
       roundDecimals: 4,
       minTileSize: 2,
       ...this.options
@@ -104,7 +106,7 @@ export class TreeMapComponent<T = any> implements AfterViewInit, OnChanges, OnDe
     if (changes['data$'] || changes['loader'] || changes['refreshMs']) {
       this.resetDataSource();
     }
-    if (changes['data'] || changes['options']) {
+    if (changes['data'] || changes['options'] || changes['colorResolver']) {
       this.queueRebuild();
     }
   }
@@ -141,7 +143,9 @@ export class TreeMapComponent<T = any> implements AfterViewInit, OnChanges, OnDe
     const hasText = (node.text ?? '').trim().length > 0;
     const hasTpl = !!this.titleTemplate;
     if (!hasText && !hasTpl) return 0;
-    return Math.max(0, this.cfg.titleSize);
+    const size = Math.max(0, this.cfg.titleSize);
+    const available = this.isTitleSide() ? node.coord.width : node.coord.height;
+    return Math.max(0, Math.min(size, available));
   }
 
 onTileMouseEnter(node: TreeNode<T>): void {
@@ -248,6 +252,7 @@ this.queueRebuild();
     }
 
     this.applyColors(root);
+    this.resolveColors(root, el);
 
     const layout: Layout =
       this.cfg.type === 'vertical' ? new SliceAndDiceLayout(true) :
@@ -278,7 +283,7 @@ this.cdr.markForCheck();   // <-- важно
       const rawColorValue = getField(colorValueField, item);
       const rawChildren = getField(childrenField, item);
 
-      const childrenArr = Array.isArray(rawChildren) ? (rawChildren as T[]) : [];
+      const childrenArr = this.normalizeChildren(rawChildren);
 
       const node: TreeNode<T> = {
         uid: this.nextUid(),
@@ -294,12 +299,26 @@ this.cdr.markForCheck();   // <-- важно
 
       // Пропускаем только "пустые" листья без детей и нулевой value; контейнеры с children оставляем,
       // чтобы значение пересчиталось от потомков и дерево не опустело (случай value=0 у корня данных).
-      if (Number.isFinite(node.value) && node.value === 0 && !childrenArr.length) continue;
+      if (node.value === 0 && !childrenArr.length && !this.cfg.keepZeroValueNodes) continue;
 
       nodes.push(node);
     }
 
     return nodes;
+  }
+
+  private normalizeChildren(rawChildren: unknown): T[] {
+    if (Array.isArray(rawChildren)) return rawChildren as T[];
+    if (!rawChildren || typeof rawChildren !== 'object') return [];
+
+    // .NET reference-preserving serializers wrap collections in $values.
+    const collection = rawChildren as { $values?: unknown; values?: unknown; [Symbol.iterator]?: unknown };
+    const values = collection.$values ?? collection.values;
+    if (Array.isArray(values)) return values as T[];
+    if (typeof collection[Symbol.iterator] === 'function') {
+      return Array.from(rawChildren as Iterable<T>);
+    }
+    return [];
   }
 
   private sortTree(node: TreeNode<T>): void {
@@ -383,6 +402,14 @@ this.cdr.markForCheck();   // <-- важно
     }
   }
 
+  private resolveColors(node: TreeNode<T>, host: HTMLElement): void {
+    if (!this.colorResolver) return;
+    if (node.dataItem !== null) {
+      node.color = this.colorResolver(node.dataItem, node.color, host);
+    }
+    for (const child of node.children ?? []) this.resolveColors(child, host);
+  }
+
   private collectNodes(node: TreeNode<T>): TreeNode<T>[] {
     const res: TreeNode<T>[] = [node];
     for (const c of node.children ?? []) res.push(...this.collectNodes(c));
@@ -407,10 +434,8 @@ this.cdr.markForCheck();   // <-- важно
         ? { width: Math.max(0, node.coord.width - title), height: node.coord.height, top: 0, left: 0 }
         : { width: node.coord.width, height: Math.max(0, node.coord.height - title), top: 0, left: 0 };
 
-    if (content.width < this.cfg.minTileSize || content.height < this.cfg.minTileSize) {
-      node.children = undefined;
-      return;
-    }
+    // Preserve the hierarchy for title events even when descendants cannot be drawn.
+    if (content.width < this.cfg.minTileSize || content.height < this.cfg.minTileSize) return;
 
     // compute coords for children
     layout.compute(children, content);
@@ -418,7 +443,6 @@ this.cdr.markForCheck();   // <-- важно
     // recurse
     for (const c of children) {
       if (c.coord.width < this.cfg.minTileSize || c.coord.height < this.cfg.minTileSize) {
-        c.children = undefined;
         continue;
       }
       this.layoutNode(c, layout);

@@ -1,6 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TreeMapComponent } from '../tree-map/tree-map.component';
+import { TreeMapComponent } from 'stockchart-treemap';
+import { resolveMarketMapColor } from '../stockchart-treemap/market-map-colors';
 import { MoneyToStrPipe } from 'src/app/pipes/money-to-str.pipe';
 import { MarketMapSquare } from 'src/app/service/reports.service';
 
@@ -12,6 +13,7 @@ import { MarketMapSquare } from 'src/app/service/reports.service';
   imports: [CommonModule, TreeMapComponent, MoneyToStrPipe],
 })
 export class SectorMiniTreemapComponent {
+  readonly colorResolver = resolveMarketMapColor;
   private sectorItems: MarketMapSquare[] = [];
   private sectorTitle: string | null = null;
 
@@ -36,6 +38,7 @@ export class SectorMiniTreemapComponent {
     titleSize: 24,
     showTopLevelTitles: true,
     deriveParentValueFromChildren: true,
+    keepZeroValueNodes: true,
     minTileSize: 2,
     roundDecimals: 2,
     colors: ['#5B8FF9', '#5AD8A6', '#5D7092', '#F6BD16', '#E8684A', '#6DC8EC'],

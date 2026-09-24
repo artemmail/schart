@@ -1,6 +1,7 @@
 <h1 mat-dialog-title>Информация</h1>
 <div mat-dialog-content>
-  <p [innerHTML]="safeHtmlMessage"></p>
+  <p style="white-space: pre-wrap">{{ data.message }}</p>
+  <p *ngIf="data.link"><a [href]="data.link.url">{{ data.link.label }}</a></p>
 </div>
 <div mat-dialog-actions>
   <button mat-button (click)="onOkClick()">Ок</button>

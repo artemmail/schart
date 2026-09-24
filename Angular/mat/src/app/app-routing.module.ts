@@ -31,7 +31,6 @@ import { CandlesStatComponent } from './components/Reports/candles-stat/candles-
 import { PortfolioOptimizationComponent } from './components/pages/optimization/optimization.component';
 
 import { LeadersReportComponent } from './components/Reports/leaders-report/leaders-report.component';
-import { TreeMapComponent } from './components/Controls/tree-map/tree-map.component';
 import { MultiPageComponent } from './components/pages/multicandles/multicandles.component';
 import { FavoritesBoardComponent } from './components/pages/favorites-board/favorites-board.component';
 import { CreateTopicComponent } from './components/pages/create-topic/create-topic.component';

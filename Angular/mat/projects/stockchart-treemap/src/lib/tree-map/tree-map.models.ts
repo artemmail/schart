@@ -25,6 +25,9 @@ export interface TreeMapOptions {
   /** Если у контейнера нет value - суммировать детей */
   deriveParentValueFromChildren: boolean;
 
+  /** Keep zero-valued leaves in the hierarchy and events, without assigning them area. */
+  keepZeroValueNodes?: boolean;
+
   /** Округление координат (как в исходнике round to 4) */
   roundDecimals: number;
 
@@ -37,6 +40,13 @@ export interface TreeMapColorScale {
   max: string;
   center?: string; // цвет для 0
 }
+
+/** Customize the final tile color without coupling the library to an application theme. */
+export type TreeMapColorResolver<T = any> = (
+  dataItem: T,
+  color: string | undefined,
+  host: HTMLElement
+) => string | undefined;
 
 export interface TreeMapTileContext<T = any> {
   $implicit: T;                // dataItem

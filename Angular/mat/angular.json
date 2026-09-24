@@ -22,11 +22,16 @@
             "tsConfig": "tsconfig.app.json",
             "assets": [
               "src/favicon.ico",
-              "src/assets"          ,
-{
+              {
                 "glob": "**/*",
-                "input": "src/assets/tinymce",
-                "output": "/tinymce/"
+                "input": "src/assets",
+                "output": "/assets/",
+                "ignore": ["**/*.zip", "**/*.7z", "usa*.html"]
+              },
+              {
+                "glob": "*/{MULT,FIN}/data.json",
+                "input": "data/stockchart-financial-data/shares",
+                "output": "/assets/shares/"
               }
             ],
             "styles": [
@@ -99,12 +104,17 @@
             "tsConfig": "tsconfig.spec.json",
             "assets": [
               "src/favicon.ico",
-              "src/assets",
-  {
-    "glob": "**/*",
-    "input": "src/assets/tinymce",
-    "output": "/assets/tinymce/"
-  }
+              {
+                "glob": "**/*",
+                "input": "src/assets",
+                "output": "/assets/",
+                "ignore": ["**/*.zip", "**/*.7z", "usa*.html"]
+              },
+              {
+                "glob": "*/{MULT,FIN}/data.json",
+                "input": "data/stockchart-financial-data/shares",
+                "output": "/assets/shares/"
+              }
             ],
             "styles": [
               "@angular/material/prebuilt-themes/azure-blue.css",

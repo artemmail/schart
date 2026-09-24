@@ -20,10 +20,10 @@ import { MoneyToStrPipe } from 'src/app/pipes/money-to-str.pipe';
 import { Router } from '@angular/router';
 
 import { MarketMapSquare } from 'src/app/service/reports.service';
-import { TreeMapComponent } from '../tree-map/tree-map.component'; // <-- поправь путь под себя
+import { TreeMapComponent, TreeMapEvent } from 'stockchart-treemap';
 import { FootprintWidgetComponent } from '../../footprint/components/footprint-widget/footprint-widget.component';
 import { SectorMiniTreemapComponent } from '../sector-mini-treemap/sector-mini-treemap.component';
-import { TreeMapEvent } from '../tree-map/tree-map.models';
+import { resolveMarketMapColor } from './market-map-colors';
 
 
 @Component({
@@ -44,6 +44,7 @@ import { TreeMapEvent } from '../tree-map/tree-map.models';
 
   
   data: any[] = [];
+  readonly colorResolver = resolveMarketMapColor;
 
   
   treemapOptions = {
@@ -54,6 +55,7 @@ import { TreeMapEvent } from '../tree-map/tree-map.models';
     childrenField: 'items',
     titleSize: 26,
     showTopLevelTitles: true,
+    keepZeroValueNodes: true,
   };
 
   private refreshSubscription?: Subscription;
