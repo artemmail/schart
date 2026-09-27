@@ -1,42 +1,454 @@
-.container {
-  padding: 16px;
-  width: 900px;
-  margin: 0 auto;
-}
-.chart-container {
+:host {
+  --optimization-surface: var(--mat-sys-surface-container, #fff);
+  --optimization-border: var(--mat-sys-outline-variant, #dfe3eb);
+  --optimization-muted: var(--mat-sys-on-surface-variant, #626b7a);
   display: flex;
-  justify-content: center;
+  flex: 1 1 auto;
+  height: 0;
+  min-height: 0;
+  min-width: 0;
+  color: var(--mat-sys-on-surface, #1a1b1f);
+}
+
+.optimization-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.parameters-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--optimization-surface);
+  border-right: 1px solid var(--optimization-border);
+  overflow: auto;
+}
+
+.parameters-heading {
+  display: flex;
   align-items: center;
-  margin-top: 16px;
+  gap: 10px;
+  padding: 20px 16px 16px;
 }
 
-mat-card {
-  margin-bottom: 24px;
+.parameters-heading mat-icon {
+  color: var(--mat-sys-primary, #1565c0);
 }
 
+h1, h2, h3, p {
+  margin: 0;
+}
+
+h2 {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.parameters-form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 14px;
+}
+
+.parameter-fields {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.parameter-fields > *,
 mat-form-field {
+  width: 100%;
+  min-width: 0;
+}
+
+.tickers-control {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+textarea {
+  min-height: 88px;
+  max-height: 240px;
+  line-height: 22px;
+  resize: vertical;
+}
+
+.leaders-button {
   width: 100%;
 }
 
-button {
-  height: 56px; /* Для выравнивания с mat-form-field */
+.parameter-actions {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding: 12px 0 14px;
+  background: var(--optimization-surface);
+  z-index: 2;
 }
 
-@media (max-width: 600px) {
-  /* Адаптивность для мобильных устройств */
-  .container {
-    padding: 8px;
-  }
-  
-  div[fxLayout="row"] {
-    flex-direction: column;
+.parameter-actions button {
+  width: 100%;
+  min-height: 44px;
+}
+
+.optimization-content {
+  container: optimization-results / inline-size;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  gap: 16px;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.eyebrow {
+  margin-bottom: 4px;
+  color: var(--optimization-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+h1 {
+  font-size: clamp(20px, 2vw, 26px);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.calculation-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--optimization-muted);
+  font-size: 13px;
+}
+
+.calculation-status:empty {
+  display: none;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--mat-sys-error-container, #ffdad6);
+  color: var(--mat-sys-on-error-container, #410002);
+  font-size: 14px;
+}
+
+.error-message mat-icon {
+  flex-shrink: 0;
+}
+
+.results-grid {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 28%);
+  grid-template-areas: 'portfolio allocation';
+  gap: 16px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.result-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--optimization-border);
+  border-radius: 12px;
+  background: var(--optimization-surface);
+}
+
+.portfolio-panel {
+  grid-area: portfolio;
+}
+
+.allocation-panel {
+  grid-area: allocation;
+}
+
+.panel-heading {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--optimization-border);
+}
+
+.panel-heading p {
+  margin-top: 3px;
+  color: var(--optimization-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.panel-heading > mat-icon {
+  flex-shrink: 0;
+  color: var(--optimization-muted);
+}
+
+.portfolio-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.portfolio-content app-portfolio-table {
+  flex: 1;
+  min-width: 720px;
+}
+
+:host ::ng-deep .portfolio-content .mat-mdc-header-cell {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--optimization-surface);
+  color: var(--optimization-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+:host ::ng-deep .portfolio-content .mat-mdc-cell,
+:host ::ng-deep .portfolio-content .mat-mdc-header-cell {
+  padding: 12px 10px;
+  border-bottom-color: var(--optimization-border);
+  font-variant-numeric: tabular-nums;
+}
+
+:host ::ng-deep .portfolio-content .mat-mdc-cell {
+  font-size: 13px;
+}
+
+:host ::ng-deep .portfolio-content .mat-column-ticker {
+  min-width: 150px;
+}
+
+:host ::ng-deep .portfolio-content a {
+  color: var(--mat-sys-primary, #1565c0);
+  text-decoration: none;
+}
+
+:host ::ng-deep .portfolio-content a:hover {
+  text-decoration: underline;
+}
+
+.allocation-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  padding: 8px;
+}
+
+.treemap-container {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.treemap-container stockchart-treemap {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+:host ::ng-deep .treemap-container .sc-treemap-leaf-content {
+  width: 100%;
+  height: 100%;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+.allocation-tile-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 4px;
+  box-sizing: border-box;
+  overflow: hidden;
+  pointer-events: none;
+  text-align: center;
+}
+
+.allocation-ticker {
+  width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.allocation-percent {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.allocation-yield {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.9;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.allocation-yield.yield-positive,
+.allocation-yield.yield-negative {
+  font-weight: 500;
+}
+
+.yield-legend {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 5px;
+  color: var(--optimization-muted);
+  font-size: 12px;
+}
+
+.yield-gradient {
+  display: inline-block;
+  width: 54px;
+  height: 9px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d61800, transparent, #04a344);
+}
+
+.portfolio-content:focus-visible {
+  outline: 2px solid var(--mat-sys-primary, #1565c0);
+  outline-offset: -2px;
+}
+
+.empty-state {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+.empty-state > mat-icon {
+  width: 40px;
+  height: 40px;
+  font-size: 40px;
+  color: var(--optimization-muted);
+  opacity: 0.6;
+}
+
+.empty-state h3 {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.empty-state p {
+  max-width: 320px;
+  color: var(--optimization-muted);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+@container optimization-results (max-width: 1000px) {
+  .results-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(230px, 0.9fr) minmax(200px, 1.1fr);
+    grid-template-areas: 'allocation' 'portfolio';
+    overflow: auto;
   }
 
-  div[fxFlex="50%"],
-  mat-form-field[fxFlex="33%"],
-  mat-form-field[fxFlex="34%"],
-  mat-form-field[fxFlex="65%"],
-  button[fxFlex="35%"] {
-    fxFlex: 100%;
+}
+
+@media (max-width: 760px) {
+  .optimization-layout {
+    display: block;
+    overflow: auto;
+  }
+
+  .parameters-panel {
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--optimization-border);
+  }
+
+  .parameter-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tickers-control,
+  .date-range-control,
+  .portfolio-date-control,
+  .parameter-fields app-date-range-selector {
+    grid-column: 1 / -1;
+  }
+
+  .parameter-actions {
+    position: static;
+    padding: 0 0 14px;
+  }
+
+  .optimization-content {
+    padding: 16px 12px;
+  }
+
+  .results-grid {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .allocation-panel {
+    order: -1;
+    height: 380px;
+  }
+
+  .allocation-content {
+    padding: 6px;
+  }
+
+  .yield-legend {
+    font-size: 11px;
+  }
+
+  .yield-gradient {
+    width: 40px;
+  }
+
+  .portfolio-content {
+    max-height: 480px;
   }
 }

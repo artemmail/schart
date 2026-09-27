@@ -1,8 +1,11 @@
-import { Component, OnInit, ViewChild, ElementRef, ChangeDetectorRef, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChild, ChangeDetectorRef, AfterViewInit, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Chart, ChartConfiguration } from 'chart.js/auto';
+import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
+import { finalize } from 'rxjs';
 import { PortfolioService } from 'src/app/service/portfolio.service';
-import { PortfolioSolution } from 'src/app/models/portfolio.model';
+import { Portfolio, PortfolioSolution } from 'src/app/models/portfolio.model';
+import { TreeMapComponent, TreeMapOptions } from 'stockchart-treemap';
 import { Title } from '@angular/platform-browser';
 import { ReportsService } from 'src/app/service/reports.service';
 import { FootPrintRequestModel } from 'src/app/models/tickerpreset';
@@ -10,6 +13,14 @@ import { DateRangePickerComponent } from '../../Controls/DateRange/date-range-pi
 import { PortfolioTableComponent } from '../portfolio copy/portfolio-table.component';
 import { MaterialModule } from 'src/app/material.module';
 import { PresetSelectorComponent1 } from '../../DateRangeSelector/date-range-selector.component';
+import { resolveMarketMapColor } from '../../Controls/stockchart-treemap/market-map-colors';
+
+interface PortfolioAllocationItem {
+  ticker: string;
+  percent: number;
+  yieldPercent: number | null;
+  colorRgba: string;
+}
 
 @Component({
   standalone: true,
@@ -19,19 +30,34 @@ import { PresetSelectorComponent1 } from '../../DateRangeSelector/date-range-sel
     DateRangePickerComponent,
     PresetSelectorComponent1,
     PortfolioTableComponent,
+    TreeMapComponent,
   ],
   templateUrl: './optimization.component.html',
-  styleUrls: ['./optimization.component.css']
+  styleUrls: ['./optimization.component.css'],
+  providers: [
+    { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'fill', subscriptSizing: 'dynamic' } }
+  ]
 })
-export class PortfolioOptimizationComponent implements OnInit, AfterViewInit, OnDestroy {
-  @ViewChild('chartCanvas') chartCanvas: ElementRef<HTMLCanvasElement>;
+export class PortfolioOptimizationComponent implements OnInit, AfterViewInit {
   @ViewChild(DateRangePickerComponent) dateRangePicker!: DateRangePickerComponent;
   @ViewChild(PortfolioTableComponent) portfolioTableComponent: PortfolioTableComponent;
-
-
-
-  
-  private chart: Chart<'pie'> | null = null;
+  allocationData: PortfolioAllocationItem[] = [];
+  readonly treemapOptions: Partial<TreeMapOptions> = {
+    type: 'squarified',
+    textField: 'ticker',
+    valueField: 'percent',
+    colorValueField: 'yieldPercent',
+    colors: [],
+    colorScale: { min: '#d61800', center: '#000000', max: '#04a344' },
+    titleSize: 0,
+    showTopLevelTitles: false,
+    keepZeroValueNodes: false,
+    minTileSize: 2
+  };
+  readonly colorResolver = resolveMarketMapColor;
+  isCalculating = false;
+  isLoadingLeaders = false;
+  errorMessage = '';
 
   form: FormGroup;
   portfolioSolution: PortfolioSolution | null = null;
@@ -49,7 +75,8 @@ export class PortfolioOptimizationComponent implements OnInit, AfterViewInit, On
     private rs: ReportsService,
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
-    private titleService: Title ) {
+    private titleService: Title,
+    private destroyRef: DestroyRef ) {
     titleService.setTitle("Оптимальный портфель Марковица");
 
     // Initialize dates to cover the past year
@@ -61,7 +88,7 @@ export class PortfolioOptimizationComponent implements OnInit, AfterViewInit, On
     this.endDate = today;
 
     this.form = this.fb.group({
-      tickers: [''],
+      tickers: ['', [Validators.required, Validators.pattern(/[^\s,;]/)]],
       rperiod: [this.rperiod],
       startDate: [this.startDate, Validators.required],
       endDate: [this.endDate, Validators.required],
@@ -83,28 +110,13 @@ export class PortfolioOptimizationComponent implements OnInit, AfterViewInit, On
       portfolioDate: this.portfolioDate
     });
   
-    this.portfolioSolution = this.getTestSolution();
-
     this.loadPortfolios();
     this.loadLeadersAndCalculatePortfolio(); // Fetch leaders and calculate portfolio
     
   }
 
   loadLeadersAndCalculatePortfolio(): void {
-    const startDate = this.startDate;
-    const endDate = this.endDate;
-  
-    if (startDate && endDate) {
-      this.rs.getLeaders(startDate, endDate).subscribe(data => {
-        const tickers = data.slice(0, 20).map(item => item.ticker).join(',');
-        this.form.patchValue({ tickers: tickers });
-  
-        // Once tickers are loaded, calculate the portfolio
-        this.onSubmit();
-      });
-    } else {
-      alert('Пожалуйста, выберите диапазон дат.');
-    }
+    this.loadLeaderTickers(true);
   }
 
   
@@ -113,15 +125,7 @@ export class PortfolioOptimizationComponent implements OnInit, AfterViewInit, On
     if (this.dateRangePicker) {
       this.dateRangePicker.setDatesRange(this.startDate, this.endDate);
     }
-    if (this.portfolioSolution) {
-      this.updateChartData(this.portfolioSolution);
-    }
-  }
-
-  ngOnDestroy(): void {
-    if (this.chart) {
-      this.chart.destroy();
-    }
+    this.cdr.detectChanges();
   }
 
   loadPortfolios(): void {
@@ -130,93 +134,85 @@ export class PortfolioOptimizationComponent implements OnInit, AfterViewInit, On
     });
   }
 
-  getTestSolution(): PortfolioSolution {
-    return {
-      success: true,
-      actual: 1.03958640647816,
-      stddev: 6.87790799080206,
-      chart: [
-        { ticker: "SBER", percent: 8.08 },
-        { ticker: "LKOH", percent: 11.06 },
-        // ... other data
-      ]
-    };
-  }
-
   onSubmit(): void {
+    if (this.isCalculating) {
+      return;
+    }
+
     if (!this.form.valid) {
       this.form.markAllAsTouched();
       return;
     }
 
     const formValues = this.form.value;
+    const tickers = [...new Set(
+      String(formValues.tickers).toUpperCase().split(/[\s,;]+/).filter(Boolean)
+    )].join(',');
+    this.isCalculating = true;
+    this.errorMessage = '';
+
     this.portfolioService.markovitz(
-      formValues.tickers,
+      tickers,
       formValues.rperiod,
       formValues.startDate,
       formValues.endDate,
       formValues.portfolioDate,
       formValues.deposit,
       formValues.risk
+    ).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.isCalculating = false)
     ).subscribe({
       next: solution => {
+        if (!solution.success || !solution.chart?.length) {
+          this.errorMessage = 'Не удалось подобрать портфель. Попробуйте изменить бумаги, период или риск.';
+          return;
+        }
+        const hasPreviousSolution = !!this.portfolioSolution;
         this.portfolioSolution = solution;
-        this.updateChartData(solution);
-        this.portfolioTableComponent.loadPortfolio();
+        this.allocationData = [];
+        this.cdr.detectChanges();
+        if (hasPreviousSolution) {
+          this.portfolioTableComponent?.loadPortfolio();
+        }
       },
       error: err => {
-        const message = err?.error?.error ?? 'Ошибка расчета портфеля';
-        alert(message);
+        this.errorMessage = err?.error?.error ?? 'Ошибка расчёта портфеля. Попробуйте ещё раз.';
       }
     });
   }
 
-  updateChartData(solution: PortfolioSolution): void {
-    if (solution.success) {
-      const labels = solution.chart.map(item => item.ticker);
-      const data = solution.chart.map(item => item.percent);
-      const backgroundColor = [
-        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40',
-        '#FFCD56', '#C9CBCF', '#36A2EB', '#4BC0C0', '#FF6384', '#36A2EB',
-        '#FFCE56', '#4BC0C0', '#9966FF'
-      ];
-
-      const chartConfig: ChartConfiguration<'pie'> = {
-        type: 'pie',
-        data: {
-          labels: labels,
-          datasets: [{
-            data: data,
-            backgroundColor: backgroundColor
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: {
-              position: 'top',
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const label = context.label || '';
-                  const value = context.raw || 0;
-                  return `${label}: ${value}%`;
-                }
-              }
-            }
-          }
-        }
-      };
-
-      if (this.chart) {
-        this.chart.destroy();
-      }
-
-      if (this.chartCanvas && this.chartCanvas.nativeElement) {
-        this.chart = new Chart(this.chartCanvas.nativeElement, chartConfig);
-      }
+  onPortfolioSharesLoaded(shares: Portfolio[]): void {
+    if (!this.portfolioSolution) {
+      this.allocationData = [];
+      return;
     }
+
+    const sharesByTicker = new Map(
+      shares.map(share => [share.ticker?.trim().toUpperCase(), share] as const)
+    );
+
+    const allocationItems = this.portfolioSolution.chart
+      .map(item => {
+        const ticker = item.ticker?.trim().toUpperCase();
+        const share = sharesByTicker.get(ticker);
+        const yieldPercent = share?.buycost
+          ? ((share.profit ?? 0) * 100) / share.buycost
+          : null;
+
+        return {
+          ticker: item.ticker,
+          percent: Number.isFinite(item.percent) ? Math.max(0, item.percent) : 0,
+          yieldPercent: yieldPercent !== null && Number.isFinite(yieldPercent) ? yieldPercent : null
+        };
+      })
+      .filter(item => item.percent > 0);
+    const maxAbsYield = Math.max(0, ...allocationItems.map(item => Math.abs(item.yieldPercent ?? 0)));
+    this.allocationData = allocationItems.map(item => {
+      const alpha = maxAbsYield > 0 ? Math.min(1, Math.abs(item.yieldPercent ?? 0) / maxAbsYield) : 0;
+      const color = (item.yieldPercent ?? 0) > 0 ? '4, 163, 68' : '214, 24, 0';
+      return { ...item, colorRgba: `rgba(${color}, ${alpha})` };
+    });
   }
 
   onDateRangePresetChange(preset: FootPrintRequestModel): void {
@@ -249,16 +245,37 @@ export class PortfolioOptimizationComponent implements OnInit, AfterViewInit, On
   }
 
   tickersFromLeaders(): void {
+    this.loadLeaderTickers(false);
+  }
+
+  private loadLeaderTickers(calculate: boolean): void {
+    if (this.isLoadingLeaders || this.isCalculating) {
+      return;
+    }
+
     const startDate = this.startDate;
     const endDate = this.endDate;
 
     if (startDate && endDate) {
-      this.rs.getLeaders(startDate, endDate).subscribe(data => {
-        const tickers = data.slice(0, 20).map(item => item.ticker).join(',');
-        this.form.patchValue({ tickers: tickers });
+      this.isLoadingLeaders = true;
+      this.errorMessage = '';
+      this.rs.getLeaders(startDate, endDate).pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isLoadingLeaders = false)
+      ).subscribe({
+        next: data => {
+          const tickers = data.slice(0, 20).map(item => item.ticker).join(', ');
+          this.form.patchValue({ tickers });
+          if (calculate) {
+            this.onSubmit();
+          }
+        },
+        error: () => {
+          this.errorMessage = 'Не удалось загрузить лидеров. Введите тикеры вручную или попробуйте ещё раз.';
+        }
       });
     } else {
-      alert('Пожалуйста, выберите диапазон дат.');
+      this.errorMessage = 'Пожалуйста, выберите диапазон дат.';
     }
   }
 

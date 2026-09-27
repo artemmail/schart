@@ -1,82 +1,175 @@
-<div class="container">
-  <!-- Карточка настроек портфеля -->
-  <mat-card>
-    <mat-card-header>
-      <mat-card-title>Настройки портфеля</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
-        <div fxLayout="column" fxLayoutGap="16px">
-          
-          <!-- Поле "Бумаги в портфеле" и кнопка "Лидеры по периоду" -->
-          <div fxLayout="row" fxLayoutGap="16px">
-            <mat-form-field fxFlex="85%">
-              <mat-label>Бумаги в портфеле</mat-label>
-              <input matInput placeholder="Бумаги в портфеле" formControlName="tickers">
-            </mat-form-field>
-            <button mat-raised-button color="primary" type="button" (click)="tickersFromLeaders()" fxFlex="15%">
-              Лидеры по периоду
-            </button>
-          </div>
+<div class="optimization-layout">
+  <aside class="parameters-panel" aria-labelledby="parameters-title">
+    <div class="parameters-heading">
+      <mat-icon>tune</mat-icon>
+      <h2 id="parameters-title">Параметры портфеля</h2>
+    </div>
 
-          <!-- "Промежуток" и "Диапазон дат" в одной строке -->
-          <div fxLayout="row" fxLayoutGap="16px">
-            <div fxFlex="50%">
-              <app-date-range-selector
-                [ticker]="ticker"
-                [rperiod]="rperiod"
-                (selectionChange)="onDateRangePresetChange($event)">
-              </app-date-range-selector>
-            </div>
-            <div fxFlex="50%">
-              <app-date-range-picker
-                (selectionChange)="onDateRangeChange($event)">
-              </app-date-range-picker>
-            </div>
-          </div>
-
-          <!-- Поля "Дата вложений", "Депозит", "Мин. Риск (%)" в одной строке -->
-          <div fxLayout="row" fxLayoutGap="16px">
-            <mat-form-field fxFlex="33%">
-              <mat-label>Дата вложений</mat-label>
-              <input matInput [matDatepicker]="portfolioPicker" placeholder="Дата вложений" formControlName="portfolioDate">
-              <mat-datepicker-toggle matSuffix [for]="portfolioPicker"></mat-datepicker-toggle>
-              <mat-datepicker #portfolioPicker></mat-datepicker>
-            </mat-form-field>
-
-            <mat-form-field fxFlex="33%">
-              <mat-label>Депозит</mat-label>
-              <input matInput type="number" placeholder="Депозит" formControlName="deposit">
-            </mat-form-field>
-
-            <mat-form-field fxFlex="34%">
-              <mat-label>Мин. Риск (%)</mat-label>
-              <input matInput type="number" placeholder="Мин. Риск (%)" formControlName="risk" min="0.0001" step="0.1">
-            </mat-form-field>
-          </div>
-
-          <!-- Кнопка "Пересчитать" -->
-          <div fxLayout="row" fxLayoutAlign="start center">
-            <button mat-raised-button color="accent" type="submit" [disabled]="form.invalid">Пересчитать</button>
-          </div>
-
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="parameters-form">
+      <div class="parameter-fields">
+        <div class="tickers-control">
+          <mat-form-field>
+            <mat-label>Бумаги в портфеле</mat-label>
+            <textarea
+              matInput
+              formControlName="tickers"
+              rows="4"
+              placeholder="SBER, LKOH, GAZP&#10;TATN, GMKN, NVTK"
+              spellcheck="false"
+              autocapitalize="characters"
+            ></textarea>
+            <mat-hint>Через запятую, пробел или с новой строки</mat-hint>
+            <mat-error>Укажите хотя бы один тикер</mat-error>
+          </mat-form-field>
+          <button
+            mat-stroked-button
+            type="button"
+            class="leaders-button"
+            (click)="tickersFromLeaders()"
+            [disabled]="isLoadingLeaders || isCalculating">
+            <mat-icon>trending_up</mat-icon>
+            {{ isLoadingLeaders ? 'Загрузка лидеров…' : 'Лидеры по периоду' }}
+          </button>
         </div>
-      </form>
-    </mat-card-content>
-  </mat-card>
 
-  <!-- Карточка с результатами -->
-  <div *ngIf="portfolioSolution">
-    <mat-card>
-      <mat-card-header>
-        <mat-card-title>Предложенный портфель на дату вложений</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <app-portfolio-table [portfolioNumber]="0"></app-portfolio-table>
-        <div class="chart-container">
-          <canvas #chartCanvas></canvas>
+        <app-date-range-selector
+          [ticker]="ticker"
+          [rperiod]="rperiod"
+          (selectionChange)="onDateRangePresetChange($event)">
+        </app-date-range-selector>
+
+        <app-date-range-picker
+          class="date-range-control"
+          (selectionChange)="onDateRangeChange($event)">
+        </app-date-range-picker>
+
+        <mat-form-field class="portfolio-date-control">
+          <mat-label>Дата вложений</mat-label>
+          <input matInput [matDatepicker]="portfolioPicker" formControlName="portfolioDate">
+          <mat-datepicker-toggle matSuffix [for]="portfolioPicker"></mat-datepicker-toggle>
+          <mat-datepicker #portfolioPicker></mat-datepicker>
+          <mat-error>Укажите дату вложений</mat-error>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Депозит</mat-label>
+          <input matInput type="number" formControlName="deposit" min="1000" step="1000">
+          <span matTextSuffix>₽</span>
+          <mat-error>Минимальный депозит — 1 000 ₽</mat-error>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Мин. риск</mat-label>
+          <input matInput type="number" formControlName="risk" min="0.0001" max="100" step="0.1">
+          <span matTextSuffix>%</span>
+          <mat-error>Укажите значение от 0,0001 до 100</mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="parameter-actions">
+        <button
+          mat-flat-button
+          color="primary"
+          type="submit"
+          [disabled]="form.invalid || isCalculating || isLoadingLeaders">
+          <mat-icon>refresh</mat-icon>
+          {{ isCalculating ? 'Рассчитываем…' : 'Пересчитать' }}
+        </button>
+      </div>
+    </form>
+  </aside>
+
+  <main class="optimization-content" [attr.aria-busy]="isCalculating || isLoadingLeaders">
+    <header class="page-heading">
+      <div>
+        <p class="eyebrow">Модель Марковица</p>
+        <h1>Оптимальный портфель</h1>
+      </div>
+      <span class="calculation-status" role="status">
+        <ng-container *ngIf="isCalculating || isLoadingLeaders">
+          <mat-spinner diameter="18"></mat-spinner>
+          {{ isCalculating ? 'Расчёт портфеля' : 'Загрузка бумаг' }}
+        </ng-container>
+      </span>
+    </header>
+
+    <div *ngIf="errorMessage" class="error-message" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage }}</span>
+    </div>
+
+    <div class="results-grid">
+      <section class="result-panel portfolio-panel" aria-labelledby="portfolio-title">
+        <header class="panel-heading">
+          <div>
+            <h2 id="portfolio-title">Состав портфеля</h2>
+            <p>Предложенные позиции на дату вложений</p>
+          </div>
+          <mat-icon>table_chart</mat-icon>
+        </header>
+        <div class="portfolio-content" tabindex="0" role="region" aria-label="Таблица состава портфеля">
+          <app-portfolio-table
+            *ngIf="portfolioSolution; else portfolioEmpty"
+            [portfolioNumber]="0"
+            (sharesLoaded)="onPortfolioSharesLoaded($event)"></app-portfolio-table>
+          <ng-template #portfolioEmpty>
+            <div class="empty-state">
+              <mat-icon>account_balance_wallet</mat-icon>
+              <h3>{{ isCalculating || isLoadingLeaders ? 'Подбираем состав портфеля' : 'Здесь появится ваш портфель' }}</h3>
+              <p>Выберите бумаги и параметры, затем нажмите «Пересчитать».</p>
+            </div>
+          </ng-template>
         </div>
-      </mat-card-content>
-    </mat-card>
-  </div>
+      </section>
+
+      <section class="result-panel allocation-panel" aria-labelledby="allocation-title">
+        <header class="panel-heading">
+          <div>
+            <h2 id="allocation-title">Распределение активов</h2>
+            <p>Площадь — доля в портфеле · цвет — доходность</p>
+          </div>
+          <span class="yield-legend" role="img" aria-label="Цвет меняется от убытка слева к росту доходности справа">
+            <span>−</span>
+            <span class="yield-gradient"></span>
+            <span>+</span>
+          </span>
+        </header>
+        <div class="allocation-content" *ngIf="portfolioSolution; else allocationEmpty">
+          <div class="treemap-container">
+            <ng-template #allocationTile let-item>
+              <div
+                class="allocation-tile-content"
+                role="img"
+                [attr.title]="item.ticker + ' · ' + item.percent + '% портфеля · доходность ' + (item.yieldPercent === null ? 'н/д' : item.yieldPercent + '%')"
+                [attr.aria-label]="item.ticker + ': ' + item.percent + '% портфеля, доходность ' + (item.yieldPercent === null ? 'нет данных' : item.yieldPercent + '%')">
+                <span class="allocation-ticker">{{ item.ticker }}</span>
+                <strong class="allocation-percent">{{ item.percent | number:'1.0-2' }}%</strong>
+                <span
+                  class="allocation-yield"
+                  [class.yield-positive]="item.yieldPercent > 0"
+                  [class.yield-negative]="item.yieldPercent < 0">
+                  {{ item.yieldPercent === null ? 'Доходность н/д' : 'Доходность ' + (item.yieldPercent > 0 ? '+' : '') + (item.yieldPercent | number:'1.0-2') + '%' }}
+                </span>
+              </div>
+            </ng-template>
+            <stockchart-treemap
+              [data]="allocationData"
+              [colorResolver]="colorResolver"
+              [options]="treemapOptions"
+              [tileTemplate]="allocationTile"
+              role="group"
+              aria-label="Площадь каждого тайла пропорциональна доле бумаги, цвет обозначает её доходность.">
+            </stockchart-treemap>
+          </div>
+        </div>
+        <ng-template #allocationEmpty>
+          <div class="empty-state">
+            <mat-icon>grid_view</mat-icon>
+            <h3>Структура портфеля</h3>
+            <p>Распределение появится после расчёта.</p>
+          </div>
+        </ng-template>
+      </section>
+    </div>
+  </main>
 </div>

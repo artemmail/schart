@@ -5,6 +5,7 @@ import { Subscription } from 'rxjs';
 import { PortfolioService } from 'src/app/service/portfolio.service';
 import { MaterialModule } from 'src/app/material.module';
 import { CostToStrPipe } from 'src/app/pipes/cost-to-str.pipe copy';
+import { Portfolio } from 'src/app/models/portfolio.model';
 
 @Component({
   standalone: true,
@@ -17,6 +18,7 @@ export class PortfolioTableComponent implements OnInit {
   @Input() portfolioNumber: number;
   @Output() portfolioNumberChange = new EventEmitter<number>();
   @Output() tickerClick = new EventEmitter<any>();
+  @Output() sharesLoaded = new EventEmitter<Portfolio[]>();
 
   displayedColumns: string[] = ['ticker', 'price', 'currprice', 'quantity', 'buycost', 'nowcost', 'profit', 'yield'];
   dataSource = new MatTableDataSource<any>();
@@ -42,6 +44,7 @@ export class PortfolioTableComponent implements OnInit {
       .subscribe((data) => {
         this.dataSource.data = data;
         this.loading = false;
+        this.sharesLoaded.emit(data);
       });
   }
 
