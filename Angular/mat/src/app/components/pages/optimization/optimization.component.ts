@@ -14,6 +14,8 @@ import { PortfolioTableComponent } from '../portfolio copy/portfolio-table.compo
 import { MaterialModule } from 'src/app/material.module';
 import { PresetSelectorComponent1 } from '../../DateRangeSelector/date-range-selector.component';
 import { resolveMarketMapColor } from '../../Controls/stockchart-treemap/market-map-colors';
+import { MatDialog } from '@angular/material/dialog';
+import { CopyOptimizationPortfolioDialogComponent } from './copy-optimization-portfolio-dialog.component';
 
 interface PortfolioAllocationItem {
   ticker: string;
@@ -76,6 +78,7 @@ export class PortfolioOptimizationComponent implements OnInit, AfterViewInit {
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
     private titleService: Title,
+    private dialog: MatDialog,
     private destroyRef: DestroyRef ) {
     titleService.setTitle("Оптимальный портфель Марковица");
 
@@ -212,6 +215,14 @@ export class PortfolioOptimizationComponent implements OnInit, AfterViewInit {
       const alpha = maxAbsYield > 0 ? Math.min(1, Math.abs(item.yieldPercent ?? 0) / maxAbsYield) : 0;
       const color = (item.yieldPercent ?? 0) > 0 ? '4, 163, 68' : '214, 24, 0';
       return { ...item, colorRgba: `rgba(${color}, ${alpha})` };
+    });
+  }
+
+  openCopyPortfolioDialog(): void {
+    this.dialog.open(CopyOptimizationPortfolioDialogComponent, {
+      width: '420px',
+      maxWidth: 'calc(100vw - 32px)',
+      data: { portfolioNumbers: [1, 2, 3, 4] }
     });
   }
 

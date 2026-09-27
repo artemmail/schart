@@ -105,7 +105,17 @@
             <h2 id="portfolio-title">Состав портфеля</h2>
             <p>Предложенные позиции на дату вложений</p>
           </div>
-          <mat-icon>table_chart</mat-icon>
+          <div class="portfolio-heading-actions">
+            <button
+              *ngIf="portfolioSolution"
+              mat-stroked-button
+              type="button"
+              (click)="openCopyPortfolioDialog()">
+              <mat-icon>content_copy</mat-icon>
+              Скопировать
+            </button>
+            <mat-icon>table_chart</mat-icon>
+          </div>
         </header>
         <div class="portfolio-content" tabindex="0" role="region" aria-label="Таблица состава портфеля">
           <app-portfolio-table

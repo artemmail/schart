@@ -197,6 +197,16 @@ h1 {
   border-bottom: 1px solid var(--optimization-border);
 }
 
+.portfolio-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.portfolio-heading-actions button mat-icon {
+  margin-right: 4px;
+}
+
 .panel-heading p {
   margin-top: 3px;
   color: var(--optimization-muted);
