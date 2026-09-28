@@ -2,15 +2,15 @@ import { Matrix, Rectangle} from '../models/matrix';
 import { viewVolumesSeparated } from './view-volumes-separated';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 import { drob } from 'src/app/service/FootPrint/utils';
 
 export class viewDelta extends viewVolumesSeparated {
-  constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
+  constructor(parent: ChartViewContext,  view: Rectangle, mtx: Matrix) {
     super(parent,  view, mtx, DraggableEnum.Top);
   }
 
-  drawDelta(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
+  drawDelta(parent: ChartViewContext,  view: Rectangle, mtx: Matrix) {
     const ctx = this.parent.ctx;
     var d = (parent.data.maxCumDelta - parent.data.minCumDelta) / 10;
     var m = mtx.reassignY(
@@ -58,7 +58,7 @@ export class viewDelta extends viewVolumesSeparated {
     return { Text: 'Delta', Value: drob(this.parent.selectedColumn.cumDelta, 3) };
   }
 
-  override draw(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix): void {
+  override draw(parent: ChartViewContext,  view: Rectangle, mtx: Matrix): void {
    var FPsettings: ChartSettings = this.parent.FPsettings; let ctx = this.parent.ctx;
     const stats = this.data.getRenderStats(!!FPsettings.ShrinkY);
     var maxCumDelta = stats.maxCumDelta;

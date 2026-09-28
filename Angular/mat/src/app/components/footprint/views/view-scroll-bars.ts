@@ -3,15 +3,15 @@ import { Matrix, Rectangle} from '../models/matrix';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 
-export class viewScrollBars extends canvasPart<FootPrintComponent> {
-  constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
+export class viewScrollBars extends canvasPart<ChartViewContext> {
+  constructor(parent: ChartViewContext,  view: Rectangle, mtx: Matrix) {
     super(parent,  view, mtx, DraggableEnum.No);
   }
 
   override draw(
-    parent: FootPrintComponent,
+    parent: ChartViewContext,
     
     view: Rectangle,
     mtx: Matrix
@@ -53,8 +53,8 @@ export class viewScrollBars extends canvasPart<FootPrintComponent> {
     }
     if (this.parent.translateMatrix != null) {
       ctx.fillStyle = this.palette.scroll;
-      var p1 = this.parent.viewsManager.mtxMain.inverse().applyToPoint(view.x, view.y);
-      var p2 = this.parent.viewsManager.mtxMain
+      var p1 = this.parent.viewport.mtxMain.inverse().applyToPoint(view.x, view.y);
+      var p2 = this.parent.viewport.mtxMain
         .inverse()
         .applyToPoint(view.x + view.w, view.h + view.y);
       var m1 = new Matrix()
@@ -76,7 +76,7 @@ export class viewScrollBars extends canvasPart<FootPrintComponent> {
       var h2 = m2.applyToPoint(4, p2.y);
       if (h2.y - h1.y < view.h) ctx.myFillRectXY(h1, h2);
     }
-    if (this.parent.markupEnabled) this.parent.markupManager.drawAll();
+    if (this.parent.markupEnabled) this.parent.markup.drawAll();
 
     ctx.strokeStyle = this.palette.grid;
     ctx.myStrokeRect(this.view);

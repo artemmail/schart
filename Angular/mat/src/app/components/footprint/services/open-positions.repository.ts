@@ -10,8 +10,16 @@ import { OpenPositionsLoadResult, OpenPositionsSnapshot } from '../indicators/in
 export class OpenPositionsRepository implements OnDestroy {
   private destroyed = false;
   private readonly destroy$ = new Subject<void>();
-  private readonly openPositionsLoadCache = new Map<string, Promise<OpenPositionsLoadResult>>();
+  private readonly pending = new Map<string, Promise<OpenPositionsLoadResult>>();
+  private readonly results = new Map<string, { result: OpenPositionsLoadResult; expires: number }>();
+  private readonly invalidated = new Subject<string>();
+  readonly invalidated$ = this.invalidated.asObservable();
+  // Refresh long-lived charts; callers can invalidate sooner after access changes.
+  private readonly resultLifetimeMs = 60_000;
+  private expiryTimer: ReturnType<typeof setTimeout> | null = null;
   private contractsCache: string[] | null = null;
+  private contractsExpires = 0;
+  private contractsRequest: Promise<string[]> | null = null;
 
   constructor(private dataService: DataService, private commonService: CommonService) {}
 
@@ -22,26 +30,58 @@ export class OpenPositionsRepository implements OnDestroy {
       return { status: 'error', message: 'Тикер не задан.' };
     }
 
-    const cached = this.openPositionsLoadCache.get(normalizedTicker);
-    if (cached) {
-      return cached;
-    }
+    const running = this.pending.get(normalizedTicker);
+    if (running) return running;
+    const cached = this.results.get(normalizedTicker);
+    if (cached && cached.expires > Date.now()) return cached.result;
+    this.results.delete(normalizedTicker);
 
     const task = this.loadCore(normalizedTicker)
       .then((result) => {
-        if (result.status === 'error') {
-          this.openPositionsLoadCache.delete(normalizedTicker);
+        if (!this.destroyed && this.pending.get(normalizedTicker) === task) {
+          this.pending.delete(normalizedTicker);
+          if (result.status === 'ok') {
+            this.results.set(normalizedTicker, { result, expires: Date.now() + this.resultLifetimeMs });
+            this.scheduleExpiry();
+          }
         }
         return result;
       })
       .catch((err) => {
-        this.openPositionsLoadCache.delete(normalizedTicker);
+        if (this.pending.get(normalizedTicker) === task) this.pending.delete(normalizedTicker);
         const fallback = err instanceof Error ? err.message : 'Не удалось загрузить открытые позиции.';
         return { status: 'error', message: fallback } as OpenPositionsLoadResult;
       });
 
-    this.openPositionsLoadCache.set(normalizedTicker, task);
+    this.pending.set(normalizedTicker, task);
     return task;
+  }
+
+  invalidate(ticker?: string): void {
+    if (this.destroyed) return;
+    const keys = ticker ? [ticker.trim().toUpperCase()] : [...new Set([...this.results.keys(), ...this.pending.keys()])];
+    for (const key of keys) {
+      this.results.delete(key);
+      this.pending.delete(key);
+    }
+    this.contractsCache = null;
+    this.contractsRequest = null;
+    this.scheduleExpiry();
+    for (const key of keys) this.invalidated.next(key);
+  }
+
+  private scheduleExpiry(): void {
+    if (this.expiryTimer !== null) clearTimeout(this.expiryTimer);
+    this.expiryTimer = null;
+    if (this.destroyed || !this.results.size) return;
+    const next = Math.min(...[...this.results.values()].map(value => value.expires));
+    this.expiryTimer = setTimeout(() => {
+      this.expiryTimer = null;
+      const expired = [...this.results].filter(([, value]) => value.expires <= Date.now()).map(([key]) => key);
+      for (const key of expired) this.results.delete(key);
+      this.scheduleExpiry();
+      for (const key of expired) this.invalidated.next(key);
+    }, Math.max(1, next - Date.now()));
   }
 
   private async loadCore(ticker: string): Promise<OpenPositionsLoadResult> {
@@ -76,7 +116,9 @@ export class OpenPositionsRepository implements OnDestroy {
       };
     }
 
-    const contracts = await this.loadContracts();
+    let contracts: string[];
+    try { contracts = await this.loadContracts(); }
+    catch { return { status: 'error', message: 'Не удалось загрузить список контрактов. Повторите попытку.' }; }
     if (this.destroyed) return { status: 'error', message: 'График закрыт.' };
     const candidates = this.resolveContractCandidates(
       ticker,
@@ -155,22 +197,23 @@ export class OpenPositionsRepository implements OnDestroy {
 
   private async loadContracts(): Promise<string[]> {
     if (this.destroyed) return [];
-    if (this.contractsCache) {
+    if (this.contractsCache && this.contractsExpires > Date.now()) {
       return this.contractsCache;
     }
 
-    try {
-      const contracts = await this.readResource(() => this.dataService.getAllContracts());
-      if (this.destroyed) return [];
-      this.contractsCache = (contracts ?? [])
+    if (this.contractsRequest) return this.contractsRequest;
+    const request = this.readResource(() => this.dataService.getAllContracts()).then(contracts => {
+      const normalized = (contracts ?? [])
         .map((x) => (x ?? '').trim())
         .filter((x) => x.length > 0);
-    } catch {
-      if (this.destroyed) return [];
-      this.contractsCache = [];
-    }
-
-    return this.contractsCache;
+      if (!this.destroyed && this.contractsRequest === request) {
+        this.contractsCache = normalized;
+        this.contractsExpires = Date.now() + this.resultLifetimeMs;
+      }
+      return normalized;
+    }).finally(() => { if (this.contractsRequest === request) this.contractsRequest = null; });
+    this.contractsRequest = request;
+    return request;
   }
 
   private resolveContractCandidates(
@@ -295,7 +338,12 @@ export class OpenPositionsRepository implements OnDestroy {
     this.destroyed = true;
     this.destroy$.next();
     this.destroy$.complete();
-    this.openPositionsLoadCache.clear();
+    if (this.expiryTimer !== null) clearTimeout(this.expiryTimer);
+    this.expiryTimer = null;
+    this.pending.clear();
+    this.results.clear();
+    this.invalidated.complete();
     this.contractsCache = null;
+    this.contractsRequest = null;
   }
 }

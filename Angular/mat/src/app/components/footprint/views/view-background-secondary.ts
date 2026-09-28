@@ -2,17 +2,17 @@ import { canvasPart } from './canvas-part';
 import { Matrix, Rectangle} from '../models/matrix';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 import { rounder } from 'src/app/service/FootPrint/Formatting/formatting.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
 
-export class viewBackground1 extends canvasPart<FootPrintComponent> {
-  constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
+export class viewBackground1 extends canvasPart<ChartViewContext> {
+  constructor(parent: ChartViewContext,  view: Rectangle, mtx: Matrix) {
     super(parent,  view, mtx, DraggableEnum.No);
   }
 
-  override draw(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix): void {
+  override draw(parent: ChartViewContext,  view: Rectangle, mtx: Matrix): void {
     this.parent.ctx;
     var FPsettings: ChartSettings = this.parent.FPsettings; let ctx = this.parent.ctx;
 
@@ -79,7 +79,7 @@ export class viewBackground1 extends canvasPart<FootPrintComponent> {
     let point = e.position;
 
     if (this.parent.markupEnabled)
-      this.parent.markupManager.onMouseMove(point);
+      this.parent.markup.onMouseMove(point);
     var p: number = this.mtx.inverse().applyToPoint1(point).y;
     p =
       Math.round(p / this.parent.data.priceScale) * this.parent.data.priceScale;
@@ -87,7 +87,7 @@ export class viewBackground1 extends canvasPart<FootPrintComponent> {
 
     if (e.button == 0 && this.parent.selectedPrice !== pp) {
       this.parent.selectedPrice = pp;
-      this.parent.drawClusterView();
+      this.parent.requestRender();
     }
   }
 }

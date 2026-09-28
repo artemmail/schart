@@ -12,6 +12,8 @@ import { ClusterData } from '../models/cluster-data';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { FootPrintSettingsDialogComponent } from '../components/footprint-settings-dialog/footprint-settings-dialog.component';
 import { viewVolumes } from '../views/view-volumes';
+import { viewMain } from '../views/view-main';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 import { RenderContext, InteractionContext } from '../models/footprint-context';
 import { Matrix } from '../models/matrix';
 import { Line } from '../markup/line';
@@ -164,6 +166,49 @@ describe('Footprint public commands', () => {
 });
 
 describe('OpenPositionsRepository', () => {
+  it('expires successful results and notifies the active renderer', async () => {
+    jasmine.clock().install(); jasmine.clock().mockDate(new Date('2026-09-29T10:00:00Z'));
+    const f = repositoryFixture(); const invalidated = jasmine.createSpy('invalidated');
+    f.repo.invalidated$.subscribe(invalidated);
+    try {
+      const task = f.repo.load('SI'); await flush(); f.source.next([{ Date: '2026-09-29', JuridicalLong: 1 }]); await task;
+      expect((await f.repo.load('SI')).positions![0].juridicalLong).toBe(1);
+      jasmine.clock().tick(60_000); expect(invalidated).toHaveBeenCalledOnceWith('SI');
+      const fresh = f.repo.load('SI'); await flush(); f.source.next([{ Date: '2026-09-29', JuridicalLong: 2 }]);
+      expect((await fresh).positions![0].juridicalLong).toBe(2);
+      expect(f.data.getOpenPositionsByContract).toHaveBeenCalledTimes(2);
+    } finally { f.repo.dispose(); jasmine.clock().uninstall(); }
+  });
+  it('rechecks access after a forbidden result', async () => {
+    const f = repositoryFixture();
+    try {
+      f.future.getFutInfo.and.returnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
+      expect((await f.repo.load('SI')).status).toBe('forbidden');
+      f.future.getFutInfo.and.returnValue(of({ assetCode: 'SI' }));
+      const retry = f.repo.load('SI'); await flush(); f.source.next([{ Date: '2026-09-29' }]);
+      expect((await retry).status).toBe('ok'); expect(f.future.getFutInfo).toHaveBeenCalledTimes(2);
+    } finally { f.repo.dispose(); }
+  });
+  it('retries a failed contract-list request instead of caching an empty list', async () => {
+    const f = repositoryFixture();
+    try {
+      f.data.getAllContracts.and.returnValue(throwError(() => new Error('temporary')));
+      expect((await f.repo.load('SI')).status).toBe('error');
+      f.data.getAllContracts.and.returnValue(of(['Si']));
+      const retry = f.repo.load('SI'); await flush(); f.source.next([{ Date: '2026-09-29' }]);
+      expect((await retry).status).toBe('ok'); expect(f.data.getAllContracts).toHaveBeenCalledTimes(2);
+    } finally { f.repo.dispose(); }
+  });
+  it('does not let an invalidated in-flight result replace the new cached value', async () => {
+    const f = repositoryFixture(); const old = new Subject<any[]>(), fresh = new Subject<any[]>();
+    f.data.getOpenPositionsByContract.and.returnValues(old, fresh);
+    try {
+      const first = f.repo.load('SI'); await flush(); f.repo.invalidate(' si ');
+      const second = f.repo.load('SI'); await flush(); fresh.next([{ Date: '2026-09-29', JuridicalLong: 2 }]); await second;
+      old.next([{ Date: '2026-09-29', JuridicalLong: 1 }]); await first;
+      expect((await f.repo.load('SI')).positions![0].juridicalLong).toBe(2);
+    } finally { f.repo.dispose(); }
+  });
   function repositoryFixture() {
     const future = { getFutInfo: jasmine.createSpy('getFutInfo').and.returnValue(of({ assetCode: 'SI' })) };
     const source = new Subject<any[]>();
@@ -206,6 +251,21 @@ describe('OpenPositionsRepository', () => {
 });
 
 describe('Footprint views without an Angular component', () => {
+  it('pans and pinches through a plain viewport and commands without an Angular host', () => {
+    const repaint = jasmine.createSpy('repaint');
+    const viewport = { mtx: new Matrix() };
+    const context = { ctx: null, colorsService: {}, formatService: {}, viewport,
+      markupEnabled: false, translateMatrix: null, alignMatrix: (matrix: Matrix) => matrix, requestRender: repaint };
+    const main = new viewMain(context as unknown as ChartViewContext, { x: 0, y: 0, w: 200, h: 100 }, new Matrix());
+    try {
+      main.onPanStart({ deltaX: 30, deltaY: 10 }); main.onPanEnd({});
+      expect(viewport.mtx.applyToPoint(0, 0)).toEqual({ x: 30, y: 10 });
+      expect(context.translateMatrix).toBeNull();
+      main.onPinchStart({ scale: 2, angle: 0, center: { x: 0, y: 0 } }); main.onPinchEnd({});
+      expect(viewport.mtx.applyToPoint(1, 1)).toEqual({ x: 62, y: 22 });
+      expect(repaint).toHaveBeenCalledTimes(2);
+    } finally { main.dispose(); }
+  });
   it('draws volumes from a plain render context and reads replacement data', () => {
     const painted: number[] = [];
     const context: RenderContext = {

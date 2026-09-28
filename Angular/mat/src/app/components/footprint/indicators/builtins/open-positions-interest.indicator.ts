@@ -200,6 +200,7 @@ export const OpenPositionsInterestIndicator: IndicatorDefinition<OpenPositionsIn
     let tickerKey = '';
     let loadToken = 0;
     let loading = false;
+    let disposed = false;
     let positions: OpenPositionsSnapshot[] = [];
     let latestPosition: OpenPositionsSnapshot | null = null;
     let panelMessage: string | null = null;
@@ -238,7 +239,7 @@ export const OpenPositionsInterestIndicator: IndicatorDefinition<OpenPositionsIn
       ctx.requestRender();
 
       const result = await ctx.loadOpenPositionsByTicker(ticker);
-      if (token !== loadToken) {
+      if (disposed || token !== loadToken) {
         return;
       }
 
@@ -293,6 +294,9 @@ export const OpenPositionsInterestIndicator: IndicatorDefinition<OpenPositionsIn
       panel: 'chart',
       series,
       warmupPeriod: 0,
+
+      refreshResources() { if (!disposed && tickerKey) void loadData(tickerKey); },
+      dispose() { disposed = true; loadToken++; },
 
       onCalculate(bar: number) {
         if (bar < 0 || bar >= ctx.barsCount()) {

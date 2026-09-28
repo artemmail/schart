@@ -3,17 +3,15 @@ import { ColumnEx } from 'src/app/models/Column';
 import { Matrix, Rectangle } from '../models/matrix';
 
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { ClusterData, ClusterDataRenderStats } from '../models/cluster-data';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
-import { FormattingService } from 'src/app/service/FootPrint/Formatting/formatting.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
 import { StockChartPalette } from 'src/app/services/theme/theme.model';
+import type { ChartColors, ChartFormatting } from '../models/footprint-context';
 
 export interface ClusterColumnContext {
   data: ClusterData;
-  colorsService: ColorsService;
-  formatService: FormattingService;
+  colorsService: ChartColors;
+  formatService: ChartFormatting;
   palette: StockChartPalette;
   ctx: FootprintCanvasContext;
   startPrice: number;
@@ -21,27 +19,6 @@ export interface ClusterColumnContext {
   clusterWidthScale: number;
   settings: ChartSettings;
   stats: ClusterDataRenderStats;
-}
-
-export function createClusterColumnContext(
-  parent: FootPrintComponent
-): ClusterColumnContext {
-  if (!parent.data || !parent.ctx) {
-    throw new Error('Cluster context is not initialized');
-  }
-
-  return {
-    data: parent.data,
-    colorsService: parent.colorsService,
-    formatService: parent.formatService,
-    palette: parent.palette,
-    ctx: parent.ctx,
-    startPrice: parent.startPrice,
-    finishPrice: parent.finishPrice,
-    clusterWidthScale: parent.clusterWidthScale,
-    settings: parent.FPsettings,
-    stats: parent.data.getRenderStats(!!parent.FPsettings?.ShrinkY),
-  };
 }
 
 export class ClusterColumnBase {
@@ -57,7 +34,7 @@ export class ClusterColumnBase {
     this.mtx = mtx;
   }
 
-  protected get colorsService(): ColorsService {
+  protected get colorsService(): ChartColors {
     return this.context.colorsService;
   }
 
@@ -65,7 +42,7 @@ export class ClusterColumnBase {
     return this.context.palette;
   }
 
-  protected get formatService(): FormattingService {
+  protected get formatService(): ChartFormatting {
     return this.context.formatService;
   }
 

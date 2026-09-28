@@ -41,14 +41,13 @@ export class FootprintWidgetComponent
   implements AfterViewInit, OnChanges, OnDestroy, OnInit
 {
   @ViewChild(FootPrintComponent)
-  renderer?: FootPrintComponent;
+  private renderer?: FootPrintComponent;
 
   @Input() presetIndex: number;
   @Input() params: FootPrintParameters;
   @Input() minimode: boolean = false;
   @Input() deltamode: boolean = false;
   @Input() caption: string | null = null;
-  @Input() postInit?: (component: FootPrintComponent) => void;
 
   presetItems: SelectListItemNumber[] = [];
   loadState: FootprintLoadState = { status: 'idle', sessionId: 0 };
@@ -69,32 +68,12 @@ export class FootprintWidgetComponent
     this.connectDataStreams();
   }
 
-  get FPsettings() {
-    return this.renderer?.FPsettings;
-  }
-
-  set FPsettings(value: any) {
-    this.session.updateSettings(value, this.presetIndex);
-  }
-
   onRendererSettingsChanged(settings: any): void {
     this.session.captureSettings(settings);
   }
 
   onRendererSettingsSaveRequested(settings: any): void {
     void this.commands.saveSettings(settings);
-  }
-
-  get markupManager() {
-    return this.renderer?.markupManager;
-  }
-
-  get levelMarksService() {
-    return this.renderer?.levelMarksService;
-  }
-
-  get canvas() {
-    return this.renderer?.canvas;
   }
 
   async ngAfterViewInit() {
@@ -141,13 +120,6 @@ export class FootprintWidgetComponent
     await this.commands.reload(nextParams, this.presetIndex, this.buildInitOptions());
   }
 
-  async configureRealtime(
-    params: FootPrintParameters,
-    options: FootprintInitOptions
-  ): Promise<void> {
-    await this.session.configureRealtime(params, options);
-  }
-
   async serverRequest(params: FootPrintParameters): Promise<void> {
     this.params = params;
     await this.reload(params);
@@ -160,14 +132,6 @@ export class FootprintWidgetComponent
   @HostListener('window:resize')
   onWindowResize() {
     this.triggerResize();
-  }
-
-  getCsv() {
-    this.renderer?.getCsv();
-  }
-
-  reloadPresets() {
-    return this.commands.refreshPresets();
   }
 
   setPresetIndex(presetIndex: number) {

@@ -23,6 +23,10 @@ for (const file of files(path.join(root, 'src/app/components/footprint'))) {
   for (const node of source.statements) {
     if ((!ts.isImportDeclaration(node) && !ts.isExportDeclaration(node)) || !node.moduleSpecifier) continue;
     const specifier = node.moduleSpecifier.text;
+    const relativeFile = path.relative(path.join(root, 'src/app/components/footprint'), file);
+    if (/^(views|columns|markup|managers|rendering|models|indicators)[\\/]/.test(relativeFile) && /footprint\.component(?:$|\.)/.test(specifier)) {
+      errors.push(`${path.relative(root, file)}: chart core must use a context instead of ${specifier}`);
+    }
     if (!specifier.startsWith('.') && !specifier.startsWith('src/')) continue;
     const base = specifier.startsWith('src/') ? path.join(root, specifier) : path.resolve(path.dirname(file), specifier);
     const resolved = [`${base}.ts`, `${base}.d.ts`, path.join(base, 'index.ts')].find(fs.existsSync);

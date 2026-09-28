@@ -30,10 +30,12 @@ describe('Footprint empty history', () => {
       { load: jest.fn().mockResolvedValue(undefined), invalidateLoad: jest.fn() } as any,
       stream as any, {} as any);
     let published: ClusterData | null = null;
-    const subscription = loader.data$.subscribe(data => { published = data; });
-    const loaded = await loader.reload({ ticker: 'SBER', ticker1: 'SBER', ticker2: 'GAZP',
+    const subscription = loader.state$.subscribe(state => { published = state.status === 'ready' || state.status === 'empty' ? state.snapshot.data : null; });
+    const request = loader.beginSession({ ticker: 'SBER', ticker1: 'SBER', ticker2: 'GAZP',
       type: mode === 'arbitrage' ? 'arbitrage' : undefined,
       period: mode === 'ticks' ? 0 : 1, priceStep: 1, candlesOnly: mode === 'candles' });
+    const snapshot = await loader.loadSession(request!);
+    const loaded = !!snapshot && loader.commitSnapshot(snapshot);
 
     expect(loaded).toBe(true);
     expect(published?.clusterData).toEqual([]);

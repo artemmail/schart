@@ -2,11 +2,11 @@ import { canvasPart } from './canvas-part';
 import { Matrix } from '../models/matrix';
 import { Rectangle } from '../models/matrix';
 import { DraggableEnum } from 'src/app/models/Draggable';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 import { Point } from '../models/matrix';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 
-export class viewAnim extends canvasPart<FootPrintComponent> {
+export class viewAnim extends canvasPart<ChartViewContext> {
   private cancelButtonAnimation?: () => void;
   private cancelViewportAnimation?: () => void;
 
@@ -19,11 +19,11 @@ export class viewAnim extends canvasPart<FootPrintComponent> {
     super.dispose();
   }
 
-  constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
+  constructor(parent: ChartViewContext,  view: Rectangle, mtx: Matrix) {
     super(parent,  view, mtx, DraggableEnum.No);
   }
 
-  draw(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix): void {
+  draw(parent: ChartViewContext,  view: Rectangle, mtx: Matrix): void {
     const ctx = this.parent.ctx;
     const state = this.parent.animButtonState;
     const hoverT = state.hoverT;
@@ -103,7 +103,7 @@ export class viewAnim extends canvasPart<FootPrintComponent> {
   private runAnimation(): void {
     if (this.isDisposed || this.cancelButtonAnimation) return;
     const state = this.parent.animButtonState;
-    this.cancelButtonAnimation = this.parent.renderScheduler.animate(() => {
+    this.cancelButtonAnimation = this.parent.animations.animate(() => {
       if (this.isDisposed) return false;
       const hoverTarget = state.hover ? 1 : 0;
       const pressTarget = state.pressed ? 1 : 0;
@@ -126,15 +126,15 @@ export class viewAnim extends canvasPart<FootPrintComponent> {
   private animation(): void {
     if (this.isDisposed || !this.parent.data) return;
     this.cancelViewportAnimation?.();
-    this.parent.viewsManager.viewMain?.stopSwipe();
-    this.parent.viewsManager.viewRangeSet?.stopSwipe();
-    const initial = this.parent.viewsManager.mtx.clone();
-    const target = this.parent.getInitMatrix(this.parent.viewsManager.clusterView, this.parent.data);
+    this.parent.viewport.viewMain?.stopSwipe();
+    this.parent.viewport.viewRangeSet?.stopSwipe();
+    const initial = this.parent.viewport.mtx.clone();
+    const target = this.parent.getInitMatrix(this.parent.viewport.clusterView, this.parent.data);
     const started = Date.now();
-    this.cancelViewportAnimation = this.parent.renderScheduler.animate(() => {
+    this.cancelViewportAnimation = this.parent.animations.animate(() => {
       if (this.isDisposed) return false;
       const progress = Math.min((Date.now() - started) / 800, 1);
-      this.parent.viewsManager.mtx = initial.interpolateAnim(target, progress);
+      this.parent.viewport.mtx = initial.interpolateAnim(target, progress);
       if (progress === 1) this.cancelViewportAnimation = undefined;
       return progress < 1;
     });

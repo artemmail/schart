@@ -1,20 +1,20 @@
 import type { FootprintCanvasContext } from '../rendering/footprint-canvas';
 import { canvasPart } from './canvas-part';
 import { Matrix, Rectangle } from '../models/matrix';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 import {
   ClusterOverlayItem,
   ClusterOverlaySeries,
   DataSeries,
 } from '../indicators/indicator-api';
 
-export class viewIndicatorsOverlay extends canvasPart<FootPrintComponent> {
-  constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
+export class viewIndicatorsOverlay extends canvasPart<ChartViewContext> {
+  constructor(parent: ChartViewContext, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx);
   }
 
-  override draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
-    const engine = parent.indicatorEngine;
+  override draw(parent: ChartViewContext, view: Rectangle, mtx: Matrix): void {
+    const engine = parent.indicators;
     if (!engine) return;
 
     const series = engine.getChartSeries();
@@ -39,7 +39,7 @@ export class viewIndicatorsOverlay extends canvasPart<FootPrintComponent> {
 
   private drawClusterOverlays(
     ctx: FootprintCanvasContext,
-    parent: FootPrintComponent,
+    parent: ChartViewContext,
     mtx: Matrix,
     overlays: ClusterOverlaySeries[]
   ): void {
@@ -78,7 +78,7 @@ export class viewIndicatorsOverlay extends canvasPart<FootPrintComponent> {
   }
 
   private clusterOverlayRect(
-    parent: FootPrintComponent,
+    parent: ChartViewContext,
     mtx: Matrix,
     item: ClusterOverlayItem
   ): Rectangle | null {
@@ -171,7 +171,7 @@ export class viewIndicatorsOverlay extends canvasPart<FootPrintComponent> {
 
   private drawLineSeries(
     ctx: FootprintCanvasContext,
-    parent: FootPrintComponent,
+    parent: ChartViewContext,
     mtx: Matrix,
     s: DataSeries
   ): void {
@@ -207,7 +207,7 @@ export class viewIndicatorsOverlay extends canvasPart<FootPrintComponent> {
 
   private drawPointSeries(
     ctx: FootprintCanvasContext,
-    parent: FootPrintComponent,
+    parent: ChartViewContext,
     mtx: Matrix,
     s: DataSeries
   ): void {

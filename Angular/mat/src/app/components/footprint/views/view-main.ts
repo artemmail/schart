@@ -1,3 +1,4 @@
+import { createClusterColumnContext } from '../rendering/cluster-column-context';
 import type { FootprintCanvasContext } from '../rendering/footprint-canvas';
 import { canvasPart } from './canvas-part';
 import { Matrix, Point, Rectangle } from '../models/matrix';
@@ -11,15 +12,15 @@ import { DensityDeltaColumn } from '../columns/density-delta-column';
 import { BarColumn } from '../columns/bar-column';
 import { CandleColumn } from '../columns/candle-column';
 import { DraggableEnum } from 'src/app/models/Draggable';
-import { ColumnEx, createClusterColumnContext } from '../columns/cluster-column-base';
+import { ColumnEx } from '../columns/cluster-column-base';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 import { removeUTC } from 'src/app/service/FootPrint/Formatting/formatting.service';
 import { drob, hexToRgb } from 'src/app/service/FootPrint/utils';
 import * as Hammer from 'hammerjs';
 
-export class viewMain extends canvasPart<FootPrintComponent> {
+export class viewMain extends canvasPart<ChartViewContext> {
 
 
 
@@ -31,7 +32,7 @@ export class viewMain extends canvasPart<FootPrintComponent> {
   private damping: number;
   private isScrolling: boolean;
 
-  constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
+  constructor(parent: ChartViewContext, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx, DraggableEnum.No);
 
       this.startTime = 0;
@@ -54,9 +55,9 @@ export class viewMain extends canvasPart<FootPrintComponent> {
     this.isScrolling = false;
     if (this.isDisposed) return;
     if (this.parent.translateMatrix != null) {
-      if (!this.parent.markupEnabled || this.parent.markupManager.allowPan()) {
-        this.parent.viewsManager.mtx = this.parent.alignMatrix(
-          this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+      if (!this.parent.markupEnabled || this.parent.markup.allowPan()) {
+        this.parent.viewport.mtx = this.parent.alignMatrix(
+          this.parent.translateMatrix.multiply(this.parent.viewport.mtx)
         );
         this.parent.translateMatrix = null;
       }
@@ -82,7 +83,7 @@ calculateDisplacement(t: number, t_stop: number): number {
 applyDisplacement(dx: number) {
     if (Math.abs(dx) > 1) {
         this.parent.translateMatrix = new Matrix().translate(dx, 0);
-        this.parent.drawClusterView();
+        this.parent.requestRender();
     } else {
         this.stopSwipe();
     }
@@ -98,7 +99,7 @@ onSwipe = (event: Hammer.HammerInput): void => {
 
     const t_stop = this.calculateStopTime();
 
-    this.cancelSwipeAnimation = this.parent.renderScheduler.animate(() => {
+    this.cancelSwipeAnimation = this.parent.animations.animate(() => {
       if (this.isDisposed || !this.isScrolling) return false;
       const elapsed = this.calculateElapsed();
       const dx = this.calculateDisplacement(elapsed, t_stop);
@@ -129,12 +130,12 @@ onSwipe = (event: Hammer.HammerInput): void => {
 
   onPanStart(e: any) {
     this.interruptSwipe();
-    if (!this.parent.markupEnabled || this.parent.markupManager.allowPan()) {
+    if (!this.parent.markupEnabled || this.parent.markup.allowPan()) {
       this.parent.translateMatrix = new Matrix().translate(
         e.deltaX ,
         e.deltaY 
       );
-      this.parent.drawClusterView();
+      this.parent.requestRender();
     }
   }
   onPan(e: any) {
@@ -142,49 +143,49 @@ onSwipe = (event: Hammer.HammerInput): void => {
   }
   onPanEnd(e: any) {
     if (this.parent.translateMatrix != null)
-      if (!this.parent.markupEnabled || this.parent.markupManager.allowPan()) {
-        this.parent.viewsManager.mtx = this.parent.alignMatrix(
-          this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+      if (!this.parent.markupEnabled || this.parent.markup.allowPan()) {
+        this.parent.viewport.mtx = this.parent.alignMatrix(
+          this.parent.translateMatrix.multiply(this.parent.viewport.mtx)
         );
         this.parent.translateMatrix = null;
       }
   }
   onMouseDown(e: Point) {
     this.interruptSwipe();
-    if (this.parent.markupEnabled) this.parent.markupManager.onMouseDown(e);
+    if (this.parent.markupEnabled) this.parent.markup.onMouseDown(e);
   }
 
 
 
   onMouseMovePressed(e: Point) {
-    if (this.parent.markupEnabled) this.parent.markupManager.onMouseDownMove(e);
+    if (this.parent.markupEnabled) this.parent.markup.onMouseDownMove(e);
 
-    if (!this.parent.markupEnabled || this.parent.markupManager.allowPan())
+    if (!this.parent.markupEnabled || this.parent.markup.allowPan())
       this.parent.translateMatrix = new Matrix().translate(
-        -(this.parent.mouseAndTouchManager.pressd.x - e.x) 
+        -(this.parent.input.pressd.x - e.x)
           ,
-        -(this.parent.mouseAndTouchManager.pressd.y - e.y)
+        -(this.parent.input.pressd.y - e.y)
       );
 
-    this.parent.drawClusterView();
+    this.parent.requestRender();
   }
   onMouseUp(e: Point) {
-    if (this.parent.markupEnabled) this.parent.markupManager.onMouseUp(e);
+    if (this.parent.markupEnabled) this.parent.markup.onMouseUp(e);
 
-    if (!this.parent.markupEnabled || this.parent.markupManager.allowPan()) {
+    if (!this.parent.markupEnabled || this.parent.markup.allowPan()) {
       if (this.parent.translateMatrix != null)
-        this.parent.viewsManager.mtx = this.parent.alignMatrix(
-          this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+        this.parent.viewport.mtx = this.parent.alignMatrix(
+          this.parent.translateMatrix.multiply(this.parent.viewport.mtx)
         );
       this.parent.translateMatrix = null;
     }
 
-    this.parent.drawClusterView();
+    this.parent.requestRender();
   }
   onPinchEnd(e: any) {
     if (this.parent.translateMatrix != null)
-      this.parent.viewsManager.mtx = this.parent.alignMatrix(
-        this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+      this.parent.viewport.mtx = this.parent.alignMatrix(
+        this.parent.translateMatrix.multiply(this.parent.viewport.mtx)
       );
     this.parent.translateMatrix = null;
   }
@@ -201,7 +202,7 @@ onSwipe = (event: Hammer.HammerInput): void => {
       [x, y, x + sx, y + sy, x + sx, y - sy]
     );
     this.parent.translateMatrix = m;
-    this.parent.drawClusterView();
+    this.parent.requestRender();
   }
   onPinchMove(e: any) {
     this.onPinchStart(e);
@@ -217,11 +218,11 @@ onSwipe = (event: Hammer.HammerInput): void => {
       [x, y, x + 1, y + 1, x + 1, y - 1],
       [x, y, x + s, y + s, x + s, y - s]
     );
-    this.parent.viewsManager.mtx = this.parent.alignMatrix(
-      m.multiply(this.parent.viewsManager.mtx),
+    this.parent.viewport.mtx = this.parent.alignMatrix(
+      m.multiply(this.parent.viewport.mtx),
       this.parent.isPriceVisible()
     );
-    this.parent.drawClusterView();
+    this.parent.requestRender();
   }
 
 
@@ -232,7 +233,7 @@ onSwipe = (event: Hammer.HammerInput): void => {
    */
     //   canvas.style.cursor = 'move';// selectedPoint == null ? (mode == 'Edit' ? 'move' : 'default') : 'pointer';
     if (this.parent.markupEnabled)
-      this.parent.markupManager.onMouseMove(e.position);
+      this.parent.markup.onMouseMove(e.position);
     var point = this.mtx.inverse().applyToPoint1(e.position);
     var p =
       Math.round(point.y / this.parent.data.priceScale) *
@@ -248,8 +249,8 @@ onSwipe = (event: Hammer.HammerInput): void => {
     if (!clusterData || n < 0 || n >= clusterData.length) {
       this.parent.selectedColumn = null;
       this.parent.hiddenHint = true;
-      this.parent.hintService.hide();
-      this.parent.drawClusterView();
+      this.parent.hideHintElement();
+      this.parent.requestRender();
       return;
     }
 
@@ -260,7 +261,7 @@ onSwipe = (event: Hammer.HammerInput): void => {
     this.drawHint(e);
 
     //if (e.button == 0)
-    this.parent.drawClusterView();
+    this.parent.requestRender();
   }
 
   drawHint( event: MyMouseEvent) {
@@ -270,7 +271,7 @@ onSwipe = (event: Hammer.HammerInput): void => {
       return;
     }
 
-    this.parent.hintService.renderHint({
+    this.parent.renderHint({
       event,
       mtx: this.mtx,
       clusterData: this.parent.data.clusterData,
@@ -301,20 +302,20 @@ onSwipe = (event: Hammer.HammerInput): void => {
   onDoubleClick(point: Point) {    
     if (this.parent.minimode)
     {
-      this.parent.router.  navigate(['/FootPrint'], { queryParams: this.parent.params });
+      this.parent.openChart(this.parent.params);
       return;
 
     }
 
-    if (this.parent.markupEnabled && this.parent.markupManager) {
-      const hit = this.parent.markupManager.selectShape(point);
+    if (this.parent.markupEnabled && this.parent.markup) {
+      const hit = this.parent.markup.selectShape(point);
       if (hit?.shape?.type === 'Strength') {
         const current =
           typeof hit.shape.params?.text === 'string' ? hit.shape.params.text : '';
         const next = window.prompt('Strength note', current);
         if (next !== null) {
           hit.shape.params.text = next;
-          this.parent.drawClusterView();
+          this.parent.requestRender();
         }
         return;
       }
@@ -327,7 +328,7 @@ onSwipe = (event: Hammer.HammerInput): void => {
     );
     var cp: any = this.ParmasFromCandle1(v, params.period);      
     cp.ticker = params.ticker;    
-    this.parent.router.  navigate(['/FootPrint'], { queryParams: cp });
+    this.parent.openChart(cp);
 
 
     //window.open('/FootPrint?' + jQuery.param(cp));
@@ -335,7 +336,7 @@ onSwipe = (event: Hammer.HammerInput): void => {
   }
 
   private drawDeltaLine(
-    parent: FootPrintComponent,
+    parent: ChartViewContext,
     view: Rectangle,
     mtx: Matrix
 ): void {
@@ -402,7 +403,7 @@ onSwipe = (event: Hammer.HammerInput): void => {
 }
 
 // === 2.  МОДИФИЦИРУЕМ draw()  ================================
-override draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
+override draw(parent: ChartViewContext, view: Rectangle, mtx: Matrix) {
 
   const FPsettings: ChartSettings = this.parent.FPsettings;
 
@@ -447,7 +448,7 @@ override draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
             columnContext,
             view,
             mtx,
-            parent.levelMarksService
+            parent.marks
           );
           break;
         case 'ASKxBID':
@@ -496,13 +497,13 @@ override draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
   }
 
 
-  private drawPriceLevelComments(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
+  private drawPriceLevelComments(parent: ChartViewContext, view: Rectangle, mtx: Matrix): void {
     const ctx = parent.ctx;
-    if (!ctx || !parent.levelMarksService) {
+    if (!ctx || !parent.marks) {
       return;
     }
 
-    const prices = parent.levelMarksService.getPrices();
+    const prices = parent.marks.getPrices();
     if (!prices || Object.keys(prices).length === 0) {
       return;
     }

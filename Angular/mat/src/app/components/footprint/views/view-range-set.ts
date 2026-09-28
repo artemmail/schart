@@ -1,20 +1,20 @@
 import { Matrix, Point, Rectangle } from '../models/matrix';
 import { canvasPart } from './canvas-part';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 import { CandlesRangeSetValue } from 'src/app/models/candles-range-set';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 import * as Hammer from 'hammerjs';
 import { drob } from 'src/app/service/FootPrint/utils';
 
 
-export class viewRangeSet extends canvasPart<FootPrintComponent> {
+export class viewRangeSet extends canvasPart<ChartViewContext> {
   private cancelSwipeAnimation?: () => void;
   private startTime: number;
   private v0: number;
   private damping: number;
   private isScrolling: boolean;
 
-  constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
+  constructor(parent: ChartViewContext, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx);
 
     this.startTime = 0;
@@ -37,9 +37,9 @@ export class viewRangeSet extends canvasPart<FootPrintComponent> {
     this.isScrolling = false;
     if (this.isDisposed) return;
     if (this.parent.translateMatrix != null) {
-      if (!this.parent.markupEnabled || this.parent.markupManager.allowPan()) {
-        this.parent.viewsManager.mtx = this.parent.alignMatrix(
-          this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+      if (!this.parent.markupEnabled || this.parent.markup.allowPan()) {
+        this.parent.viewport.mtx = this.parent.alignMatrix(
+          this.parent.translateMatrix.multiply(this.parent.viewport.mtx)
         );
         this.parent.translateMatrix = null;
       }
@@ -65,7 +65,7 @@ export class viewRangeSet extends canvasPart<FootPrintComponent> {
   applyDisplacement(dx: number) {
     if (Math.abs(dx) > 1) {
       this.parent.translateMatrix = new Matrix().translate(dx, 0);
-      this.parent.drawClusterView();
+      this.parent.requestRender();
     } else {
       this.stopSwipe();
     }
@@ -81,7 +81,7 @@ export class viewRangeSet extends canvasPart<FootPrintComponent> {
 
     const t_stop = this.calculateStopTime();
 
-    this.cancelSwipeAnimation = this.parent.renderScheduler.animate(() => {
+    this.cancelSwipeAnimation = this.parent.animations.animate(() => {
       if (this.isDisposed || !this.isScrolling) return false;
       const elapsed = this.calculateElapsed();
       const dx = this.calculateDisplacement(elapsed, t_stop);
@@ -109,9 +109,9 @@ export class viewRangeSet extends canvasPart<FootPrintComponent> {
 
   onPanEnd(e: any) {
     if (this.parent.translateMatrix != null)
-      if (!this.parent.markupEnabled || this.parent.markupManager.allowPan()) {
-        this.parent.viewsManager.mtx = this.parent.alignMatrix(
-          this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+      if (!this.parent.markupEnabled || this.parent.markup.allowPan()) {
+        this.parent.viewport.mtx = this.parent.alignMatrix(
+          this.parent.translateMatrix.multiply(this.parent.viewport.mtx)
         );
         this.parent.translateMatrix = null;
       }
@@ -119,19 +119,19 @@ export class viewRangeSet extends canvasPart<FootPrintComponent> {
 
   onMouseDown(e: Point) {
     this.interruptSwipe();
-    if (this.parent.markupEnabled) this.parent.markupManager.onMouseDown(e);
+    if (this.parent.markupEnabled) this.parent.markup.onMouseDown(e);
   }
 
   onMouseMovePressed(e: Point) {
-    if (this.parent.markupEnabled) this.parent.markupManager.onMouseDownMove(e);
+    if (this.parent.markupEnabled) this.parent.markup.onMouseDownMove(e);
 
-    if (!this.parent.markupEnabled || this.parent.markupManager.allowPan())
+    if (!this.parent.markupEnabled || this.parent.markup.allowPan())
       this.parent.translateMatrix = new Matrix().translate(
-        -(this.parent.mouseAndTouchManager.pressd.x - e.x),
-        -(this.parent.mouseAndTouchManager.pressd.y - e.y)
+        -(this.parent.input.pressd.x - e.x),
+        -(this.parent.input.pressd.y - e.y)
       );
 
-    this.parent.drawClusterView();
+    this.parent.requestRender();
   }
 
   onMouseMove(e: MyMouseEvent) {
@@ -147,7 +147,7 @@ export class viewRangeSet extends canvasPart<FootPrintComponent> {
     this.parent.selectedPrice = drob(p, 4);
 
     this.drawHint(e);
-    this.parent.drawClusterView();
+    this.parent.requestRender();
   }
 
   drawHint(event: MyMouseEvent) {
@@ -213,27 +213,27 @@ export class viewRangeSet extends canvasPart<FootPrintComponent> {
 
   private hideHintKeepSelection(): void {
     this.parent.hiddenHint = true;
-    this.parent.hintService.hide();
+    this.parent.hideHintElement();
   }
 
   onMouseUp(e: Point) {
-    if (this.parent.markupEnabled) this.parent.markupManager.onMouseUp(e);
+    if (this.parent.markupEnabled) this.parent.markup.onMouseUp(e);
 
-    if (!this.parent.markupEnabled || this.parent.markupManager.allowPan()) {
+    if (!this.parent.markupEnabled || this.parent.markup.allowPan()) {
       if (this.parent.translateMatrix != null)
-        this.parent.viewsManager.mtx = this.parent.alignMatrix(
-          this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+        this.parent.viewport.mtx = this.parent.alignMatrix(
+          this.parent.translateMatrix.multiply(this.parent.viewport.mtx)
         );
       this.parent.translateMatrix = null;
     }
 
-    this.parent.drawClusterView();
+    this.parent.requestRender();
   }
 
   onPinchEnd(e: any) {
     if (this.parent.translateMatrix != null)
-      this.parent.viewsManager.mtx = this.parent.alignMatrix(
-        this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+      this.parent.viewport.mtx = this.parent.alignMatrix(
+        this.parent.translateMatrix.multiply(this.parent.viewport.mtx)
       );
     this.parent.translateMatrix = null;
   }
@@ -251,7 +251,7 @@ export class viewRangeSet extends canvasPart<FootPrintComponent> {
       [x, y, x + sx, y + sy, x + sx, y - sy]
     );
     this.parent.translateMatrix = m;
-    this.parent.drawClusterView();
+    this.parent.requestRender();
   }
 
   onPinchMove(e: any) {
@@ -268,14 +268,14 @@ export class viewRangeSet extends canvasPart<FootPrintComponent> {
       [x, y, x + 1, y + 1, x + 1, y - 1],
       [x, y, x + s, y + s, x + s, y - s]
     );
-    this.parent.viewsManager.mtx = this.parent.alignMatrix(
-      m.multiply(this.parent.viewsManager.mtx),
+    this.parent.viewport.mtx = this.parent.alignMatrix(
+      m.multiply(this.parent.viewport.mtx),
       this.parent.isPriceVisible()
     );
-    this.parent.drawClusterView();
+    this.parent.requestRender();
   }
 
-  draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
+  draw(parent: ChartViewContext, view: Rectangle, mtx: Matrix): void {
     const rangeSetLines = parent.data?.rangeSetLines ?? [];
     if (!rangeSetLines.length) {
       return;

@@ -8,13 +8,16 @@ import type { FormattingService } from 'src/app/service/FootPrint/Formatting/for
 import type { ClusterData } from './cluster-data';
 import type { Matrix, Point, Rectangle } from './matrix';
 
+export type ChartColors = Pick<ColorsService, 'sscale' | 'scale' | 'maxFontSize' | 'getGradientColor' | 'getGradientColorEx' | 'LegendPriceWidth'>;
+export type ChartFormatting = Pick<FormattingService, 'MoscowTimeShift' | 'dateDelimeter' | 'TimeFormat' | 'TimeFormat2' | 'toStr'>;
+
 /** Read access and geometry only; no Angular component or managers. */
 export interface RenderContext {
   readonly data: ClusterData | null;
   readonly ctx: FootprintCanvasContext | null;
   readonly palette: StockChartPalette;
-  readonly colorsService: ColorsService;
-  readonly formatService: FormattingService;
+  readonly colorsService: ChartColors;
+  readonly formatService: ChartFormatting;
   readonly FPsettings: ChartSettings;
   readonly params: FootPrintParameters | null;
   readonly minimode: boolean;

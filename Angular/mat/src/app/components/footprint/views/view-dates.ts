@@ -4,13 +4,13 @@ import { Matrix, Point } from '../models/matrix';
 import { Rectangle } from '../models/matrix';
 
 import { DraggableEnum } from 'src/app/models/Draggable';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
-import { LevelMarksService, MarkLineLevel } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
+import type { ChartViewContext } from '../models/chart-runtime-context';
+import { MarkLineLevel } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 
-export class viewDates extends canvasPart<FootPrintComponent> {
+export class viewDates extends canvasPart<ChartViewContext> {
   constructor(
-    parent: FootPrintComponent,
+    parent: ChartViewContext,
 
     view: Rectangle,
     mtx: Matrix
@@ -27,20 +27,20 @@ export class viewDates extends canvasPart<FootPrintComponent> {
     
     var s = Math.pow(1.03, -e.deltaX / 4);
     var y = 0;
-    var x =  this.parent.mouseAndTouchManager.eventToPoint(this.parent.mouseAndTouchManager.panStartInfo.event.center).x;
+    var x =  this.parent.input.eventToPoint(this.parent.input.panStartInfo.event.center).x;
     this.parent.translateMatrix = Matrix.fromTriangles(
       [x, y + 1, x + 1, y - 2, x + 2, y],
       [x, y + 1, x + s, y - 2, x + 2 * s, y]
     );
-    this.parent.drawClusterView();
+    this.parent.requestRender();
   }
   onPanEnd(e: any) {
     if (this.parent.translateMatrix != null)
-      this.parent.viewsManager.mtx = this.parent.alignMatrix(
-        this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+      this.parent.viewport.mtx = this.parent.alignMatrix(
+        this.parent.translateMatrix.multiply(this.parent.viewport.mtx)
       );
     this.parent.translateMatrix = null;
-    this.parent.mouseAndTouchManager.panStartInfo = null;
+    this.parent.input.panStartInfo = null;
   }
   
   onMouseWheel(ev: MyMouseEvent, wheelDistance: number) {
@@ -51,8 +51,8 @@ export class viewDates extends canvasPart<FootPrintComponent> {
       [x, y + 1, x + 1, y - 2, x + 2, y],
       [x, y + 1, x + s, y - 2, x + 2 * s, y]
     );
-    this.parent.viewsManager.mtx = this.parent.alignMatrix(m.multiply(this.parent.viewsManager.mtx));
-    this.parent.drawClusterView();
+    this.parent.viewport.mtx = this.parent.alignMatrix(m.multiply(this.parent.viewport.mtx));
+    this.parent.requestRender();
   }
 
   getDateKey(e: Point)
@@ -63,24 +63,23 @@ export class viewDates extends canvasPart<FootPrintComponent> {
   }
 
   onTap(e: Point) {
-    var sv: LevelMarksService = this.parent.levelMarksService;    
+    const sv = this.parent.marks;
     sv.toggleDate(this.getDateKey(e));
-    this.parent.drawClusterView();
+    this.parent.requestRender();
   }
 
 
   onRightClick(e: Point) {
     if (this.isDisposed) return;
     const date = this.getDateKey(e);    
-    const level = this.parent.levelMarksService.getDateMark( date);
+    const level = this.parent.marks.getDateMark( date);
 
     if(level)
      {
       const original = new MarkLineLevel(level.comment, level.color);
-      this.parent.dialogService
-        .openLevelSettings(level, () => {
+      this.parent.editLevel(level, () => {
           if (this.isDisposed) return;
-          this.parent.drawClusterView();
+          this.parent.requestRender();
         })
         .pipe(takeUntil(this.disposed$))
         .subscribe((result: MarkLineLevel) => {
@@ -88,7 +87,7 @@ export class viewDates extends canvasPart<FootPrintComponent> {
             level.comment = original.comment;
             level.color = original.color;
           }
-          this.parent.drawClusterView();
+          this.parent.requestRender();
         });
      }
 
@@ -103,7 +102,7 @@ export class viewDates extends canvasPart<FootPrintComponent> {
     // this.ctx.style.cursor = 'pointer'; // 'w-resize';
   }
 
-  draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
+  draw(parent: ChartViewContext, view: Rectangle, mtx: Matrix): void {
     var data = parent.data.clusterData;
     const ctx = this.parent.ctx;
     const axis = this.getTimeAxisLayout(parent, mtx);

@@ -2,13 +2,13 @@ import { takeUntil } from 'rxjs';
 import { canvasPart } from './canvas-part';
 import { Matrix, Point, Rectangle } from '../models/matrix';
 import { DraggableEnum } from 'src/app/models/Draggable';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 import { drob } from 'src/app/service/FootPrint/utils';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 import { MarkLineLevel } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
 
-export class viewPrices extends canvasPart<FootPrintComponent> {
-  constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
+export class viewPrices extends canvasPart<ChartViewContext> {
+  constructor(parent: ChartViewContext, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx, DraggableEnum.No);
   }
 
@@ -29,30 +29,29 @@ export class viewPrices extends canvasPart<FootPrintComponent> {
   onTap(e: Point) {
     if (this.parent.FPsettings.DeltaGraph) return;        // в дельте клики по цене не нужны
     const price = this.getPrice(e);
-    this.parent.levelMarksService.togglePrice(price);
-    this.parent.drawClusterView();
+    this.parent.marks.togglePrice(price);
+    this.parent.requestRender();
   }
   onRightClick(e: Point) {
     if (this.isDisposed) return;
     if (this.parent.FPsettings.DeltaGraph) return;
     const price = this.getPrice(e);
-    const level = this.parent.levelMarksService.getPriceMark(price);
+    const level = this.parent.marks.getPriceMark(price);
     if (level) {
       const original = new MarkLineLevel(level.comment, level.color);
-      this.parent.dialogService
-        .openLevelSettings(level, () => {
+      this.parent.editLevel(level, () => {
           if (this.isDisposed) return;
-          this.parent.drawClusterView();
+          this.parent.requestRender();
         })
         .pipe(takeUntil(this.disposed$))
         .subscribe((result) => {
           if (result) {
-            this.parent.levelMarksService.updatePriceMark(price, level);
+            this.parent.marks.updatePriceMark(price, level);
           } else {
             level.comment = original.comment;
             level.color = original.color;
           }
-          this.parent.drawClusterView();
+          this.parent.requestRender();
         });
     }
   }
@@ -61,7 +60,7 @@ export class viewPrices extends canvasPart<FootPrintComponent> {
   }
 
   // ───────── DRAW ─────────
-  draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
+  draw(parent: ChartViewContext, view: Rectangle, mtx: Matrix): void {
     const ctx    = parent.ctx;
     const FP     = parent.FPsettings;
     const sscale = this.colorsService.sscale();
@@ -181,7 +180,7 @@ export class viewPrices extends canvasPart<FootPrintComponent> {
   }
 
   // ───────── ladder (не нужен при DeltaGraph) ─────────
-  drawLadder(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
+  drawLadder(parent: ChartViewContext, view: Rectangle, mtx: Matrix) {
     if (parent.FPsettings.DeltaGraph || (parent as any).minimode) return;
     const ctx = parent.ctx;
     const ladder = parent.data.ladder;
@@ -211,9 +210,9 @@ export class viewPrices extends canvasPart<FootPrintComponent> {
       [x + 1, y, x - 2, y + 1, x, y + 2],
       [x + 1, y, x - 2, y + scale, x, y + 2 * scale]
     );
-    this.parent.viewsManager.mtx =
-      this.parent.alignMatrix(m.multiply(this.parent.viewsManager.mtx));
-    this.parent.drawClusterView();
+    this.parent.viewport.mtx =
+      this.parent.alignMatrix(m.multiply(this.parent.viewport.mtx));
+    this.parent.requestRender();
   }
 }
 

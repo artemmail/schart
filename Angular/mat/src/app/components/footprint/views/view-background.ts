@@ -1,17 +1,17 @@
 import { canvasPart } from './canvas-part';
 import { Matrix, Rectangle } from '../models/matrix';
 import { DraggableEnum } from 'src/app/models/Draggable';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 import { hexToRgb } from 'src/app/service/FootPrint/utils';
 import { isArbitrageMode } from 'src/app/models/footprint-mode';
 
-export class viewBackground extends canvasPart<FootPrintComponent> {
-  constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
+export class viewBackground extends canvasPart<ChartViewContext> {
+  constructor(parent: ChartViewContext, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx, DraggableEnum.No);
   }
 
   // ───────────────────────── DRAW ─────────────────────────
-  draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
+  draw(parent: ChartViewContext, view: Rectangle, mtx: Matrix): void {
     const ctx        = parent.ctx;
     const FP         = parent.FPsettings;
     const data       = parent.data.clusterData;
@@ -51,7 +51,7 @@ export class viewBackground extends canvasPart<FootPrintComponent> {
     if (lastBarRect)
       ctx.myLine(lastBarRect.x + lastBarRect.w, view.y, lastBarRect.x + lastBarRect.w, view.y + view.h);
 
-    const dates = parent.levelMarksService.getDates();
+    const dates = parent.marks.getDates();
     for (const date in dates) {
       const line = dates[date];
       const rgb  = hexToRgb(line.color);
@@ -75,12 +75,12 @@ export class viewBackground extends canvasPart<FootPrintComponent> {
 
     // ───── клип по области кластера ─────
     ctx.beginPath();
-    ctx.rect(0, parent.viewsManager.clusterView.y, CanvasW, parent.viewsManager.clusterView.h);
+    ctx.rect(0, parent.viewport.clusterView.y, CanvasW, parent.viewport.clusterView.h);
     ctx.clip();
 
     // ───── выделение выбранной цены ─────
-    const pointer = parent.mouseAndTouchManager?.selectedPoint;
-    const totalView = parent.viewsManager.clusterTotalViewFill;
+    const pointer = parent.input?.selectedPoint;
+    const totalView = parent.viewport.clusterTotalViewFill;
     const overTotal =
       !!pointer &&
       pointer.x >= totalView.x &&
@@ -111,7 +111,7 @@ export class viewBackground extends canvasPart<FootPrintComponent> {
     }
 
     // ───── перекрестие ─────
-    const crosshairPoint = parent.mouseAndTouchManager?.selectedPoint;
+    const crosshairPoint = parent.input?.selectedPoint;
     if (
       FP.ToolTip &&
       !parent.hiddenHint &&
@@ -143,9 +143,9 @@ export class viewBackground extends canvasPart<FootPrintComponent> {
   }
 
   // ───────────────────────── Price Levels ─────────────────────────
-  private drawPriceLevels(parent: FootPrintComponent, mtx: Matrix, CanvasW: number) {
+  private drawPriceLevels(parent: ChartViewContext, mtx: Matrix, CanvasW: number) {
     const ctx = parent.ctx;
-    const prices   = parent.levelMarksService.getPrices();
+    const prices   = parent.marks.getPrices();
 
     for (const k in prices) {
       const price = parseFloat(k);
@@ -162,7 +162,7 @@ export class viewBackground extends canvasPart<FootPrintComponent> {
   }
 
   // ───────────────────────── Horizontal Zebra ─────────────────────────
-  private drawHorizontalBackground(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
+  private drawHorizontalBackground(parent: ChartViewContext, view: Rectangle, mtx: Matrix): void {
     const ctx = parent.ctx;
 
     if (!parent.FPsettings.DeltaGraph) {

@@ -3,15 +3,15 @@ import { ColumnEx } from '../columns/cluster-column-base';
 import { Matrix, Rectangle} from '../models/matrix';
 import { viewVolumesSeparated } from './view-volumes-separated';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 import { drob } from 'src/app/service/FootPrint/utils';
 
 export class viewOIDelta extends viewVolumesSeparated {
-  constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
+  constructor(parent: ChartViewContext,  view: Rectangle, mtx: Matrix) {
     super(parent,  view, mtx, DraggableEnum.Top);
   }
 
-  override draw(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix): void {
+  override draw(parent: ChartViewContext,  view: Rectangle, mtx: Matrix): void {
    var FPsettings: ChartSettings = this.parent.FPsettings; let ctx = this.parent.ctx;
     const stats = this.data.getRenderStats(!!FPsettings.ShrinkY);
     let maxOIDelta = stats.maxOIDelta;

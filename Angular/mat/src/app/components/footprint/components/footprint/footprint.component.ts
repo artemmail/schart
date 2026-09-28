@@ -1,3 +1,6 @@
+import { FootprintFrameRenderer } from '../../rendering/footprint-frame-renderer';
+import { barRectangle, clusterRectangle, clusterFontSize } from '../../rendering/chart-geometry';
+import { createChartViewContext, createViewsHostContext, createInputHostContext, createFrameContext } from './footprint-context.adapter';
 import type { FootprintCanvasContext } from '../../rendering/footprint-canvas';
 import { installFootprintCanvas } from '../../rendering/canvas-helpers';
 import { getVisibleBars } from '../../rendering/visible-bars';
@@ -77,7 +80,6 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   @Input() minimode: boolean = false;
   @Input() deltamode: boolean = false;
   @Input() caption: string | null = null;
-  @Input() postInit?: (component: FootPrintComponent) => void;
   @Input() loadState: FootprintLoadState = { status: 'idle', sessionId: 0 };
   @Output() settingsChanged = new EventEmitter<ChartSettings>();
   @Output() settingsSaveRequested = new EventEmitter<ChartSettings>();
@@ -88,10 +90,12 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   private _canvas: HTMLCanvasElement | null = this.canvasRef?.nativeElement;
   private _ctx: FootprintCanvasContext | null = null;
   private themeSubscription?: Subscription;
+  private resourcesSubscription?: Subscription;
   private themePreset: ThemePreset = DEFAULT_THEME_PRESET;
   private destroyed = false;
   private rendering = false;
   readonly renderScheduler = new FootprintRenderScheduler(flags => this.renderFrame(flags));
+  private readonly frameRenderer = new FootprintFrameRenderer(createFrameContext(this));
 
   palette: StockChartPalette = { ...STOCK_CHART_DEFAULT_PALETTE };
   animButtonState = {
@@ -107,6 +111,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
 
   views: Array<canvasPart> = new Array();
   readonly renderContext = createRenderContext(this);
+  readonly viewContext = createChartViewContext(this);
 
   get pointer() { return this.mouseAndTouchManager?.selectedPoint ?? null; }
 
@@ -347,61 +352,18 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     );
   }
 
-  mergeMatrix() {
-    const v = this.viewsManager.clusterView;
-    if (this.data.clusterData.length < 12)
-      this.viewsManager.mtx = this.viewsManager.mtx.reassignX(
-        { x1: 0, x2: this.data.clusterData.length },
-        { x1: v.x, x2: v.x + v.w }
-      );
-    else {
-      const x = this.viewsManager.mtx.applyToPoint(
-        this.data.clusterData.length,
-        0
-      ).x;
-      this.viewsManager.mtx = this.viewsManager.mtx.getTranslate(
-        v.x + v.w - x,
-        0
-      );
-    }
-
-    /*
-
-        if (("ShrinkY" in FPsettings) && FPsettings.ShrinkY && !!this.data.local.maxPrice) {
-            this.getMinMaxIndex(matrix);
-            const dp = (this.data.local.maxPrice - this.data.local.minPrice) / 10;
-            matrix = matrix.reassignY({ y1: this.data.local.maxPrice + dp, y2: this.data.local.minPrice - dp }, { y1: v.y, y2: v.y + v.h });
-        }*/
+  getBar(matrix: Matrix): Rectangle { return barRectangle(matrix, this.data.priceScale); }
+  clusterRect(price: number, column: number, matrix: Matrix): Rectangle {
+    return clusterRectangle(matrix, this.data.priceScale, price, column);
   }
-
-  getBar(mtx: Matrix): Rectangle {
-    const p1 = mtx.applyToPoint(0, 0);
-    const p2 = mtx.applyToPoint(1, this.data.priceScale);
-    return { x: 0, y: 0, w: p2.x - p1.x, h: p2.y - p1.y };
-  }
-  clusterRect(price: number, columnNumber: number, mtx: Matrix) {
-    const p1 = mtx.applyToPoint(columnNumber, price - this.data.priceScale / 2);
-    const p2 = mtx.applyToPoint(
-      columnNumber + 1,
-      price + this.data.priceScale / 2
-    );
-    return { x: p1.x, y: p1.y, w: p2.x - p1.x, h: p2.y - p1.y };
-  }
-  clusterRect2(price: number, columnNumber: number, w: number, mtx: Matrix) {
-    const p1 = mtx.applyToPoint(columnNumber, price - this.data.priceScale / 2);
-    const p2 = mtx.applyToPoint(
-      columnNumber + w,
-      price + this.data.priceScale / 2
-    );
-    return { x: p1.x, y: p1.y, w: p2.x - p1.x, h: p2.y - p1.y };
+  clusterRect2(price: number, column: number, width: number, matrix: Matrix): Rectangle {
+    return clusterRectangle(matrix, this.data.priceScale, price, column, width);
   }
   clusterFontSize(mtx: Matrix, textLen: number) {
     return this.clusterRectFontSize(this.clusterRect(0, 0, mtx), textLen);
   }
-  clusterRectFontSize(rect: Rectangle, textLen: number) {
-    const w = Math.abs(rect.w);
-    const h = Math.abs(rect.h);
-    return Math.min(h - 1, w / textLen, this.colorsService.maxFontSize());
+  clusterRectFontSize(rect: Rectangle, textLength: number): number {
+    return clusterFontSize(rect, textLength, this.colorsService.maxFontSize());
   }
 
   private get viewInitialized(): boolean {
@@ -456,19 +418,6 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.renderScheduler.request({ initialize: true });
   }
 
-  private initializeViewport(): void {
-    if (!this.params) return;
-    this.viewsManager.alignCanvas();
-    this.viewsManager.updateLayout();
-    if (!this.data || !this.viewsManager.layout) return;
-    this.viewsManager.mtx = this.getInitMatrix(
-      this.viewsManager.clusterView,
-      this.data
-    );
-    this.viewsManager.drawClusterView();
-    this.runPostInitialization();
-  }
-
   drawClusterView() {
     if (this.destroyed || this.rendering) return;
     this.renderScheduler.request({ draw: true });
@@ -517,6 +466,9 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit() {
     if (this.destroyed) return;
+    this.resourcesSubscription = this.openPositions.invalidated$.subscribe(ticker => {
+      if (this.data && ticker === this.params?.ticker?.trim().toUpperCase()) this.indicatorEngine.refreshResources();
+    });
     this.palette = this.colorSchemeService.readPalette(this.hostRef.nativeElement);
     this.themeSubscription = this.colorSchemeService.themeChanged$.subscribe((event) => {
       if (event.hostEl !== this.hostRef.nativeElement) {
@@ -535,8 +487,8 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     const context = canvas.getContext('2d');
     if (!context) return;
     this._ctx = installFootprintCanvas(context);
-    this.mouseAndTouchManager = new MouseAndTouchManager(this);
-    this.viewsManager = new ViewsManager(this, this.footprintLayoutService);
+    this.mouseAndTouchManager = new MouseAndTouchManager(createInputHostContext(this));
+    this.viewsManager = new ViewsManager(createViewsHostContext(this), this.footprintLayoutService);
 
     try {
       this.markupManager = new MarkUpManager(this.markupRegistry, this.createInteractionContext());
@@ -549,23 +501,6 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.initializeViewIfReady();
   }
 
-  public applyDefaultPostInit(): void {
-    if (this.destroyed) return;
-    if (!this.viewsManager?.mtx) {
-      return;
-    }
-
-    this.viewsManager.mtx = this.alignMatrix(this.viewsManager.mtx);
-    this.viewsManager.drawClusterView();
-  }
-
-  public runPostInitialization(): void {
-    if (this.destroyed) return;
-    const postInitHandler = this.postInit ?? ((component: FootPrintComponent) => component.applyDefaultPostInit());
-
-    postInitHandler(this);
-  }
-
   bindRealtime(updater: FootprintRealtimeUpdaterService) {
     if (this.destroyed) return;
     updater.bindCanvas(this.canvasRef ?? null);
@@ -573,6 +508,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
 
   applySnapshot(snapshot: FootprintSnapshot): void {
     if (this.destroyed) return;
+    if (this.currentSessionId !== snapshot.sessionId) this.openPositions.invalidate(snapshot.params.ticker);
     this.applyingSnapshot = true;
     try {
       this.currentSessionId = snapshot.sessionId;
@@ -669,52 +605,6 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.renderScheduler.request({ initialize: true, resize: true });
   }
 
-  private adjustViewportOnRealtime(): void {
-    if (!this.data || !this.viewsManager || !this.FPsettings.ShrinkY) {
-      return;
-    }
-    if (this.translateMatrix) {
-      return;
-    }
-
-    const view = this.viewsManager.clusterView;
-    if (!view || view.w <= 0 || view.h <= 0) {
-      return;
-    }
-
-    const matrix = this.viewsManager.mtx;
-    this.getMinMaxIndex(matrix);
-
-    const local = this.data.getRenderStats(true);
-    if (!Number.isFinite(local.maxPrice) || !Number.isFinite(local.minPrice)) {
-      return;
-    }
-
-    const top = matrix.Height2Price(view.y);
-    const bottom = matrix.Height2Price(view.y + view.h);
-    if (!Number.isFinite(top) || !Number.isFinite(bottom)) {
-      return;
-    }
-
-    const visibleMin = Math.min(top, bottom);
-    const visibleMax = Math.max(top, bottom);
-    const scale =
-      Number.isFinite(this.data.priceScale) && this.data.priceScale > 0
-        ? this.data.priceScale
-        : 1e-6;
-    const localRange = local.maxPrice - local.minPrice;
-    const delta = Math.max(Math.abs(localRange) / 10, scale);
-    const paddedMin = local.minPrice - delta;
-    const paddedMax = local.maxPrice + delta;
-
-    if (paddedMin < visibleMin || paddedMax > visibleMax) {
-      this.viewsManager.mtx = matrix.reassignY(
-        { y1: local.maxPrice + delta, y2: local.minPrice - delta },
-        { y1: view.y, y2: view.y + view.h }
-      );
-    }
-  }
-
   handleRealtimeUpdate(update: FootprintUpdateEvent) {
     if (this.destroyed || update.sessionId !== this.currentSessionId || !this.data || !this.viewsManager) {
       return;
@@ -725,22 +615,15 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.renderScheduler.request({ draw: true, realtime: shouldMerge });
   }
 
+  isFrameReady(): boolean {
+    return !this.destroyed && this.viewInitialized && !!this.data && !!this.params && !!this.viewsManager;
+  }
+
   private renderFrame(flags: FootprintRenderFlags): void {
-    if (this.destroyed || !this.viewInitialized || !this.data || !this.params || !this.viewsManager) return;
+    if (!this.isFrameReady()) return;
     this.rendering = true;
-    try {
-      if (flags.recalculate) this.indicatorEngine.requestFullRecalc();
-      this.indicatorEngine.prepare();
-      if (flags.resize && !flags.initialize) this.viewsManager.resizeNow();
-      if (flags.initialize) this.initializeViewport();
-      if (flags.realtime && !flags.initialize) {
-        this.mergeMatrix();
-        this.adjustViewportOnRealtime();
-      }
-      this.viewsManager.renderNow();
-    } finally {
-      this.rendering = false;
-    }
+    try { this.frameRenderer.render(flags); }
+    finally { this.rendering = false; }
   }
 
   private ensureIndicatorPanel(kind: 'chart' | 'new', preferredId?: string) {
@@ -781,6 +664,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.indicatorEngine.dispose();
     this.openPositions.dispose();
     this.themeSubscription?.unsubscribe();
+    this.resourcesSubscription?.unsubscribe();
     this.hintContainer.destroy();
     this.state.setData(null);
     this.state.setParams(null);

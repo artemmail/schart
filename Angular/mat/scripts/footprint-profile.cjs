@@ -22,7 +22,7 @@ function readSource(filename) {
   }
   return fs.readFileSync(filename, 'utf8');
 }
-if (!['before', 'after'].includes(label)) throw new Error('Use: node scripts/footprint-profile.cjs before|after');
+if (!['before', 'after'].includes(label)) throw new Error('Use: node scripts/footprint-profile.cjs before|after [output.json]');
 const resolve = Module._resolveFilename;
 Module._resolveFilename = function(request, ...args) {
   if (request.startsWith('src/')) request = path.join(root, request);
@@ -114,6 +114,7 @@ if (label === 'after') {
 }
 const output = { label, baselineCommit, benchmarkHash: crypto.createHash('sha256').update(fs.readFileSync(__filename)).digest('hex'), fixture: { barCount, clustersPerBar: 1, visibleWidth: 1000, indicators: ['SMA(20)', 'EMA(20)'], warmups: 3 },
   environment: { node: process.version, platform: process.platform, cpu: os.cpus()[0].model }, metrics, hashes, resultFingerprint, checksum };
-fs.writeFileSync(path.join(root, `docs/footprint-performance-${label}.json`), JSON.stringify(output, null, 2) + '\n');
+const outputPath = process.argv[3] ? path.resolve(root, process.argv[3]) : path.join(root, `docs/footprint-performance-${label}.json`);
+fs.writeFileSync(outputPath, JSON.stringify(output, null, 2) + '\n');
 console.log(JSON.stringify(output.metrics, null, 2));
 

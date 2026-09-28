@@ -186,6 +186,8 @@ export interface IndicatorInstance<P extends object = any> {
 
   onInit?: () => void;
   onReset?: () => void;
+  /** Reload external resources without resetting calculations on every tick. */
+  refreshResources?: () => void;
 
   onCalculate: (bar: number) => void;
 

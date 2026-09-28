@@ -3,18 +3,18 @@ import { viewVolumesSeparated } from './view-volumes-separated';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ColumnEx } from '../columns/cluster-column-base';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 import { drob } from 'src/app/service/FootPrint/utils';
 
 export class viewOI extends viewVolumesSeparated {
   private currentMinOi = 0;
 
-  constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
+  constructor(parent: ChartViewContext,  view: Rectangle, mtx: Matrix) {
     super(parent,  view, mtx, DraggableEnum.Top);
   }
 
   override draw(
-    parent: FootPrintComponent,
+    parent: ChartViewContext,
     
     view: Rectangle,
     mtx: Matrix

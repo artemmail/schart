@@ -3,18 +3,18 @@ import { Matrix, Point, Rectangle} from '../models/matrix';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ColumnEx } from '../columns/cluster-column-base';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 import { getVolumeCandleColor } from './volume-candle-color';
 
 
-export class viewVolumesSeparated extends canvasPart<FootPrintComponent> {
+export class viewVolumesSeparated extends canvasPart<ChartViewContext> {
   q: number = 0;
   bq: number = 0;
   data: any;
 
   constructor(
-    parent: FootPrintComponent,    
+    parent: ChartViewContext,
     view: Rectangle,
     mtx: Matrix,
     draggable: DraggableEnum = DraggableEnum.Top
@@ -24,12 +24,12 @@ export class viewVolumesSeparated extends canvasPart<FootPrintComponent> {
   }
 
   onPanStart(e: any) {
-    if (!this.parent.markupEnabled || this.parent.markupManager.allowPan()) {
+    if (!this.parent.markupEnabled || this.parent.markup.allowPan()) {
       this.parent.translateMatrix = new Matrix().translate(
         e.deltaX ,
         0
       );
-      this.parent.drawClusterView();
+      this.parent.requestRender();
     }
   }
   onPan(e: any) {
@@ -37,9 +37,9 @@ export class viewVolumesSeparated extends canvasPart<FootPrintComponent> {
   }
   onPanEnd(e: any) {
     if (this.parent.translateMatrix!=null)
-    if( !this.parent.markupEnabled || this.parent.markupManager.allowPan()) {
-      this.parent.viewsManager.mtx = this.parent.alignMatrix(
-        this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+    if( !this.parent.markupEnabled || this.parent.markup.allowPan()) {
+      this.parent.viewport.mtx = this.parent.alignMatrix(
+        this.parent.translateMatrix.multiply(this.parent.viewport.mtx)
       );
       this.parent.translateMatrix = null;
     }
@@ -61,11 +61,11 @@ export class viewVolumesSeparated extends canvasPart<FootPrintComponent> {
       [x, y + 1, x + 1, y - 2, x + 2, y],
       [x, y + 1, x + s, y - 2, x + 2 * s, y]
     );
-    this.parent.viewsManager.mtx = this.parent.alignMatrix(m.multiply(this.parent.viewsManager.mtx));
-    this.parent.drawClusterView();
+    this.parent.viewport.mtx = this.parent.alignMatrix(m.multiply(this.parent.viewport.mtx));
+    this.parent.requestRender();
   }
 
-  draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
+  draw(parent: ChartViewContext, view: Rectangle, mtx: Matrix): void {
    const ctx = this.parent.ctx;  
    var FPsettings: ChartSettings = this.parent.FPsettings; 
 

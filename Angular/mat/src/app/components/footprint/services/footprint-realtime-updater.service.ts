@@ -1,3 +1,4 @@
+import { FootprintClock, systemFootprintClock, shouldSubscribeRealtime, nextRealtimeCheckDelay } from './footprint-realtime-policy';
 import { ElementRef, Injectable, OnDestroy } from '@angular/core';
 import { Subject, Subscription } from 'rxjs';
 import { FootPrintParameters } from 'src/app/models/Params';
@@ -34,9 +35,8 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
   private lastRecoveryReloadAt = 0;
   private readonly mergeFailureThreshold = 3;
   private readonly recoveryReloadMinIntervalMs = 30000;
-  private readonly realtimeTimeZone = 'Europe/Moscow';
-  private readonly realtimeStartMinute = 6 * 60 + 45;
-  private readonly realtimeEndMinute = 23 * 60 + 59;
+  private clock: FootprintClock = systemFootprintClock;
+  private eligibilityTimer: ReturnType<typeof setTimeout> | null = null;
 
   private realtimeSubscriptions = new Subscription();
   private activeSubscriptionKey: string | null = null;
@@ -79,6 +79,7 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     this.bufferOverflow = false;
     this.recoveryRequired = false;
     this.consecutiveMergeFailures = 0;
+    this.clearEligibilityTimer();
     this.clearHiddenTeardownTimer();
     const key = this.detachRealtime();
     void this.runSerialized(() => this.releaseSubscription(key));
@@ -105,6 +106,7 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     this.pendingUpdates = [];
     if (!this.dataLoader.commitSnapshot(snapshot, pending) || !this.isCurrentSession(snapshot.sessionId)) return false;
     this.buffering = false;
+    this.scheduleEligibilityCheck();
     const duringCommit = this.pendingUpdates;
     this.pendingUpdates = [];
     for (const update of duringCommit) this.emitUpdate(snapshot.sessionId, update.type, update.payload);
@@ -119,6 +121,7 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
 
   stopSession(sessionId: number): Promise<void> {
     if (this.sessionId !== sessionId) return Promise.resolve();
+    this.clearEligibilityTimer();
     this.params = undefined;
     this.pendingUpdates = [];
     this.buffering = true;
@@ -130,6 +133,7 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     if (this.isDestroyed) return;
     this.teardownVisibility();
     this.isDestroyed = true;
+    this.clearEligibilityTimer();
     this.sessionId = null;
     this.pendingUpdates = [];
     this.reconnectSubscription.unsubscribe();
@@ -177,151 +181,38 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     this.clearHiddenTeardownTimer();
     if (this.params && !this.activeSubscriptionKey) {
       if (this.buffering) this.recoveryRequired = true;
-      else this.scheduleRecoveryReload('visible', true);
+      else if (this.shouldSubscribe(this.params)) this.scheduleRecoveryReload('visible', true);
+      else this.scheduleEligibilityCheck();
     }
   }
 
   private async handleComponentHidden() {
     if (this.isDestroyed) return;
+    this.clearEligibilityTimer();
     this.scheduleHiddenTeardown();
   }
 
   private shouldSubscribe(params: FootPrintParameters): boolean {
-    if (params.type === 'arbitrage') {
-      return false;
-    }
-
-    const now = new Date();
-    if (!this.isRealtimeWindowOpen(now)) {
-      return false;
-    }
-
-    const startDate = this.parseLocalDate(params.startDate);
-    const endDate = this.parseLocalDate(params.endDate);
-    if (!endDate) {
-      return true;
-    }
-
-    const hasExplicitTime = this.hasExplicitTime(startDate, endDate);
-    if (hasExplicitTime) {
-      // Date params in URL are often ISO-strings with seconds precision.
-      // Allow a grace window to keep realtime enabled around "now".
-      const periodMs = Math.max(1, Number(params.period || 1)) * 60_000;
-      const graceMs = Math.max(5 * 60_000, periodMs);
-      return endDate.getTime() + graceMs >= now.getTime();
-    }
-
-    return this.normalizeDay(endDate) >= this.normalizeDay(now);
+    return shouldSubscribeRealtime(params, this.clock.now());
   }
 
-  private isRealtimeWindowOpen(now: Date): boolean {
-    const parts = this.getZonedTimeParts(now, this.realtimeTimeZone);
-    const day = parts?.dayOfWeek ?? now.getDay();
-    const hour = parts?.hour ?? now.getHours();
-    const minute = parts?.minute ?? now.getMinutes();
-
-    if (day === 0 || day === 6) {
-      return false;
-    }
-
-    const minutes = hour * 60 + minute;
-    return minutes >= this.realtimeStartMinute && minutes <= this.realtimeEndMinute;
+  private clearEligibilityTimer(): void {
+    if (this.eligibilityTimer !== null) this.clock.cancel(this.eligibilityTimer);
+    this.eligibilityTimer = null;
   }
 
-  private getZonedTimeParts(
-    date: Date,
-    timeZone: string
-  ): { dayOfWeek: number; hour: number; minute: number } | null {
-    try {
-      const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone,
-        weekday: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-        hourCycle: 'h23',
-      });
-
-      const parts = formatter.formatToParts(date);
-      const get = (type: string) => parts.find((part) => part.type === type)?.value;
-      const weekday = get('weekday');
-      const dayOfWeek = this.parseWeekday(weekday);
-      const hour = Number(get('hour'));
-      const minute = Number(get('minute'));
-
-      if (
-        dayOfWeek === null ||
-        !Number.isFinite(hour) ||
-        !Number.isFinite(minute)
-      ) {
-        return null;
-      }
-
-      return { dayOfWeek, hour, minute };
-    } catch {
-      return null;
-    }
-  }
-
-  private parseWeekday(value: string | undefined): number | null {
-    switch (value) {
-      case 'Sun':
-        return 0;
-      case 'Mon':
-        return 1;
-      case 'Tue':
-        return 2;
-      case 'Wed':
-        return 3;
-      case 'Thu':
-        return 4;
-      case 'Fri':
-        return 5;
-      case 'Sat':
-        return 6;
-      default:
-        return null;
-    }
-  }
-
-  private parseLocalDate(value: unknown): Date | null {
-    if (!value) {
-      return null;
-    }
-    if (value instanceof Date) {
-      return Number.isNaN(value.getTime()) ? null : value;
-    }
-    if (typeof value === 'string') {
-      const parsed = new Date(value);
-      if (Number.isNaN(parsed.getTime())) {
-        return null;
-      }
-      return parsed;
-    }
-    if (typeof value === 'number') {
-      const parsed = new Date(value);
-      return Number.isNaN(parsed.getTime()) ? null : parsed;
-    }
-    return null;
-  }
-
-  private hasExplicitTime(...dates: Array<Date | null>): boolean {
-    return dates.some((date) => {
-      if (!date) {
-        return false;
-      }
-      return (
-        date.getHours() !== 0 ||
-        date.getMinutes() !== 0 ||
-        date.getSeconds() !== 0 ||
-        date.getMilliseconds() !== 0
-      );
-    });
-  }
-
-  private normalizeDay(date: Date): number {
-    const copy = new Date(date);
-    copy.setHours(0, 0, 0, 0);
-    return copy.getTime();
+  private scheduleEligibilityCheck(): void {
+    this.clearEligibilityTimer();
+    const id = this.sessionId;
+    if (id === null || !this.isCurrentSession(id) || !this.params || !this.isVisible || this.buffering || this.activeSubscriptionKey) return;
+    const delay = nextRealtimeCheckDelay(this.params, this.clock.now());
+    if (delay === null) return;
+    this.eligibilityTimer = this.clock.schedule(() => {
+      this.eligibilityTimer = null;
+      if (!this.isCurrentSession(id) || !this.params || !this.isVisible || this.activeSubscriptionKey) return;
+      if (this.shouldSubscribe(this.params)) this.scheduleRecoveryReload('window_opened', true);
+      else this.scheduleEligibilityCheck();
+    }, delay);
   }
 
   private async subscribeToRealtime(params: FootPrintParameters, sessionId: number) {

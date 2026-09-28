@@ -1,5 +1,5 @@
 import { DraggableEnum } from 'src/app/models/Draggable';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { InputHostContext, ChartPointerEvent, GestureTarget } from '../models/chart-runtime-context';
 import { Point } from '../models/matrix';
 import * as Hammer from 'hammerjs';
 import HammerManager = Hammer.HammerManager;
@@ -20,9 +20,9 @@ const MIN_MAIN_CLUSTER_HEIGHT = 20;
 export class MouseAndTouchManager {
   private disposed = false;
   private listeners: Array<{ target: EventTarget; type: string; listener: EventListener }> = [];
-  footprint: FootPrintComponent;
-  panStartInfo: { event: any; view: any } | any;
-  selectedPoint: any;
+  footprint: InputHostContext;
+  panStartInfo: { event: HammerInput; view: GestureTarget } | null = null;
+  selectedPoint: Point | null = null;
   pressd: Point = { x: 0, y: 0 };
   private hammer: HammerManager;
   private dragIndicatorPanelId: string | null = null;
@@ -31,7 +31,7 @@ export class MouseAndTouchManager {
   private dragVolumeStartHeight: number | null = null;
   private dragBottomTotalStart: number | null = null;
   private dragBottomMax: number | null = null;
-  private hoverView: any | null = null;
+  private hoverView: GestureTarget | null = null;
   private isMouseDown: boolean = false;
 
   private onWindowMouseMove = (event: MouseEvent): void => {
@@ -44,7 +44,7 @@ export class MouseAndTouchManager {
     this.onMouseUp(event);
   };
 
-  constructor(footprint_: FootPrintComponent) {
+  constructor(footprint_: InputHostContext) {
     this.footprint = footprint_;
     const canvas = this.footprint.canvas;
 
@@ -123,10 +123,10 @@ export class MouseAndTouchManager {
       this.selectedPoint = null;
     }
     this.footprint.hideHint();
-    this.footprint.viewsManager.drawClusterView();
+    this.footprint.requestRender();
   };
 
-  private resolveHoverView(point: Point): any | null {
+  private resolveHoverView(point: Point): GestureTarget | null {
     for (let i = this.footprint.views.length - 1; i >= 0; i--) {
       const view = this.footprint.views[i];
       if (!view || !view.checkPoint) continue;
@@ -134,7 +134,7 @@ export class MouseAndTouchManager {
         view.checkPoint(point) &&
         ('onMouseEnter' in view || 'onMouseLeave' in view)
       ) {
-        return view;
+        return view as GestureTarget;
       }
     }
     return null;
@@ -158,7 +158,7 @@ export class MouseAndTouchManager {
     this.releaseGlobalMouse();
     const FPsettings = this.footprint.FPsettings;
     if (this.footprint.dragMode != null) {
-      const resizable = this.footprint.viewsManager.resizeable[this.footprint.dragMode];
+      const resizable = this.footprint.viewport.resizeable[this.footprint.dragMode];
       if (resizable instanceof viewIndicatorPanel) {
         this.footprint.saveSettings();
         this.footprint.dragMode = null;
@@ -197,7 +197,7 @@ export class MouseAndTouchManager {
     if (this.footprint.movedView !== null) {
       (this.footprint.movedView as any).onMouseUp();
       this.footprint.movedView = null;
-      this.footprint.viewsManager.drawClusterView();
+      this.footprint.requestRender();
       return;
     }
 
@@ -217,22 +217,20 @@ export class MouseAndTouchManager {
    
    // alert(3333);
     
-    point.center = this.eventToPoint(point.center);
+    const gesture = this.chartGesture(point);
     for (const view in this.footprint.views)
-      if ('onPinchStart' in this.footprint.views[view] && this.footprint.views[view].checkPoint(point.center))
-        (this.footprint.views[view] as any).onPinchStart(point.center);
+      if (this.footprint.views[view].checkPoint(gesture.center))
+        (this.footprint.views[view] as GestureTarget).onPinchStart?.(gesture);
   }
   onPinchMove = (point: HammerInput): void => {
-    point.center = this.eventToPoint(point.center);
+    const gesture = this.chartGesture(point);
     for (const view in this.footprint.views)
-      if ('onPinchMove' in this.footprint.views[view])
-        (this.footprint.views[view] as any).onPinchMove(point);
+      (this.footprint.views[view] as GestureTarget).onPinchMove?.(gesture);
   }
   onPinchEnd = (point: HammerInput): void => {
-    point.center = this.eventToPoint(point.center);
+    const gesture = this.chartGesture(point);
     for (const view in this.footprint.views)
-      if ('onPinchEnd' in this.footprint.views[view])
-        (this.footprint.views[view] as any).onPinchEnd(point);
+      (this.footprint.views[view] as GestureTarget).onPinchEnd?.(gesture);
   }
 
   /*
@@ -264,25 +262,23 @@ export class MouseAndTouchManager {
     for (const view in this.footprint.views)
       if ('onPanStart' in this.footprint.views[view])
         if (this.footprint.views[view].checkPoint(this.eventToPoint(event.center))) {
-          this.panStartInfo = { event: event, view: this.footprint.views[view] }
+          this.panStartInfo = { event: event, view: this.footprint.views[view] as GestureTarget }
         }
   }
 
 
   onPanMove = (event: HammerInput): void => {
-    event.center = this.eventToPoint(event.center);
-    event.deltaX *=  window.devicePixelRatio;
-    event.deltaY *=  window.devicePixelRatio;
+    const gesture = this.chartGesture(event);
     if (this.footprint.dragMode != null) return;
     if (this.panStartInfo != null)
-      this.panStartInfo.view.onPan(event);
+      this.panStartInfo.view.onPan(gesture);
   };
 
   onPanEnd = (event: HammerInput): void => {
-    event.center = this.eventToPoint(event.center);
+    const gesture = this.chartGesture(event);
     if (this.footprint.dragMode != null) return;
     if (this.panStartInfo != null) {
-      this.panStartInfo.view.onPanEnd(event);
+      this.panStartInfo.view.onPanEnd(gesture);
       this.panStartInfo = null;
     }
   };
@@ -290,39 +286,44 @@ export class MouseAndTouchManager {
 
 
   onSwipe = (event: HammerInput): void => {
+    const gesture = this.chartGesture(event);
     for (const view in this.footprint.views)
-      if ('onSwipe' in this.footprint.views[view] && this.footprint.views[view].checkPoint(event.center)) {
-        (this.footprint.views[view] as any).onSwipe(event);
+      if (this.footprint.views[view].checkPoint(gesture.center)) {
+        (this.footprint.views[view] as GestureTarget).onSwipe?.(gesture);
       }
   };
 
 
 
 
-  eventToPoint(event: MouseEvent | TouchEvent | WheelEvent | HammerInput): Point {
-    const canvas: HTMLCanvasElement = this.footprint.canvasRef?.nativeElement;
+  eventToPoint(event: ChartPointerEvent): Point {
+    const canvas: HTMLCanvasElement = this.footprint.canvas;
+    if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-
-    let s = window.devicePixelRatio;
-    let x: number = 0, y: number = 0;
+    const sx = rect.width > 0 ? canvas.width / rect.width : 1;
+    const sy = rect.height > 0 ? canvas.height / rect.height : 1;
+    let x = 0, y = 0;
     if (event instanceof MouseEvent) {
-      x = (event.clientX  - rect.left)  * s;
-      y = (event.clientY   - rect.top) * s;
-      return { x: x , y: y };
+      x = event.clientX; y = event.clientY;
     } else if (event instanceof TouchEvent) {
-      x = (event.touches[0].clientX - rect.left) *s;
-      y = (event.touches[0].clientY - rect.top) *s;
-      return { x: x , y: y };
+      x = event.touches[0]?.clientX ?? rect.left;
+      y = event.touches[0]?.clientY ?? rect.top;
+    } else if ('center' in event) {
+      x = event.center.x; y = event.center.y;
+    } else {
+      x = event.x; y = event.y;
     }
+    return { x: (x - rect.left) * sx, y: (y - rect.top) * sy };
+  }
 
-    if (event.center)
-        return {x:  s*(event.center - rect.left), y : s*(event.center - rect.top)};
-
-    if (event.x && event.y)    
-      return {x: (event.x - rect.left)*s, y:(event.y- rect.top)*s};
-
-    return {x,y};
-      
+  private chartGesture(event: HammerInput): HammerInput {
+    const canvas = this.footprint.canvas;
+    const rect = canvas?.getBoundingClientRect();
+    const sx = rect?.width > 0 ? canvas.width / rect.width : 1;
+    const sy = rect?.height > 0 ? canvas.height / rect.height : 1;
+    return { ...event, center: this.eventToPoint(event.center),
+      deltaX: event.deltaX * sx, deltaY: event.deltaY * sy,
+      velocityX: event.velocityX * sx, velocityY: event.velocityY * sy };
   }
 
   onMouseMove = (event: MouseEvent): void => {
@@ -338,13 +339,13 @@ export class MouseAndTouchManager {
       return;
     }
 
-    const canvas: HTMLCanvasElement | null = this.footprint.canvasRef?.nativeElement;
+    const canvas: HTMLCanvasElement | null = this.footprint.canvas;
     if (canvas == null) return;
     if (this.footprint.dragMode !== null) return;
 
     canvas.style.cursor = 'default';
 
-    if (this.footprint.viewsManager.viewMain != null && !this.footprint.viewsManager.viewMain.checkPoint(point)) {
+    if (this.footprint.viewport.viewMain != null && !this.footprint.viewport.viewMain.checkPoint(point)) {
       this.onMouseOut();
     }
 
@@ -370,7 +371,7 @@ export class MouseAndTouchManager {
     this.footprint.hideHint();
 
     if (this.footprint.dragMode != null) {
-      const resizable = this.footprint.viewsManager.resizeable[this.footprint.dragMode];
+      const resizable = this.footprint.viewport.resizeable[this.footprint.dragMode];
       const part = resizable?.draggable;
 
       const Delta = (part === DraggableEnum.Left || part === DraggableEnum.Right)
@@ -399,7 +400,7 @@ export class MouseAndTouchManager {
         this.footprint.FPsettings = { ...settings, IndicatorPanels: panels };
 
         this.footprint.translateMatrix = null;
-        this.footprint.viewsManager.drawClusterView();
+        this.footprint.requestRender();
         return;
       }
 
@@ -415,7 +416,7 @@ export class MouseAndTouchManager {
       }
 
       this.footprint.translateMatrix = null;
-      this.footprint.viewsManager.drawClusterView();
+      this.footprint.requestRender();
       return;
     }
 
@@ -429,7 +430,7 @@ export class MouseAndTouchManager {
         'onMouseMovePressed' in this.footprint.views[view] &&
         this.footprint.views[view].checkPoint(point)
       ) {
-        this.footprint.movedView = this.footprint.views[view];
+        this.footprint.movedView = this.footprint.views[view] as GestureTarget;
         (this.footprint.views[view] as any).onMouseMovePressed(point);
         return;
       }
@@ -456,8 +457,8 @@ export class MouseAndTouchManager {
     this.pressd = point;
     for (const view in this.footprint.views)
       if (this.footprint.views[view].checkDraggable(point)) {
-        for (let x = 0; x < this.footprint.viewsManager.resizeable.length; x++)
-          if (this.footprint.views[view] === this.footprint.viewsManager.resizeable[x])
+        for (let x = 0; x < this.footprint.viewport.resizeable.length; x++)
+          if (this.footprint.views[view] === this.footprint.viewport.resizeable[x])
             this.footprint.dragMode = x;
 
         const dragged = this.footprint.views[view];
@@ -484,7 +485,7 @@ export class MouseAndTouchManager {
     for (const view in this.footprint.views)
       if ('onMouseDown' in this.footprint.views[view] && this.footprint.views[view].checkPoint(point)) {
         if ('onMouseMovePressed' in this.footprint.views[view]) {
-          this.footprint.movedView = this.footprint.views[view];
+          this.footprint.movedView = this.footprint.views[view] as GestureTarget;
         }
         (this.footprint.views[view] as any).onMouseDown(point);
       }
@@ -525,7 +526,7 @@ export class MouseAndTouchManager {
   }
 
   private captureBottomResizeBounds(): { totalBottom: number; maxBottom: number } | null {
-    const layout = this.footprint.viewsManager?.layout;
+    const layout = this.footprint.viewport?.layout;
     const canvas = this.footprint.canvas;
     const data = this.footprint.data;
     if (!layout || !canvas || !data) {

@@ -2,16 +2,16 @@ import { canvasPart } from './canvas-part';
 import { Matrix, Rectangle} from '../models/matrix';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 import { drob } from 'src/app/service/FootPrint/utils';
 
-export class viewHead extends canvasPart<FootPrintComponent> {
+export class viewHead extends canvasPart<ChartViewContext> {
   fontSize: number = 0;
-  constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
+  constructor(parent: ChartViewContext,  view: Rectangle, mtx: Matrix) {
     super(parent,  view, mtx, DraggableEnum.Top);
   }
 
-  draw(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix): void {
+  draw(parent: ChartViewContext,  view: Rectangle, mtx: Matrix): void {
     var FPsettings: ChartSettings = this.parent.FPsettings; let ctx = this.parent.ctx;
     var r1 = mtx.applyToPoint(0, 0);
     var r2 = mtx.applyToPoint(0 + 1, 1);
@@ -63,7 +63,7 @@ export class viewHead extends canvasPart<FootPrintComponent> {
       }
     }
   }
-  drawDelta(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
+  drawDelta(parent: ChartViewContext,  view: Rectangle, mtx: Matrix) {
     var d = (parent.data.maxCumDelta - parent.data.minCumDelta) / 10;
     var m = mtx.reassignY(
       { y1: parent.data.minCumDelta - d, y2: d + parent.data.maxCumDelta },
@@ -120,7 +120,7 @@ export class viewHead extends canvasPart<FootPrintComponent> {
     this.drawText(r, t + '');
   }
   drawHeadColumn(
-    parent: FootPrintComponent,    
+    parent: ChartViewContext,
     view: Rectangle,
     mtx: Matrix,
     number: number

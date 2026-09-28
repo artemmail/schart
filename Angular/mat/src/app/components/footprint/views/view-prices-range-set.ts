@@ -1,13 +1,13 @@
 import { canvasPart } from './canvas-part';
 import { Matrix, Rectangle } from '../models/matrix';
 import { DraggableEnum } from 'src/app/models/Draggable';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 import { drob } from 'src/app/service/FootPrint/utils';
 import { CandlesRangeSetValue } from 'src/app/models/candles-range-set';
 import { rounder } from 'src/app/service/FootPrint/Formatting/formatting.service';
 
-export class viewPricesRangeSet extends canvasPart<FootPrintComponent> {
-  constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
+export class viewPricesRangeSet extends canvasPart<ChartViewContext> {
+  constructor(parent: ChartViewContext, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx, DraggableEnum.No);
   }
 
@@ -94,7 +94,7 @@ export class viewPricesRangeSet extends canvasPart<FootPrintComponent> {
     ctx.fillText(text, rect.x + 3 * sscale, pos.y);
   }
 
-  draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
+  draw(parent: ChartViewContext, view: Rectangle, mtx: Matrix): void {
     const ctx = parent.ctx;
     const lines = parent.data?.rangeSetLines ?? [];
     if (!lines.length) return;

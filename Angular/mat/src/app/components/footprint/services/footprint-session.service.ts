@@ -14,9 +14,11 @@ export class FootprintSessionService implements OnDestroy {
   private recoverySubscription: Subscription;
   readonly state$;
   readonly updates$;
+  readonly settingsChanges$;
 
   constructor(private loader: FootprintDataLoaderService, private realtime: FootprintRealtimeUpdaterService) {
     this.state$ = this.loader.state$;
+    this.settingsChanges$ = this.loader.settingsChanges$;
     this.updates$ = this.realtime.updates$;
     this.recoverySubscription = realtime.recovery$.subscribe(event => { void this.recover(event.sessionId); });
   }
@@ -45,13 +47,6 @@ export class FootprintSessionService implements OnDestroy {
     const sessionId = this.loader.state.sessionId;
     this.loader.clear();
     void this.realtime.stopSession(sessionId);
-  }
-
-  async configureRealtime(params: FootPrintParameters, options: FootprintInitOptions): Promise<void> {
-    const snapshot = this.loader.snapshot;
-    if (!snapshot || JSON.stringify(snapshot.params) !== JSON.stringify(params) ||
-        snapshot.options.minimode !== options.minimode || snapshot.options.deltamode !== options.deltamode) return;
-    await this.realtime.configure(snapshot);
   }
 
   private async load(params: Readonly<FootPrintParameters>, presetIndex: number | undefined,

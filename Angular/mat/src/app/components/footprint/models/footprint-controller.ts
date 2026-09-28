@@ -18,6 +18,7 @@ export interface MarkupViewState {
 /** UI sees data and commands, never renderer/managers or transport services. */
 export interface FootprintController {
   readonly state$: Observable<FootprintLoadState>;
+  readonly settingsChanges$: Observable<{ sessionId: number; settings: Readonly<ChartSettings> }>;
   readonly params: FootPrintParameters | null;
   readonly data: ClusterData | null;
   readonly settings: ChartSettings | null;

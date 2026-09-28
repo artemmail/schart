@@ -97,6 +97,11 @@ export class FootprintIndicatorEngine {
     this.needsFullRecalc = true;
   }
 
+  refreshResources(): void {
+    if (this.destroyed) return;
+    for (const runtime of this.runtimes.values()) runtime.instance.refreshResources?.();
+  }
+
   listDefinitions(): IndicatorDefinition<any>[] {
     return this.registry.list();
   }

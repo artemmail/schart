@@ -12,7 +12,7 @@ export class VolumeColumn extends ClusterColumnBase {
     context: ClusterColumnContext,
     view: Rectangle,
     mtx: Matrix,
-    levelMarksService: LevelMarksService | null
+    levelMarksService: Pick<LevelMarksService, 'getFilters'> | null
   ) {
     super(context, view, mtx);
     this.filters = levelMarksService?.getFilters() ?? null;

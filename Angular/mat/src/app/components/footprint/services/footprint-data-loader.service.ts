@@ -1,5 +1,5 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { BehaviorSubject, Observable, Subject, distinctUntilChanged, firstValueFrom, map, takeUntil } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, firstValueFrom, takeUntil } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { ChartSettings } from 'src/app/models/ChartSettings';
@@ -32,12 +32,9 @@ export class FootprintDataLoaderService implements OnDestroy {
 
   private stateSubject = new BehaviorSubject<FootprintLoadState>({ status: 'idle', sessionId: 0 });
   readonly state$ = this.stateSubject.asObservable();
-  // Compatibility read streams all derive from the same committed snapshot.
-  readonly data$ = this.state$.pipe(map(state => this.snapshotFrom(state)?.data ?? null), distinctUntilChanged());
-  readonly settings$ = this.state$.pipe(map(state => this.snapshotFrom(state)?.settings ?? null), distinctUntilChanged());
-  readonly params$ = this.state$.pipe(map(state => this.snapshotFrom(state)?.params ?? null), distinctUntilChanged());
+  private settingsChanges = new Subject<{ sessionId: number; settings: Readonly<ChartSettings> }>();
+  readonly settingsChanges$ = this.settingsChanges.asObservable();
   private presetsSubject = new BehaviorSubject<SelectListItemNumber[]>([]);
-  readonly presets$ = this.presetsSubject.asObservable();
 
   constructor(
     private settingsService: ChartSettingsService,
@@ -163,20 +160,6 @@ export class FootprintDataLoaderService implements OnDestroy {
       params: this.activeRequest!.params, message: this.errorMessage(error) });
   }
 
-  async initialize(params: FootPrintParameters, presetIndex: number, options: FootprintInitOptions): Promise<boolean> {
-    const request = this.beginSession(params, presetIndex, options, true);
-    const snapshot = request ? await this.loadSession(request) : null;
-    return snapshot ? this.commitSnapshot(snapshot) : false;
-  }
-
-  async reload(params: FootPrintParameters): Promise<boolean> {
-    const request = this.beginSession(params);
-    const snapshot = request ? await this.loadSession(request) : null;
-    return snapshot ? this.commitSnapshot(snapshot) : false;
-  }
-
-  setPresetIndex(presetIndex: number): void { this.presetIndex = presetIndex; }
-
   updateSettings(settings: ChartSettings, presetIndex?: number): void {
     const snapshot = this.currentSnapshot;
     if (!snapshot || !this.isCurrentSession(snapshot.sessionId)) return;
@@ -195,6 +178,7 @@ export class FootprintDataLoaderService implements OnDestroy {
     // without applying the whole snapshot again and resetting its viewport.
     for (const key of Object.keys(snapshot.settings)) delete (snapshot.settings as any)[key];
     Object.assign(snapshot.settings, copy);
+    this.settingsChanges.next({ sessionId: snapshot.sessionId, settings: structuredClone(copy) });
   }
 
   updatePresets(presets: SelectListItemNumber[], presetIndex?: number): void {
@@ -228,6 +212,7 @@ export class FootprintDataLoaderService implements OnDestroy {
     this.stateSubject.next({ status: 'idle', sessionId: ++this.sequence });
     this.stateSubject.complete();
     this.presetsSubject.complete();
+    this.settingsChanges.complete();
   }
 
   applyRealtimeUpdate(sessionId: number, type: FootprintUpdateType, payload: any): FootprintUpdateEvent | null {
@@ -245,10 +230,6 @@ export class FootprintDataLoaderService implements OnDestroy {
       this.stateSubject.next({ status: 'ready', sessionId, snapshot });
     }
     return { sessionId, type, merged };
-  }
-
-  private snapshotFrom(state: FootprintLoadState): FootprintSnapshot | null {
-    return state.status === 'ready' || state.status === 'empty' ? state.snapshot : null;
   }
 
   private cancelPending(): void {

@@ -55,7 +55,7 @@ describe('FootprintWidget marks ownership', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('ready');
-    expect((fixture.componentInstance.renderer as any).applySnapshot).toHaveBeenCalledOnceWith(snapshot);
+    expect(((fixture.componentInstance as any).renderer as any).applySnapshot).toHaveBeenCalledOnceWith(snapshot);
     fixture.destroy();
   });
 
@@ -76,7 +76,7 @@ describe('FootprintWidget marks ownership', () => {
       handleRealtimeUpdate: jasmine.createSpy('handleRealtimeUpdate'), hintService: { destroy: () => undefined },
       dispose: jasmine.createSpy('dispose'),
     };
-    fixture.componentInstance.renderer = renderer as any;
+    (fixture.componentInstance as any).renderer = renderer as any;
     (fixture.componentInstance as any).connectDataStreams();
     state.next({ status: 'loading', sessionId: 1, params: { ticker: 'B' } });
     expect(renderer.applySnapshot).not.toHaveBeenCalled();

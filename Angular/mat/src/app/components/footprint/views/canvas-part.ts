@@ -4,9 +4,8 @@ import { Matrix } from '../models/matrix';
 import { Point } from '../models/matrix';
 import { Rectangle } from '../models/matrix';
 
-import { FormattingService, rounder, rrounder } from 'src/app/service/FootPrint/Formatting/formatting.service';
-import type { RenderContext } from '../models/footprint-context';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
+import { rounder, rrounder } from 'src/app/service/FootPrint/Formatting/formatting.service';
+import type { RenderContext, ChartColors, ChartFormatting } from '../models/footprint-context';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
 import { StockChartPalette } from 'src/app/services/theme/theme.model';
 import { Subject } from 'rxjs';
@@ -37,8 +36,8 @@ export abstract class canvasPart<T extends RenderContext = RenderContext> {
   public mtx: Matrix;
   public parent: T;
   public draggable: DraggableEnum;
-  public colorsService: ColorsService;
-  public formatService: FormattingService;
+  public colorsService: ChartColors;
+  public formatService: ChartFormatting;
 
   constructor(
     parent: T,

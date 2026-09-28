@@ -4,9 +4,9 @@ import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 import { ColumnEx } from '../columns/cluster-column-base';
 import { canvasPart } from '../views/canvas-part';
 import { Matrix, Point } from '../models/matrix';
-import { FormattingService } from 'src/app/service/FootPrint/Formatting/formatting.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
 import { calculateWeightedAveragePrice } from './hint-vwap';
+import type { ChartFormatting } from '../models/footprint-context';
 
 interface HintRenderOptions {
   event: MyMouseEvent;
@@ -16,7 +16,7 @@ interface HintRenderOptions {
   volumePerQuantity: number;
   views: Array<canvasPart>;
   settings: ChartSettings;
-  formatService: FormattingService;
+  formatService: ChartFormatting;
   onShow: (content: string, position: Point) => void;
   onHide: () => void;
 }

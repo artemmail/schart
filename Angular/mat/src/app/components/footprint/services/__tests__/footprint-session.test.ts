@@ -66,6 +66,44 @@ async function ready(f: ReturnType<typeof fixture>, ticker = 'A', bars = [bar()]
 }
 
 describe('Footprint versioned session', () => {
+  it('resnapshots at window opening before subscribing and cancels the clock on destroy', async () => {
+    jest.useFakeTimers(); jest.setSystemTime(new Date('2026-09-28T03:44:30Z'));
+    const f = fixture();
+    try {
+      (f.realtime as any).shouldSubscribe.mockRestore();
+      (f.realtime as any).isVisible = true;
+      await ready(f);
+      expect(f.hub.Subscribe).not.toHaveBeenCalled();
+      jest.advanceTimersByTime(30_000); await flush();
+      expect(f.hub.Subscribe).toHaveBeenCalledTimes(1);
+      expect(f.ranges.A).toHaveLength(2);
+      f.ranges.A[1].next(data(bar())); await flush();
+      expect(f.loader.snapshot?.sessionId).toBe(2);
+      f.session.destroy(); expect(jest.getTimerCount()).toBe(0);
+    } finally { f.session.destroy(); jest.useRealTimers(); }
+  });
+
+  it('does not start a scheduled subscription for a superseded session', async () => {
+    jest.useFakeTimers(); jest.setSystemTime(new Date('2026-09-28T03:44:30Z'));
+    const f = fixture();
+    try {
+      (f.realtime as any).shouldSubscribe.mockRestore(); (f.realtime as any).isVisible = true;
+      await ready(f); f.session.clear();
+      jest.advanceTimersByTime(60_000); await flush();
+      expect(f.hub.Subscribe).not.toHaveBeenCalled(); expect(f.ranges.A).toHaveLength(1);
+    } finally { f.session.destroy(); jest.useRealTimers(); }
+  });
+
+  it('notifies settings edits separately without resetting the chart snapshot', async () => {
+    const f = fixture(); await ready(f);
+    const edits: any[] = []; const sub = f.session.settingsChanges$.subscribe(value => edits.push(value));
+    const count = f.states.length;
+    f.session.captureSettings({ ...f.loader.snapshot!.settings, DeltaGraph: true });
+    expect(edits).toHaveLength(1); expect(edits[0].sessionId).toBe(f.session.currentSessionId);
+    expect(f.states.length).toBe(count);
+    edits[0].settings.DeltaGraph = false; expect(f.loader.snapshot!.settings.DeltaGraph).toBe(true);
+    sub.unsubscribe(); f.session.destroy();
+  });
   it('cancels A and publishes only B when HTTP responses arrive in reverse order', async () => {
     const f = fixture();
     const first = f.session.reload(params('A'), 1, options);

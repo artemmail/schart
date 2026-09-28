@@ -1,18 +1,18 @@
+import { createClusterColumnContext } from '../rendering/cluster-column-context';
 import { canvasPart } from './canvas-part';
 import { Matrix, Rectangle } from '../models/matrix';
 import { ClassicColumnTotal } from '../columns/classic-column-total';
 import { VolumeColumnTotal } from '../columns/volume-column-total';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
-import { createClusterColumnContext } from '../columns/cluster-column-base';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 
-export class viewTotal extends canvasPart<FootPrintComponent> {
-  constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
+export class viewTotal extends canvasPart<ChartViewContext> {
+  constructor(parent: ChartViewContext,  view: Rectangle, mtx: Matrix) {
     super(parent,  view, mtx, DraggableEnum.Right);
   }
 
-  draw(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix): void {
+  draw(parent: ChartViewContext,  view: Rectangle, mtx: Matrix): void {
     var FPsettings: ChartSettings = this.parent.FPsettings; let ctx = this.parent.ctx;
     const columnContext = createClusterColumnContext(parent);
     var ColumnBuilder;

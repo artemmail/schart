@@ -1,5 +1,5 @@
 import { Matrix, Rectangle } from '../models/matrix';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 import { canvasPart } from './canvas-part';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { drob } from 'src/app/service/FootPrint/utils';
@@ -9,8 +9,8 @@ interface DeltaPoint {
   value: number;
 }
 
-export class viewDeltaRangeSet extends canvasPart<FootPrintComponent> {
-  constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
+export class viewDeltaRangeSet extends canvasPart<ChartViewContext> {
+  constructor(parent: ChartViewContext, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx, DraggableEnum.Top);
   }
 
@@ -33,7 +33,7 @@ export class viewDeltaRangeSet extends canvasPart<FootPrintComponent> {
       .sort((a, b) => a.index - b.index);
   }
 
-  draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
+  draw(parent: ChartViewContext, view: Rectangle, mtx: Matrix): void {
     const ctx = this.parent.ctx;
     const series = this.buildDeltaSeries();
 

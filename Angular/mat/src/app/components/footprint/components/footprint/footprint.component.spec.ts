@@ -73,6 +73,58 @@ function rendererFixture(realPainters = false, barCount = 20) {
 const flush = async () => { for (let i = 0; i < 15; i++) await Promise.resolve(); };
 
 describe('Footprint renderer resources and frames', () => {
+  it('dispatches the complete pinch gesture at DPR 2 without mutating Hammer input', () => {
+    const f = rendererFixture();
+    try {
+      f.renderer.applySnapshot(f.snapshot); f.tick();
+      spyOn(f.canvas, 'getBoundingClientRect').and.returnValue({ left: 10, top: 20, width: 300, height: 200 } as DOMRect);
+      f.canvas.width = 600; f.canvas.height = 400;
+      const view = f.renderer.viewsManager.clusterView;
+      const anchor = { x: view.x + view.w / 2, y: view.y + view.h / 2 };
+      const center = { x: 10 + anchor.x / 2, y: 20 + anchor.y / 2 };
+      const event = { center: { ...center }, scale: 1.5, angle: 0, deltaX: 0, deltaY: 0, velocityX: 0, velocityY: 0 } as any;
+      f.renderer.mouseAndTouchManager.onPinchStart(event);
+      expect(f.renderer.translateMatrix!.applyToPoint(anchor.x + 1, anchor.y).x).toBeCloseTo(anchor.x + 1.5, 6);
+      expect(event.center).toEqual(center);
+      f.renderer.mouseAndTouchManager.onPinchEnd(event);
+      expect(f.renderer.translateMatrix).toBeNull();
+      expect(Number.isFinite(f.renderer.viewsManager.mtx.applyToPoint(0, 0).x)).toBe(true);
+    } finally { f.cleanup(); }
+  });
+  it('refreshes open-position series on expiry and ignores resources after dispose', async () => {
+    jasmine.clock().install(); jasmine.clock().mockDate(new Date('2026-09-28T10:00:00Z'));
+    const f = rendererFixture();
+    try {
+      f.snapshot.settings.Indicators = [{ id: 'op', type: 'open-positions-interest', params: {}, panel: 'chart', visible: true }];
+      f.renderer.applySnapshot(f.snapshot); f.tick();
+      f.futInfo.next({ assetCode: 'SI' }); await flush(); f.contracts.next(['Si']); await flush();
+      f.positions.next([{ Date: '2026-09-28', JuridicalLong: 1 }]); await flush(); f.tick();
+      const series = () => {
+        const engine = f.renderer.indicatorEngine;
+        return [...engine.getChartSeries(), ...engine.getPanels().flatMap(panel => engine.getPanelSeries(panel.id))]
+          .find(value => value.id.includes('OPI_JL'))!;
+      };
+      expect(series().values[0]).toBe(1);
+      jasmine.clock().tick(60_000); await flush();
+      f.futInfo.next({ assetCode: 'SI' }); await flush(); f.contracts.next(['Si']); await flush();
+      f.positions.next([{ Date: '2026-09-28', JuridicalLong: 2 }]); await flush(); f.tick();
+      expect(series().values[0]).toBe(2);
+      expect(f.dataService.getOpenPositionsByContract).toHaveBeenCalledTimes(2);
+      f.renderer.dispose(); jasmine.clock().tick(60_000); await flush();
+      expect(f.dataService.getOpenPositionsByContract).toHaveBeenCalledTimes(2); expect(f.pending.size).toBe(0);
+    } finally { f.cleanup(); jasmine.clock().uninstall(); }
+  });
+  it('maps pointer coordinates using actual backing-store dimensions including zero coordinates', () => {
+    const f = rendererFixture();
+    try {
+      spyOn(f.canvas, 'getBoundingClientRect').and.returnValue({ left: 10, top: 20, width: 100, height: 80 } as DOMRect);
+      f.canvas.width = 125; f.canvas.height = 100;
+      expect(f.renderer.mouseAndTouchManager.eventToPoint({ x: 10, y: 20 })).toEqual({ x: 0, y: 0 });
+      expect(f.renderer.mouseAndTouchManager.eventToPoint({ center: { x: 110, y: 100 } } as any)).toEqual({ x: 125, y: 100 });
+      f.canvas.width = 200; f.canvas.height = 160;
+      expect(f.renderer.mouseAndTouchManager.eventToPoint(new MouseEvent('mousemove', { clientX: 60, clientY: 60 }))).toEqual({ x: 100, y: 80 });
+    } finally { f.cleanup(); }
+  });
   it('coalesces initialization, resize, realtime, theme and indicators and preserves active view owners', () => {
     const f = rendererFixture();
     try {
@@ -170,7 +222,7 @@ describe('Footprint renderer resources and frames', () => {
     const f = rendererFixture();
     try {
       f.renderer.applySnapshot(f.snapshot); f.tick();
-      const range = new viewRangeSet(f.renderer, f.renderer.viewsManager.clusterView, new Matrix());
+      const range = new viewRangeSet(f.renderer.viewContext, f.renderer.viewsManager.clusterView, new Matrix());
       const main = f.renderer.viewsManager.viewMain!;
       const anim = f.renderer.viewsManager.viewAnim!;
       range.onSwipe({ velocityX: 2 } as any); main.onSwipe({ velocityX: 2 } as any); anim.onMouseEnter();
@@ -221,8 +273,8 @@ for (const stage of ['future', 'contracts', 'positions']) {
         await request; await flush();
         expect(f.dataService.getAllContracts.calls.count()).toBe(stage === 'future' ? 0 : 1);
         expect(f.dataService.getOpenPositionsByContract.calls.count()).toBe(stage === 'positions' ? 1 : 0);
-        expect((f.repository as any).contractsCache).toBeNull();
-        expect((f.repository as any).openPositionsLoadCache.size).toBe(0);
+        expect((await f.repository.load('Si')).status).toBe('error');
+        expect(f.common.getFutInfo).toHaveBeenCalledTimes(1);
         expect(f.pending.size).toBe(0);
         f.hint.show('late', { x: 0, y: 0 });
         expect(f.hint.ensureHintElement()).toBeNull();

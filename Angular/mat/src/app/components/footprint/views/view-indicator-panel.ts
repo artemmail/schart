@@ -1,13 +1,13 @@
 import type { FootprintCanvasContext } from '../rendering/footprint-canvas';
 import { canvasPart } from './canvas-part';
 import { Matrix, Rectangle } from '../models/matrix';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { ChartViewContext } from '../models/chart-runtime-context';
 import { DataSeries } from '../indicators/indicator-api';
 import { DraggableEnum } from 'src/app/models/Draggable';
 
-export class viewIndicatorPanel extends canvasPart<FootPrintComponent> {
+export class viewIndicatorPanel extends canvasPart<ChartViewContext> {
   constructor(
-    parent: FootPrintComponent,
+    parent: ChartViewContext,
     view: Rectangle,
     mtx: Matrix,
     public readonly panelId: string
@@ -31,8 +31,8 @@ export class viewIndicatorPanel extends canvasPart<FootPrintComponent> {
     this.ctx.restore();
   }
 
-  override draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix): void {
-    const engine = parent.indicatorEngine;
+  override draw(parent: ChartViewContext, view: Rectangle, mtx: Matrix): void {
+    const engine = parent.indicators;
     if (!engine) return;
 
     const series = engine.getPanelSeries(this.panelId);
@@ -103,11 +103,11 @@ export class viewIndicatorPanel extends canvasPart<FootPrintComponent> {
   }
 
   onMouseDown(_point: any): void {
-    this.parent.viewsManager?.viewMain?.interruptSwipe?.();
+    this.parent.viewport?.viewMain?.interruptSwipe?.();
   }
 
   onMouseMovePressed(point: any): void {
-    const manager = this.parent.mouseAndTouchManager;
+    const manager = this.parent.input;
     if (!manager) return;
 
     this.parent.hideHint();
@@ -115,16 +115,16 @@ export class viewIndicatorPanel extends canvasPart<FootPrintComponent> {
       -(manager.pressd.x - point.x),
       0
     );
-    this.parent.drawClusterView();
+    this.parent.requestRender();
   }
 
   onMouseUp(_point: any): void {
     this.commitHorizontalMove();
-    this.parent.drawClusterView();
+    this.parent.requestRender();
   }
 
   onMouseWheel(ev: any, wheelDistance: number): void {
-    const view = this.parent.viewsManager?.clusterView;
+    const view = this.parent.viewport?.clusterView;
     if (!view) return;
 
     const s = Math.pow(1.05, wheelDistance);
@@ -135,17 +135,17 @@ export class viewIndicatorPanel extends canvasPart<FootPrintComponent> {
       [x, y, x + s, y + s, x + s, y - s]
     );
 
-    this.parent.viewsManager.mtx = this.parent.alignMatrix(
-      m.multiply(this.parent.viewsManager.mtx),
+    this.parent.viewport.mtx = this.parent.alignMatrix(
+      m.multiply(this.parent.viewport.mtx),
       this.parent.isPriceVisible()
     );
-    this.parent.drawClusterView();
+    this.parent.requestRender();
   }
 
   onPanStart(event: any): void {
-    this.parent.viewsManager?.viewMain?.interruptSwipe?.();
+    this.parent.viewport?.viewMain?.interruptSwipe?.();
     this.parent.translateMatrix = new Matrix().translate(event.deltaX ?? 0, 0);
-    this.parent.drawClusterView();
+    this.parent.requestRender();
   }
 
   onPan(event: any): void {
@@ -157,13 +157,13 @@ export class viewIndicatorPanel extends canvasPart<FootPrintComponent> {
   }
 
   onSwipe(event: any): void {
-    this.parent.viewsManager?.viewMain?.onSwipe?.(event);
+    this.parent.viewport?.viewMain?.onSwipe?.(event);
   }
 
   private commitHorizontalMove(): void {
     if (this.parent.translateMatrix == null) return;
-    this.parent.viewsManager.mtx = this.parent.alignMatrix(
-      this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+    this.parent.viewport.mtx = this.parent.alignMatrix(
+      this.parent.translateMatrix.multiply(this.parent.viewport.mtx)
     );
     this.parent.translateMatrix = null;
   }
@@ -177,7 +177,7 @@ export class viewIndicatorPanel extends canvasPart<FootPrintComponent> {
 
     return Math.max(
       0,
-      this.parent.viewsManager?.clusterPricesView?.w ??
+      this.parent.viewport?.clusterPricesView?.w ??
         this.colorsService.LegendPriceWidth(this.parent.minimode)
     );
   }
@@ -192,7 +192,7 @@ export class viewIndicatorPanel extends canvasPart<FootPrintComponent> {
 
   private drawOpenPositionsLegend(
     ctx: FootprintCanvasContext,
-    parent: FootPrintComponent,
+    parent: ChartViewContext,
     view: Rectangle,
     series: DataSeries[]
   ): void {
@@ -296,7 +296,7 @@ export class viewIndicatorPanel extends canvasPart<FootPrintComponent> {
     ctx.restore();
   }
 
-  private computeMinMax(parent: FootPrintComponent, series: DataSeries[]): { min: number; max: number } | null {
+  private computeMinMax(parent: ChartViewContext, series: DataSeries[]): { min: number; max: number } | null {
     const from = parent.minIndex ?? 0;
     const to = parent.maxIndex ?? Math.max(0, parent.data?.clusterData.length ?? 0);
 
@@ -395,7 +395,7 @@ export class viewIndicatorPanel extends canvasPart<FootPrintComponent> {
     return { min, max };
   }
 
-  private drawLine(ctx: FootprintCanvasContext, parent: FootPrintComponent, mtx: Matrix, s: DataSeries): void {
+  private drawLine(ctx: FootprintCanvasContext, parent: ChartViewContext, mtx: Matrix, s: DataSeries): void {
     const from = parent.minIndex ?? 0;
     const to = parent.maxIndex ?? Math.max(0, parent.data?.clusterData.length ?? 0);
 
@@ -439,7 +439,7 @@ export class viewIndicatorPanel extends canvasPart<FootPrintComponent> {
     }
   }
 
-  private drawPoints(ctx: FootprintCanvasContext, parent: FootPrintComponent, mtx: Matrix, s: DataSeries): void {
+  private drawPoints(ctx: FootprintCanvasContext, parent: ChartViewContext, mtx: Matrix, s: DataSeries): void {
     const from = parent.minIndex ?? 0;
     const to = parent.maxIndex ?? Math.max(0, parent.data?.clusterData.length ?? 0);
 
@@ -498,7 +498,7 @@ export class viewIndicatorPanel extends canvasPart<FootPrintComponent> {
 
   private drawHistogram(
     ctx: FootprintCanvasContext,
-    parent: FootPrintComponent,
+    parent: ChartViewContext,
     mtx: Matrix,
     view: Rectangle,
     s: DataSeries,
@@ -548,7 +548,7 @@ export class viewIndicatorPanel extends canvasPart<FootPrintComponent> {
 
   private drawHistogramStacked(
     ctx: FootprintCanvasContext,
-    parent: FootPrintComponent,
+    parent: ChartViewContext,
     mtx: Matrix,
     view: Rectangle,
     s: DataSeries,
@@ -597,7 +597,7 @@ export class viewIndicatorPanel extends canvasPart<FootPrintComponent> {
     ctx.restore();
   }
 
-  private accumulateStackBase(parent: FootPrintComponent, s: DataSeries, stackBase: Float64Array): void {
+  private accumulateStackBase(parent: ChartViewContext, s: DataSeries, stackBase: Float64Array): void {
     const from = parent.minIndex ?? 0;
     const to = parent.maxIndex ?? Math.max(0, parent.data?.clusterData.length ?? 0);
 

@@ -35,10 +35,12 @@ export class FootprintControllerService implements FootprintController, OnDestro
   private drafts = new WeakMap<object, { signature: string; value: Record<string, any> }>();
   commandError: string | null = null;
   readonly state$;
+  readonly settingsChanges$;
 
   constructor(private session: FootprintSessionService, private presets: ChartSettingsService,
     private marks: LevelMarksService, private dialogs: DialogService) {
     this.state$ = session.state$;
+    this.settingsChanges$ = session.settingsChanges$;
     let previousId = session.currentSessionId;
     this.subscription = session.state$.subscribe(state => {
       if (state.sessionId !== previousId) { previousId = state.sessionId; this.cancellation$.next(); }

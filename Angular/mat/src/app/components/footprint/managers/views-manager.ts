@@ -1,4 +1,6 @@
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import { applyCanvasSize } from '../rendering/canvas-size';
+import type { ViewsHostContext } from '../models/chart-runtime-context';
+import type { ChartColors } from '../models/footprint-context';
 import { canvasPart } from '../views/canvas-part';
 import { viewMiniHead } from '../views/view-mini-head';
 import { viewAnim } from '../views/view-anim';
@@ -20,7 +22,6 @@ import { viewVolumes } from '../views/view-volumes';
 import { viewVolumesSeparated } from '../views/view-volumes-separated';
 import { viewOI } from '../views/view-oi';
 import { Rectangle } from 'src/app/models/Rectangle';
-import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { ClusterData } from '../models/cluster-data';
 import { Matrix } from '../models/matrix';
 import {
@@ -38,12 +39,12 @@ import { reconcileCanvasParts } from '../views/reconcile-canvas-parts';
 
 export class ViewsManager {
   private destroyed = false;
-  footprint: FootPrintComponent;
-  colorsService: ColorsService;
-  data: ClusterData | any = null;
+  footprint: ViewsHostContext;
+  colorsService: ChartColors;
+  data: ClusterData | null = null;
 
   constructor(
-    footprint_: FootPrintComponent,
+    footprint_: ViewsHostContext,
     private layoutService: FootprintLayoutService
   ) {
     this.footprint = footprint_;
@@ -128,7 +129,7 @@ export class ViewsManager {
       return;
     }
 
-    const indicatorPanels = this.footprint.indicatorEngine?.getPanels?.() ?? [];
+    const indicatorPanels = this.footprint.indicators?.getPanels?.() ?? [];
     const layout = this.layoutService.calculateLayout({
       canvasWidth: canvas.width,
       canvasHeight: canvas.height,
@@ -171,7 +172,7 @@ export class ViewsManager {
     const previous = this.views;
     this.buildParts();
     const replacements = reconcileCanvasParts(previous, this.views);
-    if (previous.some(part => part.isDisposed)) this.footprint.mouseAndTouchManager?.cancelInteraction();
+    if (previous.some(part => part.isDisposed)) this.footprint.cancelInteraction();
     for (const key of Object.keys(this)) {
       const value = (this as any)[key];
       if (replacements.has(value)) (this as any)[key] = replacements.get(value);
@@ -198,7 +199,7 @@ export class ViewsManager {
     const minimode: boolean = this.footprint.minimode;
 
     this.viewBackground1 = new viewBackground1(
-      this.footprint,
+      this.footprint.viewContext,
       this.clusterTotalViewFill,
       this.mtxMain
     );
@@ -208,7 +209,7 @@ export class ViewsManager {
     
     this.views.push(
       (this.viewBackground = new viewBackground(
-        this.footprint,
+        this.footprint.viewContext,
         this.clusterView,
         this.mtxMain
       ))
@@ -217,7 +218,7 @@ export class ViewsManager {
     if (!minimode)
       this.views.push(
         (this.viewDates = new viewDates(
-          this.footprint,
+          this.footprint.viewContext,
           this.clusterDatesView,
           this.mtxMain
         ))
@@ -225,7 +226,7 @@ export class ViewsManager {
 
       this.views.push(
         (this.viewPrices = new viewPrices(
-          this.footprint,
+          this.footprint.viewContext,
           this.clusterPricesView,
           this.mtxprice
         ))
@@ -234,7 +235,7 @@ export class ViewsManager {
     if (minimode)
       this.views.push(
         (this.viewMiniHead = new viewMiniHead(
-          this.footprint,
+          this.footprint.viewContext,
           this.clusterMiniHeadView,
           this.mtx
         ))
@@ -243,14 +244,14 @@ export class ViewsManager {
     if (FPsettings.Head) {
       this.views.push(
         (this.viewHead = new viewHead(
-          this.footprint,
+          this.footprint.viewContext,
           this.clusterHeadView,
           this.mtxhead
         ))
       );
       this.views.push(
         (this.viewAnim = new viewAnim(
-          this.footprint,
+          this.footprint.viewContext,
           this.clusterAnimArea,
           this.mtxanim
         ))
@@ -259,7 +260,7 @@ export class ViewsManager {
 
     this.views.push(
       (this.viewMain = new viewMain(
-        this.footprint,
+        this.footprint.viewContext,
         this.clusterView,
         this.mtxMain
       ))
@@ -268,7 +269,7 @@ export class ViewsManager {
     if (FPsettings.SeparateVolume)
       this.views.push(
         (this.viewVolumesSeparated = new viewVolumesSeparated(
-          this.footprint,
+          this.footprint.viewContext,
           this.clusterVolumesView,
           this.mtxMain
         ))
@@ -284,7 +285,7 @@ export class ViewsManager {
 
     //this.views.push(this.viewVolumes = new viewVolumes(this,  this.clusterVolumesView, this.mtxMain));
     this.viewTotal = new viewTotal(
-      this.footprint,
+      this.footprint.viewContext,
       this.clusterTotalViewFill,
       this.mtxtotal
     );
@@ -292,11 +293,11 @@ export class ViewsManager {
       this.views.push(this.viewTotal);
 
     // Draw overlay indicators AFTER volumes so they remain visible on top.
-    this.views.push(new viewIndicatorsOverlay(this.footprint, this.clusterView, this.mtxMain));
+    this.views.push(new viewIndicatorsOverlay(this.footprint.viewContext, this.clusterView, this.mtxMain));
 
     this.views.push(
       (this.viewScrollBars = new viewScrollBars(
-        this.footprint,
+        this.footprint.viewContext,
         this.clusterView,
         this.mtxMain
       ))
@@ -307,7 +308,7 @@ export class ViewsManager {
     if (this.data.ableOI() && FPsettings.OI) {
       this.views.push(
         (this.viewOI = new viewOI(
-          this.footprint,
+          this.footprint.viewContext,
           this.clusterOIView,
           this.mtxMain
         ))
@@ -317,7 +318,7 @@ export class ViewsManager {
     if (this.data.ableOI() && FPsettings.OIDelta) {
       this.views.push(
         (this.viewOIDelta = new viewOIDelta(
-          this.footprint,
+          this.footprint.viewContext,
           this.clusterOIDeltaView,
           this.mtxMain
         ))
@@ -327,7 +328,7 @@ export class ViewsManager {
     if (FPsettings.Delta) {
       this.views.push(
         (this.viewDelta = new viewDelta(
-          this.footprint,
+          this.footprint.viewContext,
           this.clusterDeltaView,
           this.mtxMain
         ))
@@ -337,7 +338,7 @@ export class ViewsManager {
     if (FPsettings.DeltaBars) {
       this.views.push(
         (this.viewDeltaBars = new viewDeltaBars(
-          this.footprint,
+          this.footprint.viewContext,
           this.clusterDeltaBarsView,
           this.mtxMain
         ))
@@ -346,7 +347,7 @@ export class ViewsManager {
 
     this.indicatorPanels = [];
     for (const panel of this.layout.indicatorPanels) {
-      const v = new viewIndicatorPanel(this.footprint, panel.view, this.mtxMain, panel.id);
+      const v = new viewIndicatorPanel(this.footprint.viewContext, panel.view, this.mtxMain, panel.id);
       this.indicatorPanels.push(v);
       this.views.push(v);
     }
@@ -377,7 +378,7 @@ export class ViewsManager {
     
     this.views.push(
       (this.viewBackgroundRange = new viewBackgroundRange(
-        this.footprint,
+        this.footprint.viewContext,
         this.clusterView,
         this.mtxMain
       ))
@@ -386,7 +387,7 @@ export class ViewsManager {
 
     this.views.push(
       (this.viewRangeSet = new viewRangeSet(
-        this.footprint,
+        this.footprint.viewContext,
         this.clusterView,
         this.mtxMain
       ))
@@ -394,7 +395,7 @@ export class ViewsManager {
 
       this.views.push(
         (this.viewDates = new viewDates(
-          this.footprint,
+          this.footprint.viewContext,
           this.clusterDatesView,
           this.mtxMain
         ))
@@ -403,7 +404,7 @@ export class ViewsManager {
       
       this.views.push(
         (this.viewPrices = new viewPricesRangeSet(
-          this.footprint,
+          this.footprint.viewContext,
           this.clusterPricesView,
           this.mtxprice
         ))
@@ -412,7 +413,7 @@ export class ViewsManager {
 
       this.views.push(
         (this.viewDeltaRangeSet = new viewDeltaRangeSet(
-          this.footprint,
+          this.footprint.viewContext,
           this.clusterDeltaView,
           this.mtxMain
         )));
@@ -420,12 +421,12 @@ export class ViewsManager {
     const isArbitrage = isArbitrageMode(this.footprint.params ?? {});
     if (!isArbitrage) {
       // Draw overlay indicators last (above range set visuals too).
-      this.views.push(new viewIndicatorsOverlay(this.footprint, this.clusterView, this.mtxMain));
+      this.views.push(new viewIndicatorsOverlay(this.footprint.viewContext, this.clusterView, this.mtxMain));
     }
 
     this.indicatorPanels = [];
     for (const panel of this.layout.indicatorPanels) {
-      const v = new viewIndicatorPanel(this.footprint, panel.view, this.mtxMain, panel.id);
+      const v = new viewIndicatorPanel(this.footprint.viewContext, panel.view, this.mtxMain, panel.id);
       this.indicatorPanels.push(v);
       this.views.push(v);
     }
@@ -443,7 +444,7 @@ export class ViewsManager {
   }
 
   drawClusterView() {
-    if (!this.destroyed) this.footprint.drawClusterView();
+    if (!this.destroyed) this.footprint.requestRender();
   }
 
   renderNow() {
@@ -495,7 +496,7 @@ export class ViewsManager {
 
   alignCanvas() {
     if (this.destroyed) return;
-    var canvas = this.footprint.canvasRef?.nativeElement;
+    var canvas = this.footprint.canvas;
     if (!canvas) return;
     const container = this.resolveCanvasContainer(canvas);
     if (!container) return;
@@ -504,22 +505,7 @@ export class ViewsManager {
     const w = containerRect.width;
     const h = containerRect.height;
 
-    // Получаем devicePixelRatio
-    let ratio = window.devicePixelRatio; //|| 1;
-    //ratio = 1;
-
-    // Устанавливаем размеры canvas с учетом devicePixelRatio
-    canvas.width = w * ratio;
-    canvas.height = h * ratio;
-
-    // Устанавливаем размеры стилей для canvas
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
-
-    // Сбрасываем трансформацию контекста и масштабируем
-    const ctx = this.footprint.ctx;
-   // ctx.setTransform(1, 0, 0, 1, 0, 0);  // сброс
-    //ctx.scale(1, 1);
+    applyCanvasSize(canvas, w, h, window.devicePixelRatio);
   }
 
   public resize() {
@@ -530,7 +516,7 @@ export class ViewsManager {
     if (this.destroyed) return;
     if (!this.footprint.data) return;
   
-    var canvas = this.footprint.canvasRef?.nativeElement;
+    var canvas = this.footprint.canvas;
     if (!canvas) {
       return;
     }
@@ -538,30 +524,6 @@ export class ViewsManager {
     const container = this.resolveCanvasContainer(canvas);
   
     if (container) {
-      // Получаем размеры контейнера
-      
-      const containerRect = container.getBoundingClientRect();
-      const w = containerRect.width;
-      const h = containerRect.height;
-  
-      // Получаем devicePixelRatio
-      let ratio = window.devicePixelRatio || 1;
-      ratio = 1;
-  
-      // Устанавливаем размеры canvas с учетом devicePixelRatio
-      canvas.width = w * ratio;
-      canvas.height = h * ratio;
-  
-      // Устанавливаем размеры стилей для canvas
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
-  
-      // Сбрасываем трансформацию контекста и масштабируем
-      const ctx = this.footprint.ctx;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);  // сброс
-      ctx.scale(ratio, ratio);
-  
-      // Ваша логика для обновления и отрисовки контента
       var oldX = this.clusterView.x + this.clusterView.w;
       var oldY = this.clusterView.y + this.clusterView.h / 2;
       this.alignCanvas();
