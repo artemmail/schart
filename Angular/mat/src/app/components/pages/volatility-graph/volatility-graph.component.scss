@@ -13,7 +13,6 @@
   --vol-line: #2563eb;
   --vol-point: #1d4ed8;
   --vol-center: #f97316;
-  padding: 16px 20px;
 }
 
 :host-context(.mat-dark-theme) .vol-page {
@@ -33,16 +32,43 @@
   color: var(--vol-text);
 }
 
-.vol-controls {
+.vol-card mat-card-header {
+  margin-bottom: 16px;
+}
+
+.vol-layout {
+  height: calc(100dvh - 66px);
+  min-height: 420px;
+}
+
+.vol-params {
+  width: 270px;
+  max-width: calc(100vw - 48px);
+}
+
+.params-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
   align-items: center;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  padding: 8px 8px 0 10px;
+  font-weight: 600;
+}
+
+.vol-main {
+  padding: 16px 20px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.vol-controls {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
 }
 
 .vol-controls mat-form-field {
-  min-width: 170px;
+  width: 100%;
+  min-width: 0;
 }
 
 .vol-meta {
@@ -69,7 +95,7 @@
 
 .vol-body {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: 16px;
 }
 

@@ -1,15 +1,22 @@
 <div class="smile-page">
-  <mat-card class="smile-card">
-    <mat-card-header>
-      <mat-card-title>Улыбка волатильности</mat-card-title>
-      <mat-card-subtitle>
-        Implied volatility по страйкам для выбранного ассета и экспирации.
-      </mat-card-subtitle>
-    </mat-card-header>
-
-    <mat-card-content>
+      <mat-sidenav-container class="smile-layout">
+        <mat-sidenav
+          #paramsDrawer
+          id="smile-params"
+          class="smile-params"
+          position="start"
+          [mode]="(paramsPanelMode$ | async) ?? 'side'"
+          [opened]="true"
+          aria-label="Параметры улыбки волатильности"
+        >
+          <div class="params-header">
+            <span>Параметры</span>
+            <button type="button" mat-icon-button (click)="paramsDrawer.close()" aria-label="Закрыть параметры">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
       <div class="smile-controls">
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="fill">
           <mat-label>Ассет</mat-label>
           <mat-select [(ngModel)]="selectedAsset" (selectionChange)="onAssetChange()">
             <mat-option *ngFor="let asset of assets" [value]="asset">
@@ -18,7 +25,7 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="fill">
           <mat-label>Экспирация</mat-label>
           <mat-select [(ngModel)]="selectedExpiration" (selectionChange)="onExpirationChange()">
             <mat-option *ngFor="let exp of expirations" [value]="exp">
@@ -27,7 +34,7 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="fill">
           <mat-label>Тип</mat-label>
           <mat-select [(ngModel)]="optionType" (selectionChange)="onOptionTypeChange()">
             <mat-option value="ALL">Calls + Puts</mat-option>
@@ -36,7 +43,7 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="fill">
           <mat-label>View preset</mat-label>
           <mat-select [(ngModel)]="viewPresetId" (selectionChange)="onPresetChange()">
             <mat-option *ngFor="let preset of viewPresets" [value]="preset.id">
@@ -45,7 +52,7 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="fill">
           <mat-label>X axis</mat-label>
           <mat-select [(ngModel)]="xAxis" (selectionChange)="onAxisChange()">
             <mat-option value="strike">Strike</mat-option>
@@ -54,7 +61,7 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="fill">
           <mat-label>Normalize</mat-label>
           <mat-select [(ngModel)]="normalizeMode" (selectionChange)="onNormalizeChange()">
             <mat-option value="none">None</mat-option>
@@ -75,6 +82,24 @@
           Обновить
         </button>
       </div>
+
+        </mat-sidenav>
+        <mat-sidenav-content class="smile-content">
+          <mat-card class="smile-card">
+            <mat-card-header>
+              <mat-card-title>Улыбка волатильности</mat-card-title>
+              <mat-card-subtitle>
+                Биржевая волатильность MOEX (VOLAT, %) по страйкам для выбранного ассета и экспирации.
+              </mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+
+      <p class="volatility-note">
+        VOLAT берётся из биржевой кривой волатильности, поэтому Call и Put с одинаковым
+        страйком и экспирацией могут совпадать. Рыночная IV по bid/offer или последней
+        сделке здесь не рассчитывается. Call — сплошная линия и заполненные точки,
+        Put — пунктир и полые точки.
+      </p>
 
       <div class="smile-body">
         <div class="chart-panel">
@@ -149,8 +174,10 @@
                   *ngFor="let point of serie.points"
                   [attr.cx]="point.x"
                   [attr.cy]="point.y"
-                  [attr.r]="3.5"
-                  [attr.fill]="serie.color"
+                  [attr.r]="serie.type === 'C' ? 3.5 : 5"
+                  [attr.fill]="serie.type === 'C' ? serie.color : 'none'"
+                  [attr.stroke]="serie.color"
+                  [attr.stroke-width]="serie.type === 'P' ? 1.5 : 0"
                   (mouseenter)="onPointHover($event, point, serie, chart)"
                   (mousemove)="onPointHover($event, point, serie, chart)"
                   (mouseleave)="onPointLeave()"
@@ -232,7 +259,7 @@
                   <tr>
                     <th>Type</th>
                     <th>Strike</th>
-                    <th>IV</th>
+                    <th>VOLAT, %</th>
                     <th>Δ ({{ greekUnitLabel }})</th>
                     <th>Γ ({{ greekUnitLabel }})</th>
                     <th>Vega ({{ greekUnitLabel }})</th>
@@ -262,12 +289,14 @@
 
           <div class="legend" *ngIf="charts[0]?.series?.length">
             <div class="legend-item" *ngFor="let serie of charts[0]?.series">
-              <span class="legend-dot" [style.background]="serie.color"></span>
+              <span class="legend-line" [class.put]="serie.type === 'P'" [style.border-color]="serie.color"></span>
               <span>{{ serie.type === 'C' ? 'Calls' : 'Puts' }}</span>
             </div>
           </div>
         </div>
       </div>
-    </mat-card-content>
-  </mat-card>
+            </mat-card-content>
+          </mat-card>
+        </mat-sidenav-content>
+      </mat-sidenav-container>
 </div>

@@ -1,15 +1,22 @@
 <div class="vol-page">
-  <mat-card class="vol-card">
-    <mat-card-header>
-      <mat-card-title>Кривая волатильности</mat-card-title>
-      <mat-card-subtitle>
-        График IV% по страйкам для выбранной серии.
-      </mat-card-subtitle>
-    </mat-card-header>
-
-    <mat-card-content>
+  <mat-sidenav-container class="vol-layout">
+    <mat-sidenav
+      #paramsDrawer
+      id="vol-params"
+      class="vol-params"
+      position="start"
+      [mode]="(paramsPanelMode$ | async) ?? 'side'"
+      [opened]="true"
+      aria-label="Параметры кривой волатильности"
+    >
+      <div class="params-header">
+        <span>Параметры</span>
+        <button type="button" mat-icon-button (click)="paramsDrawer.close()" aria-label="Закрыть параметры">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
       <div class="vol-controls">
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="fill">
           <mat-label>Базовый актив</mat-label>
           <mat-select [(ngModel)]="selectedAsset" (selectionChange)="onAssetChange()">
             <mat-option *ngFor="let asset of assets" [value]="asset.code">
@@ -18,7 +25,7 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="fill">
           <mat-label>Тип актива</mat-label>
           <mat-select [(ngModel)]="selectedAssetType" (selectionChange)="onAssetTypeChange()">
             <mat-option *ngFor="let type of assetTypes" [value]="type">
@@ -27,7 +34,7 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="fill">
           <mat-label>Серия</mat-label>
           <mat-select [(ngModel)]="selectedSeries" (selectionChange)="onSeriesChange()">
             <mat-option *ngFor="let s of series" [value]="s.code">
@@ -40,8 +47,18 @@
         <mat-slide-toggle [(ngModel)]="showCentralStrikeLine">Central line</mat-slide-toggle>
         <mat-slide-toggle [(ngModel)]="autoRefresh" (change)="toggleAutoRefresh()">Auto-refresh</mat-slide-toggle>
 
-        <button mat-stroked-button (click)="refresh()">Refresh</button>
+        <button mat-raised-button color="primary" (click)="refresh()">Refresh</button>
       </div>
+    </mat-sidenav>
+    <mat-sidenav-content class="vol-main">
+      <mat-card class="vol-card">
+        <mat-card-header>
+          <mat-card-title>Кривая волатильности</mat-card-title>
+          <mat-card-subtitle>
+            График IV% по страйкам для выбранной серии.
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
 
       <div class="vol-meta">
         <div class="meta-item">
@@ -211,6 +228,8 @@
           </div>
         </div>
       </div>
-    </mat-card-content>
-  </mat-card>
+        </mat-card-content>
+      </mat-card>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
 </div>

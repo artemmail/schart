@@ -1,10 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { MatSidenav } from '@angular/material/sidenav';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription, debounceTime, finalize, of, switchMap, takeUntil, catchError, tap } from 'rxjs';
+import { Subject, Subscription, debounceTime, finalize, of, switchMap, takeUntil, catchError, tap, map } from 'rxjs';
 import { MaterialModule } from 'src/app/material.module';
 import { VolatilityGraphPoint, VolatilityGraphService } from 'src/app/service/volatility-graph.service';
+import { NavService } from 'src/app/service/nav.service';
 
 interface AssetItem {
   code: string;
@@ -75,7 +78,9 @@ interface CachedGraph {
   templateUrl: './volatility-graph.component.html',
   styleUrls: ['./volatility-graph.component.scss']
 })
-export class VolatilityGraphComponent implements OnInit, OnDestroy {
+export class VolatilityGraphComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('paramsDrawer') private paramsDrawer!: MatSidenav;
+  readonly paramsPanelMode$;
   assets: AssetItem[] = [];
   assetTypes: string[] = [];
   series: OptionSeriesItem[] = [];
@@ -108,8 +113,14 @@ export class VolatilityGraphComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly http: HttpClient,
-    private readonly graphService: VolatilityGraphService
-  ) {}
+    private readonly graphService: VolatilityGraphService,
+    private readonly navService: NavService,
+    breakpointObserver: BreakpointObserver
+  ) {
+    this.paramsPanelMode$ = breakpointObserver.observe('(max-width: 960px)').pipe(
+      map(({ matches }) => matches ? 'over' as const : 'side' as const)
+    );
+  }
 
   ngOnInit(): void {
     this.reloadSub = this.reload$
@@ -123,7 +134,12 @@ export class VolatilityGraphComponent implements OnInit, OnDestroy {
     this.loadAssets();
   }
 
+  ngAfterViewInit(): void {
+    this.navService.setSidenav(this.paramsDrawer);
+  }
+
   ngOnDestroy(): void {
+    this.navService.clearSidenav(this.paramsDrawer);
     this.destroy$.next();
     this.destroy$.complete();
     this.reloadSub?.unsubscribe();

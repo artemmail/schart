@@ -12,7 +12,6 @@
   --board-muted: var(--sc-text-muted, #64748b);
   --board-highlight: color-mix(in srgb, #fbbf24 22%, var(--board-panel));
   --board-active: #1d4ed8;
-  padding: 16px 20px;
 }
 
 :host-context(.mat-dark-theme) .board-page {
@@ -31,16 +30,43 @@
   color: var(--board-text);
 }
 
-.board-controls {
+.board-card mat-card-header {
+  margin-bottom: 16px;
+}
+
+.board-layout {
+  height: calc(100dvh - 66px);
+  min-height: 420px;
+}
+
+.board-params {
+  width: 270px;
+  max-width: calc(100vw - 48px);
+}
+
+.params-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
   align-items: center;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  padding: 8px 8px 0 10px;
+  font-weight: 600;
+}
+
+.board-main {
+  padding: 16px 20px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.board-controls {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
 }
 
 .board-controls mat-form-field {
-  min-width: 170px;
+  width: 100%;
+  min-width: 0;
 }
 
 .board-meta {
@@ -66,15 +92,14 @@
 }
 
 .board-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 12px;
+  display: grid;
+  gap: 10px;
+  padding: 10px;
 }
 
 .board-filters mat-form-field {
-  min-width: 140px;
+  width: 100%;
+  min-width: 0;
 }
 
 .board-content {

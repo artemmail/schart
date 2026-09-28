@@ -67,6 +67,9 @@ export class TopNavComponent implements OnInit, OnDestroy {
   isSignedIn = false;
   user: ApplicationUser | null = null;
   isFootPrintSelected = false;
+  isVolatilitySmileSelected = false;
+  isOptionBoardSelected = false;
+  isVolatilityGraphSelected = false;
   isFavoritesBoardSelected = false;
   isDrawerOpened = true;
   isAdmin: boolean = false; // Добавлено свойство для проверки администратора
@@ -121,6 +124,9 @@ export class TopNavComponent implements OnInit, OnDestroy {
       )
       .subscribe(() => {
         this.isFootPrintSelected = this.isFootprintRoute(this.router.url);
+        this.isVolatilitySmileSelected = this.router.url.split(/[?#]/)[0] === '/VolatilitySmile';
+        this.isOptionBoardSelected = this.router.url.split(/[?#]/)[0] === '/OptionBoard';
+        this.isVolatilityGraphSelected = this.router.url.split(/[?#]/)[0] === '/VolatilityGraph';
         this.isFavoritesBoardSelected = this.isFavoritesBoardRoute(
           this.router.url
         );
@@ -130,7 +136,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
           if (!this.navService.isSidenavOpened()) {
             this.navService.openNav();
           }
-        } else {
+        } else if (!this.isVolatilitySmileSelected && !this.isOptionBoardSelected && !this.isVolatilityGraphSelected) {
           // Если боковая панель открыта, закроем её
           if (this.navService.isSidenavOpened()) {
             this.navService.closeNav();

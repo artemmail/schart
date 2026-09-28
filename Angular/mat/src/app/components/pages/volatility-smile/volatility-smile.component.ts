@@ -1,9 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { MatSidenav } from '@angular/material/sidenav';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import { MaterialModule } from 'src/app/material.module';
+import { NavService } from 'src/app/service/nav.service';
 
 type ViewPresetId =
   | 'smile_only'
@@ -131,7 +134,8 @@ interface SmileTooltip {
   templateUrl: './volatility-smile.component.html',
   styleUrls: ['./volatility-smile.component.scss']
 })
-export class VolatilitySmileComponent implements OnInit {
+export class VolatilitySmileComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('paramsDrawer') private paramsDrawer!: MatSidenav;
   assets: string[] = [];
   expirations: string[] = [];
   selectedAsset = '';
@@ -172,10 +176,28 @@ export class VolatilitySmileComponent implements OnInit {
     { id: 'smile_iv_change', label: 'IV today vs prev', charts: ['iv', 'iv_change'] }
   ];
 
-  constructor(private readonly http: HttpClient) {}
+  readonly paramsPanelMode$;
+
+  constructor(
+    private readonly http: HttpClient,
+    breakpointObserver: BreakpointObserver,
+    private readonly navService: NavService
+  ) {
+    this.paramsPanelMode$ = breakpointObserver.observe('(max-width: 960px)').pipe(
+      map(({ matches }) => matches ? 'over' as const : 'side' as const)
+    );
+  }
 
   async ngOnInit(): Promise<void> {
     await this.loadAssets();
+  }
+
+  ngAfterViewInit(): void {
+    this.navService.setSidenav(this.paramsDrawer);
+  }
+
+  ngOnDestroy(): void {
+    this.navService.clearSidenav(this.paramsDrawer);
   }
 
   get currentPreset(): ViewPreset {
@@ -786,7 +808,7 @@ export class VolatilitySmileComponent implements OnInit {
     }
 
     rows.push({
-      label: 'IV',
+      label: 'VOLAT, %',
       value: this.formatValue(point.impliedVolatility ?? null, 'iv')
     });
 
@@ -869,7 +891,7 @@ export class VolatilitySmileComponent implements OnInit {
   private getMetricTitle(metric: ChartMetric): string {
     switch (metric) {
       case 'iv':
-        return 'IV vs X';
+        return 'Биржевая волатильность (VOLAT, %)';
       case 'delta':
         return 'Delta vs X';
       case 'gamma':

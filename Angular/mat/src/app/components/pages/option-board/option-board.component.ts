@@ -1,11 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { MatSidenav } from '@angular/material/sidenav';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription, debounceTime, finalize, of, switchMap, takeUntil, catchError, tap } from 'rxjs';
+import { Subject, Subscription, debounceTime, finalize, of, switchMap, takeUntil, catchError, tap, map } from 'rxjs';
 import { MaterialModule } from 'src/app/material.module';
 import { OptionBoardResponse, OptionBoardRow, OptionBoardService } from 'src/app/service/option-board.service';
+import { NavService } from 'src/app/service/nav.service';
 
 type SortKey = 'strike' | 'volatility' | 'numtrades';
 type SortDir = 'asc' | 'desc';
@@ -29,7 +32,9 @@ interface OptionSeriesItem {
   templateUrl: './option-board.component.html',
   styleUrls: ['./option-board.component.scss']
 })
-export class OptionBoardComponent implements OnInit, OnDestroy {
+export class OptionBoardComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('paramsDrawer') private paramsDrawer!: MatSidenav;
+  readonly paramsPanelMode$;
   assets: AssetItem[] = [];
   assetTypes: string[] = [];
   series: OptionSeriesItem[] = [];
@@ -65,8 +70,14 @@ export class OptionBoardComponent implements OnInit, OnDestroy {
   constructor(
     private readonly http: HttpClient,
     private readonly boardService: OptionBoardService,
-    private readonly router: Router
-  ) {}
+    private readonly router: Router,
+    private readonly navService: NavService,
+    breakpointObserver: BreakpointObserver
+  ) {
+    this.paramsPanelMode$ = breakpointObserver.observe('(max-width: 960px)').pipe(
+      map(({ matches }) => matches ? 'over' as const : 'side' as const)
+    );
+  }
 
   ngOnInit(): void {
     this.reloadSub = this.reload$
@@ -80,7 +91,12 @@ export class OptionBoardComponent implements OnInit, OnDestroy {
     this.loadAssets();
   }
 
+  ngAfterViewInit(): void {
+    this.navService.setSidenav(this.paramsDrawer);
+  }
+
   ngOnDestroy(): void {
+    this.navService.clearSidenav(this.paramsDrawer);
     this.destroy$.next();
     this.destroy$.complete();
     this.reloadSub?.unsubscribe();

@@ -2,13 +2,14 @@
 
 import { Injectable } from '@angular/core';
 import { MatSidenav } from '@angular/material/sidenav';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Subscription } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
 })
 export class NavService {
-  private sidenav: MatSidenav;
+  private sidenav?: MatSidenav;
+  private sidenavChanges?: Subscription;
 
   // BehaviorSubject to keep track of sidenav's open state
   private isOpened$ = new BehaviorSubject<boolean>(true);
@@ -20,7 +21,26 @@ export class NavService {
 
   // Method to set the sidenav reference
   public setSidenav(sidenav: MatSidenav) {
+    this.sidenavChanges?.unsubscribe();
     this.sidenav = sidenav;
+    this.sidenavChanges = sidenav.openedChange.subscribe((opened) => {
+      this.isOpened$.next(opened);
+    });
+    queueMicrotask(() => {
+      if (this.sidenav === sidenav) {
+        this.isOpened$.next(sidenav.opened);
+      }
+    });
+  }
+
+  public clearSidenav(sidenav: MatSidenav) {
+    if (this.sidenav !== sidenav) {
+      return;
+    }
+    this.sidenavChanges?.unsubscribe();
+    this.sidenavChanges = undefined;
+    this.sidenav = undefined;
+    this.isOpened$.next(false);
   }
 
   // Method to open the sidenav
