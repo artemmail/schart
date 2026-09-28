@@ -76,3 +76,32 @@ appsettings.*.local.json
 # secrets
 
 FoodBot/appsettings*.json
+
+# Local .NET CLI state and alternative build output
+**/.dotnet-home/
+**/.obj-build/
+**/obj-build/
+**/bin-build/
+
+# Downloaded native runtimes and NuGet packages
+/clibs/
+/clibs64/
+/tools/packages/
+
+# Local export data and HTTP captures
+/StockChart/exports/
+/DataProvider/*.tos
+/DataProvider/*_import.csv
+/DataProvider/scripts/si_market1_traded_*.csv
+/quik_http_in.txt
+/quik_http_out.txt
+/quik_http_ps_out.txt
+
+# Downloaded archives at the repository root
+/*.7z
+/*.zip
+
+# Generated Python caches and raw CPU profiles
+**/__pycache__/
+*.py[cod]
+*.cpuprofile
