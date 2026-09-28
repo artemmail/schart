@@ -1,43 +1,41 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { BehaviorSubject, firstValueFrom } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, distinctUntilChanged, firstValueFrom, map, takeUntil } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { SelectListItemNumber } from 'src/app/models/preserts';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
 import { ClusterStreamService } from 'src/app/service/FootPrint/ClusterStream/cluster-stream.service';
-import { DialogService } from 'src/app/service/DialogService.service';
 import { FootprintUtilitiesService } from './footprint-utilities.service';
 import { ClusterData } from '../models/cluster-data';
-import { HttpErrorResponse } from '@angular/common/http';
 import { CandlesRangeSetValue } from 'src/app/models/candles-range-set';
 import {
-  FootprintInitOptions,
-  FootprintUpdateEvent,
-  FootprintUpdateType,
+  copyFootprintParams, FootprintInitOptions, FootprintLoadRequest, FootprintLoadState,
+  FootprintPendingUpdate, FootprintPreparedSession, FootprintSnapshot,
+  FootprintUpdateEvent, FootprintUpdateType,
 } from '../models/footprint-data.types';
 import {
-  applyFootprintModeToParams,
-  DEFAULT_ARBITRAGE_PORTFOLIO_1,
-  DEFAULT_ARBITRAGE_PORTFOLIO_2,
-  resolveFootprintMode,
+  applyFootprintModeToParams, DEFAULT_ARBITRAGE_PORTFOLIO_1,
+  DEFAULT_ARBITRAGE_PORTFOLIO_2, resolveFootprintMode,
 } from 'src/app/models/footprint-mode';
 
 @Injectable()
 export class FootprintDataLoaderService implements OnDestroy {
   private presetIndex?: number;
   private options: FootprintInitOptions = { minimode: false, deltamode: false };
-  private currentData: ClusterData | null = null;
+  private sequence = 0;
+  private destroyed = false;
+  private activeRequest: FootprintLoadRequest | null = null;
+  private cancellation = new Subject<void>();
+  private currentSnapshot: FootprintSnapshot | null = null;
 
-  private dataSubject = new BehaviorSubject<ClusterData | null>(null);
-  readonly data$ = this.dataSubject.asObservable();
-
-  private settingsSubject = new BehaviorSubject<ChartSettings | null>(null);
-  readonly settings$ = this.settingsSubject.asObservable();
-
-  private paramsSubject = new BehaviorSubject<FootPrintParameters | null>(null);
-  readonly params$ = this.paramsSubject.asObservable();
-
+  private stateSubject = new BehaviorSubject<FootprintLoadState>({ status: 'idle', sessionId: 0 });
+  readonly state$ = this.stateSubject.asObservable();
+  // Compatibility read streams all derive from the same committed snapshot.
+  readonly data$ = this.state$.pipe(map(state => this.snapshotFrom(state)?.data ?? null), distinctUntilChanged());
+  readonly settings$ = this.state$.pipe(map(state => this.snapshotFrom(state)?.settings ?? null), distinctUntilChanged());
+  readonly params$ = this.state$.pipe(map(state => this.snapshotFrom(state)?.params ?? null), distinctUntilChanged());
   private presetsSubject = new BehaviorSubject<SelectListItemNumber[]>([]);
   readonly presets$ = this.presetsSubject.asObservable();
 
@@ -45,269 +43,275 @@ export class FootprintDataLoaderService implements OnDestroy {
     private settingsService: ChartSettingsService,
     private levelMarksService: LevelMarksService,
     private clusterStreamService: ClusterStreamService,
-    private dialogService: DialogService,
     private utilities: FootprintUtilitiesService
   ) {}
 
-  ngOnDestroy(): void {
-    this.destroy();
+  get state(): FootprintLoadState { return this.stateSubject.value; }
+  get snapshot(): FootprintSnapshot | null { return this.currentSnapshot; }
+
+  ngOnDestroy(): void { this.destroy(); }
+
+  isCurrentSession(sessionId: number): boolean {
+    return !this.destroyed && this.activeRequest?.sessionId === sessionId;
   }
 
-  async initialize(
-    params: FootPrintParameters,
-    presetIndex: number,
-    options: FootprintInitOptions
-  ): Promise<boolean> {
-    this.options = options;
+  beginSession(
+    params: Readonly<FootPrintParameters>,
+    presetIndex = this.presetIndex,
+    options: Readonly<FootprintInitOptions> = this.options,
+    loadPresets = false,
+    settings?: ChartSettings
+  ): FootprintLoadRequest | null {
+    if (this.destroyed) return null;
+    this.cancelPending();
+    this.levelMarksService.invalidateLoad();
     this.presetIndex = presetIndex;
-    this.paramsSubject.next(params);
+    this.options = { ...options };
+    const request: FootprintLoadRequest = Object.freeze({
+      sessionId: ++this.sequence,
+      params: Object.freeze(copyFootprintParams(params)),
+      presetIndex,
+      options: Object.freeze({ ...options }),
+      loadPresets,
+      settings: settings ? structuredClone(settings) : undefined,
+    });
+    this.activeRequest = request;
+    this.currentSnapshot = null;
+    this.stateSubject.next({ status: 'loading', sessionId: request.sessionId, params: request.params });
+    return request;
+  }
 
-    await this.loadPresets();
-    return this.applySettingsAndLoadData(params);
+  async loadSession(
+    request: FootprintLoadRequest,
+    beforeRange?: (session: FootprintPreparedSession) => Promise<void>
+  ): Promise<FootprintSnapshot | null> {
+    try {
+      this.assertLoading(request.sessionId);
+      let presets = this.presetsSubject.value;
+      if (request.loadPresets) {
+        presets = await this.utilities.loadPresets();
+        this.assertLoading(request.sessionId);
+      }
+      const presetIndex = request.presetIndex ?? presets[0]?.Value;
+      const settings = request.settings ?? await this.resolveSettings(request, presetIndex);
+      this.assertLoading(request.sessionId);
+      const params = Object.freeze(this.normalizeParams(request.params, settings));
+      const session: FootprintPreparedSession = Object.freeze({
+        sessionId: request.sessionId, params, presetIndex, options: request.options,
+        settings: structuredClone(settings), presets: presets.map(item => ({ ...item })),
+      });
+      // Realtime handlers are registered before requesting the history snapshot.
+      await beforeRange?.(session);
+      this.assertLoading(request.sessionId);
+      await this.levelMarksService.load(copyFootprintParams(params), { skipServer: request.options.minimode });
+      this.assertLoading(request.sessionId);
+      const data = await this.requestRange(request.sessionId, params);
+      this.assertLoading(request.sessionId);
+      return Object.freeze({ ...session, data });
+    } catch (error) {
+      // Cancellation, late errors and destruction never replace the newer state.
+      if (this.isCurrentSession(request.sessionId) && this.state.status === 'loading') {
+        this.failSession(request.sessionId, error);
+      }
+      return null;
+    }
+  }
+
+  commitSnapshot(snapshot: FootprintSnapshot, pending: FootprintPendingUpdate[] = []): boolean {
+    if (!this.isCurrentSession(snapshot.sessionId) || this.state.status !== 'loading') return false;
+    try {
+      for (const update of pending) {
+        if (update.type === 'cluster') {
+          // HTTP can already contain these buffered trades. Never regress its
+          // candle quantities or truncate a newer snapshot tail during replay.
+          const payload = update.payload.filter((bar: any) => {
+            const time = new Date(bar.x).getTime();
+            const index = snapshot.data.ColumnNumberByDate[new Date(time).toISOString()];
+            const existing = index === undefined ? undefined : snapshot.data.clusterData[index];
+            return !existing || Number(bar.q) > existing.q;
+          });
+          if (!snapshot.data.handleCluster(payload, true)) throw new Error('Не удалось применить обновления графика.');
+        } else if (update.type === 'ticks') {
+          if (snapshot.params.period === 0 && !snapshot.data.handleTicks(update.payload)) {
+            throw new Error('Не удалось применить обновления сделок.');
+          }
+        } else {
+          snapshot.data.handleLadder(update.payload);
+        }
+      }
+    } catch (error) {
+      this.failSession(snapshot.sessionId, error);
+      return false;
+    }
+    this.currentSnapshot = snapshot;
+    this.presetIndex = snapshot.presetIndex;
+    this.options = { ...snapshot.options };
+    this.presetsSubject.next(snapshot.presets);
+    if (!this.isCurrentSession(snapshot.sessionId)) return false;
+    this.stateSubject.next({
+      status: snapshot.data.clusterLength() ? 'ready' : 'empty', sessionId: snapshot.sessionId, snapshot,
+    });
+    return this.isCurrentSession(snapshot.sessionId);
+  }
+
+  failSession(sessionId: number, error: unknown): void {
+    if (!this.isCurrentSession(sessionId)) return;
+    this.cancelPending();
+    this.levelMarksService.invalidateLoad();
+    this.currentSnapshot = null;
+    this.stateSubject.next({ status: 'error', sessionId,
+      params: this.activeRequest!.params, message: this.errorMessage(error) });
+  }
+
+  async initialize(params: FootPrintParameters, presetIndex: number, options: FootprintInitOptions): Promise<boolean> {
+    const request = this.beginSession(params, presetIndex, options, true);
+    const snapshot = request ? await this.loadSession(request) : null;
+    return snapshot ? this.commitSnapshot(snapshot) : false;
   }
 
   async reload(params: FootPrintParameters): Promise<boolean> {
-    return this.applySettingsAndLoadData(params);
+    const request = this.beginSession(params);
+    const snapshot = request ? await this.loadSession(request) : null;
+    return snapshot ? this.commitSnapshot(snapshot) : false;
   }
 
-  destroy() {
-    this.paramsSubject.next(null);
-    this.settingsSubject.next(null);
-    this.presetsSubject.next([]);
-    this.currentData = null;
-    this.dataSubject.next(null);
-    this.options = { minimode: false, deltamode: false };
-    this.presetIndex = undefined;
+  setPresetIndex(presetIndex: number): void { this.presetIndex = presetIndex; }
+
+  updateSettings(settings: ChartSettings, presetIndex?: number): void {
+    const snapshot = this.currentSnapshot;
+    if (!snapshot || !this.isCurrentSession(snapshot.sessionId)) return;
+    const next = Object.freeze({ ...snapshot, presetIndex: presetIndex ?? snapshot.presetIndex,
+      settings: structuredClone(settings) });
+    this.presetIndex = next.presetIndex;
+    this.currentSnapshot = next;
+    this.stateSubject.next({ status: next.data.clusterLength() ? 'ready' : 'empty', sessionId: next.sessionId, snapshot: next });
   }
 
-  applyRealtimeUpdate(
-    type: FootprintUpdateType,
-    payload: any
-  ): FootprintUpdateEvent | null {
-    if (!this.currentData) return null;
+  captureSettings(settings: ChartSettings): void {
+    const snapshot = this.currentSnapshot;
+    if (!snapshot || !this.isCurrentSession(snapshot.sessionId)) return;
+    const copy = structuredClone(settings);
+    // Renderer edits already draw locally. Keep the session settings current
+    // without applying the whole snapshot again and resetting its viewport.
+    for (const key of Object.keys(snapshot.settings)) delete (snapshot.settings as any)[key];
+    Object.assign(snapshot.settings, copy);
+  }
 
-    let merged: boolean | undefined = undefined;
-    switch (type) {
-      case 'cluster':
-        merged = this.currentData.handleCluster(payload);
-        break;
-      case 'ticks':
-        merged = this.shouldApplyTickUpdates()
-          ? this.currentData.handleTicks(payload)
-          : true;
-        break;
-      case 'ladder':
-        this.currentData.handleLadder(payload);
-        break;
+  clear(): void {
+    if (this.destroyed) return;
+    this.cancelPending();
+    this.levelMarksService.invalidateLoad();
+    this.activeRequest = null;
+    this.currentSnapshot = null;
+    this.stateSubject.next({ status: 'idle', sessionId: ++this.sequence });
+  }
+
+  destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.cancelPending();
+    this.levelMarksService.invalidateLoad();
+    this.activeRequest = null;
+    this.currentSnapshot = null;
+    this.stateSubject.next({ status: 'idle', sessionId: ++this.sequence });
+    this.stateSubject.complete();
+    this.presetsSubject.complete();
+  }
+
+  applyRealtimeUpdate(sessionId: number, type: FootprintUpdateType, payload: any): FootprintUpdateEvent | null {
+    const snapshot = this.currentSnapshot;
+    if (!snapshot || !this.isCurrentSession(sessionId) || snapshot.sessionId !== sessionId) return null;
+    let merged: boolean | undefined;
+    try {
+      if (type === 'cluster') merged = snapshot.data.handleCluster(payload);
+      else if (type === 'ticks') merged = snapshot.params.period === 0 ? snapshot.data.handleTicks(payload) : true;
+      else snapshot.data.handleLadder(payload);
+    } catch {
+      merged = false;
     }
-
-    // Realtime handlers mutate the current data instance in place.
-    // Pushing the same object through data$ on every tick causes an
-    // extra render/update path and can freeze UI under fast streams.
-    return { type, merged };
-  }
-
-  private shouldApplyTickUpdates(): boolean {
-    const period = Number(this.paramsSubject.value?.period);
-    return Number.isFinite(period) && period === 0;
-  }
-
-  private async applySettingsAndLoadData(
-    params: FootPrintParameters
-  ): Promise<boolean> {
-    const settings = await this.resolveSettings();
-    const mode = resolveFootprintMode({
-      ...params,
-      candlesOnly: params.candlesOnly ?? settings.CandlesOnly ?? false,
-    });
-    const normalizedParams = applyFootprintModeToParams(
-      {
-        ...params,
-        candlesOnly: params.candlesOnly ?? settings.CandlesOnly ?? false,
-      },
-      mode,
-      {
-        defaultPeriod:
-          Number.isFinite(params.period) && params.period > 0
-            ? params.period
-            : 1,
-        keepArbitrageTickers: mode === 'arbitrage',
-        arbitrageDefaults: {
-          ticker1: DEFAULT_ARBITRAGE_PORTFOLIO_1,
-          ticker2: DEFAULT_ARBITRAGE_PORTFOLIO_2,
-        },
-      }
-    );
-    Object.assign(params, normalizedParams);
-    if (!Number.isFinite(params.priceStep) || params.priceStep <= 0) {
-      params.priceStep = 1;
+    if (this.state.status === 'empty' && snapshot.data.clusterLength()) {
+      this.stateSubject.next({ status: 'ready', sessionId, snapshot });
     }
-    this.paramsSubject.next(params);
-    this.settingsSubject.next(settings);
-    await this.levelMarksService.load(params, {
-      skipServer: !!this.options.minimode,
-    });
-    return this.requestRange(params);
+    return { sessionId, type, merged };
   }
 
-  private async resolveSettings(): Promise<ChartSettings> {
-    let settings = ChartSettingsService.miniSettings();
-    if (!this.options.minimode && this.presetIndex !== undefined) {
-      settings = await firstValueFrom(
-        this.settingsService.getChartSettings(this.presetIndex)
-      );
-    } else if (this.options.minimode) {
-      settings.DeltaGraph = this.options.deltamode;
+  private snapshotFrom(state: FootprintLoadState): FootprintSnapshot | null {
+    return state.status === 'ready' || state.status === 'empty' ? state.snapshot : null;
+  }
+
+  private cancelPending(): void {
+    this.cancellation.next();
+    this.cancellation.complete();
+    this.cancellation = new Subject<void>();
+  }
+
+  private assertLoading(sessionId: number): void {
+    if (!this.isCurrentSession(sessionId) || this.state.status !== 'loading') throw new Error('Session superseded');
+  }
+
+  private read<T>(sessionId: number, source: Observable<T>): Promise<T> {
+    this.assertLoading(sessionId);
+    return firstValueFrom(source.pipe(takeUntil(this.cancellation)));
+  }
+
+  private async resolveSettings(request: FootprintLoadRequest, presetIndex?: number): Promise<ChartSettings> {
+    if (!request.options.minimode && presetIndex !== undefined) {
+      return this.read(request.sessionId, this.settingsService.getChartSettings(presetIndex));
     }
+    const settings = ChartSettingsService.miniSettings();
+    if (request.options.minimode) settings.DeltaGraph = request.options.deltamode;
     return settings;
   }
 
-  private async loadPresets() {
-    const presets = await this.utilities.loadPresets();
-    this.presetsSubject.next(presets);
-    if ((this.presetIndex === undefined || this.presetIndex === null) && presets.length) {
-      this.presetIndex = presets[0].Value;
-    }
-  }
-
-  setPresetIndex(presetIndex: number) {
-    this.presetIndex = presetIndex;
-  }
-
-  private buildClusterDataFromRangeSet(
-    rangeSet: CandlesRangeSetValue[],
-    priceScale: number
-  ): ClusterData {
-    const emptyPad = Math.max(Math.abs(priceScale || 1) * 0.001, 1e-6);
-    const prepared = rangeSet
-      .filter((value) => value.Date !== undefined)
-      .map((value, index) => {
-        const date = new Date(value.Date);
-        const rawPrice1 = value.Price1normalized;
-        const rawPrice2 = value.Price2normalized;
-        const price1 = Number(rawPrice1);
-        const price2 = Number(rawPrice2);
-
-        if (!Number.isFinite(price1) || !Number.isFinite(price2)) {
-          return null;
-        }
-
-        let high = Math.max(price1, price2);
-        let low = Math.min(price1, price2);
-
-        if (high === low) {
-          const base = Math.max(Math.abs(price1), Math.abs(price2));
-          const pad = Math.max(base * 0.001, 1e-6);
-          high += pad;
-          low -= pad;
-        }
-
-        return {
-          Number: index + 1,
-          x: date,
-          o: price1,
-          c: price2,
-          l: low,
-          h: high,
-          q: 0,
-          bq: 0,
-          v: 0,
-          bv: 0,
-          oi: 0,
-          cl: [],
-        };
-      })
-      .filter((value): value is NonNullable<typeof value> => value !== null)
-      .sort((a, b) => a.x.getTime() - b.x.getTime())
-      .map((value, index) => ({
-        ...value,
-        Number: index + 1,
-      }));
-
-    if (!prepared.length) {
-      const now = new Date();
-      prepared.push({
-        Number: 1,
-        x: now,
-        o: 1,
-        c: 1,
-        l: 1 - emptyPad,
-        h: 1 + emptyPad,
-        q: 0,
-        bq: 0,
-        v: 0,
-        bv: 0,
-        oi: 0,
-        cl: [],
-      });
-    }
-
-    return new ClusterData({
-      priceScale: priceScale || 1,
-      clusterData: prepared,
+  private normalizeParams(input: Readonly<FootPrintParameters>, settings: ChartSettings): FootPrintParameters {
+    const params = { ...copyFootprintParams(input), candlesOnly: input.candlesOnly ?? settings.CandlesOnly ?? false };
+    const mode = resolveFootprintMode(params);
+    const normalized = applyFootprintModeToParams(params, mode, {
+      defaultPeriod: Number.isFinite(params.period) && params.period > 0 ? params.period : 1,
+      keepArbitrageTickers: mode === 'arbitrage',
+      arbitrageDefaults: { ticker1: DEFAULT_ARBITRAGE_PORTFOLIO_1, ticker2: DEFAULT_ARBITRAGE_PORTFOLIO_2 },
     });
+    if (!Number.isFinite(normalized.priceStep) || normalized.priceStep <= 0) normalized.priceStep = 1;
+    return normalized;
   }
 
-  private async requestRange(params: FootPrintParameters): Promise<boolean> {
-    try {
-      const mode = resolveFootprintMode(params);
-      Object.assign(
-        params,
-        applyFootprintModeToParams(params, mode, {
-          defaultPeriod:
-            Number.isFinite(params.period) && params.period > 0
-              ? params.period
-              : 1,
-          keepArbitrageTickers: mode === 'arbitrage',
-          arbitrageDefaults: {
-            ticker1: DEFAULT_ARBITRAGE_PORTFOLIO_1,
-            ticker2: DEFAULT_ARBITRAGE_PORTFOLIO_2,
-          },
-        })
-      );
-      if (!Number.isFinite(params.priceStep) || params.priceStep <= 0) {
-        params.priceStep = 1;
-      }
-
-      if (mode === 'arbitrage' && params.ticker1 && params.ticker2) {
-        const rangeSet = await firstValueFrom(
-          this.clusterStreamService.getRangeSetArray({
-            ticker: params.ticker,
-            ticker1: params.ticker1,
-            ticker2: params.ticker2,
-            rperiod: params.rperiod,
-            startDate: params.startDate,
-            endDate: params.endDate,
-            period: params.period,
-            timeEnable: params.postmarket ?? false,
-          })
-        );
-
-        const rangeData = this.buildClusterDataFromRangeSet(
-          rangeSet,
-          params.priceStep
-        );
-        rangeData.rangeSetLines = rangeSet ?? [];
-        this.currentData = rangeData;
-      } else {
-        const rangeData = await firstValueFrom(
-          this.clusterStreamService.GetRange(params)
-        );
-        this.currentData = rangeData;
-      }
-
-      this.dataSubject.next(this.currentData);
-      return true;
-    } catch (err) {
-      console.error('Ошибка при выполнении запроса к серверу', err);
-      if (err instanceof HttpErrorResponse) {
-        await this.dialogService.info_async(err.error);
-      } else {
-        await this.dialogService.info_async(err);
-      }
-      return false;
+  private async requestRange(sessionId: number, params: Readonly<FootPrintParameters>): Promise<ClusterData> {
+    if (resolveFootprintMode(params) === 'arbitrage' && params.ticker1 && params.ticker2) {
+      const rangeSet = await this.read(sessionId, this.clusterStreamService.getRangeSetArray({
+        ticker: params.ticker, ticker1: params.ticker1, ticker2: params.ticker2, rperiod: params.rperiod,
+        startDate: params.startDate, endDate: params.endDate, period: params.period, timeEnable: params.postmarket ?? false,
+      }));
+      const data = this.buildClusterDataFromRangeSet(rangeSet, params.priceStep);
+      data.rangeSetLines = rangeSet;
+      return data;
     }
+    return this.read(sessionId, this.clusterStreamService.GetRange(copyFootprintParams(params)));
+  }
+
+  private errorMessage(error: unknown): string {
+    if (error instanceof HttpErrorResponse) {
+      if (typeof error.error === 'string' && error.error.trim()) return error.error;
+      return error.error?.title || error.error?.message || 'Не удалось загрузить график. Повторите попытку.';
+    }
+    return error instanceof Error && error.message ? error.message : 'Не удалось загрузить график. Повторите попытку.';
+  }
+
+  private buildClusterDataFromRangeSet(rangeSet: CandlesRangeSetValue[], priceScale: number): ClusterData {
+    const prepared = rangeSet.filter(value => value.Date !== undefined).map(value => {
+      const date = new Date(value.Date);
+      const price1 = Number(value.Price1normalized);
+      const price2 = Number(value.Price2normalized);
+      if (!Number.isFinite(date.getTime()) || !Number.isFinite(price1) || !Number.isFinite(price2)) return null;
+      let high = Math.max(price1, price2);
+      let low = Math.min(price1, price2);
+      if (high === low) {
+        const pad = Math.max(Math.max(Math.abs(price1), Math.abs(price2)) * 0.001, 1e-6);
+        high += pad;
+        low -= pad;
+      }
+      return { Number: 0, x: date, o: price1, c: price2, l: low, h: high, q: 0, bq: 0, v: 0, bv: 0, oi: 0, cl: [] };
+    }).filter((value): value is NonNullable<typeof value> => value !== null)
+      .sort((a, b) => a.x.getTime() - b.x.getTime()).map((value, index) => ({ ...value, Number: index + 1 }));
+    return new ClusterData({ priceScale: priceScale || 1, clusterData: prepared });
   }
 }
-
-

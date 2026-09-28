@@ -34,8 +34,10 @@ import { viewBackgroundRange } from '../views/view-background-range';
 import { viewIndicatorsOverlay } from '../views/view-indicators-overlay';
 import { viewIndicatorPanel } from '../views/view-indicator-panel';
 import { isArbitrageMode } from 'src/app/models/footprint-mode';
+import { reconcileCanvasParts } from '../views/reconcile-canvas-parts';
 
 export class ViewsManager {
+  private destroyed = false;
   footprint: FootPrintComponent;
   colorsService: ColorsService;
   data: ClusterData | any = null;
@@ -94,7 +96,31 @@ export class ViewsManager {
   mtxanim: Matrix = new Matrix();
   mtxMain: Matrix = new Matrix();
 
+  clearViews(): void {
+    const parts = new Set(this.views);
+    for (const value of Object.values(this)) {
+      if (value instanceof canvasPart) parts.add(value);
+    }
+    for (const part of parts) part.dispose();
+    for (const key of Object.keys(this)) {
+      if ((this as any)[key] instanceof canvasPart) (this as any)[key] = null;
+    }
+    this.views = this.footprint.views = [];
+    this.resizeable = [];
+    this.indicatorPanels = [];
+    this.layout = null;
+    this.matrices = null;
+    this.data = null;
+  }
+
+  dispose(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.clearViews();
+  }
+
   updateLayout() {
+    if (this.destroyed) return;
     const canvas: HTMLCanvasElement | null = this.footprint.canvas;
     const data = this.footprint.data;
 
@@ -141,6 +167,21 @@ export class ViewsManager {
   }
 
  createParts() {
+    if (this.destroyed) return;
+    const previous = this.views;
+    this.buildParts();
+    const replacements = reconcileCanvasParts(previous, this.views);
+    if (previous.some(part => part.isDisposed)) this.footprint.mouseAndTouchManager?.cancelInteraction();
+    for (const key of Object.keys(this)) {
+      const value = (this as any)[key];
+      if (replacements.has(value)) (this as any)[key] = replacements.get(value);
+    }
+    this.views = this.footprint.views = this.views.map(view => replacements.get(view) ?? view);
+    this.resizeable = this.resizeable.map(view => replacements.get(view) ?? view);
+    this.indicatorPanels = this.indicatorPanels.map(view => (replacements.get(view) ?? view) as viewIndicatorPanel);
+  }
+
+ private buildParts() {
     this.updateLayout();
     if (!this.layout) {
       return;
@@ -402,6 +443,11 @@ export class ViewsManager {
   }
 
   drawClusterView() {
+    if (!this.destroyed) this.footprint.drawClusterView();
+  }
+
+  renderNow() {
+    if (this.destroyed) return;
     const FPsettings =  this.getSettings(); //  this.footprint.FPsettings;
     const canvas: HTMLCanvasElement | null = this.footprint.canvas;
     const ctx: CanvasRenderingContext2D | null = canvas?.getContext('2d');
@@ -409,8 +455,6 @@ export class ViewsManager {
 
     if (!this.data || !canvas || !ctx) return;
     if (canvas.width <= 1 || canvas.height <= 1) return;
-
-    this.footprint.indicatorEngine?.prepare?.();
 
     if (!this.layout) {
       this.updateLayout();
@@ -450,6 +494,7 @@ export class ViewsManager {
   }
 
   alignCanvas() {
+    if (this.destroyed) return;
     var canvas = this.footprint.canvasRef?.nativeElement;
     if (!canvas) return;
     const container = this.resolveCanvasContainer(canvas);
@@ -478,6 +523,11 @@ export class ViewsManager {
   }
 
   public resize() {
+    if (!this.destroyed) this.footprint.resize();
+  }
+
+  resizeNow() {
+    if (this.destroyed) return;
     if (!this.footprint.data) return;
   
     var canvas = this.footprint.canvasRef?.nativeElement;
@@ -525,7 +575,6 @@ export class ViewsManager {
       this.mtx = this.footprint.alignMatrix(
         this.mtx.getTranslate(newX - oldX, newY - oldY)
       );
-      this.drawClusterView();
     }
   }
 

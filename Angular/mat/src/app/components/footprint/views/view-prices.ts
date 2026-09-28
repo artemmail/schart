@@ -1,3 +1,4 @@
+import { takeUntil } from 'rxjs';
 import { canvasPart } from './canvas-part';
 import { Matrix, Point, Rectangle } from '../models/matrix';
 import { DraggableEnum } from 'src/app/models/Draggable';
@@ -32,6 +33,7 @@ export class viewPrices extends canvasPart {
     this.parent.drawClusterView();
   }
   onRightClick(e: Point) {
+    if (this.isDisposed) return;
     if (this.parent.FPsettings.DeltaGraph) return;
     const price = this.getPrice(e);
     const level = this.parent.levelMarksService.getPriceMark(price);
@@ -39,8 +41,10 @@ export class viewPrices extends canvasPart {
       const original = new MarkLineLevel(level.comment, level.color);
       this.parent.dialogService
         .openLevelSettings(level, () => {
+          if (this.isDisposed) return;
           this.parent.drawClusterView();
         })
+        .pipe(takeUntil(this.disposed$))
         .subscribe((result) => {
           if (result) {
             this.parent.levelMarksService.updatePriceMark(price, level);

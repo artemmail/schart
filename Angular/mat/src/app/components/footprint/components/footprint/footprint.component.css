@@ -1,5 +1,6 @@
 :host {
   display: flex;
+  position: relative;
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -46,4 +47,27 @@ canvas {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.footprint-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--sc-bg);
+  color: var(--sc-text);
+  text-align: center;
+}
+
+.footprint-status button {
+  padding: 8px 12px;
+  border: 1px solid var(--sc-grid-soft);
+  border-radius: 4px;
+  background: var(--sc-panel);
+  color: var(--sc-text);
+  cursor: pointer;
 }

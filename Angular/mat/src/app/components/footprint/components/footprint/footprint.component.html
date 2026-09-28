@@ -1,6 +1,17 @@
-@if(!data)
-{
-  <mat-spinner></mat-spinner>
+@if (loadState.status === 'loading') {
+  <div class="footprint-status" role="status" aria-live="polite">
+    <mat-spinner [diameter]="36"></mat-spinner>
+    <span>Загрузка графика…</span>
+  </div>
 }
-<canvas  #drawingCanvas></canvas>
+@if (loadState.status === 'error') {
+  <div class="footprint-status" role="alert">
+    <span>{{ loadState.message }}</span>
+    <button type="button" (click)="retryRequested.emit()">Повторить загрузку</button>
+  </div>
+}
+@if (loadState.status === 'empty') {
+  <div class="footprint-status" role="status">Нет данных за выбранный период</div>
+}
+<canvas #drawingCanvas [style.visibility]="loadState.status === 'ready' ? 'visible' : 'hidden'"></canvas>
 

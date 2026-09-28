@@ -8,7 +8,7 @@ import { drob } from 'src/app/service/FootPrint/utils';
 
 
 export class viewRangeSet extends canvasPart {
-  private frame: number;
+  private cancelSwipeAnimation?: () => void;
   private startTime: number;
   private v0: number;
   private damping: number;
@@ -17,14 +17,25 @@ export class viewRangeSet extends canvasPart {
   constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx);
 
-    this.frame = 0;
     this.startTime = 0;
     this.v0 = 0;
     this.damping = 1500.0; // коэффициент затухания скорости
     this.isScrolling = false;
   }
 
+  override dispose(): void {
+    if (this.isDisposed) return;
+    this.cancelSwipeAnimation?.();
+    this.cancelSwipeAnimation = undefined;
+    this.isScrolling = false;
+    super.dispose();
+  }
+
   stopSwipe() {
+    this.cancelSwipeAnimation?.();
+    this.cancelSwipeAnimation = undefined;
+    this.isScrolling = false;
+    if (this.isDisposed) return;
     if (this.parent.translateMatrix != null) {
       if (!this.parent.markupEnabled || this.parent.markupManager.allowPan()) {
         this.parent.viewsManager.mtx = this.parent.alignMatrix(
@@ -32,8 +43,6 @@ export class viewRangeSet extends canvasPart {
         );
         this.parent.translateMatrix = null;
       }
-      cancelAnimationFrame(this.frame);
-      this.isScrolling = false;
     }
   }
 
@@ -63,6 +72,7 @@ export class viewRangeSet extends canvasPart {
   }
 
   onSwipe = (event: Hammer.HammerInput): void => {
+    if (this.isDisposed) return;
     this.interruptSwipe();
 
     this.v0 = event.velocityX * 1000; // начальная скорость в пикселях/секунду
@@ -71,20 +81,15 @@ export class viewRangeSet extends canvasPart {
 
     const t_stop = this.calculateStopTime();
 
-    const inertiaScroll = () => {
+    this.cancelSwipeAnimation = this.parent.renderScheduler.animate(() => {
+      if (this.isDisposed || !this.isScrolling) return false;
       const elapsed = this.calculateElapsed();
       const dx = this.calculateDisplacement(elapsed, t_stop);
-
       this.applyDisplacement(dx);
-
-      if (elapsed <= t_stop && Math.abs(dx) > 1) {
-        this.frame = requestAnimationFrame(inertiaScroll);
-      } else {
-        this.stopSwipe();
-      }
-    };
-
-    this.frame = requestAnimationFrame(inertiaScroll);
+      if (elapsed <= t_stop && Math.abs(dx) > 1 && this.isScrolling) return true;
+      this.stopSwipe();
+      return false;
+    });
   };
 
   interruptSwipe() {
@@ -199,8 +204,8 @@ export class viewRangeSet extends canvasPart {
     const hintContent = `<ul style='font-size: 10px;margin: 0; padding: 0px;list-style-type:none'>${content} </ul>`;
 
     const position = {
-      x: event.screen.x / window.devicePixelRatio + 5,
-      y: event.screen.y / window.devicePixelRatio + 5,
+      x: event.screen.x + 5,
+      y: event.screen.y + 5,
     };
 
     this.parent.showHint(hintContent, position);

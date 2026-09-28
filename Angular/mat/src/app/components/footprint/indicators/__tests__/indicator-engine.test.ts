@@ -3,6 +3,7 @@ import { IndicatorRegistry } from '../indicator-registry';
 import { registerFootprintBuiltInIndicators } from '../builtins/register-builtins';
 import { ClusterData } from '../../models/cluster-data';
 import { atr, macd, roc, rsi } from 'technicalindicators';
+import { IndicatorContext } from '../indicator-api';
 
 function makeClusterData(
   closes: number[],
@@ -91,6 +92,86 @@ function makeEngine() {
 }
 
 describe('FootprintIndicatorEngine', () => {
+  test('keeps candle snapshots consistent with live sources after replacing a bar', () => {
+    const registry = new IndicatorRegistry();
+    let context: IndicatorContext;
+    registry.register({
+      type: 'snapshot-test', displayName: 'Snapshot', defaultPanel: 'chart', paramsSchema: {},
+      create(ctx, params) {
+        context = ctx;
+        return { type: 'snapshot-test', params, panel: 'chart', series: [], onCalculate: () => undefined };
+      },
+    });
+    const engine = new FootprintIndicatorEngine(registry,
+      { requestRender: () => undefined, requestRecalc: () => undefined },
+      { ensurePanel: () => 'chart', getPanelHeight: () => 100 });
+    const data = makeClusterData([100, 101, 102]);
+    engine.setData(data);
+    engine.setSettings({ Indicators: [{ id: 'snapshot', type: 'snapshot-test', params: {} }] } as any);
+    engine.prepare();
+    data.handleCluster([{ ...data.clusterData[2], oiRaw: undefined,
+      c: 110, h: 110, v: 500, bv: 300, q: 5, oi: 10 }]);
+    engine.prepare();
+
+    expect(context.candles[2].c).toBe(110);
+    expect(context.candles[2].c).toBe(context.source(2, 'close'));
+    const { h, v, bv, q, oi } = context.candles[2];
+    expect({ h, v, bv, q, oi }).toEqual({ h: 110, v: 500, bv: 300, q: 5, oi: 10 });
+  });
+
+  test.each(['replaceTail', 'appendWithCorrection'])(
+    'matches a fresh calculation after %s, including adapters and recursive indicators', (kind) => {
+      const closes = Array.from({ length: 60 }, (_, i) => 100 + Math.sin(i) * 5);
+      const data = makeClusterData(closes);
+      const settings = {
+        Indicators: [
+          { id: 'ema', type: 'ema', params: { source: 'close', period: 5 }, panel: 'chart' },
+          { id: 'rsi', type: 'rsi', params: { source: 'close', period: 14 }, panel: { id: 'rsi' } },
+        ], IndicatorPanels: { rsi: { height: 100 } },
+      } as any;
+      const engine = makeEngine();
+      engine.setData(data);
+      engine.setSettings(settings);
+      engine.prepare();
+      const oldRsi = Array.from(engine.getPanelSeries('rsi').find(s => s.id === 'RSI')!.values);
+      const payload = data.clusterData.slice(-4).map((bar, i) => ({
+        ...bar, c: i === 1 ? bar.c + 25 : bar.c,
+      }));
+      if (kind === 'appendWithCorrection') {
+        payload.push({ ...payload[payload.length - 1], Number: 61,
+          x: new Date(payload[payload.length - 1].x.getTime() + 60_000), c: 103 });
+      }
+      expect(data.handleCluster(payload)).toBe(true);
+      engine.prepare();
+
+      const fresh = makeEngine();
+      fresh.setData(new ClusterData({ priceScale: 1, VolumePerQuantity: 1, clusterData: data.clusterData }));
+      fresh.setSettings(settings);
+      fresh.prepare();
+      expect(engine.getChartSeries().map(s => Array.from(s.values)))
+        .toEqual(fresh.getChartSeries().map(s => Array.from(s.values)));
+      expect(engine.getPanelSeries('rsi').map(s => Array.from(s.values)))
+        .toEqual(fresh.getPanelSeries('rsi').map(s => Array.from(s.values)));
+      expect(Array.from(engine.getPanelSeries('rsi').find(s => s.id === 'RSI')!.values)).not.toEqual(oldRsi);
+    }
+  );
+
+  test('clears indicator series for an empty history and accepts later bars', () => {
+    const engine = makeEngine();
+    const data = makeClusterData([1, 2, 3]);
+    engine.setData(data);
+    engine.setSettings({ Indicators: [{ id: 'sma', type: 'sma', params: { period: 2 } }] } as any);
+    engine.prepare();
+    data.clusterData = [];
+    data.calcPrices();
+    engine.prepare();
+    expect(engine.getChartSeries()[0].values.length).toBe(0);
+    const next = makeClusterData([10, 20, 30]);
+    data.handleCluster(next.clusterData);
+    engine.prepare();
+    expect(engine.getChartSeries()[0].values[2]).toBe(25);
+  });
+
   test('lists technicalindicators catalog definitions', () => {
     const registry = new IndicatorRegistry();
     registerFootprintBuiltInIndicators(registry);
@@ -648,5 +729,40 @@ describe('FootprintIndicatorEngine', () => {
     expect(items.filter((item) => item.bar === 1).length).toBe(1);
     expect(items.find((item) => item.bar === 0)?.value).toBe(200);
     expect(items.find((item) => item.bar === 1)?.value).toBe(300);
+  });
+});
+
+describe('FootprintIndicatorEngine disposal', () => {
+  test('disposes each instance once, releases data and rejects callbacks retained by indicators', async () => {
+    const registry = new IndicatorRegistry();
+    let context: IndicatorContext;
+    const dispose = jest.fn();
+    const calculate = jest.fn();
+    const create = jest.fn((ctx: IndicatorContext, params: any) => {
+      context = ctx;
+      return { type: 'disposable', params, panel: 'chart' as const, series: [], onCalculate: calculate, dispose };
+    });
+    registry.register({ type: 'disposable', displayName: 'Disposable', defaultPanel: 'chart', paramsSchema: {}, create });
+    const callbacks = { requestRender: jest.fn(), requestRecalc: jest.fn() };
+    const loader = jest.fn(async () => ({ status: 'noData' as const, message: '' }));
+    const engine = new FootprintIndicatorEngine(registry, callbacks,
+      { ensurePanel: () => 'chart', getPanelHeight: () => 100 }, { loadOpenPositionsByTicker: loader });
+    const history = makeClusterData([100, 101]);
+    const settings = { Indicators: [{ id: 'one', type: 'disposable', params: {} }] } as any;
+    engine.setData(history); engine.setSettings(settings); engine.prepare();
+    engine.dispose(); engine.dispose();
+    context.requestRender(); context.requestRecalc();
+    await context.loadOpenPositionsByTicker('Si');
+    engine.setData(history); engine.setSettings(settings); engine.prepare();
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(calculate).toHaveBeenCalledTimes(2);
+    expect(callbacks.requestRender).not.toHaveBeenCalled();
+    expect(callbacks.requestRecalc).not.toHaveBeenCalled();
+    expect(loader).not.toHaveBeenCalled();
+    expect(context.candles).toEqual([]);
+    expect(context.getClusterData()).toBeNull();
+    expect(engine.getChartSeries()).toEqual([]);
+    expect(engine.getPanels()).toEqual([]);
   });
 });

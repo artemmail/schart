@@ -52,6 +52,10 @@ export class SignalRService implements OnDestroy {
   private readonly reconnectMaxDelayMs = 30000;
 
   private activeSubscriptions = new Map<string, FootprintSubscribeParams>();
+  private clusterSubscriptionHandles = new Map<string, string>();
+  private clusterSubscriptionCounts = new Map<string, number>();
+  private clusterSubscriptionSequence = 0;
+  private subscriptionQueue: Promise<void> = Promise.resolve();
   private activeDirectLadderSubscriptions = new Map<string, string>();
   private activeLadderSubscriptions = new Map<string, number>();
   private ladderSubscriptionSequence = 0;
@@ -73,6 +77,8 @@ export class SignalRService implements OnDestroy {
 
   private receiveLadderEnvelopeSubject = new Subject<SignalRLadderEnvelope>();
   receiveLadderEnvelope$ = this.receiveLadderEnvelopeSubject.asObservable();
+  private connectionRestoredSubject = new Subject<void>();
+  readonly connectionRestored$ = this.connectionRestoredSubject.asObservable();
 
   private hasReceivedClusterEnvelope = false;
   private hasReceivedTicksEnvelope = false;
@@ -215,6 +221,7 @@ export class SignalRService implements OnDestroy {
       this.clearReconnectTimer();
       if (!this.isStopping) {
         await this.resubscribeAll();
+        if (this.hubConnection === connection && !this.isStopping) this.connectionRestoredSubject.next();
       }
     });
 
@@ -368,7 +375,24 @@ export class SignalRService implements OnDestroy {
     this.activeLadderSubscriptions.set(ticker, current - 1);
   }
 
-  private async resubscribeAll() {
+  private runSubscriptionOperation<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.subscriptionQueue.then(operation, operation);
+    this.subscriptionQueue = result.then(() => undefined, () => undefined);
+    return result;
+  }
+
+  private createClusterHandle(key: string): string {
+    const handle = `cluster:${++this.clusterSubscriptionSequence}`;
+    this.clusterSubscriptionHandles.set(handle, key);
+    this.clusterSubscriptionCounts.set(key, (this.clusterSubscriptionCounts.get(key) ?? 0) + 1);
+    return handle;
+  }
+
+  private resubscribeAll(): Promise<void> {
+    return this.runSubscriptionOperation(() => this.resubscribeAllCore());
+  }
+
+  private async resubscribeAllCore(): Promise<void> {
     if (!this.hasActiveSubscriptions()) return;
 
     const connected = await this.ensureConnected();
@@ -398,7 +422,12 @@ export class SignalRService implements OnDestroy {
     await Promise.all(directLadderTasks);
   }
 
-  public async Subscribe(
+  public Subscribe(params: FootprintSubscribeParams): Promise<string | null> {
+    const snapshot = { ...params };
+    return this.runSubscriptionOperation(() => this.subscribeClusterCore(snapshot));
+  }
+
+  private async subscribeClusterCore(
     params: FootprintSubscribeParams
   ): Promise<string | null> {
     const connected = await this.ensureConnected();
@@ -409,7 +438,7 @@ export class SignalRService implements OnDestroy {
 
     const key = this.buildSubscriptionKey(params);
     if (this.activeSubscriptions.has(key)) {
-      return key;
+      return this.createClusterHandle(key);
     }
 
     const shouldSubscribeLadder = this.getLadderSubscriptionCount(params.ticker) === 0;
@@ -420,28 +449,41 @@ export class SignalRService implements OnDestroy {
     if (subscribed) {
       this.activeSubscriptions.set(key, { ...params });
       this.incrementLadderSubscription(params.ticker);
-      return key;
+      return this.createClusterHandle(key);
     }
 
     return null;
   }
 
-  public async unsubscr(key: string | null): Promise<boolean> {
-    if (!key) {
+  public unsubscr(handle: string | null): Promise<boolean> {
+    return this.runSubscriptionOperation(() => this.unsubscribeClusterCore(handle));
+  }
+
+  private async unsubscribeClusterCore(handle: string | null): Promise<boolean> {
+    if (!handle) {
       console.warn('Cannot unsubscribe, subscription key is required');
       return false;
     }
 
-    const params = this.activeSubscriptions.get(key);
-    if (!params) {
-      console.warn('Cannot unsubscribe, subscription parameters are missing');
-      return false;
+    const key = this.clusterSubscriptionHandles.get(handle);
+    // Each owner releases its own handle; a repeated release is harmless.
+    if (!key) {
+      return true;
+    }
+    const params = this.activeSubscriptions.get(key)!;
+    const count = this.clusterSubscriptionCounts.get(key) ?? 0;
+    if (count > 1) {
+      this.clusterSubscriptionHandles.delete(handle);
+      this.clusterSubscriptionCounts.set(key, count - 1);
+      return true;
     }
 
     const shouldUnsubscribeLadder = this.getLadderSubscriptionCount(params.ticker) <= 1;
 
     const removeLocalTracking = async () => {
       this.activeSubscriptions.delete(key);
+      this.clusterSubscriptionHandles.delete(handle);
+      this.clusterSubscriptionCounts.delete(key);
       this.decrementLadderSubscription(params.ticker);
       if (!this.hasActiveSubscriptions()) {
         await this.stopConnection();
@@ -483,7 +525,11 @@ export class SignalRService implements OnDestroy {
 
   }
 
-  public async subscribeLadder(ticker: string): Promise<string | null> {
+  public subscribeLadder(ticker: string): Promise<string | null> {
+    return this.runSubscriptionOperation(() => this.subscribeLadderCore(ticker));
+  }
+
+  private async subscribeLadderCore(ticker: string): Promise<string | null> {
     if (!ticker) {
       console.warn('Cannot subscribe ladder, ticker is required');
       return null;
@@ -512,7 +558,11 @@ export class SignalRService implements OnDestroy {
     return key;
   }
 
-  public async unsubscrLadder(key: string | null): Promise<boolean> {
+  public unsubscrLadder(key: string | null): Promise<boolean> {
+    return this.runSubscriptionOperation(() => this.unsubscribeLadderCore(key));
+  }
+
+  private async unsubscribeLadderCore(key: string | null): Promise<boolean> {
     if (!key) {
       console.warn('Cannot unsubscribe ladder, subscription key is required');
       return false;
@@ -520,8 +570,7 @@ export class SignalRService implements OnDestroy {
 
     const ticker = this.activeDirectLadderSubscriptions.get(key);
     if (!ticker) {
-      console.warn('Cannot unsubscribe ladder, subscription parameters are missing');
-      return false;
+      return true;
     }
 
     const shouldUnsubscribeLadder = this.getLadderSubscriptionCount(ticker) <= 1;
@@ -639,6 +688,7 @@ export class SignalRService implements OnDestroy {
       try {
         await this.startConnection();
         await this.resubscribeAll();
+        if (!this.isStopping) this.connectionRestoredSubject.next();
       } catch (err) {
         console.warn('SignalR reconnect attempt failed', err);
         this.reconnectAttempt += 1;
@@ -695,6 +745,8 @@ export class SignalRService implements OnDestroy {
       this.startPromise = null;
       this.hubConnection = undefined;
       this.activeSubscriptions.clear();
+      this.clusterSubscriptionHandles.clear();
+      this.clusterSubscriptionCounts.clear();
       this.activeDirectLadderSubscriptions.clear();
       this.activeLadderSubscriptions.clear();
       this.reconnectAttempt = 0;
@@ -714,5 +766,6 @@ export class SignalRService implements OnDestroy {
     this.receiveClusterEnvelopeSubject.complete();
     this.receiveTicksEnvelopeSubject.complete();
     this.receiveLadderEnvelopeSubject.complete();
+    this.connectionRestoredSubject.complete();
   }
 }

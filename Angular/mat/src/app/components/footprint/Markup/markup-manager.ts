@@ -8,6 +8,7 @@ import { Shape, ShapePoint } from './shape';
 const EDIT_TOOL = 'Edit';
 
 export class MarkUpManager {
+  private disposed = false;
   selectedShape: ShapePoint | null;
   mouseShape: ShapePoint | null;
   footprint: FootPrintComponent;
@@ -21,6 +22,22 @@ export class MarkUpManager {
   private activeParamsRef: Record<string, any> | null = null;
 
   readonly defaultSelectionColor = DEFAULT_MARKUP_COLOR;
+
+  cancelInteraction(): void {
+    this.selectedShape = null;
+    this.mouseShape = null;
+    this.drawingShape = null;
+  }
+
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.cancelInteraction();
+    this.shapeArray = [];
+    this.toolParams.clear();
+    this.activeDefinitionRef = null;
+    this.activeParamsRef = null;
+  }
 
   constructor(private registry: MarkupRegistry, footprint: FootPrintComponent) {
     this.selectedShape = null;
@@ -63,6 +80,7 @@ export class MarkUpManager {
   }
 
   onParamsChanged(syncDefaults: boolean = true): void {
+    if (this.disposed) return;
     if (!this.activeParamsRef) {
       return;
     }
@@ -88,6 +106,7 @@ export class MarkUpManager {
   }
 
   deleteCurrent(): void {
+    if (this.disposed) return;
     if (this.selectedShape) {
       this.shapeArray.splice(this.shapeArray.indexOf(this.selectedShape.shape), 1);
       this.selectedShape = null;
@@ -97,6 +116,7 @@ export class MarkUpManager {
   }
 
   clearAll(shouldRedraw: boolean = true): void {
+    if (this.disposed) return;
     this.shapeArray = [];
     this.selectedShape = null;
     this.mouseShape = null;
@@ -108,6 +128,7 @@ export class MarkUpManager {
   }
 
   onMouseDown(point: Point): void {
+    if (this.disposed) return;
     if (this.drawingShape != null && !this.drawingShape.isComplete()) {
       if (this.drawingShape.supportsMultiPointDraw()) {
         this.drawingShape.onStartNextPoint(point);
@@ -137,6 +158,7 @@ export class MarkUpManager {
   }
 
   onMouseDownMove(point: Point): void {
+    if (this.disposed) return;
     if (this.selectedShape != null) {
       this.selectedShape.shape.onMovePoint(point);
       this.footprint.resize();
@@ -148,6 +170,7 @@ export class MarkUpManager {
   }
 
   onMouseMove(point: Point): void {
+    if (this.disposed) return;
     if (this.drawingShape != null && !this.drawingShape.isComplete()) {
       if (this.drawingShape.supportsMultiPointDraw()) {
         this.drawingShape.onMouseMove(point);
@@ -159,6 +182,7 @@ export class MarkUpManager {
   }
 
   onMouseUp(point: Point): void {
+    if (this.disposed) return;
     if (this.drawingShape != null) {
       if (!this.drawingShape.isComplete()) {
         this.drawingShape.onMouseUp(point);
@@ -176,6 +200,7 @@ export class MarkUpManager {
   }
 
   changeMode(mode: string): void {
+    if (this.disposed) return;
     if (mode === this.activeTool && mode === EDIT_TOOL) return;
     this.activateTool(mode);
     this.footprint.resize();
@@ -186,6 +211,7 @@ export class MarkUpManager {
   }
 
   drawAll(): void {
+    if (this.disposed) return;
     this.profileAuto.drawShape();
     for (let shape of this.shapeArray) {
       shape.drawShape();

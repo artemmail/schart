@@ -91,21 +91,31 @@ export class ClusterData {
   maxt2: number;
 
   private oiDeltaDivideBy2 = false;
+  private dataRevision = 0;
+
+  /** Changes to bars/derived values invalidate indicator snapshots; ladder does not. */
+  get revision(): number {
+    return this.dataRevision;
+  }
   private readonly fallbackPeriodMs = 60 * 1000;
   private readonly realtimeTailColumns = 5;
   private readonly minRealtimeTailMs = 5 * 60 * 1000;
 
   constructor(data: ClusterDataInit) {
-    this.lastPrice = data.clusterData[data.clusterData.length - 1].c;
+    this.lastPrice = data.clusterData[data.clusterData.length - 1]?.c ?? 0;
     this.priceScale = ClusterData.resolvePriceScale(
       data.priceScale,
       data.clusterData
     );
     this.oiDeltaDivideBy2 = data.oiDeltaDivideBy2 ?? false;
 
-    this.volumePerQuantity =
+    const volumePerQuantity =
       data.VolumePerQuantity ??
       (data.clusterData[0]?.v / (data.clusterData[0]?.q * data.clusterData[0]?.c));
+    this.volumePerQuantity =
+      Number.isFinite(volumePerQuantity) && volumePerQuantity > 0
+        ? volumePerQuantity
+        : 1;
 
     this.clusterData = data.clusterData.map((column) => this.addColumnInfo(column));
 
@@ -361,14 +371,14 @@ export class ClusterData {
     );
   }
 
-  public handleCluster(answ: any): boolean {
+  public handleCluster(answ: any, preferTimestampMerge = false): boolean {
     try {
       answ.forEach((value: any) => {
         value.x = new Date(value.x);
       });
 
       const data = { clusterData: answ } as ClusterData;
-      return this.mergeData(data);
+      return this.mergeData(data, preferTimestampMerge);
     } catch {
       return false;
     }
@@ -562,7 +572,7 @@ export class ClusterData {
 
     this.clusterData = Array.from(existingDataMap.values());
     this.clusterData.sort((a, b) => a.x.getTime() - b.x.getTime());
-    this.lastPrice = this.clusterData[this.clusterData.length - 1].c;
+    this.lastPrice = this.clusterData[this.clusterData.length - 1]?.c ?? 0;
     this.calcPrices();
     return true;
 }
@@ -749,16 +759,30 @@ export class ClusterData {
   }
 
   ableOI(): boolean {
-    return this.clusterData[0].oi !== 0;
+    return (this.clusterData[0]?.oi ?? 0) !== 0;
   }
 
   ableCluster(): boolean {
-    return !!this.clusterData[0].cl;
+    return !!this.clusterData[0]?.cl;
   }
 
   calcPrices() {
+    this.dataRevision += 1;
     const data = this.clusterData;
     if (!data.length) {
+      this.lastPrice = this.minPrice = this.maxPrice = 0;
+      this.maxClusterQnt = this.maxClusterQntAsk = this.maxClusterQntBid = 0;
+      this.maxClusterVol = this.maxClusterVolAsk = this.maxClusterVolBid = 0;
+      this.maxOI = this.minOI = this.maxOIDelta = this.minOIDelta = 0;
+      this.maxDelta = this.maxDeltaV = this.minColumnDelta = this.maxColumnDelta = 0;
+      this.minCumDelta = this.maxCumDelta = this.maxAbsOIDelta = 0;
+      this.maxQuantity = this.maxQuantityAsk = this.maxQuantityBid = 0;
+      this.maxVolume = this.maxVolumeAsk = this.maxVolumeBid = 0;
+      this.minDeltaBar = this.maxDeltaBar = this.minDens = this.maxDens = 0;
+      this.maxt1 = this.maxt2 = 0;
+      this.ColumnNumberByDate = {};
+      this.totalColumn = undefined;
+      this.local = this.getGlobalRenderStats();
       return;
     }
     this.ColumnNumberByDate = {};
@@ -888,7 +912,12 @@ export class ClusterData {
       this.ColumnNumberByDate[col.x.toISOString()] = i;
     }
 
-    if (!this.ableCluster()) return;
+    if (!this.ableCluster()) {
+      this.totalColumn = undefined;
+      this.maxt1 = this.maxt2 = this.minDens = this.maxDens = 0;
+      this.local = this.getGlobalRenderStats();
+      return;
+    }
 
     this.totalColumn = this.getTotalColumn(data);
 

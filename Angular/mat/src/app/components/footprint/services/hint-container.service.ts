@@ -23,14 +23,16 @@ interface HintRenderOptions {
 
 @Injectable()
 export class HintContainerService implements OnDestroy {
+  private destroyed = false;
   private hintElement: HTMLDivElement | null = null;
 
   ngOnDestroy(): void {
-    this.removeHintElement();
+    this.destroy();
   }
 
   show(content: string, position: { x: number; y: number }): void {
     const hint = this.ensureHintElement();
+    if (!hint) return;
 
     hint.innerHTML = content;
     hint.style.overflow = 'visible';
@@ -40,6 +42,7 @@ export class HintContainerService implements OnDestroy {
   }
 
   renderHint(options: HintRenderOptions): void {
+    if (this.destroyed) return;
     if (!options.settings.ToolTip) {
       return;
     }
@@ -55,6 +58,8 @@ export class HintContainerService implements OnDestroy {
   }
 
   destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
     this.removeHintElement();
   }
 
@@ -162,14 +167,15 @@ export class HintContainerService implements OnDestroy {
     const hintContent = `<ul style='font-size: 10px;margin: 0; padding: 0px;list-style-type:none'>${data} </ul>`;
 
     const position = {
-      x: options.event.screen.x / window.devicePixelRatio + 5,
-      y: options.event.screen.y / window.devicePixelRatio + 5,
+      x: options.event.screen.x + 5,
+      y: options.event.screen.y + 5,
     };
 
     return { content: hintContent, position };
   }
 
-  ensureHintElement(): HTMLDivElement {
+  ensureHintElement(): HTMLDivElement | null {
+    if (this.destroyed) return null;
     if (!this.hintElement) {
       this.hintElement = document.createElement('div');
       this.hintElement.id = 'hint';

@@ -1,8 +1,7 @@
 <app-footprint
-  [params]="params"
-  [presetIndex]="presetIndex"
-  [minimode]="minimode"
-  [deltamode]="deltamode"
+  [loadState]="loadState"
   [caption]="caption"
   [postInit]="postInit"
+  (retryRequested)="reload()"
+  (settingsChanged)="onRendererSettingsChanged($event)"
 ></app-footprint>

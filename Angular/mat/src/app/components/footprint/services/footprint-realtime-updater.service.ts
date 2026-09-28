@@ -4,7 +4,10 @@ import { FootPrintParameters } from 'src/app/models/Params';
 import { SignalRService } from 'src/app/service/FootPrint/signalr.service';
 import { FootprintDataLoaderService } from './footprint-data-loader.service';
 import {
-  FootprintInitOptions,
+  copyFootprintParams,
+  FootprintPendingUpdate,
+  FootprintPreparedSession,
+  FootprintSnapshot,
   FootprintUpdateEvent,
   FootprintUpdateType,
 } from '../models/footprint-data.types';
@@ -15,13 +18,19 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
   private isVisible = false;
   private canvasElement?: ElementRef;
   private params?: FootPrintParameters;
-  private options: FootprintInitOptions = { minimode: false, deltamode: false };
+  private sessionId: number | null = null;
+  private subscriptionEpoch = 0;
+  private buffering = true;
+  private pendingUpdates: FootprintPendingUpdate[] = [];
+  private bufferOverflow = false;
+  private recoveryRequired = false;
+  private readonly maxBufferedUpdates = 2000;
+  private reconnectSubscription: Subscription;
   private isDestroyed = false;
   private operationQueue: Promise<void> = Promise.resolve();
   private hiddenTeardownTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly hiddenTeardownDelayMs = 10000;
   private consecutiveMergeFailures = 0;
-  private recoveryReloadInProgress = false;
   private lastRecoveryReloadAt = 0;
   private readonly mergeFailureThreshold = 3;
   private readonly recoveryReloadMinIntervalMs = 30000;
@@ -35,17 +44,25 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
 
   private updatesSubject = new Subject<FootprintUpdateEvent>();
   readonly updates$ = this.updatesSubject.asObservable();
+  private recoverySubject = new Subject<{ sessionId: number; reason: string }>();
+  readonly recovery$ = this.recoverySubject.asObservable();
 
   constructor(
     private signalRService: SignalRService,
     private dataLoader: FootprintDataLoaderService
-  ) {}
+  ) {
+    this.reconnectSubscription = this.signalRService.connectionRestored$.subscribe(() => {
+      if (this.buffering && this.params) this.recoveryRequired = true;
+      else this.scheduleRecoveryReload('reconnected', true);
+    });
+  }
 
   ngOnDestroy(): void {
     this.destroy();
   }
 
   bindCanvas(canvasRef: ElementRef | null) {
+    if (this.isDestroyed) return;
     this.teardownVisibility();
     if (canvasRef) {
       this.canvasElement = canvasRef;
@@ -53,37 +70,81 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     }
   }
 
-  async configure(
-    params: FootPrintParameters,
-    options: FootprintInitOptions
-  ): Promise<void> {
-    this.params = params;
-    this.options = options;
-    await this.runSerialized(async () => {
-      if (this.isDestroyed) {
-        return;
-      }
+  beginSession(sessionId: number): void {
+    if (this.isDestroyed || !this.dataLoader.isCurrentSession(sessionId)) return;
+    this.sessionId = sessionId;
+    this.params = undefined;
+    this.buffering = true;
+    this.pendingUpdates = [];
+    this.bufferOverflow = false;
+    this.recoveryRequired = false;
+    this.consecutiveMergeFailures = 0;
+    this.clearHiddenTeardownTimer();
+    const key = this.detachRealtime();
+    void this.runSerialized(() => this.releaseSubscription(key));
+  }
 
+  async configure(session: FootprintPreparedSession): Promise<void> {
+    if (!this.isCurrentSession(session.sessionId)) return;
+    const params = copyFootprintParams(session.params);
+    this.params = params;
+    await this.runSerialized(async () => {
+      if (!this.isCurrentSession(session.sessionId)) return;
       this.clearHiddenTeardownTimer();
-      await this.teardownRealtime();
-      await this.subscribeToRealtime(params);
+      await this.subscribeToRealtime(params, session.sessionId);
     });
   }
 
+  commitSession(snapshot: FootprintSnapshot): boolean {
+    if (!this.isCurrentSession(snapshot.sessionId)) return false;
+    if (this.bufferOverflow) {
+      this.dataLoader.failSession(snapshot.sessionId, new Error('Загрузка графика заняла слишком много времени. Повторите попытку.'));
+      return false;
+    }
+    const pending = this.pendingUpdates;
+    this.pendingUpdates = [];
+    if (!this.dataLoader.commitSnapshot(snapshot, pending) || !this.isCurrentSession(snapshot.sessionId)) return false;
+    this.buffering = false;
+    const duringCommit = this.pendingUpdates;
+    this.pendingUpdates = [];
+    for (const update of duringCommit) this.emitUpdate(snapshot.sessionId, update.type, update.payload);
+    if (this.recoveryRequired) {
+      this.recoveryRequired = false;
+      void Promise.resolve().then(() => {
+        if (this.isCurrentSession(snapshot.sessionId)) this.scheduleRecoveryReload('loading_gap', true);
+      });
+    }
+    return true;
+  }
+
+  stopSession(sessionId: number): Promise<void> {
+    if (this.sessionId !== sessionId) return Promise.resolve();
+    this.params = undefined;
+    this.pendingUpdates = [];
+    this.buffering = true;
+    const key = this.detachRealtime();
+    return this.runSerialized(() => this.releaseSubscription(key));
+  }
+
   destroy() {
+    if (this.isDestroyed) return;
     this.teardownVisibility();
     this.isDestroyed = true;
+    this.sessionId = null;
+    this.pendingUpdates = [];
+    this.reconnectSubscription.unsubscribe();
     this.clearHiddenTeardownTimer();
-    void this.runSerialized(async () => {
-      await this.teardownRealtime();
-    });
+    const key = this.detachRealtime();
+    void this.runSerialized(() => this.releaseSubscription(key));
     this.params = undefined;
-    this.options = { minimode: false, deltamode: false };
+    this.updatesSubject.complete();
+    this.recoverySubject.complete();
   }
 
   private initVisibilityObserver() {
     this.visibilityObserver = new IntersectionObserver(
       (entries) => {
+        if (this.isDestroyed) return;
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             if (!this.isVisible) {
@@ -112,13 +173,16 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
   }
 
   private async handleComponentVisible() {
+    if (this.isDestroyed) return;
     this.clearHiddenTeardownTimer();
-    if (this.params) {
-      await this.syncRealtimeSubscription(this.params);
+    if (this.params && !this.activeSubscriptionKey) {
+      if (this.buffering) this.recoveryRequired = true;
+      else this.scheduleRecoveryReload('visible', true);
     }
   }
 
   private async handleComponentHidden() {
+    if (this.isDestroyed) return;
     this.scheduleHiddenTeardown();
   }
 
@@ -260,7 +324,8 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     return copy.getTime();
   }
 
-  private async subscribeToRealtime(params: FootPrintParameters) {
+  private async subscribeToRealtime(params: FootPrintParameters, sessionId: number) {
+    if (!this.isCurrentSession(sessionId)) return;
     if (!params.ticker) {
       console.warn('Подписка пропущена: ticker не задан.');
       return;
@@ -280,19 +345,30 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
       return;
     }
 
+    const epoch = ++this.subscriptionEpoch;
+    // Listen before Subscribe resolves: the hub may send data before its ACK.
+    this.registerRealtimeHandlers(params, sessionId, epoch);
     try {
       const subscriptionKey = await this.signalRService.Subscribe({
         ticker: params.ticker,
         period: params.period,
         step: params.priceStep,
       });
+      if (!this.isCurrentSession(sessionId) || epoch !== this.subscriptionEpoch) {
+        await this.releaseSubscription(subscriptionKey);
+        return;
+      }
       if (subscriptionKey) {
         this.activeSubscriptionKey = subscriptionKey;
         this.activeSubscriptionParams = { ...params };
-        this.registerRealtimeHandlers(params);
+      } else {
+        this.detachRealtime();
+        throw new Error('Не удалось подключить обновления графика. Повторите попытку.');
       }
     } catch (err) {
+      if (this.isCurrentSession(sessionId) && epoch === this.subscriptionEpoch) this.detachRealtime();
       console.error('Ошибка при подписке к SignalRService', err);
+      throw err;
     }
   }
 
@@ -307,12 +383,17 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     this.isVisible = false;
   }
 
-  private async teardownRealtime() {
+  private detachRealtime(): string | null {
+    this.subscriptionEpoch += 1;
     this.realtimeSubscriptions.unsubscribe();
     this.realtimeSubscriptions = new Subscription();
     const subscriptionKey = this.activeSubscriptionKey;
     this.activeSubscriptionKey = null;
     this.activeSubscriptionParams = null;
+    return subscriptionKey;
+  }
+
+  private async releaseSubscription(subscriptionKey: string | null): Promise<void> {
     try {
       if (subscriptionKey) {
         await this.signalRService.unsubscr(subscriptionKey);
@@ -322,7 +403,7 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     }
   }
 
-  private registerRealtimeHandlers(params: FootPrintParameters) {
+  private registerRealtimeHandlers(params: FootPrintParameters, sessionId: number, epoch: number) {
     const scopedParams = {
       ticker: params.ticker,
       period: params.period,
@@ -331,28 +412,48 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
 
     this.realtimeSubscriptions.add(
       this.signalRService.receiveClusterFor(scopedParams).subscribe({
-        next: (answ) => this.emitUpdate('cluster', answ),
+        next: (answ) => this.receiveUpdate(sessionId, epoch, 'cluster', answ),
         error: (err) => console.error('SignalR cluster stream error', err),
       })
     );
 
     this.realtimeSubscriptions.add(
       this.signalRService.receiveTicksFor(scopedParams).subscribe({
-        next: (answ) => this.emitUpdate('ticks', answ),
+        next: (answ) => this.receiveUpdate(sessionId, epoch, 'ticks', answ),
         error: (err) => console.error('SignalR ticks stream error', err),
       })
     );
 
     this.realtimeSubscriptions.add(
       this.signalRService.receiveLadderFor(params.ticker).subscribe({
-        next: (ladder) => this.emitUpdate('ladder', ladder),
+        next: (ladder) => this.receiveUpdate(sessionId, epoch, 'ladder', ladder),
         error: (err) => console.error('SignalR ladder stream error', err),
       })
     );
   }
 
-  private emitUpdate(type: FootprintUpdateType, payload: any) {
-    const update = this.dataLoader.applyRealtimeUpdate(type, payload);
+  private isCurrentSession(sessionId: number): boolean {
+    return !this.isDestroyed && this.sessionId === sessionId && this.dataLoader.isCurrentSession(sessionId);
+  }
+
+  private receiveUpdate(sessionId: number, epoch: number, type: FootprintUpdateType, payload: any): void {
+    if (!this.isCurrentSession(sessionId) || epoch !== this.subscriptionEpoch) return;
+    if (this.buffering) {
+      if (this.bufferOverflow) return;
+      if (this.pendingUpdates.length >= this.maxBufferedUpdates) {
+        this.pendingUpdates = [];
+        this.bufferOverflow = true;
+        return;
+      }
+      this.pendingUpdates.push({ type, payload: structuredClone(payload) });
+      return;
+    }
+    this.emitUpdate(sessionId, type, payload);
+  }
+
+  private emitUpdate(sessionId: number, type: FootprintUpdateType, payload: any) {
+    if (!this.isCurrentSession(sessionId)) return;
+    const update = this.dataLoader.applyRealtimeUpdate(sessionId, type, payload);
     if (update) {
       this.updatesSubject.next(update);
     }
@@ -387,15 +488,18 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
   }
 
   private scheduleHiddenTeardown(): void {
+    if (this.isDestroyed) return;
     this.clearHiddenTeardownTimer();
+    const sessionId = this.sessionId;
     this.hiddenTeardownTimer = setTimeout(() => {
       this.hiddenTeardownTimer = null;
       void this.runSerialized(async () => {
-        if (this.isDestroyed || this.isVisible) {
+        if (sessionId === null || !this.isCurrentSession(sessionId) || this.isVisible) {
           return;
         }
 
-        await this.teardownRealtime();
+        const key = this.detachRealtime();
+        await this.releaseSubscription(key);
       });
     }, this.hiddenTeardownDelayMs);
   }
@@ -407,25 +511,6 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     }
   }
 
-  private async syncRealtimeSubscription(params: FootPrintParameters): Promise<void> {
-    const canSubscribe = this.shouldSubscribe(params) && !!params.ticker;
-    if (!canSubscribe) {
-      await this.teardownRealtime();
-      return;
-    }
-
-    if (
-      this.activeSubscriptionParams &&
-      this.activeSubscriptionKey &&
-      this.isSameSubscription(params, this.activeSubscriptionParams)
-    ) {
-      return;
-    }
-
-    await this.teardownRealtime();
-    await this.subscribeToRealtime(params);
-  }
-
   private runSerialized(task: () => Promise<void>): Promise<void> {
     const nextTask = this.operationQueue.then(task, task);
     this.operationQueue = nextTask.catch((err) => {
@@ -434,40 +519,20 @@ export class FootprintRealtimeUpdaterService implements OnDestroy {
     return nextTask;
   }
 
-  private scheduleRecoveryReload(reason: string): void {
-    if (this.isDestroyed || this.recoveryReloadInProgress || !this.params) {
+  private scheduleRecoveryReload(reason: string, force = false): void {
+    const sessionId = this.sessionId;
+    if (sessionId === null || !this.isCurrentSession(sessionId) || !this.params ||
+        this.buffering || this.dataLoader.snapshot?.sessionId !== sessionId) {
       return;
     }
 
     const now = Date.now();
-    if (now - this.lastRecoveryReloadAt < this.recoveryReloadMinIntervalMs) {
+    if (!force && now - this.lastRecoveryReloadAt < this.recoveryReloadMinIntervalMs) {
       return;
     }
 
-    this.recoveryReloadInProgress = true;
     this.lastRecoveryReloadAt = now;
-    const snapshot = { ...this.params };
-
-    void this.runSerialized(async () => {
-      if (this.isDestroyed) {
-        return;
-      }
-
-      console.warn(
-        `Realtime merge stalled (${reason}). Reloading footprint range and re-subscribing.`
-      );
-
-      const loaded = await this.dataLoader.reload(snapshot);
-      if (!loaded) {
-        return;
-      }
-
-      this.params = snapshot;
-      await this.teardownRealtime();
-      await this.subscribeToRealtime(snapshot);
-    }).finally(() => {
-      this.recoveryReloadInProgress = false;
-    });
+    this.recoverySubject.next({ sessionId, reason });
   }
 }
 

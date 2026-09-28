@@ -6,10 +6,14 @@ import {
   HostListener,
   Input,
   OnDestroy,
+  Output,
+  EventEmitter,
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Matrix, Rectangle } from '../../models/matrix';
-import { firstValueFrom, Subscription } from 'rxjs';
+import { firstValueFrom, Observable, Subject, Subscription, takeUntil } from 'rxjs';
+import { FootprintRenderFlags, FootprintRenderScheduler } from '../../services/footprint-render-scheduler';
 
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
@@ -31,7 +35,7 @@ import { DialogService } from 'src/app/service/DialogService.service';
 import { Router } from '@angular/router';
 import { FootprintLayoutService } from '../../services/footprint-layout.service';
 import { FootprintRealtimeUpdaterService } from '../../services/footprint-realtime-updater.service';
-import { FootprintUpdateEvent } from '../../models/footprint-data.types';
+import { copyFootprintParams, FootprintLoadState, FootprintSnapshot, FootprintUpdateEvent } from '../../models/footprint-data.types';
 import { FootprintStateService } from '../../services/footprint-state.service';
 import { HintContainerService } from '../../services/hint-container.service';
 import { FootprintIndicatorEngine } from '../../indicators/indicator-engine';
@@ -56,6 +60,7 @@ const MIN_PANEL_HEIGHT = 20;
 
 @Component({
   standalone: true,
+  imports: [MatProgressSpinnerModule],
   selector: 'app-footprint',
   templateUrl: './footprint.component.html',
   styleUrls: ['./footprint.component.css'],
@@ -65,6 +70,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   @ViewChild('drawingCanvas', { static: false }) canvasRef?: ElementRef;
   @Input() presetIndex: number;
   @Input() set params(value: FootPrintParameters | null) {
+    if (this.destroyed) return;
     this.state.setParams(value ?? null);
     this.initializeViewIfReady();
   }
@@ -75,12 +81,20 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   @Input() deltamode: boolean = false;
   @Input() caption: string | null = null;
   @Input() postInit?: (component: FootPrintComponent) => void;
+  @Input() loadState: FootprintLoadState = { status: 'idle', sessionId: 0 };
+  @Output() settingsChanged = new EventEmitter<ChartSettings>();
+  @Output() retryRequested = new EventEmitter<void>();
+  private currentSessionId: number | null = null;
+  private applyingSnapshot = false;
 
   private _canvas: HTMLCanvasElement | null = this.canvasRef?.nativeElement;
   private _ctx: CanvasRenderingContext2D | null = null;
   private themeSubscription?: Subscription;
   private themePreset: ThemePreset = DEFAULT_THEME_PRESET;
-  private indicatorRenderRafId: number | null = null;
+  private destroyed = false;
+  private rendering = false;
+  private readonly destroy$ = new Subject<void>();
+  readonly renderScheduler = new FootprintRenderScheduler(flags => this.renderFrame(flags));
 
   palette: StockChartPalette = { ...STOCK_CHART_DEFAULT_PALETTE };
   animButtonState = {
@@ -88,10 +102,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     pressed: false,
     hoverT: 0,
     pressT: 0,
-    rafId: 0,
   };
-  private realtimeRafId: number | null = null;
-  private pendingRealtimeMerge = false;
   private readonly openPositionsLoadCache = new Map<string, Promise<OpenPositionsLoadResult>>();
   private contractsCache: string[] | null = null;
 
@@ -223,6 +234,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   showHint(content: string, position: { x: number; y: number }): void {
+    if (this.destroyed) return;
     this.hintContainer.show(content, position);
     this.hiddenHint = false;
   }
@@ -240,9 +252,11 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   set FPsettings(settings: ChartSettings) {
+    if (this.destroyed) return;
     this.state.setSettings(settings);
     this.indicatorEngine?.setSettings(settings);
     this.applyThemePreset(settings.ThemePreset);
+    if (!this.applyingSnapshot) this.settingsChanged.emit(this.FPsettings);
   }
 
   applyOideltaDivider(): void {
@@ -254,6 +268,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   applyThemePreset(presetName?: string | null, force = false): void {
+    if (this.destroyed) return;
     const normalized =
       typeof presetName === 'string' && presetName.trim()
         ? presetName.trim()
@@ -267,7 +282,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.materialThemeService.applyPreset(preset);
     const currentSettings = this.state.snapshot.settings;
     if (currentSettings && currentSettings.ThemePreset !== preset) {
-      this.state.setSettings({ ...currentSettings, ThemePreset: preset });
+      currentSettings.ThemePreset = preset;
     }
     this.themePreset = preset;
     const hostEl = this.hostRef?.nativeElement;
@@ -436,6 +451,11 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   initSize() {
+    if (this.destroyed || !this.params) return;
+    this.renderScheduler.request({ initialize: true });
+  }
+
+  private initializeViewport(): void {
     if (!this.params) return;
     this.viewsManager.alignCanvas();
     this.viewsManager.updateLayout();
@@ -449,34 +469,21 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   drawClusterView() {
-    this.viewsManager.drawClusterView();
+    if (this.destroyed || this.rendering) return;
+    this.renderScheduler.request({ draw: true });
   }
 
   private scheduleIndicatorRender(recalculate: boolean): void {
-    if (recalculate) {
-      this.indicatorEngine?.requestFullRecalc();
-    }
-
-    if (this.indicatorRenderRafId !== null) {
-      return;
-    }
-
-    this.indicatorRenderRafId = requestAnimationFrame(() => {
-      this.indicatorRenderRafId = null;
-      if (!this.viewInitialized || !this.viewsManager || !this.data) {
-        return;
-      }
-
-      this.drawClusterView();
-    });
+    if (this.destroyed) return;
+    this.renderScheduler.request({ draw: true, recalculate });
   }
 
   @HostListener('window:resize')
   public resize() {
-    if (!this.viewInitialized || !this.viewsManager) {
+    if (this.destroyed || !this.viewInitialized || !this.viewsManager) {
       return;
     }
-    this.viewsManager.resize();
+    this.renderScheduler.request({ resize: true });
   }
 
   alignMatrix(matrix: Matrix, alignprice = false) {
@@ -508,13 +515,14 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   // ... остальной код компонента
 
   ngAfterViewInit() {
+    if (this.destroyed) return;
     this.palette = this.colorSchemeService.readPalette(this.hostRef.nativeElement);
     this.themeSubscription = this.colorSchemeService.themeChanged$.subscribe((event) => {
       if (event.hostEl !== this.hostRef.nativeElement) {
         return;
       }
       this.palette = event.palette;
-      if (this.viewInitialized && this.viewsManager) {
+      if (!this.applyingSnapshot && this.viewInitialized && this.viewsManager) {
         this.viewsManager.drawClusterView();
       }
     });
@@ -540,6 +548,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   public applyDefaultPostInit(): void {
+    if (this.destroyed) return;
     if (!this.viewsManager?.mtx) {
       return;
     }
@@ -549,21 +558,66 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   public runPostInitialization(): void {
+    if (this.destroyed) return;
     const postInitHandler = this.postInit ?? ((component: FootPrintComponent) => component.applyDefaultPostInit());
 
     postInitHandler(this);
   }
 
   bindRealtime(updater: FootprintRealtimeUpdaterService) {
+    if (this.destroyed) return;
     updater.bindCanvas(this.canvasRef ?? null);
   }
 
+  applySnapshot(snapshot: FootprintSnapshot): void {
+    if (this.destroyed) return;
+    this.applyingSnapshot = true;
+    try {
+      this.currentSessionId = snapshot.sessionId;
+      this.state.setParams(copyFootprintParams(snapshot.params));
+      this.minimode = snapshot.options.minimode;
+      this.deltamode = snapshot.options.deltamode;
+      this.presetIndex = snapshot.presetIndex;
+      this.presetItems = snapshot.presets;
+      this.data = snapshot.data;
+      this.FPsettings = snapshot.settings;
+      this.applyOideltaDivider();
+      this.indicatorEngine.setSettings(this.FPsettings);
+      this.hintContainer.ensureHintElement();
+    } finally {
+      this.applyingSnapshot = false;
+    }
+    this.initializeViewIfReady();
+  }
+
+  clearSession(): void {
+    if (this.destroyed) return;
+    this.currentSessionId = null;
+    this.renderScheduler.reset();
+    this.mouseAndTouchManager?.cancelInteraction();
+    this.viewsManager?.clearViews();
+    this.markupManager?.cancelInteraction();
+    this.translateMatrix = null;
+    this.animButtonState.hover = false;
+    this.animButtonState.pressed = false;
+    this.animButtonState.hoverT = 0;
+    this.animButtonState.pressT = 0;
+    this.data = null;
+    this.state.setParams(null);
+    this.hideHint();
+    this.indicatorEngine.setSettings(null);
+    this.indicatorEngine.prepare();
+    this.ctx?.clearRect(0, 0, this.canvas?.width ?? 0, this.canvas?.height ?? 0);
+  }
+
   applyParams(params: FootPrintParameters) {
+    if (this.destroyed) return;
     this.state.setParams(params);
     this.initializeViewIfReady();
   }
 
   applySettings(settings: ChartSettings) {
+    if (this.destroyed) return;
     this.FPsettings = settings;
     this.applyOideltaDivider();
     this.indicatorEngine.setSettings(this.FPsettings);
@@ -576,10 +630,12 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   saveSettings(): void {
-    this.chartSettingsService.updateSettings(this.FPsettings).subscribe();
+    if (this.destroyed) return;
+    this.chartSettingsService.updateSettings(this.FPsettings).pipe(takeUntil(this.destroy$)).subscribe();
   }
 
   applyData(clusterData: ClusterData) {
+    if (this.destroyed) return;
     const isNewDataInstance = this.data !== clusterData;
     this.data = clusterData;
     this.applyOideltaDivider();
@@ -595,15 +651,13 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   private initializeViewIfReady(): void {
-    if (!this.viewInitialized || !this.data || !this.params) {
+    if (this.destroyed || !this.viewInitialized || !this.data || !this.params) {
       return;
     }
 
     this.indicatorEngine.setData(this.data);
     this.indicatorEngine.setSettings(this.FPsettings);
-    this.initSize();
-    this.resize();
-    this.viewsManager.drawClusterView();
+    this.renderScheduler.request({ initialize: true, resize: true });
   }
 
   private adjustViewportOnRealtime(): void {
@@ -653,39 +707,31 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   handleRealtimeUpdate(update: FootprintUpdateEvent) {
-    if (!this.data || !this.viewsManager) {
+    if (this.destroyed || update.sessionId !== this.currentSessionId || !this.data || !this.viewsManager) {
       return;
     }
 
     const isVisible = this.isPriceVisible();
     const shouldMerge = update.type !== 'ladder' && isVisible && !!update.merged;
-    if (shouldMerge) {
-      this.pendingRealtimeMerge = true;
-    }
-
-    this.scheduleRealtimeDraw();
+    this.renderScheduler.request({ draw: true, realtime: shouldMerge });
   }
 
-  private scheduleRealtimeDraw(): void {
-    if (this.realtimeRafId !== null) {
-      return;
-    }
-
-    this.realtimeRafId = requestAnimationFrame(() => {
-      this.realtimeRafId = null;
-      if (!this.data || !this.viewsManager) {
-        this.pendingRealtimeMerge = false;
-        return;
-      }
-
-      if (this.pendingRealtimeMerge) {
-        this.pendingRealtimeMerge = false;
+  private renderFrame(flags: FootprintRenderFlags): void {
+    if (this.destroyed || !this.viewInitialized || !this.data || !this.params || !this.viewsManager) return;
+    this.rendering = true;
+    try {
+      if (flags.recalculate) this.indicatorEngine.requestFullRecalc();
+      this.indicatorEngine.prepare();
+      if (flags.resize && !flags.initialize) this.viewsManager.resizeNow();
+      if (flags.initialize) this.initializeViewport();
+      if (flags.realtime && !flags.initialize) {
         this.mergeMatrix();
         this.adjustViewportOnRealtime();
       }
-
-      this.viewsManager.drawClusterView();
-    });
+      this.viewsManager.renderNow();
+    } finally {
+      this.rendering = false;
+    }
   }
 
   private ensureIndicatorPanel(kind: 'chart' | 'new', preferredId?: string) {
@@ -714,6 +760,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   private async loadOpenPositionsByTicker(ticker: string): Promise<OpenPositionsLoadResult> {
+    if (this.destroyed) return { status: 'error', message: 'График закрыт.' };
     const normalizedTicker = (ticker ?? '').trim().toUpperCase();
     if (!normalizedTicker) {
       return { status: 'error', message: 'Тикер не задан.' };
@@ -746,7 +793,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     let futureInfoShortName: string | null = null;
 
     try {
-      const futInfo = await firstValueFrom(this.commonService.getFutInfo(ticker));
+      const futInfo = await this.readResource(() => this.commonService.getFutInfo(ticker));
       futureInfoAssetCode = (futInfo?.assetCode ?? '').trim().toUpperCase() || null;
       futureInfoShortName = (futInfo?.shortName ?? '').trim().toUpperCase() || null;
     } catch (err) {
@@ -774,6 +821,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     }
 
     const contracts = await this.loadContracts();
+    if (this.destroyed) return { status: 'error', message: 'График закрыт.' };
     const candidates = this.resolveContractCandidates(
       ticker,
       futureInfoAssetCode,
@@ -793,8 +841,8 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
 
     for (const contract of candidates) {
       try {
-        const positions = await firstValueFrom(
-          this.dataService.getOpenPositionsByContract(contract)
+        const positions = await this.readResource(
+          () => this.dataService.getOpenPositionsByContract(contract)
         );
 
         if (!positions?.length) {
@@ -814,6 +862,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
           positions: normalized,
         };
       } catch (err) {
+        if (this.destroyed) return { status: 'error', message: 'График закрыт.' };
         if (err instanceof HttpErrorResponse) {
           if (err.status === 404) {
             hadNotFound = true;
@@ -849,16 +898,19 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   private async loadContracts(): Promise<string[]> {
+    if (this.destroyed) return [];
     if (this.contractsCache) {
       return this.contractsCache;
     }
 
     try {
-      const contracts = await firstValueFrom(this.dataService.getAllContracts());
+      const contracts = await this.readResource(() => this.dataService.getAllContracts());
+      if (this.destroyed) return [];
       this.contractsCache = (contracts ?? [])
         .map((x) => (x ?? '').trim())
         .filter((x) => x.length > 0);
     } catch {
+      if (this.destroyed) return [];
       this.contractsCache = [];
     }
 
@@ -975,17 +1027,35 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     return err.error?.title || err.error?.message || null;
   }
 
-  ngOnDestroy(): void {
-    if (this.realtimeRafId !== null) {
-      cancelAnimationFrame(this.realtimeRafId);
-      this.realtimeRafId = null;
-    }
-    if (this.indicatorRenderRafId !== null) {
-      cancelAnimationFrame(this.indicatorRenderRafId);
-      this.indicatorRenderRafId = null;
-    }
+  private readResource<T>(source: () => Observable<T>): Promise<T> {
+    if (this.destroyed) return Promise.reject(new Error('График закрыт.'));
+    return firstValueFrom(source().pipe(takeUntil(this.destroy$)));
+  }
+
+  ngOnDestroy(): void { this.dispose(); }
+
+  dispose(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.currentSessionId = null;
+    this.renderScheduler.destroy();
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.mouseAndTouchManager?.dispose();
+    this.markupManager?.dispose();
+    this.viewsManager?.dispose();
+    this.indicatorEngine.dispose();
+    this.openPositionsLoadCache.clear();
+    this.contractsCache = null;
     this.themeSubscription?.unsubscribe();
     this.hintContainer.destroy();
+    this.state.setData(null);
+    this.state.setParams(null);
+    this.translateMatrix = null;
+    this.selectedColumn = null;
+    this._ctx = null;
+    this._canvas = null;
+    this.canvasRef = undefined;
   }
 }
 

@@ -386,6 +386,9 @@ export class FootprintLayoutService {
     alignprice = false
   ) {
     const view = { ...clusterView };
+    if (data.clusterData.length === 0) {
+      return matrix;
+    }
 
     if ('MaxTrades' in settings && settings.MaxTrades) {
       const delta = (matrix.applyToPoint(1, 0).x - matrix.applyToPoint(0, 0).x) / 5;

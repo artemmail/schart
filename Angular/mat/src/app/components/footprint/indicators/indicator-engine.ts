@@ -38,12 +38,15 @@ type Runtime = {
 const DEFAULT_PANEL_HEIGHT = 90;
 
 export class FootprintIndicatorEngine {
+  private destroyed = false;
   private data: ClusterData | null = null;
   private settings: ChartSettings | null = null;
 
   private candlesCache: Candle[] = [];
   private candlesCacheDataRef: ClusterData | null = null;
   private candlesCacheBarsCount = 0;
+  private candlesCacheRevision = -1;
+  private lastDataRevision = -1;
 
   private lastBarsCount = 0;
   private lastLastTime = 0;
@@ -73,20 +76,24 @@ export class FootprintIndicatorEngine {
   ) {}
 
   setData(data: ClusterData | null): void {
+    if (this.destroyed) return;
     const changed = this.data !== data;
     this.data = data;
     if (changed) {
       this.needsFullRecalc = true;
       this.lastBarsCount = 0;
       this.lastLastTime = 0;
+      this.lastDataRevision = -1;
     }
   }
 
   setSettings(settings: ChartSettings | null): void {
+    if (this.destroyed) return;
     this.settings = settings;
   }
 
   requestFullRecalc(): void {
+    if (this.destroyed) return;
     this.needsFullRecalc = true;
   }
 
@@ -115,6 +122,7 @@ export class FootprintIndicatorEngine {
    * Call once per render cycle before layout is built.
    */
   prepare(): void {
+    if (this.destroyed) return;
     const data = this.data;
     const settings = this.settings;
     if (!data || !settings) {
@@ -132,7 +140,7 @@ export class FootprintIndicatorEngine {
     const lastBarLikelyUpdated = !barsChanged && lastTime === this.lastLastTime;
 
     const calcMode: 'full' | 'append' | 'updateLast' =
-      this.needsFullRecalc || this.lastBarsCount === 0
+      this.needsFullRecalc || this.lastBarsCount === 0 || data.revision !== this.lastDataRevision
         ? 'full'
         : barsChanged
           ? 'append'
@@ -146,21 +154,19 @@ export class FootprintIndicatorEngine {
         : calcMode === 'append'
           ? Math.max(0, this.lastBarsCount)
           : Math.max(0, barsCount - 1);
-    const toBar = Math.max(0, barsCount - 1);
+    const toBar = barsCount - 1;
 
-    if (barsCount > 0) {
-      for (const runtime of this.runtimes.values()) {
-        this.ensureSeriesCapacity(runtime.instance, barsCount);
-        if (calcMode === 'full') {
-          runtime.instance.onReset?.();
-        }
+    for (const runtime of this.runtimes.values()) {
+      this.ensureSeriesCapacity(runtime.instance, barsCount);
+      if (calcMode === 'full') {
+        runtime.instance.onReset?.();
+      }
 
-        const warmup = Math.max(0, runtime.instance.warmupPeriod ?? 0);
-        const start = calcMode === 'full' ? 0 : Math.max(0, fromBar - warmup);
+      const warmup = Math.max(0, runtime.instance.warmupPeriod ?? 0);
+      const start = calcMode === 'full' ? 0 : Math.max(0, fromBar - warmup);
 
-        for (let bar = start; bar <= toBar; bar++) {
-          runtime.instance.onCalculate(bar);
-        }
+      for (let bar = start; bar <= toBar; bar++) {
+        runtime.instance.onCalculate(bar);
       }
     }
 
@@ -168,6 +174,7 @@ export class FootprintIndicatorEngine {
 
     this.lastBarsCount = barsCount;
     this.lastLastTime = lastTime;
+    this.lastDataRevision = data.revision;
     this.needsFullRecalc = false;
   }
 
@@ -339,15 +346,17 @@ export class FootprintIndicatorEngine {
       getClusterData: () => this.data,
       currentBar: () => Math.max(0, getCandles().length - 1),
       barsCount: () => getCandles().length,
-      requestRender: () => this.callbacks.requestRender(),
+      requestRender: () => { if (!this.destroyed) this.callbacks.requestRender(); },
       requestRecalc: () => {
+        if (this.destroyed) return;
         this.needsFullRecalc = true;
         this.callbacks.requestRecalc();
       },
       ensurePanel: (kind: 'chart' | 'new', preferredId?: string) =>
-        this.panelsApi.ensurePanel(kind, preferredId),
+        this.destroyed ? 'chart' : this.panelsApi.ensurePanel(kind, preferredId),
       getMeta: () => this.contextApi?.getMeta?.() ?? {},
       loadOpenPositionsByTicker: async (ticker: string) => {
+        if (this.destroyed) return { status: 'error', message: 'График закрыт.' };
         const loader = this.contextApi?.loadOpenPositionsByTicker;
         if (!loader) {
           return {
@@ -414,9 +423,14 @@ export class FootprintIndicatorEngine {
   }
 
   private ensureCandlesCache(data: ClusterData): void {
-    if (this.candlesCacheDataRef !== data || this.candlesCacheBarsCount !== data.clusterData.length) {
+    if (
+      this.candlesCacheDataRef !== data ||
+      this.candlesCacheBarsCount !== data.clusterData.length ||
+      this.candlesCacheRevision !== data.revision
+    ) {
       this.candlesCacheDataRef = data;
       this.candlesCacheBarsCount = data.clusterData.length;
+      this.candlesCacheRevision = data.revision;
       this.candlesCache = data.clusterData.map((c) => ({
         t: c.x?.getTime?.() ?? 0,
         o: c.o,
@@ -499,9 +513,18 @@ export class FootprintIndicatorEngine {
     }
   }
 
+  dispose(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.data = null;
+    this.settings = null;
+    this.disposeAll();
+  }
+
   private disposeAll(): void {
     for (const rt of this.runtimes.values()) {
-      rt.instance.dispose?.();
+      try { rt.instance.dispose?.(); }
+      catch (error) { console.error('Indicator disposal failed', error); }
     }
     this.runtimes.clear();
     this.chartSeries = [];
@@ -511,6 +534,8 @@ export class FootprintIndicatorEngine {
     this.candlesCache = [];
     this.candlesCacheDataRef = null;
     this.candlesCacheBarsCount = 0;
+    this.candlesCacheRevision = -1;
+    this.lastDataRevision = -1;
     this.lastBarsCount = 0;
     this.lastLastTime = 0;
     this.needsFullRecalc = true;

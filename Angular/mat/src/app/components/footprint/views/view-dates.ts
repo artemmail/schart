@@ -1,3 +1,4 @@
+import { takeUntil } from 'rxjs';
 import { canvasPart } from './canvas-part';
 import { Matrix, Point } from '../models/matrix';
 import { Rectangle } from '../models/matrix';
@@ -69,6 +70,7 @@ export class viewDates extends canvasPart {
 
 
   onRightClick(e: Point) {
+    if (this.isDisposed) return;
     const date = this.getDateKey(e);    
     const level = this.parent.levelMarksService.getDateMark( date);
 
@@ -77,8 +79,10 @@ export class viewDates extends canvasPart {
       const original = new MarkLineLevel(level.comment, level.color);
       this.parent.dialogService
         .openLevelSettings(level, () => {
+          if (this.isDisposed) return;
           this.parent.drawClusterView();
         })
+        .pipe(takeUntil(this.disposed$))
         .subscribe((result: MarkLineLevel) => {
           if (!result) {
             level.comment = original.comment;

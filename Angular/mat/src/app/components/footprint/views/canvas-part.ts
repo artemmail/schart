@@ -8,6 +8,7 @@ import { FootPrintComponent } from '../components/footprint/footprint.component'
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
 import { StockChartPalette } from 'src/app/services/theme/theme.model';
+import { Subject } from 'rxjs';
 
 type TimeAxisLayout = {
   barWidth: number;
@@ -20,6 +21,16 @@ type TimeAxisLayout = {
 };
 
 export abstract class canvasPart {
+  protected readonly disposed$ = new Subject<void>();
+  private disposed = false;
+  get isDisposed(): boolean { return this.disposed; }
+
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.disposed$.next();
+    this.disposed$.complete();
+  }
   public ctx: any;
   public view: Rectangle;
   public mtx: Matrix;

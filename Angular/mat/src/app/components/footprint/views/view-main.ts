@@ -24,7 +24,7 @@ export class viewMain extends canvasPart {
 
 
 
-  private frame: number;
+  private cancelSwipeAnimation?: () => void;
   private startTime: number;
   private v0: number;
   private damping: number;
@@ -33,27 +33,36 @@ export class viewMain extends canvasPart {
   constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx, DraggableEnum.No);
 
-      this.frame = 0;
       this.startTime = 0;
       this.v0 = 0;
       this.damping = 1500.0; // коэффициент затухания скорости
       this.isScrolling = false;
   }
 
-  stopSwipe() {
-    if (this.parent.translateMatrix != null) {
-        if (!this.parent.markupEnabled || this.parent.markupManager.allowPan()) {
-            this.parent.viewsManager.mtx = this.parent.alignMatrix(
-                this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
-            );
-            this.parent.translateMatrix = null;
-        }
-        cancelAnimationFrame(this.frame);
-        this.isScrolling = false;
-    }
-}
+  override dispose(): void {
+    if (this.isDisposed) return;
+    this.cancelSwipeAnimation?.();
+    this.cancelSwipeAnimation = undefined;
+    this.isScrolling = false;
+    super.dispose();
+  }
 
-calculateElapsed(): number {
+  stopSwipe() {
+    this.cancelSwipeAnimation?.();
+    this.cancelSwipeAnimation = undefined;
+    this.isScrolling = false;
+    if (this.isDisposed) return;
+    if (this.parent.translateMatrix != null) {
+      if (!this.parent.markupEnabled || this.parent.markupManager.allowPan()) {
+        this.parent.viewsManager.mtx = this.parent.alignMatrix(
+          this.parent.translateMatrix.multiply(this.parent.viewsManager.mtx)
+        );
+        this.parent.translateMatrix = null;
+      }
+    }
+  }
+
+  calculateElapsed(): number {
     return (Date.now() - this.startTime) / 1000; // переводим миллисекунды в секунды
 }
 
@@ -79,6 +88,7 @@ applyDisplacement(dx: number) {
 }
 
 onSwipe = (event: Hammer.HammerInput): void => {
+    if (this.isDisposed) return;
     this.interruptSwipe();
 
     this.v0 = event.velocityX * 1000; // начальная скорость в пикселях/секунду
@@ -87,23 +97,18 @@ onSwipe = (event: Hammer.HammerInput): void => {
 
     const t_stop = this.calculateStopTime();
 
-    const inertiaScroll = () => {
-        const elapsed = this.calculateElapsed();
-        const dx = this.calculateDisplacement(elapsed, t_stop);
+    this.cancelSwipeAnimation = this.parent.renderScheduler.animate(() => {
+      if (this.isDisposed || !this.isScrolling) return false;
+      const elapsed = this.calculateElapsed();
+      const dx = this.calculateDisplacement(elapsed, t_stop);
+      this.applyDisplacement(dx);
+      if (elapsed <= t_stop && Math.abs(dx) > 1 && this.isScrolling) return true;
+      this.stopSwipe();
+      return false;
+    });
+  };
 
-        this.applyDisplacement(dx);
-
-        if (elapsed <= t_stop && Math.abs(dx) > 1) {
-            this.frame = requestAnimationFrame(inertiaScroll);
-        } else {
-            this.stopSwipe();
-        }
-    };
-
-    this.frame = requestAnimationFrame(inertiaScroll);
-};
-
-interruptSwipe() {
+  interruptSwipe() {
     if (this.isScrolling) {
         const elapsed = this.calculateElapsed();
         const t_stop = this.calculateStopTime();

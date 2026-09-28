@@ -18,6 +18,8 @@ const MIN_RESIZABLE_BLOCK_HEIGHT = 20;
 const MIN_MAIN_CLUSTER_HEIGHT = 20;
 
 export class MouseAndTouchManager {
+  private disposed = false;
+  private listeners: Array<{ target: EventTarget; type: string; listener: EventListener }> = [];
   footprint: FootPrintComponent;
   panStartInfo: { event: any; view: any } | any;
   selectedPoint: any;
@@ -33,12 +35,12 @@ export class MouseAndTouchManager {
   private isMouseDown: boolean = false;
 
   private onWindowMouseMove = (event: MouseEvent): void => {
-    if (!this.isMouseDown) return;
+    if (this.disposed || !this.isMouseDown) return;
     this.onMouseMove(event);
   };
 
   private onWindowMouseUp = (event: MouseEvent): void => {
-    if (!this.isMouseDown) return;
+    if (this.disposed || !this.isMouseDown) return;
     this.onMouseUp(event);
   };
 
@@ -52,28 +54,67 @@ export class MouseAndTouchManager {
 
     this.hammer.get('pinch').set({ enable: true });
 
-    this.hammer.on('panstart', this.onPanStart);
-    this.hammer.on('panmove', this.onPanMove);
-    this.hammer.on('panend', this.onPanEnd);
+    this.listenHammer('panstart', this.onPanStart);
+    this.listenHammer('panmove', this.onPanMove);
+    this.listenHammer('panend', this.onPanEnd);
 
-    this.hammer.on('pinchstart', this.onPinchStart);
-    this.hammer.on('pinchmove', this.onPinchMove);
-    this.hammer.on('pinchend', this.onPinchEnd);
+    this.listenHammer('pinchstart', this.onPinchStart);
+    this.listenHammer('pinchmove', this.onPinchMove);
+    this.listenHammer('pinchend', this.onPinchEnd);
 
-    this.hammer.on('swipe', this.onSwipe);
+    this.listenHammer('swipe', this.onSwipe);
 
-    canvas.addEventListener('mousedown', this.onMouseDown);
-    canvas.addEventListener('mouseout', this.onMouseOut);
-    canvas.addEventListener('mousemove', this.onMouseMove);
-    canvas.addEventListener('mouseup', this.onMouseUp);
-    canvas.addEventListener('wheel', this.onMouseWheel);
+    this.listen(canvas, 'mousedown', this.onMouseDown);
+    this.listen(canvas, 'mouseout', this.onMouseOut);
+    this.listen(canvas, 'mousemove', this.onMouseMove);
+    this.listen(canvas, 'mouseup', this.onMouseUp);
+    this.listen(canvas, 'wheel', this.onMouseWheel);
 
-    canvas.addEventListener('contextmenu', this.onRightClick);
-    canvas.addEventListener('dblclick', this.onDoubleClick);
+    this.listen(canvas, 'contextmenu', this.onRightClick);
+    this.listen(canvas, 'dblclick', this.onDoubleClick);
 
-    canvas.addEventListener('click', this.onTap);
+    this.listen(canvas, 'click', this.onTap);
 
     this.panStartInfo = null;
+  }
+
+  private listen(target: EventTarget, type: string, callback: (event: any) => void): void {
+    const listener: EventListener = event => {
+      if (!this.disposed && this.footprint.data) callback(event);
+    };
+    target.addEventListener(type, listener);
+    this.listeners.push({ target, type, listener });
+  }
+
+  private listenHammer(type: string, callback: (event: HammerInput) => void): void {
+    this.hammer.on(type, event => {
+      if (!this.disposed && this.footprint.data) callback(event);
+    });
+  }
+
+  cancelInteraction(): void {
+    this.releaseGlobalMouse();
+    this.panStartInfo = null;
+    this.hoverView = null;
+    this.selectedPoint = null;
+    this.dragIndicatorPanelId = null;
+    this.dragIndicatorStartHeight = null;
+    this.dragVolumeKey = null;
+    this.dragVolumeStartHeight = null;
+    this.dragBottomTotalStart = null;
+    this.dragBottomMax = null;
+    this.footprint.movedView = null;
+    this.footprint.dragMode = null;
+    for (let index = 0; index < this.footprint.deltaVolumes.length; index++) this.footprint.resetDeltaVolume(index);
+  }
+
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.cancelInteraction();
+    for (const { target, type, listener } of this.listeners) target.removeEventListener(type, listener);
+    this.listeners = [];
+    this.hammer.destroy();
   }
 
   onMouseOut = (event?: MouseEvent): void => {

@@ -7,17 +7,19 @@ import {
   Input,
   OnChanges,
   OnDestroy,
+  OnInit,
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { filter } from 'rxjs';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { SelectListItemNumber } from 'src/app/models/preserts';
 import { FootPrintComponent } from '../footprint/footprint.component';
 import { FootprintDataLoaderService } from '../../services/footprint-data-loader.service';
 import { FootprintRealtimeUpdaterService } from '../../services/footprint-realtime-updater.service';
-import { FootprintInitOptions } from '../../models/footprint-data.types';
+import { copyFootprintParams, FootprintInitOptions, FootprintLoadState } from '../../models/footprint-data.types';
+import { FootprintSessionService } from '../../services/footprint-session.service';
+import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
 
 @Component({
   standalone: true,
@@ -28,10 +30,12 @@ import { FootprintInitOptions } from '../../models/footprint-data.types';
   providers: [
     FootprintDataLoaderService,
     FootprintRealtimeUpdaterService,
+    FootprintSessionService,
+    LevelMarksService,
   ],
 })
 export class FootprintWidgetComponent
-  implements AfterViewInit, OnChanges, OnDestroy
+  implements AfterViewInit, OnChanges, OnDestroy, OnInit
 {
   @ViewChild(FootPrintComponent)
   renderer?: FootPrintComponent;
@@ -44,9 +48,10 @@ export class FootprintWidgetComponent
   @Input() postInit?: (component: FootPrintComponent) => void;
 
   presetItems: SelectListItemNumber[] = [];
+  loadState: FootprintLoadState = { status: 'idle', sessionId: 0 };
 
   constructor(
-    private footprintDataLoader: FootprintDataLoaderService,
+    private session: FootprintSessionService,
     private footprintRealtimeUpdater: FootprintRealtimeUpdaterService,
     private destroyRef: DestroyRef,
     private host: ElementRef<HTMLElement>
@@ -55,14 +60,20 @@ export class FootprintWidgetComponent
   private viewInitialized = false;
   private resizeObserver?: ResizeObserver;
 
+  ngOnInit(): void {
+    this.connectDataStreams();
+  }
+
   get FPsettings() {
     return this.renderer?.FPsettings;
   }
 
   set FPsettings(value: any) {
-    if (this.renderer) {
-      this.renderer.FPsettings = value;
-    }
+    this.session.updateSettings(value, this.presetIndex);
+  }
+
+  onRendererSettingsChanged(settings: any): void {
+    this.session.captureSettings(settings);
   }
 
   get markupManager() {
@@ -81,11 +92,13 @@ export class FootprintWidgetComponent
     if (!this.renderer) return;
 
     this.renderer.bindRealtime(this.footprintRealtimeUpdater);
-    this.connectDataStreams();
 
     this.setupResizeObserver();
 
     this.viewInitialized = true;
+    // Publish loading after the initial view check has completed.
+    await Promise.resolve();
+    if (!this.viewInitialized) return;
     await this.initializeDataFlow();
     this.triggerResize();
   }
@@ -101,9 +114,9 @@ export class FootprintWidgetComponent
   }
 
   ngOnDestroy(): void {
-    this.renderer?.hintService.destroy();
-    this.footprintRealtimeUpdater.destroy();
-    this.footprintDataLoader.destroy();
+    this.viewInitialized = false;
+    this.renderer?.dispose();
+    this.session.destroy();
     this.resizeObserver?.disconnect();
   }
 
@@ -114,17 +127,14 @@ export class FootprintWidgetComponent
     }
 
     this.params = nextParams;
-    const loaded = await this.footprintDataLoader.reload(nextParams);
-    if (loaded) {
-      await this.configureRealtime(nextParams, this.buildInitOptions());
-    }
+    await this.session.reload(nextParams, this.presetIndex, this.buildInitOptions());
   }
 
   async configureRealtime(
     params: FootPrintParameters,
     options: FootprintInitOptions
   ): Promise<void> {
-    await this.footprintRealtimeUpdater.configure(params, options);
+    await this.session.configureRealtime(params, options);
   }
 
   async serverRequest(params: FootPrintParameters): Promise<void> {
@@ -146,7 +156,7 @@ export class FootprintWidgetComponent
   }
 
   reloadPresets() {
-    return this.footprintDataLoader.initialize(
+    return this.session.initialize(
       this.params,
       this.presetIndex,
       this.buildInitOptions()
@@ -155,7 +165,6 @@ export class FootprintWidgetComponent
 
   setPresetIndex(presetIndex: number) {
     this.presetIndex = presetIndex;
-    this.footprintDataLoader.setPresetIndex(presetIndex);
   }
 
   private buildInitOptions(): FootprintInitOptions {
@@ -163,71 +172,39 @@ export class FootprintWidgetComponent
   }
 
   private connectDataStreams() {
-    if (!this.renderer) return;
-
-    this.footprintDataLoader.data$
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        filter((clusterData): clusterData is any => clusterData !== null)
-      )
-      .subscribe((clusterData) => {
-        this.renderer?.applyData(clusterData);
+    this.session.state$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((state) => {
+        this.loadState = state;
+        if (state.status === 'ready' || state.status === 'empty') {
+          this.params = copyFootprintParams(state.snapshot.params);
+          this.presetIndex = state.snapshot.presetIndex;
+          this.presetItems = state.snapshot.presets;
+          this.renderer?.applySnapshot(state.snapshot);
+        } else {
+          this.renderer?.clearSession();
+        }
       });
 
-    this.footprintRealtimeUpdater.updates$
+    this.session.updates$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((update) => this.renderer?.handleRealtimeUpdate(update));
 
-    this.footprintDataLoader.settings$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((settings) => {
-        if (settings) {
-          this.renderer?.applySettings(settings);
-        }
-      });
-
-    this.footprintDataLoader.params$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((params) => {
-        if (params) {
-          this.params = params;
-          this.renderer?.applyParams(params);
-        }
-      });
-
-    this.footprintDataLoader.presets$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((items: SelectListItemNumber[]) => {
-        if (this.renderer) {
-          this.renderer.presetItems = items;
-        }
-        this.presetItems = items;
-
-        if (items.length && (this.presetIndex === undefined || this.presetIndex === null)) {
-          this.setPresetIndex(items[0].Value);
-        }
-      });
   }
 
   private async initializeDataFlow() {
-    if (!this.params && this.presetIndex == null) {
-      return;
-    }
-
     if (!this.params) {
+      this.session.clear();
       return;
     }
 
     const options = this.buildInitOptions();
 
-    const loaded = await this.footprintDataLoader.initialize(
+    await this.session.initialize(
       this.params,
       this.presetIndex,
       options
     );
-    if (loaded) {
-      await this.footprintRealtimeUpdater.configure(this.params, options);
-    }
   }
 
   private setupResizeObserver() {

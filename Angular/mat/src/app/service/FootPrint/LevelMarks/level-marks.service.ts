@@ -152,6 +152,7 @@ export class LevelMarksService {
     params: FootPrintParameters,
     options: LevelMarksLoadOptions = {}
   ): Promise<void> {
+    const token = ++this.loadToken;
     this.currentParams = { ...params };
     const key = params.ticker ? this.getStorageKey(params) : null;
     const jsonString = key ? window.localStorage.getItem(key) : null;
@@ -164,7 +165,11 @@ export class LevelMarksService {
       return;
     }
 
-    await this.loadPriceMarks(params.ticker);
+    await this.loadPriceMarks(params.ticker, token);
+  }
+
+  public invalidateLoad(): void {
+    this.loadToken += 1;
   }
 
   public clear(): void {
@@ -308,8 +313,7 @@ export class LevelMarksService {
     }
   }
 
-  private async loadPriceMarks(ticker?: string): Promise<void> {
-    const token = ++this.loadToken;
+  private async loadPriceMarks(ticker: string | undefined, token: number): Promise<void> {
     this.markParamsData.levels = {};
     const normalizedTicker = this.normalizeTicker(ticker);
     if (!normalizedTicker) {

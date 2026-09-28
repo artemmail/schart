@@ -30,6 +30,46 @@ function makeClusterData(count = 10): ClusterData {
 }
 
 describe('ClusterData realtime merge', () => {
+  it('supports empty candles and ticks with finite initial statistics', () => {
+    const data = new ClusterData({ priceScale: 1, clusterData: [] });
+
+    expect(data.clusterLength()).toBe(0);
+    expect(data.ableCluster()).toBe(false);
+    expect(data.ableOI()).toBe(false);
+    expect(data.lastPrice).toBe(0);
+    expect(data.volumePerQuantity).toBe(1);
+    expect(Object.values(data.getRenderStats(true)).every(Number.isFinite)).toBe(true);
+    expect(data.handleCluster([])).toBe(true);
+    expect(data.handleTicks([])).toBe(true);
+
+    const column = makeColumn(1, Date.parse('2026-01-01T10:00:00Z'));
+    expect(data.handleCluster([column])).toBe(true);
+    expect(data.lastPrice).toBe(column.c);
+    expect(data.clusterLength()).toBe(1);
+  });
+
+  it('clears aggregates when history becomes empty', () => {
+    const data = makeClusterData(3);
+    data.clusterData = [];
+    data.calcPrices();
+
+    expect(Object.values(data.getRenderStats(true))).toEqual(
+      Object.values(data.getRenderStats(true)).map(() => 0)
+    );
+    expect(data.ColumnNumberByDate).toEqual({});
+    expect(data.totalColumn).toBeUndefined();
+    expect(data.lastPrice).toBe(0);
+  });
+
+  it('invalidates bar revisions for merges but not ladder updates', () => {
+    const data = makeClusterData(3);
+    const revision = data.revision;
+    data.handleLadder({ '100': 10, '101': 20, '102': 30 });
+    expect(data.revision).toBe(revision);
+    expect(data.handleCluster([{ ...data.clusterData[2], c: 110, q: 999 }])).toBe(true);
+    expect(data.revision).toBeGreaterThan(revision);
+  });
+
   it('ignores stale cluster payloads outside the realtime tail', () => {
     const data = makeClusterData(10);
     const firstQ = data.clusterData[0].q;

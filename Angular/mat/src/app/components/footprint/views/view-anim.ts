@@ -7,6 +7,18 @@ import { Point } from '../models/matrix';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 
 export class viewAnim extends canvasPart {
+  private cancelButtonAnimation?: () => void;
+  private cancelViewportAnimation?: () => void;
+
+  override dispose(): void {
+    if (this.isDisposed) return;
+    this.cancelButtonAnimation?.();
+    this.cancelViewportAnimation?.();
+    this.cancelButtonAnimation = undefined;
+    this.cancelViewportAnimation = undefined;
+    super.dispose();
+  }
+
   constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
     super(parent,  view, mtx, DraggableEnum.No);
   }
@@ -73,6 +85,7 @@ export class viewAnim extends canvasPart {
   }
 
   private setHover(value: boolean): void {
+    if (this.isDisposed) return;
     const state = this.parent.animButtonState;
     if (state.hover === value) return;
     state.hover = value;
@@ -80,6 +93,7 @@ export class viewAnim extends canvasPart {
   }
 
   private setPressed(value: boolean): void {
+    if (this.isDisposed) return;
     const state = this.parent.animButtonState;
     if (state.pressed === value) return;
     state.pressed = value;
@@ -87,33 +101,22 @@ export class viewAnim extends canvasPart {
   }
 
   private runAnimation(): void {
+    if (this.isDisposed || this.cancelButtonAnimation) return;
     const state = this.parent.animButtonState;
-    if (state.rafId) return;
-
-    const step = () => {
+    this.cancelButtonAnimation = this.parent.renderScheduler.animate(() => {
+      if (this.isDisposed) return false;
       const hoverTarget = state.hover ? 1 : 0;
       const pressTarget = state.pressed ? 1 : 0;
-
       state.hoverT = this.approach(state.hoverT, hoverTarget, 0.2);
       state.pressT = this.approach(state.pressT, pressTarget, 0.25);
-
-      const done =
-        Math.abs(state.hoverT - hoverTarget) < 0.01 &&
-        Math.abs(state.pressT - pressTarget) < 0.01;
-
-      this.parent.drawClusterView();
-
+      const done = Math.abs(state.hoverT - hoverTarget) < 0.01 && Math.abs(state.pressT - pressTarget) < 0.01;
       if (done) {
         state.hoverT = hoverTarget;
         state.pressT = pressTarget;
-        state.rafId = 0;
-        return;
+        this.cancelButtonAnimation = undefined;
       }
-
-      state.rafId = requestAnimationFrame(step);
-    };
-
-    state.rafId = requestAnimationFrame(step);
+      return !done;
+    });
   }
 
   private approach(value: number, target: number, speed: number): number {
@@ -121,21 +124,19 @@ export class viewAnim extends canvasPart {
   }
 
   private animation(): void {
-    const c = this.parent.viewsManager.mtx.clone();
-    const init = this.parent.getInitMatrix(this.parent.viewsManager.clusterView, this.parent.data);
-    const me = this.parent.viewsManager;
-    const stime = Date.now();
-
-    const myTimer = setInterval(() => {
-      let t = (Date.now() - stime) / 800;
-      t = Math.min(t, 1);
-      me.mtx = c.interpolateAnim(init, t);
-      me.drawClusterView();
-      if (t === 1) clearInterval(myTimer);
-    }, 25);
+    if (this.isDisposed || !this.parent.data) return;
+    this.cancelViewportAnimation?.();
+    this.parent.viewsManager.viewMain?.stopSwipe();
+    this.parent.viewsManager.viewRangeSet?.stopSwipe();
+    const initial = this.parent.viewsManager.mtx.clone();
+    const target = this.parent.getInitMatrix(this.parent.viewsManager.clusterView, this.parent.data);
+    const started = Date.now();
+    this.cancelViewportAnimation = this.parent.renderScheduler.animate(() => {
+      if (this.isDisposed) return false;
+      const progress = Math.min((Date.now() - started) / 800, 1);
+      this.parent.viewsManager.mtx = initial.interpolateAnim(target, progress);
+      if (progress === 1) this.cancelViewportAnimation = undefined;
+      return progress < 1;
+    });
   }
 }
-
-
-
-

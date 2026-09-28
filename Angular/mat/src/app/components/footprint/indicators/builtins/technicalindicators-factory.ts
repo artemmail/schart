@@ -1,4 +1,5 @@
 import {
+  Candle,
   DataSeries,
   IndicatorContext,
   IndicatorDefinition,
@@ -100,6 +101,9 @@ export function createTechnicalIndicatorDefinition<P extends object, T>(
       );
 
       let lastSignature = '';
+      let inputCandles: readonly Candle[] | null = null;
+      let inputSource: SourceType | null = null;
+      let cachedInput: TechnicalIndicatorsInput | null = null;
 
       const updateVisualProps = (next: P) => {
         for (const entry of runtimeSeries) {
@@ -109,7 +113,15 @@ export function createTechnicalIndicatorDefinition<P extends object, T>(
 
       const getInput = () => {
         const source = resolveSourceParam(params, descriptor.sourceParam);
-        return buildTechnicalIndicatorsInput(ctx.candles, source);
+        const candles = ctx.candles;
+        // Full recalculation calls onCalculate for every bar. Build the input
+        // arrays once per snapshot instead of scanning the history per bar.
+        if (inputCandles !== candles || inputSource !== source || !cachedInput) {
+          inputCandles = candles;
+          inputSource = source;
+          cachedInput = buildTechnicalIndicatorsInput(candles, source);
+        }
+        return cachedInput;
       };
 
       const getSignature = (input: TechnicalIndicatorsInput) =>
@@ -139,6 +151,12 @@ export function createTechnicalIndicatorDefinition<P extends object, T>(
         panel: 'chart' as PanelRef,
         series: allSeries,
         warmupPeriod: descriptor.warmupPeriod?.(params) ?? 0,
+
+        onReset() {
+          // A corrected history may keep the same first/last candle signature.
+          lastSignature = '';
+          inputCandles = null;
+        },
 
         onCalculate(bar: number) {
           if (bar < 0 || bar >= ctx.barsCount()) return;
