@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { FormattingService } from 'src/app/service/FootPrint/Formating/formatting.service';
+import { FormattingService } from 'src/app/service/FootPrint/Formatting/formatting.service';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { ClusterData } from '../models/cluster-data';
 import { saveAs } from 'file-saver';

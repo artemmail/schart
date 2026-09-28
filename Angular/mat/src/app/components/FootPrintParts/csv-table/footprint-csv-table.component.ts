@@ -3,14 +3,15 @@ import {
   Component,
   Input,
   OnChanges,
+  OnDestroy,
   SimpleChanges,
 } from '@angular/core';
 import { PageEvent } from '@angular/material/paginator';
 import { Sort } from '@angular/material/sort';
 import { ColumnEx } from 'src/app/models/Column';
+import { Subscription } from 'rxjs';
 import { MaterialModule } from 'src/app/material.module';
-import { FootPrintComponent } from '../../footprint/components/footprint/footprint.component';
-import { FootprintUtilitiesService } from '../../footprint/services/footprint-utilities.service';
+import type { FootprintController } from '../../footprint/models/footprint-controller';
 
 @Component({
   standalone: true,
@@ -20,9 +21,13 @@ import { FootprintUtilitiesService } from '../../footprint/services/footprint-ut
   styleUrls: ['./footprint-csv-table.component.css'],
 })
 export class FootprintCsvTableComponent
-  implements OnChanges, AfterViewInit
+  implements OnChanges, AfterViewInit, OnDestroy
 {
-  @Input() NP?: FootPrintComponent;
+  private stateSubscription?: Subscription;
+  private sessionId?: number;
+  private loadedStatus?: 'ready' | 'empty';
+
+  @Input() NP?: FootprintController;
 
   pageRows: ColumnEx[] = [];
   totalItems = 0;
@@ -64,12 +69,26 @@ export class FootprintCsvTableComponent
     'quantity',
   ];
 
-  constructor(private footprintUtilities: FootprintUtilitiesService) {}
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['NP']) {
-      this.refresh();
-    }
+    if (!changes['NP']) return;
+    this.stateSubscription?.unsubscribe();
+    this.sessionId = undefined;
+    this.stateSubscription = this.NP?.state$.subscribe(state => {
+      if (state.status === 'ready' || state.status === 'empty') {
+        if (this.sessionId === state.sessionId && this.loadedStatus === state.status) return;
+        this.sessionId = state.sessionId;
+        this.loadedStatus = state.status;
+        this.refresh();
+      } else {
+        this.sessionId = undefined;
+        this.refresh();
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.stateSubscription?.unsubscribe();
   }
 
   ngAfterViewInit(): void {
@@ -117,15 +136,7 @@ export class FootprintCsvTableComponent
     this.updatePage();
   }
 
-  downloadCsv(): void {
-    const params = this.NP?.params;
-    const data = this.NP?.data;
-    if (!params || !data) {
-      return;
-    }
-
-    this.footprintUtilities.exportCsv(params, data);
-  }
+  downloadCsv(): void { this.NP?.exportCsv(); }
 
   onPage(event: PageEvent): void {
     this.pageIndex = event.pageIndex;

@@ -132,7 +132,7 @@ export class Profile extends Rect {
       }
     }
 
-      let mtx = this.footprint.viewsManager.viewMain.mtx;
+      let mtx = this.footprint.viewport.mtx;
       let barw =
         mtx.applyToPoint(col2, this.footprint.data.priceScale).x -
         mtx.applyToPoint(col1, 0).x;

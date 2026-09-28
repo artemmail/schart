@@ -1,5 +1,5 @@
-import { Component, Input, Optional, ViewEncapsulation } from '@angular/core';
-import { firstValueFrom, tap } from 'rxjs';
+import { Component, Input, Optional, ViewEncapsulation, OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { MatDialogRef } from '@angular/material/dialog';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import {
@@ -8,8 +8,7 @@ import {
   profilePeriodsPreset,
   totalModesPreset,
 } from 'src/app/models/preserts';
-import { FootPrintComponent } from '../footprint/footprint.component';
-import { ChartSettingsService } from 'src/app/service/chart-settings.service';
+import type { FootprintController } from '../../models/footprint-controller';
 import { MaterialModule } from 'src/app/material.module';
 import { IndicatorDefinition } from '../../indicators/indicator-api';
 
@@ -23,7 +22,10 @@ type IndicatorProvider = 'stockchart' | 'technicalindicators';
   styleUrls: ['./footprint-settings-dialog.component.css'],
   encapsulation: ViewEncapsulation.None,
 })
-export class FootPrintSettingsDialogComponent {
+export class FootPrintSettingsDialogComponent implements OnDestroy {
+  private stateSubscription?: Subscription;
+  private draftSessionId?: number;
+  filters = { volume1: 0, volume2: 0 };
   //  @ViewChild(PresetSelectorComponent) preset: PresetSelectorComponent;
 
   settings: ChartSettings;
@@ -43,12 +45,9 @@ export class FootPrintSettingsDialogComponent {
   newTechnicalIndicatorType: string | null = null;
 
   // Добавляем поле fp
-  @Input() fp: FootPrintComponent;
-  @Input() reloadData?: () => Promise<void> | void;
-  @Input() reloadPresets?: () => Promise<void> | void;
+  @Input() fp: FootprintController;
 
   constructor(
-    private chartSettingsService: ChartSettingsService,
     @Optional() private dialogRef?: MatDialogRef<FootPrintSettingsDialogComponent>
   ) {
     /*if (data) {
@@ -86,32 +85,38 @@ export class FootPrintSettingsDialogComponent {
       'Визуализация с помощью интенсивности цвета. Объем - синий, дельта(разница покупок и продаж) - зеленая или красная.',
   };
 
-  ngOnChanges() {
-    if (this.fp) {
-      this.settings = this.fp.FPsettings;
-      this.settings.volume1 = this.fp.levelMarksService.getFilters().volume1;
-      this.settings.volume2 = this.fp.levelMarksService.getFilters().volume2;
-      this.ensureIndicatorsStorage();
-    }
+  ngOnChanges(): void {
+    this.stateSubscription?.unsubscribe();
+    this.draftSessionId = undefined;
+    this.stateSubscription = this.fp?.state$.subscribe(state => {
+      if ((state.status === 'ready' || state.status === 'empty') && state.sessionId !== this.draftSessionId) {
+        this.draftSessionId = state.sessionId;
+        this.settings = structuredClone(state.snapshot.settings);
+        this.filters = this.fp.getVolumeFilters();
+        this.ensureIndicatorsStorage();
+      }
+    });
   }
 
+  ngOnDestroy(): void { this.stateSubscription?.unsubscribe(); }
+
   get profileParams() {
-    return this.fp?.markupManager?.getToolParams?.('Profile') ?? null;
+    return this.fp?.getMarkupParams('Profile') ?? null;
   }
 
   ensureIndicatorsStorage(): void {
-    if (!this.fp) return;
-    if (!this.fp.FPsettings.Indicators) this.fp.FPsettings.Indicators = [];
-    if (!this.fp.FPsettings.IndicatorPanels) this.fp.FPsettings.IndicatorPanels = {};
+    if (!this.settings) return;
+    if (!this.settings.Indicators) this.settings.Indicators = [];
+    if (!this.settings.IndicatorPanels) this.settings.IndicatorPanels = {};
   }
 
   get indicatorDefinitions() {
-    return this.fp?.indicatorEngine?.listDefinitions?.() ?? [];
+    return this.fp?.indicatorDefinitions ?? [];
   }
 
   get indicators() {
     this.ensureIndicatorsStorage();
-    return this.fp?.FPsettings.Indicators ?? [];
+    return this.settings?.Indicators ?? [];
   }
 
   getDefinitionsForProvider(provider: IndicatorProvider) {
@@ -190,12 +195,12 @@ export class FootPrintSettingsDialogComponent {
     let panel: any = 'chart';
     if (def.defaultPanel === 'newPanel') {
       const panelId = `${type}-panel-${Date.now()}`;
-      this.fp.FPsettings.IndicatorPanels![panelId] =
-        this.fp.FPsettings.IndicatorPanels![panelId] ?? { height: Math.round(90 * this.fp.colorsService.sscale()) };
+      this.settings.IndicatorPanels![panelId] =
+        this.settings.IndicatorPanels![panelId] ?? { height: this.fp.defaultPanelHeight };
       panel = { id: panelId };
     }
 
-    const nextIndicators = [...(this.fp.FPsettings.Indicators ?? []), { id, type, params, visible: true, panel }];
+    const nextIndicators = [...(this.settings.Indicators ?? []), { id, type, params, visible: true, panel }];
     this.applyIndicators(nextIndicators);
     this.onChange(null);
     return true;
@@ -204,7 +209,7 @@ export class FootPrintSettingsDialogComponent {
   removeIndicator(id: string): void {
     if (!this.fp) return;
     this.ensureIndicatorsStorage();
-    const nextIndicators = (this.fp.FPsettings.Indicators ?? []).filter((x) => x.id !== id);
+    const nextIndicators = (this.settings.Indicators ?? []).filter((x) => x.id !== id);
     this.applyIndicators(nextIndicators);
     this.onChange(null);
   }
@@ -227,8 +232,8 @@ export class FootPrintSettingsDialogComponent {
     if (value.startsWith('panel:')) {
       const id = value.slice('panel:'.length);
       ind.panel = { id };
-      if (!this.fp.FPsettings.IndicatorPanels![id]) {
-        this.fp.FPsettings.IndicatorPanels![id] = { height: Math.round(90 * this.fp.colorsService.sscale()) };
+      if (!this.settings.IndicatorPanels![id]) {
+        this.settings.IndicatorPanels![id] = { height: this.fp.defaultPanelHeight };
       }
     }
   }
@@ -240,50 +245,47 @@ export class FootPrintSettingsDialogComponent {
     }
     this.ensureIndicatorsStorage();
     const idBase = `${ind?.type ?? 'panel'}-${Date.now()}`;
-    this.fp.FPsettings.IndicatorPanels![idBase] =
-      this.fp.FPsettings.IndicatorPanels![idBase] ?? { height: Math.round(90 * this.fp.colorsService.sscale()) };
+    this.settings.IndicatorPanels![idBase] =
+      this.settings.IndicatorPanels![idBase] ?? { height: this.fp.defaultPanelHeight };
     ind.panel = { id: idBase };
     this.onChange(null);
   }
 
   onChange(event: any) {
-    this.fp.applyOideltaDivider();
+    this.fp.applySettings(this.settings);
     this.save();
     this.fp.resize();
   }
 
   onThemePresetChange(preset: string) {
     if (!this.fp) return;
-    this.fp.applyThemePreset(preset, true);
+    this.fp.applyTheme(preset);
     this.save();
   }
 
   onMarkupChange(event: any) {
+    this.fp.changeMarkupParams(this.profileParams, 'tool', 'Profile');
     this.onChange(event);
   }
 
   private applyIndicators(nextIndicators: ChartSettings['Indicators']): void {
     if (!this.fp) return;
-    const settings = this.fp.FPsettings;
-    this.fp.FPsettings = { ...settings, Indicators: nextIndicators };
-    this.fp.indicatorEngine?.requestFullRecalc?.();
+    const settings = this.settings;
+    this.settings = { ...settings, Indicators: nextIndicators };
+    this.fp.applySettings(this.settings);
   }
 
   onOideltaDivideChange(value: boolean) {
-    this.fp.FPsettings.OIDeltaDivideBy2 = value;
-    this.fp.applyOideltaDivider();
+    this.settings.OIDeltaDivideBy2 = value;
+    this.fp.applySettings(this.settings);
     this.save();
     this.fp.resize();
   }
 
   onChangeVolume(event: any) {
-    this.fp.levelMarksService.save();
-    // this.fp.levelMarksService.markParamsData.filters.volume1
+    this.fp.saveVolumeFilters(this.filters);
 
-    // var filters = this.fp.levelMarksService.getFilters();
 
-    // this.fp.levelMarksService.setVolume1(this.settings.volume1);
-    // this.fp.levelMarksService.setVolume1(this.settings.volume2);
     //filters.volume2 = this.settings.volume2;
 
     this.save();
@@ -298,59 +300,22 @@ export class FootPrintSettingsDialogComponent {
     this.fp.resize();
   }
 
-  save() {
-    //const old = this.preset.getSelectedpreset();
-    this.saveSettings().subscribe();
-  }
-
-  private saveSettings() {
-    return this.chartSettingsService.updateSettings(this.fp.FPsettings).pipe(
-      tap((x) => {
-        this.settings = this.fp.FPsettings;
-
-        const index = this.fp.presetItems.findIndex(
-          (item) => item.Value === this.fp.presetIndex
-        );
-
-        if (this.settings.Name !== this.fp.presetItems[index].Text) {
-          void this.reloadPresets?.();
-          this.fp.presetIndex = x;
-        }
-      })
-    );
+  save(): void {
+    void this.fp.saveSettings(this.settings);
   }
 
   private async saveAndReload(): Promise<void> {
-    try {
-      await firstValueFrom(this.saveSettings());
-      await this.reloadData?.();
-    } catch (err) {
-      console.error('Failed to save settings before reload', err);
-    }
+    await this.fp.saveSettings(this.settings, true);
   }
 
-  delete() {
-    this.chartSettingsService
-      .deleteSettings(this.fp.FPsettings)
-      .subscribe(async (x) => {
-        await this.reloadPresets?.();
-        this.fp.presetIndex = this.fp.presetItems[0].Value;
-      });
+  async delete(): Promise<void> {
+    await this.fp.deletePreset();
   }
 
-  close() {
-    this.dialogRef?.close();
-  }
+  close(): void { this.dialogRef?.close(); }
 
-  presetChange(a: number) {
-    this.chartSettingsService.getChartSettings(a).subscribe((x) => {
-      this.fp.FPsettings = x;
-      this.fp.applyOideltaDivider();
-      this.settings = this.fp.FPsettings;
-      this.fp.resize();
-
-      this.chartSettingsService.saveChartSettings(a).subscribe();
-    });
+  async presetChange(index: number): Promise<void> {
+    await this.fp.selectPreset(index);
   }
 
   changecolor(event: any) {}

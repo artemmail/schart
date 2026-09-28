@@ -766,3 +766,51 @@ describe('FootprintIndicatorEngine disposal', () => {
     expect(engine.getPanels()).toEqual([]);
   });
 });
+
+
+describe('Footprint indicator idle preparation', () => {
+  test('skips calculation on unchanged frames but handles config, async invalidation and bar updates', () => {
+    const registry = new IndicatorRegistry(); const calculate = jest.fn(); const reset = jest.fn();
+    let context: IndicatorContext;
+    registry.register({ type: 'idle', displayName: 'Idle', defaultPanel: 'chart',
+      paramsSchema: { period: { type: 'int', title: 'Period', default: 2 } },
+      create(ctx, params) {
+        context = ctx;
+        return { type: 'idle', params, panel: 'chart', series: [{ id: 'line', name: 'Line', kind: 'line', values: new Float64Array(0) }],
+          onCalculate: calculate, onReset: reset } as any;
+      },
+    });
+    const engine = new FootprintIndicatorEngine(registry, { requestRender: () => undefined, requestRecalc: () => undefined },
+      { ensurePanel: () => 'chart', getPanelHeight: () => 100 });
+    const data = makeClusterData([100, 101, 102]);
+    const settings = { Indicators: [{ id: 'idle', type: 'idle', params: { period: 2 }, visible: true }] } as any;
+    engine.setData(data); engine.setSettings(settings); engine.prepare();
+    expect(calculate).toHaveBeenCalledTimes(3); expect(reset).toHaveBeenCalledTimes(1);
+    engine.prepare(); engine.prepare(); expect(calculate).toHaveBeenCalledTimes(3);
+    settings.Indicators[0].visible = false; engine.prepare();
+    expect(engine.getChartSeries()).toEqual([]); expect(calculate).toHaveBeenCalledTimes(3);
+    settings.Indicators[0].visible = true; engine.prepare(); expect(engine.getChartSeries().length).toBe(1);
+    settings.Indicators[0].params.period = 4; engine.prepare(); expect(calculate).toHaveBeenCalledTimes(6);
+    context.requestRecalc(); engine.prepare(); expect(calculate).toHaveBeenCalledTimes(9);
+    data.handleCluster([{ ...data.clusterData[2], c: 110, q: 100 }]); engine.prepare();
+    expect(calculate).toHaveBeenCalledTimes(12); expect(context.candles[2].c).toBe(110);
+    engine.requestFullRecalc(); engine.prepare(); expect(calculate).toHaveBeenCalledTimes(15);
+    engine.dispose();
+  });
+  test('keeps SMA/EMA series identical to a forced full calculation after correction and append', () => {
+    const incremental = makeEngine(), reference = makeEngine();
+    const settings = { Indicators: [{ id: 'sma', type: 'sma', params: { period: 3 } }, { id: 'ema', type: 'ema', params: { period: 3 } }] } as any;
+    const data = makeClusterData([100, 103, 101, 104, 106]);
+    incremental.setData(data); incremental.setSettings(settings);
+    const compare = () => {
+      incremental.prepare(); incremental.prepare();
+      const fresh = new ClusterData({ priceScale: data.priceScale, VolumePerQuantity: data.volumePerQuantity,
+        clusterData: data.clusterData.map(bar => ({ ...bar })) });
+      reference.setData(fresh); reference.setSettings(structuredClone(settings)); reference.requestFullRecalc(); reference.prepare();
+      expect(incremental.getChartSeries().map(series => Array.from(series.values))).toEqual(reference.getChartSeries().map(series => Array.from(series.values)));
+    };
+    compare(); data.handleCluster([{ ...data.clusterData[3], c: 120, q: 200 }], true); compare();
+    data.handleCluster([{ ...data.clusterData[4], x: new Date(data.clusterData[4].x.getTime() + 60000), Number: 6, c: 110, q: 200 }], true); compare();
+    incremental.dispose(); reference.dispose();
+  });
+});

@@ -4,10 +4,10 @@ import { DraggableEnum } from 'src/app/models/Draggable';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
-import { rounder } from 'src/app/service/FootPrint/Formating/formatting.service';
+import { rounder } from 'src/app/service/FootPrint/Formatting/formatting.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
 
-export class viewBackground1 extends canvasPart {
+export class viewBackground1 extends canvasPart<FootPrintComponent> {
   constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
     super(parent,  view, mtx, DraggableEnum.No);
   }

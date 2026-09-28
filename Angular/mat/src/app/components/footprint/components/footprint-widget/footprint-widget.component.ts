@@ -20,6 +20,8 @@ import { FootprintRealtimeUpdaterService } from '../../services/footprint-realti
 import { copyFootprintParams, FootprintInitOptions, FootprintLoadState } from '../../models/footprint-data.types';
 import { FootprintSessionService } from '../../services/footprint-session.service';
 import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
+import { FootprintControllerService } from '../../services/footprint-controller.service';
+import { FootprintController } from '../../models/footprint-controller';
 
 @Component({
   standalone: true,
@@ -31,6 +33,7 @@ import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-ma
     FootprintDataLoaderService,
     FootprintRealtimeUpdaterService,
     FootprintSessionService,
+    FootprintControllerService,
     LevelMarksService,
   ],
 })
@@ -49,13 +52,15 @@ export class FootprintWidgetComponent
 
   presetItems: SelectListItemNumber[] = [];
   loadState: FootprintLoadState = { status: 'idle', sessionId: 0 };
+  readonly controller: FootprintController;
 
   constructor(
     private session: FootprintSessionService,
     private footprintRealtimeUpdater: FootprintRealtimeUpdaterService,
+    private commands: FootprintControllerService,
     private destroyRef: DestroyRef,
     private host: ElementRef<HTMLElement>
-  ) {}
+  ) { this.controller = commands; }
 
   private viewInitialized = false;
   private resizeObserver?: ResizeObserver;
@@ -76,6 +81,10 @@ export class FootprintWidgetComponent
     this.session.captureSettings(settings);
   }
 
+  onRendererSettingsSaveRequested(settings: any): void {
+    void this.commands.saveSettings(settings);
+  }
+
   get markupManager() {
     return this.renderer?.markupManager;
   }
@@ -92,6 +101,7 @@ export class FootprintWidgetComponent
     if (!this.renderer) return;
 
     this.renderer.bindRealtime(this.footprintRealtimeUpdater);
+    this.commands.bindRenderer(this.renderer);
 
     this.setupResizeObserver();
 
@@ -116,6 +126,7 @@ export class FootprintWidgetComponent
   ngOnDestroy(): void {
     this.viewInitialized = false;
     this.renderer?.dispose();
+    this.commands.destroy();
     this.session.destroy();
     this.resizeObserver?.disconnect();
   }
@@ -127,7 +138,7 @@ export class FootprintWidgetComponent
     }
 
     this.params = nextParams;
-    await this.session.reload(nextParams, this.presetIndex, this.buildInitOptions());
+    await this.commands.reload(nextParams, this.presetIndex, this.buildInitOptions());
   }
 
   async configureRealtime(
@@ -156,11 +167,7 @@ export class FootprintWidgetComponent
   }
 
   reloadPresets() {
-    return this.session.initialize(
-      this.params,
-      this.presetIndex,
-      this.buildInitOptions()
-    );
+    return this.commands.refreshPresets();
   }
 
   setPresetIndex(presetIndex: number) {
@@ -180,7 +187,10 @@ export class FootprintWidgetComponent
           this.params = copyFootprintParams(state.snapshot.params);
           this.presetIndex = state.snapshot.presetIndex;
           this.presetItems = state.snapshot.presets;
-          this.renderer?.applySnapshot(state.snapshot);
+          if (this.renderer?.data === state.snapshot.data && this.renderer?.FPsettings === state.snapshot.settings) {
+            this.renderer.presetIndex = state.snapshot.presetIndex;
+            this.renderer.presetItems = state.snapshot.presets;
+          } else this.renderer?.applySnapshot(state.snapshot);
         } else {
           this.renderer?.clearSession();
         }
@@ -200,7 +210,7 @@ export class FootprintWidgetComponent
 
     const options = this.buildInitOptions();
 
-    await this.session.initialize(
+    await this.commands.initialize(
       this.params,
       this.presetIndex,
       options

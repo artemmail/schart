@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { TickerPresetNew } from 'src/app/models/tickerpreset';
-import type { FootPrintParamsComponent } from 'src/app/components/Controls/FootPrintParams/footpintparmas.component';
+import type { FootPrintParamsComponent } from 'src/app/components/Controls/FootPrintParams/footprint-params.component';
 import type { FootprintWidgetComponent } from 'src/app/components/footprint/components/footprint-widget/footprint-widget.component';
 import { FootprintFavoritePayload } from './footprint-favorites.service';
 import {

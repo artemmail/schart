@@ -12,13 +12,11 @@ import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TickerPresetNew } from 'src/app/models/tickerpreset';
 import { FootPrintRequestParamsNew } from 'src/app/models/FootPrintPar';
-import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { CommonService } from 'src/app/service/common.service';
 import { NavService } from 'src/app/service/nav.service';
 import { MatSidenav } from '@angular/material/sidenav';
-import { FootPrintComponent } from '../../footprint/components/footprint/footprint.component';
 import { FootprintWidgetComponent } from '../../footprint/components/footprint-widget/footprint-widget.component';
-import { FootPrintParamsComponent } from '../../Controls/FootPrintParams/footpintparmas.component';
+import { FootPrintParamsComponent } from '../../Controls/FootPrintParams/footprint-params.component';
 import { NonModalDialogComponent } from '../../FootPrintParts/NonModal/non-modal-dialog.component';
 import { DialogService } from 'src/app/service/DialogService.service';
 import { MarkupEditorComponent } from '../../footprint/components/markup-editor/markup-editor.component';
@@ -100,9 +98,6 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   params: TickerPresetNew;
   isInited = false;
   isCandlestick: boolean = false;
-  footprintPostInit = (component: FootPrintComponent) => {
-    component.applyDefaultPostInit();
-  };
 
   // Флаги для отображения диалогов
   showMarkupDialog: boolean = false;
@@ -117,7 +112,6 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   constructor(
     private commonService: CommonService,
     public navService: NavService,
-    private chartSettingsService: ChartSettingsService,
     public dialog: MatDialog,
     private route: ActivatedRoute,
     private router: Router,
@@ -462,7 +456,7 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   }
 
   onCloseMarkUp() {
-    this.footPrint.markupManager.changeMode('Edit');
+    this.footPrint.controller.selectMarkupTool('Edit');
     this.showMarkupDialog = false; // Скрываем диалог при закрытии
   }
 
@@ -474,16 +468,8 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
     this.showVirtualPortfolioDialog = false;
   }
 
-  presetChange(a: number) {
-    this.footPrint.setPresetIndex(a);
-    this.chartSettingsService.getChartSettings(a).subscribe((x) => {
-      if (this.isCandlestick) x.CandlesOnly = true;
-
-      this.footPrint.FPsettings = x;
-      this.footPrint.resize();
-
-      this.chartSettingsService.saveChartSettings(a).subscribe();
-    });
+  presetChange(index: number): void {
+    void this.footPrint.controller.selectPreset(index, this.isCandlestick ? { candlesOnly: true } : {});
   }
 
   toggleSidenav() {
@@ -491,7 +477,7 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   }
 
   async uploadImage() {
-    await this.dialogService.saveImage(this.footPrint.canvas);
+    await this.footPrint.controller.exportImage();
   }
 
   getFootprintFavoritePayload(): FootprintFavoritePayload | null {
@@ -564,14 +550,6 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
   }
 
   clearFootprintMarks(): void {
-    const renderer = this.footPrint?.renderer;
-    if (!renderer) {
-      return;
-    }
-
-    const params = this.footPrint?.params ?? this.footPrintParamsComponent?.GetModel?.();
-    renderer.markupManager?.clearAll(false);
-    renderer.levelMarksService?.clearStorageForTicker(params?.ticker);
-    renderer.drawClusterView();
+    this.footPrint?.controller.clearMarks();
   }
 }

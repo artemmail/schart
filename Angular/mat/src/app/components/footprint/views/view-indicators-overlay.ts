@@ -1,3 +1,4 @@
+import type { FootprintCanvasContext } from '../rendering/footprint-canvas';
 import { canvasPart } from './canvas-part';
 import { Matrix, Rectangle } from '../models/matrix';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
@@ -7,7 +8,7 @@ import {
   DataSeries,
 } from '../indicators/indicator-api';
 
-export class viewIndicatorsOverlay extends canvasPart {
+export class viewIndicatorsOverlay extends canvasPart<FootPrintComponent> {
   constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx);
   }
@@ -37,7 +38,7 @@ export class viewIndicatorsOverlay extends canvasPart {
   }
 
   private drawClusterOverlays(
-    ctx: CanvasRenderingContext2D,
+    ctx: FootprintCanvasContext,
     parent: FootPrintComponent,
     mtx: Matrix,
     overlays: ClusterOverlaySeries[]
@@ -98,7 +99,7 @@ export class viewIndicatorsOverlay extends canvasPart {
   }
 
   private drawOverlayShape(
-    ctx: CanvasRenderingContext2D,
+    ctx: FootprintCanvasContext,
     rect: Rectangle,
     item: ClusterOverlayItem
   ): void {
@@ -152,7 +153,7 @@ export class viewIndicatorsOverlay extends canvasPart {
     ctx.restore();
   }
 
-  private applyLineStyle(ctx: CanvasRenderingContext2D, style?: string): void {
+  private applyLineStyle(ctx: FootprintCanvasContext, style?: string): void {
     switch (style) {
       case 'dashed':
         ctx.setLineDash([6, 4]);
@@ -169,7 +170,7 @@ export class viewIndicatorsOverlay extends canvasPart {
   }
 
   private drawLineSeries(
-    ctx: CanvasRenderingContext2D,
+    ctx: FootprintCanvasContext,
     parent: FootPrintComponent,
     mtx: Matrix,
     s: DataSeries
@@ -205,7 +206,7 @@ export class viewIndicatorsOverlay extends canvasPart {
   }
 
   private drawPointSeries(
-    ctx: CanvasRenderingContext2D,
+    ctx: FootprintCanvasContext,
     parent: FootPrintComponent,
     mtx: Matrix,
     s: DataSeries

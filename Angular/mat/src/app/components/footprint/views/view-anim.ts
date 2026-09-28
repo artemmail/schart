@@ -6,7 +6,7 @@ import { FootPrintComponent } from '../components/footprint/footprint.component'
 import { Point } from '../models/matrix';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 
-export class viewAnim extends canvasPart {
+export class viewAnim extends canvasPart<FootPrintComponent> {
   private cancelButtonAnimation?: () => void;
   private cancelViewportAnimation?: () => void;
 

@@ -5,7 +5,7 @@ import { DraggableEnum } from 'src/app/models/Draggable';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 
-export class viewScrollBars extends canvasPart {
+export class viewScrollBars extends canvasPart<FootPrintComponent> {
   constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
     super(parent,  view, mtx, DraggableEnum.No);
   }

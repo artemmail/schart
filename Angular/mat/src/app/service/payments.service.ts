@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { removeUTC } from './FootPrint/Formating/formatting.service';
+import { removeUTC } from './FootPrint/Formatting/formatting.service';
 
 export interface PaymentModel {
   Id: number;

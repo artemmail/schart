@@ -19,7 +19,7 @@ export class Rect extends Line {
       this.vPoints = [p1, { x: p2.x, y: p1.y }, p2, { x: p1.x, y: p2.y }];
       ///optimization
       let pt = this.baseToScreen(p2);
-      let v = this.footprint.viewsManager.viewMain.view;
+      let v = this.footprint.viewport.view;
       if (pt.x < v.x || pt.y > v.y + v.h) return false;
       pt = this.baseToScreen(p1);
       if (pt.x > v.x + v.w || pt.y < v.y) return false;

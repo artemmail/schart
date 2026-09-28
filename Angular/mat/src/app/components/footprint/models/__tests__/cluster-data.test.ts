@@ -141,3 +141,32 @@ describe('ClusterData realtime merge', () => {
     expect(data.clusterData[2].Number).toBe(3);
   });
 });
+
+
+describe('ClusterData owned bars during recalculation', () => {
+  it('copies incoming bars while preserving unchanged owned historical bars', () => {
+    const data = makeClusterData(10); const first = data.clusterData[0];
+    const incoming = { ...data.clusterData[9], q: 500, bq: 200, c: 123 };
+    expect(data.handleCluster([incoming])).toBe(true);
+    expect(data.clusterData[0]).toBe(first); expect(data.clusterData[9]).not.toBe(incoming);
+    expect(data.clusterData[9].sq).toBe(300); expect(data.clusterData[9].deltaTotal).toBe(-100);
+    incoming.c = 999; expect(data.clusterData[9].c).toBe(123);
+  });
+  it('matches a fresh full model for aggregates, clusters, densities, OI and cumulative deltas', () => {
+    const start = Date.parse('2026-01-01T10:00:00Z');
+    const initial = Array.from({ length: 15 }, (_, i) => ({ ...makeColumn(i + 1, start + i * 60000),
+      oi: 100 + i, cl: [{ p: 100 + i, q: 10 + i, bq: 5, ct: i + 1, mx: i - 5 }] }));
+    const data = new ClusterData({ priceScale: 1, VolumePerQuantity: 1, clusterData: initial });
+    for (const update of [
+      { ...initial[13], q: 500, bq: 300, oi: 145, h: 150, cl: [{ p: 113, q: 500, bq: 300, ct: 30, mx: 50 }] },
+      { ...initial[14], Number: 16, x: new Date(start + 15 * 60000), q: 800, oi: 150 },
+    ]) {
+      data.handleCluster([update], true);
+      const fresh = new ClusterData({ priceScale: 1, VolumePerQuantity: 1, clusterData: data.clusterData.map(bar => ({ ...bar })) });
+      expect(data.getGlobalRenderStats()).toEqual(fresh.getGlobalRenderStats());
+      expect(data.clusterData).toEqual(fresh.clusterData);
+      expect(data.totalColumn.cl).toEqual(fresh.totalColumn.cl);
+      expect([data.maxt1, data.maxt2, data.minDens, data.maxDens]).toEqual([fresh.maxt1, fresh.maxt2, fresh.minDens, fresh.maxDens]);
+    }
+  });
+});

@@ -2,7 +2,7 @@
 
 Дата: 28 сентября 2026 года. Анализ текущих файлов рабочего дерева.
 
-**Статус:** этапы 1 «Корректность», 2 «Сессия» и 3 «Ресурсы и кадр» реализованы. Исходный разбор ниже сохранён как обоснование; изменения и результаты проверок перечислены в конце документа.
+**Статус:** этапы 1 «Корректность», 2 «Сессия», 3 «Ресурсы и кадр», 4 «Границы» и 5 «Измерения и чистка» реализованы. Исходный разбор ниже сохранён как обоснование; изменения и результаты проверок перечислены в конце документа.
 
 ## Вывод
 
@@ -347,3 +347,91 @@ npm run build
 `test:footprint-widget` и `tsconfig.footprint.spec.json` теперь включают тесты widget и renderer. Chrome запускался вне песочницы по ранее разрешённому префиксу команды.
 
 Ограничения: проверки реального SignalR-сервера, визуальные сравнения изображений и измерения heap/frame time под нагрузкой не выполнялись. Сопоставление views сохраняет владельцев interaction, но построение временных кандидатов ещё остаётся; дальнейшую оптимизацию аллокаций нужно оценивать профилем. Выделение OpenPositionsRepository, ограниченные rendering/interaction contexts и миграция публичных команд UI остаются этапом 4. Полные пересчёты индикаторов и стоимость подготовки layout относятся к измерениям и оптимизации этапа 5.
+
+
+## Реализация этапа 4 «Границы»
+
+Выполнено 28 сентября 2026 года:
+
+- Загрузка открытых позиций вынесена в `OpenPositionsRepository`. Репозиторий принадлежит конкретному renderer и сохраняет прежние правила определения контракта, нормализации и сортировки данных, статусы `ok/notFuture/forbidden/noData/error`. Запросы одинакового нормализованного тикера объединяются; ошибки допускают повторный запрос. Dispose отменяет HTTP и освобождает кэши, не затрагивая соседний график. Renderer передаёт engine только функцию загрузки и больше не зависит от `DataService`/`CommonService`.
+- Введены `RenderContext` и `InteractionContext`, не импортирующие Angular-компонент. `canvasPart` работает с типизированным контекстом; `viewVolumes` получает ограниченный адаптер данных, цветов и геометрии. Он читает актуальные данные при draw, вместо сохранения старого `ClusterData` в конструкторе. Остальные views используют совместимый generic `canvasPart<FootPrintComponent>` и могут мигрировать отдельно.
+- `MarkUpManager`, базовый `Shape` и инструменты разметки переведены на `InteractionContext`: viewport и матрица, canvas context, данные, палитра, расчёт прямоугольника, команды перерисовки и курсора. Они больше не обращаются к `viewsManager`, canvas-элементу или методу resize компонента. `Line` создаётся, рисуется и редактируется на обычном объекте контекста.
+- Добавлен публичный `FootprintController` и отдельный `FootprintControllerService` на widget. UI получает состояние сессии, данные, список presets/definitions и команды настроек, темы, разметки, фильтров, экспорта, reload и положения окон. API не содержит renderer, canvas-менеджеров и транспортных сервисов. Внутренний renderer port остаётся в сервисе-адаптере.
+- Desktop/mobile страницы, диалоги настроек, редактор разметки, CSV/крупнейшие сделки/volume search и плавающие окна используют controller. Прямые preset/settings HTTP из этих потребителей удалены. Canvas после изменения высот публикует `settingsSaveRequested`; widget направляет запрос в ту же очередь controller. Совместимые методы widget для существующих потребителей сохранены.
+- Выбор preset проходит через версионированную сессию: settings и история публикуются согласованно, старые ответы отменяются. Команды сохранения/удаления/обновления metadata привязаны к исходному `sessionId`, выполняются последовательно, копируют аргументы до ожидания и отменяются при смене сессии или destroy. Ошибка текущей команды доступна UI; устаревшая ошибка не меняет новую сессию. Отмена HTTP не гарантирует отмену записи, уже принятой сервером; последовательная очередь упорядочивает записи этого controller.
+- Обновление списка presets публикует только metadata, сохраняя references истории и settings. Widget распознаёт такой снимок и не применяет его заново к renderer. Presentation-команда запрашивает общий кадр с layout/recalculation без новой HTTP-истории и без инициализации viewport.
+- Диалог настроек и параметры разметки редактируют отдельные drafts; изменения применяются командами. Новая сессия обновляет draft диалога. Изменение исходных параметров manager обновляет соответствующий draft разметки. Положение плавающего окна сохраняется отдельной командой и не теряется при сохранении старого draft настроек; отложенный RAF окна отменяется при закрытии и не записывает позицию в другую сессию.
+- Таблицы следят за `state$`, поскольку controller сохраняет identity при смене тикера. При loading/destroy отменяются прежние HTTP; поздний отчёт не подменяет текущие строки. Metadata того же состояния не запускает запрос повторно. Переход empty → ready в той же сессии обновляет CSV после первого realtime-бара.
+
+Проверки после изменений:
+
+- **73 Jest-теста в 9 наборах прошли**: регрессии этапов 1–3 на данные, индикаторы, сессию, SignalR, метки, hints и scheduler.
+- **31 Angular-тест в ChromeHeadless прошёл**, включая 20 новых регрессий этапа 4. Новые тесты проверяют поздние preset/save/delete/metadata, порядок сохранений и копирование drafts, отмену текущей и queued-команды, presentation без замены истории, позицию окна, разметку через команды, смену сессии в открытом диалоге, независимость/дедупликацию репозиториев и статусы ошибок, объёмы и Line без компонента, таблицы при неизменной ссылке controller, отмену старых report HTTP и empty → ready. Регрессии renderer/widget этапов 2–3 сохранены, включая отмену каждой стадии загрузки открытых позиций; добавлены command output и сохранение допустимого pan/zoom.
+- **Production build прошёл**; сохраняются предупреждения initial bundle (около 6,45 MB при warning-пороге 5 MB) и двух CSS-селекторов. TypeScript для приложения и выбранных browser specs, а также `git diff --check` прошли.
+
+Повторить проверки:
+
+```powershell
+npm test -- --runInBand --coverage=false --runTestsByPath src/app/components/footprint/services/__tests__/footprint-render-scheduler.test.ts src/app/components/footprint/services/__tests__/footprint-session.test.ts src/app/components/footprint/models/__tests__/cluster-data.test.ts src/app/components/footprint/indicators/__tests__/indicator-engine.test.ts src/app/components/footprint/services/__tests__/footprint-empty-history.test.ts src/app/service/FootPrint/signalr.service.test.ts src/app/service/FootPrint/LevelMarks/level-marks.service.test.ts src/app/components/footprint/services/__tests__/hint-vwap.test.ts src/app/service/FootPrint/utils.test.ts
+npm run test:footprint-widget
+npm run build
+```
+
+`test:footprint-widget` и `tsconfig.footprint.spec.json` включают widget, renderer и `footprint-controller.spec.ts`. Chrome запускался вне песочницы по ранее разрешённому префиксу команды.
+
+Условие завершения этапа 4 выполнено: один view и инструмент разметки работают без зависимости от Angular-компонента, а основные UI-потребители вызывают публичные команды. Полная миграция остальных views и input manager с `FootPrintComponent` ещё не выполнена; совместимые getters/callback `postInit` widget остаются для постепенного перехода. Read API возвращает доменные данные для чтения, не делает весь `ClusterData` глубоко immutable. Работа с реальным сервером, сравнение пикселей и профилирование не проводились. Оптимизация расчётов, typed canvas helpers и унификация каталогов относятся к этапу 5.
+
+
+## Реализация этапа 5 «Измерения и чистка»
+
+Выполнено 28 сентября 2026 года:
+
+- Добавлен воспроизводимый CPU-стенд `scripts/footprint-profile.cjs`. Он использует настоящие `ClusterData`, indicator engine и SMA/EMA, детерминированную историю из 10 000 баров с одним кластером на бар, 3 прогрева и 9 выборок для каждой операции. Baseline трёх модулей ядра берётся из зафиксированного commit `380548994f773ad2301c687b450275d149c28a93`: эти модули не менялись на этапе 4. После оптимизации стенд проверяет равенство SHA-256 итоговых баров, агрегатов, total profile, плотностей и порогов. Во время замеров Angular DI/HTTP заменены заглушками; сетевых запросов нет.
+- Главная измеренная затрата — полный пересчёт истории при merge. `calcPrices` теперь обновляет производные поля принадлежащих модели баров на месте, сохраняя неизменённые исторические объекты. Входной realtime-хвост копируется отдельно, поэтому последующая мутация входного бара не меняет модель. Пересчёт агрегатов, OI, cumDelta, плотностей и профиля остаётся полным; его алгоритм и revision-инвалидация сохранены. Это убирает 10 000 копий баров при обновлении короткого хвоста, без введения сложных инкрементальных агрегатов.
+- `getVisibleBars` заменяет поиск видимых баров по всей истории на расчёт границ для обычной матрицы. Проверяются соседние края в экранных координатах, чтобы сохранить включение граничных баров при округлении IEEE-754. Для зеркальных, вырожденных и sheared-матриц оставлен прежний predicate прохода. Matrix предоставляет типизированное чтение горизонтального преобразования без вычитания больших координат. Проверки сравнивают новый результат с прежним scan на pan/zoom, нулевой ширине, пустой истории и нестандартных матрицах.
+- У state service появились прямые getters для render path. Renderer больше не создаёт оболочку snapshot и копию `deltaVolumes` при каждом чтении data/settings/selection. Совместимый snapshot для внешнего чтения сохранён; изменения идут через существующие setters.
+- Engine по-прежнему синхронизирует конфигурацию перед кадром, обнаруживает редактирование params на месте и обновляет visibility/panels, но не вызывает `onCalculate`, если data revision, количество/время баров и необходимость recalculation не изменились. Explicit/async `requestRecalc`, новые данные, correction/append и параметры сохраняют пересчёт. Сравнение SMA/EMA с принудительным полным расчётом проходит после исправления и добавления бара. Полный расчёт индикаторов не ускорялся: различие замеров находится в пределах шума.
+- Строковый `ColorsService.CanvasExt` и глобальная декларация расширений canvas удалены. Типизированные helpers находятся в `rendering/canvas-helpers.ts`, контракт — `FootprintCanvasContext`. Совместимые методы устанавливаются один раз на собственный context renderer, не изменяя `CanvasRenderingContext2D.prototype`; matrices хранятся отдельно для каждого контекста в WeakMap. Экспортированные функции доступны новым painters напрямую. Исправлен неиспользовавшийся `mStorkeRect`: корректный `mStrokeRect` принимает типизированные координаты и передаёт rectangle. Пиксельный результат всех используемых старых операций сравнивается с независимой legacy-reference при обычном, дробном и отрицательном масштабе, включая отрицательные размеры, округления, линии и стрелки.
+- Внутри feature каталоги `Markup`/`Columns` переименованы в `markup`/`columns`, импорты приведены к реальному регистру. `Formating` исправлен на `Formatting`, `footpintparmas.component.*` — на `footprint-params.component.*`; обновлены consumers, template/style URLs и tests. Неиспользуемая пустая служба `MarkLevels` и её smoke spec удалены после проверки ссылок; действующий `LevelMarks` сохранён. `scripts/check-footprint-imports.cjs` проверяет наличие и точный регистр всех локальных import/export в feature, чтобы эти ошибки обнаруживались и на Windows.
+
+### Результаты замеров
+
+Node v22.19.0, Windows, AMD Ryzen 7 5700G. Медиана CPU-времени одной операции, миллисекунды. Профили включают запуск/транспиляцию стенда, но таблица измеряет только указанные операции после прогрева.
+
+| Операция | До | После | Результат |
+|---|---:|---:|---|
+| Merge и полный пересчёт истории | 18.777860 | 11.344980 | −39.6% CPU |
+| Поиск видимых баров | 0.011220 | 0.000403 | В 27.9 раза быстрее |
+| Одно чтение data из state | 0.000031 | 0.000009 | В 3.3 раза быстрее |
+| Prepare индикаторов без изменения данных | 0.007423 | 0.002673 | В 2.8 раза быстрее |
+| Принудительный полный prepare | 2.166040 | 2.153280 | Без значимого изменения |
+
+На 12 000 вызовов idle prepare (прогрев и измерения) число `onCalculate` уменьшилось с 480 000 до 0. Итоговый fingerprint данных baseline и оптимизированной реализации совпал.
+
+Отдельный браузерный стенд использует настоящий renderer и painters на canvas 600 × 400: 10 000 баров, SMA(20)/EMA(20), 38 видимых баров. После 5 прогревов в 20 измерениях CPU-время кадра: **медиана 0,5 мс, P95 0,6 мс**. Это синхронный проход prepare/layout/viewport/draw с управляемым RAF, без ожидания кадра, compositor/GPU presentation, сетевого потока и Angular change detection. Это не измерение FPS или задержки обновлений production UI.
+
+Артефакты:
+
+- [CPU-замеры до](footprint-performance-before.json), [CPU-замеры после](footprint-performance-after.json), [браузерный кадр](footprint-performance-browser.json). JSON содержит fixture, окружение, медианы/P90, source hashes и контрольный fingerprint.
+- [CPU-профиль до](footprint-before.cpuprofile), [CPU-профиль после](footprint-after.cpuprofile). Их можно импортировать в Chrome DevTools для просмотра sampled call stacks; startup/TypeScript compilation присутствуют отдельно от измеряемых циклов.
+
+### Проверки и повторный запуск
+
+- **80 Jest-тестов в 10 наборах прошли**: прежние 73 регрессии, 3 проверки visible bars, 2 проверки idle/full indicator calculation и 2 проверки владения барами/эквивалентности агрегатов.
+- **37 Angular-тестов в ChromeHeadless прошли**: прежние 31 регрессия этапов 2–4, 5 проверок typed canvas/pixel parity и 1 замер настоящего renderer. Dispose после реального рисования также проверен. Chrome запускался вне песочницы по ранее разрешённому префиксу команды.
+- **Production build прошёл**. Initial bundle около 6,41 MB; остаются прежний warning-порог 5 MB и предупреждения двух CSS-селекторов. TypeScript для приложения и browser specs, `git diff --check` и проверка точного регистра **623 локальных imports** прошли.
+
+```powershell
+npm run check:footprint-imports
+npm run profile:footprint -- before
+npm run profile:footprint -- after
+node --cpu-prof --cpu-prof-dir=docs --cpu-prof-name=footprint-before.cpuprofile scripts/footprint-profile.cjs before
+node --cpu-prof --cpu-prof-dir=docs --cpu-prof-name=footprint-after.cpuprofile scripts/footprint-profile.cjs after
+npm test -- --runInBand --coverage=false --runTestsByPath src/app/components/footprint/rendering/__tests__/visible-bars.test.ts src/app/components/footprint/services/__tests__/footprint-render-scheduler.test.ts src/app/components/footprint/services/__tests__/footprint-session.test.ts src/app/components/footprint/models/__tests__/cluster-data.test.ts src/app/components/footprint/indicators/__tests__/indicator-engine.test.ts src/app/components/footprint/services/__tests__/footprint-empty-history.test.ts src/app/service/FootPrint/signalr.service.test.ts src/app/service/FootPrint/LevelMarks/level-marks.service.test.ts src/app/components/footprint/services/__tests__/hint-vwap.test.ts src/app/service/FootPrint/utils.test.ts
+npm run test:footprint-widget
+npm run build
+```
+
+Baseline требует доступности указанного commit в локальной Git-истории. Для измерений нужно запускать before/after на одной машине без параллельной сборки или тестов. Browser JSON фиксирует этот запуск; его актуальный замер печатается тестом как `FOOTPRINT_PROFILE`.
+
+Условие завершения этапа 5 выполнено: сохранение поведения подтверждено регрессиями и пиксельными сравнениями helpers, уменьшение CPU-затрат — измерениями на одинаковых входных данных и сохранёнными профилями. Ограничения: fixture синтетический, по одному кластеру на бар; реальный SignalR-сервер, несколько графиков с рыночной частотой, долгий heap/GC-профиль и полный визуальный diff графика не проверялись. Merge остаётся O(N), полный пересчёт индикаторов и создание временных кандидатов views сохранены. DPR/zone/Worker/overlay-layer не менялись без измеренного основания. Полная миграция оставшихся views/input на контексты и перенос всех Angular/shared-service каталогов в целевую структуру остаются отдельными будущими изменениями.

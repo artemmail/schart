@@ -197,6 +197,18 @@ export class FootprintDataLoaderService implements OnDestroy {
     Object.assign(snapshot.settings, copy);
   }
 
+  updatePresets(presets: SelectListItemNumber[], presetIndex?: number): void {
+    if (this.destroyed) return;
+    const items = presets.map(item => ({ ...item }));
+    this.presetsSubject.next(items);
+    const snapshot = this.currentSnapshot;
+    if (!snapshot || !this.isCurrentSession(snapshot.sessionId)) return;
+    const next = Object.freeze({ ...snapshot, presets: items, presetIndex });
+    this.presetIndex = presetIndex;
+    this.currentSnapshot = next;
+    this.stateSubject.next({ status: next.data.clusterLength() ? 'ready' : 'empty', sessionId: next.sessionId, snapshot: next });
+  }
+
   clear(): void {
     if (this.destroyed) return;
     this.cancelPending();

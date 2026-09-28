@@ -6,6 +6,7 @@ import { BehaviorSubject, Subject, of } from 'rxjs';
 import { FootprintWidgetComponent } from './footprint-widget.component';
 import { FootprintDataLoaderService } from '../../services/footprint-data-loader.service';
 import { FootprintRealtimeUpdaterService } from '../../services/footprint-realtime-updater.service';
+import { FootprintControllerService } from '../../services/footprint-controller.service';
 import { FootprintSessionService } from '../../services/footprint-session.service';
 import { LevelMarksService, MarkLineLevel } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
 
@@ -18,6 +19,7 @@ class TestRendererComponent {
   @Input() caption: any;
   @Input() postInit: any;
   @Output() retryRequested = new EventEmitter<void>();
+  @Output() settingsSaveRequested = new EventEmitter<any>();
   @Output() settingsChanged = new EventEmitter<any>();
   applySnapshot = jasmine.createSpy('applySnapshot');
   clearSession = jasmine.createSpy('clearSession');
@@ -43,6 +45,7 @@ describe('FootprintWidget marks ownership', () => {
     TestBed.configureTestingModule({ imports: [FootprintWidgetComponent] });
     TestBed.overrideComponent(FootprintWidgetComponent, { set: { imports: [TestRendererComponent] } });
     TestBed.overrideProvider(FootprintSessionService, { useValue: session });
+    TestBed.overrideProvider(FootprintControllerService, { useValue: { bindRenderer: () => undefined, destroy: () => undefined, initialize: (...args: any[]) => (session as any).initialize(...args) } });
     TestBed.overrideProvider(FootprintRealtimeUpdaterService, { useValue: {} });
     TestBed.overrideProvider(LevelMarksService, { useValue: {} });
     TestBed.overrideProvider(FootprintDataLoaderService, { useValue: {} });
@@ -63,6 +66,7 @@ describe('FootprintWidget marks ownership', () => {
     TestBed.configureTestingModule({ imports: [FootprintWidgetComponent] });
     TestBed.overrideComponent(FootprintWidgetComponent, { set: { template: '', imports: [] } });
     TestBed.overrideProvider(FootprintSessionService, { useValue: session });
+    TestBed.overrideProvider(FootprintControllerService, { useValue: { bindRenderer: () => undefined, destroy: () => undefined, initialize: (...args: any[]) => (session as any).initialize(...args) } });
     TestBed.overrideProvider(FootprintRealtimeUpdaterService, { useValue: {} });
     TestBed.overrideProvider(LevelMarksService, { useValue: {} });
     TestBed.overrideProvider(FootprintDataLoaderService, { useValue: {} });
@@ -104,6 +108,7 @@ describe('FootprintWidget marks ownership', () => {
     // Keep the widget providers, but skip canvas and unrelated loading here.
     TestBed.overrideComponent(FootprintWidgetComponent, { set: { template: '', imports: [] } });
     TestBed.overrideProvider(FootprintDataLoaderService, { useValue: { destroy: () => undefined } });
+    TestBed.overrideProvider(FootprintControllerService, { useValue: { destroy: () => undefined } });
     TestBed.overrideProvider(FootprintRealtimeUpdaterService, { useValue: { destroy: () => undefined } });
     TestBed.overrideProvider(FootprintSessionService, { useValue: { destroy: () => undefined } });
     const firstFixture = TestBed.createComponent(FootprintWidgetComponent);

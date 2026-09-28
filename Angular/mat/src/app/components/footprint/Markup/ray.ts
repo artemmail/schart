@@ -64,7 +64,7 @@ export class Ray extends Line {
 
   private getRaySegment(): { start: Point; end: Point } | null {
     if (this.pointArray.length < 2) return null;
-    const view = this.footprint.viewsManager.viewMain?.view;
+    const view = this.footprint.viewport?.view;
     if (!view) return null;
 
     const start = this.baseToScreen(this.pointArray[0]);

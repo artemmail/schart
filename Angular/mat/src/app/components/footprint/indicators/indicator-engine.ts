@@ -136,6 +136,12 @@ export class FootprintIndicatorEngine {
     this.syncFromSettings(settings, barsCount);
 
     const lastTime = this.candlesCache.length ? this.candlesCache[this.candlesCache.length - 1].t : 0;
+    if (!this.needsFullRecalc && data.revision === this.lastDataRevision &&
+        barsCount === this.lastBarsCount && lastTime === this.lastLastTime) {
+      // Sync above still detects in-place config edits and updates visibility/panels.
+      this.rebuildSeriesIndex();
+      return;
+    }
     const barsChanged = barsCount !== this.lastBarsCount;
     const lastBarLikelyUpdated = !barsChanged && lastTime === this.lastLastTime;
 

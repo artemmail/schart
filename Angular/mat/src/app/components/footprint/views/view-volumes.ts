@@ -3,28 +3,26 @@ import { Matrix, Point, Rectangle } from '../models/matrix';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { ColumnEx } from '../columns/cluster-column-base';
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { RenderContext } from '../models/footprint-context';
 import { drob } from 'src/app/service/FootPrint/utils';
 import { getVolumeCandleColor } from './volume-candle-color';
 
-export class viewVolumes extends canvasPart {
-  data: any;
+export class viewVolumes extends canvasPart<RenderContext> {
   q: number = 0;
   bq: number = 0;
-  constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
+  constructor(parent: RenderContext, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx, DraggableEnum.No);
-    this.data = parent.data;
   }
 
   override draw(
-    parent: FootPrintComponent,
+    parent: RenderContext,
     view: Rectangle,
     mtx: Matrix
   ): void {
     var FPsettings: ChartSettings = this.parent.FPsettings;
     let ctx = this.parent.ctx;
     var maxQuantity: number, maxQuantityAsk: number, maxQuantityBid: number;
-    const stats = this.data.getRenderStats(!!FPsettings.ShrinkY);
+    const stats = parent.data.getRenderStats(!!FPsettings.ShrinkY);
     if (FPsettings.Contracts) {
       maxQuantity = stats.q;
       maxQuantityAsk = stats.bq;

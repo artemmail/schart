@@ -276,7 +276,7 @@ export class ViewsManager {
     else
       this.views.push(
         (this.viewVolumes = new viewVolumes(
-          this.footprint,
+          this.footprint.renderContext,
           this.clusterVolumesView,
           this.mtxMain
         ))

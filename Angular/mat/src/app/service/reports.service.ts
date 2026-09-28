@@ -9,7 +9,7 @@ import {
   TopOrdersResult,
   candleseekerResult,
 } from '../models/Barometer';
-import { removeUTC } from './FootPrint/Formating/formatting.service';
+import { removeUTC } from './FootPrint/Formatting/formatting.service';
 
 /* ---------- NEW MODEL --------------------------------------------------- */
 export interface VolumeDashboardRow {

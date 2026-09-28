@@ -27,7 +27,7 @@ export class FibonacciFan extends Shape {
     if (this.pointArray.length < 2) return null;
     const handle = this.selectedPoint_(point, this.pointArray);
     if (handle) return handle;
-    const view = this.footprint.viewsManager.viewMain?.view;
+    const view = this.footprint.viewport?.view;
     if (!view) return null;
     const lines = this.getFanLines(view);
     for (const line of lines) {
@@ -42,7 +42,7 @@ export class FibonacciFan extends Shape {
     if (this.pointArray.length < 2) return;
     const ctx = this.footprint.ctx;
     if (!ctx) return;
-    const view = this.footprint.viewsManager.viewMain?.view;
+    const view = this.footprint.viewport?.view;
     if (!view) return;
     const width = typeof this.params?.width === 'number' ? this.params.width : 1;
     const color = typeof this.params?.color === 'string' ? this.params.color : this.getSelectionColor();

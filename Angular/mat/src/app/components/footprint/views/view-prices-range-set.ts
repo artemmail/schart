@@ -4,9 +4,9 @@ import { DraggableEnum } from 'src/app/models/Draggable';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { drob } from 'src/app/service/FootPrint/utils';
 import { CandlesRangeSetValue } from 'src/app/models/candles-range-set';
-import { rounder } from 'src/app/service/FootPrint/Formating/formatting.service';
+import { rounder } from 'src/app/service/FootPrint/Formatting/formatting.service';
 
-export class viewPricesRangeSet extends canvasPart {
+export class viewPricesRangeSet extends canvasPart<FootPrintComponent> {
   constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx, DraggableEnum.No);
   }

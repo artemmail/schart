@@ -497,7 +497,8 @@ export class ClusterData {
     if (!realtimeData) {
         return true;
     }
-    data = realtimeData as ClusterData;
+    // Own incoming bars; only this small tail is copied, not the full history.
+    data = { ...realtimeData, clusterData: realtimeData.clusterData.map(column => this.addColumnInfo(column)) } as ClusterData;
 
     if (data.clusterData.length > 0) {
         // Sort data.clusterData before using it
@@ -620,7 +621,11 @@ export class ClusterData {
   }
 
   addColumnInfo(col: ClusterDataColumn): ColumnEx {
-    const column: ColumnEx = { ...col } as ColumnEx;
+    return this.updateColumnInfo({ ...col } as ColumnEx);
+  }
+
+  /** Refresh owned bars without cloning every unchanged historical bar. */
+  private updateColumnInfo(column: ColumnEx): ColumnEx {
 
     column.sq = column.q - column.bq;
     column.sv = column.v - column.bv;
@@ -789,7 +794,7 @@ export class ClusterData {
     this.normalizeOiValues();
 
     for (let i = 0; i < data.length; i++) {
-      data[i] = this.addColumnInfo(data[i]);
+      data[i] = this.updateColumnInfo(data[i]);
       if (i === 0) {
         data[i].cumDelta = data[i].deltaTotal ?? 0;
         data[i].oiDelta = 0;

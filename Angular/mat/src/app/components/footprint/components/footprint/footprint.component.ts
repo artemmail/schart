@@ -1,3 +1,6 @@
+import type { FootprintCanvasContext } from '../../rendering/footprint-canvas';
+import { installFootprintCanvas } from '../../rendering/canvas-helpers';
+import { getVisibleBars } from '../../rendering/visible-bars';
 import {
   Component,
   ElementRef,
@@ -9,16 +12,15 @@ import {
   Output,
   EventEmitter,
 } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Matrix, Rectangle } from '../../models/matrix';
-import { firstValueFrom, Observable, Subject, Subscription, takeUntil } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { FootprintRenderFlags, FootprintRenderScheduler } from '../../services/footprint-render-scheduler';
+import { createRenderContext, InteractionContext } from '../../models/footprint-context';
 
 import { ChartSettings } from 'src/app/models/ChartSettings';
-import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
-import { FormattingService } from 'src/app/service/FootPrint/Formating/formatting.service';
+import { FormattingService } from 'src/app/service/FootPrint/Formatting/formatting.service';
 import { ClusterData } from '../../models/cluster-data';
 import { canvasPart } from '../../views/canvas-part';
 import { FootPrintParameters } from 'src/app/models/Params';
@@ -41,10 +43,6 @@ import { HintContainerService } from '../../services/hint-container.service';
 import { FootprintIndicatorEngine } from '../../indicators/indicator-engine';
 import { IndicatorRegistry } from '../../indicators/indicator-registry';
 import { registerFootprintBuiltInIndicators } from '../../indicators/builtins/register-builtins';
-import {
-  OpenPositionsLoadResult,
-  OpenPositionsSnapshot,
-} from '../../indicators/indicator-api';
 import { ColorSchemeService } from 'src/app/services/theme/color-scheme.service';
 import { MaterialThemeService } from 'src/app/services/theme/material-theme.service';
 import {
@@ -53,8 +51,7 @@ import {
   DEFAULT_THEME_PRESET,
   ThemePreset,
 } from 'src/app/services/theme/theme.model';
-import { DataService } from 'src/app/service/companydata.service';
-import { CommonService } from 'src/app/service/common.service';
+import { OpenPositionsRepository } from '../../services/open-positions.repository';
 
 const MIN_PANEL_HEIGHT = 20;
 
@@ -64,7 +61,7 @@ const MIN_PANEL_HEIGHT = 20;
   selector: 'app-footprint',
   templateUrl: './footprint.component.html',
   styleUrls: ['./footprint.component.css'],
-  providers: [FootprintStateService, HintContainerService],
+  providers: [FootprintStateService, HintContainerService, OpenPositionsRepository],
 })
 export class FootPrintComponent implements AfterViewInit, OnDestroy {
   @ViewChild('drawingCanvas', { static: false }) canvasRef?: ElementRef;
@@ -75,7 +72,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.initializeViewIfReady();
   }
   get params(): FootPrintParameters | null {
-    return this.state.snapshot.params;
+    return this.state.params;
   }
   @Input() minimode: boolean = false;
   @Input() deltamode: boolean = false;
@@ -83,17 +80,17 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   @Input() postInit?: (component: FootPrintComponent) => void;
   @Input() loadState: FootprintLoadState = { status: 'idle', sessionId: 0 };
   @Output() settingsChanged = new EventEmitter<ChartSettings>();
+  @Output() settingsSaveRequested = new EventEmitter<ChartSettings>();
   @Output() retryRequested = new EventEmitter<void>();
   private currentSessionId: number | null = null;
   private applyingSnapshot = false;
 
   private _canvas: HTMLCanvasElement | null = this.canvasRef?.nativeElement;
-  private _ctx: CanvasRenderingContext2D | null = null;
+  private _ctx: FootprintCanvasContext | null = null;
   private themeSubscription?: Subscription;
   private themePreset: ThemePreset = DEFAULT_THEME_PRESET;
   private destroyed = false;
   private rendering = false;
-  private readonly destroy$ = new Subject<void>();
   readonly renderScheduler = new FootprintRenderScheduler(flags => this.renderFrame(flags));
 
   palette: StockChartPalette = { ...STOCK_CHART_DEFAULT_PALETTE };
@@ -103,21 +100,37 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     hoverT: 0,
     pressT: 0,
   };
-  private readonly openPositionsLoadCache = new Map<string, Promise<OpenPositionsLoadResult>>();
-  private contractsCache: string[] | null = null;
 
   markupEnabled: boolean;
   markupManager: MarkUpManager;
   clusterWidthScale: number = 0.97;
 
   views: Array<canvasPart> = new Array();
+  readonly renderContext = createRenderContext(this);
+
+  get pointer() { return this.mouseAndTouchManager?.selectedPoint ?? null; }
+
+  private createInteractionContext(): InteractionContext {
+    const host = this;
+    return {
+      get data() { return host.data; }, get ctx() { return host.ctx; },
+      get palette() { return host.palette; }, get colorsService() { return host.colorsService; },
+      get viewport() {
+        return host.viewsManager.viewMain ?? host.viewsManager.viewRangeSet ??
+          { view: host.viewsManager.clusterView, mtx: host.viewsManager.mtxMain };
+      },
+      clusterRect2: (price, column, width, matrix) => host.clusterRect2(price, column, width, matrix),
+      requestRender: () => host.drawClusterView(),
+      setCursor: cursor => { if (!host.destroyed && host.canvas) host.canvas.style.cursor = cursor; },
+    };
+  }
 
   readonly indicatorRegistry = new IndicatorRegistry();
   readonly indicatorEngine: FootprintIndicatorEngine;
   readonly markupRegistry = new MarkupRegistry();
 
   get data(): ClusterData | null {
-    return this.state.snapshot.data;
+    return this.state.data;
   }
 
   private set data(value: ClusterData | null) {
@@ -126,19 +139,19 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   get hiddenHint(): boolean {
-    return this.state.snapshot.hiddenHint;
+    return this.state.hiddenHint;
   }
   set hiddenHint(hidden: boolean) {
     this.state.setHintHidden(hidden);
   }
   get selectedPrice(): number | null {
-    return this.state.snapshot.selectedPrice;
+    return this.state.selectedPrice;
   }
   set selectedPrice(price: number | null) {
     this.state.setSelectedPrice(price);
   }
   get selectedPrice1(): number | null {
-    return this.state.snapshot.selectedPrice1;
+    return this.state.selectedPrice1;
   }
   set selectedPrice1(price: number | null) {
     this.state.setSelectedPrice1(price);
@@ -169,9 +182,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     public dialogService: DialogService,
     public router: Router,
     private footprintLayoutService: FootprintLayoutService,
-    private chartSettingsService: ChartSettingsService,
-    private dataService: DataService,
-    private commonService: CommonService,
+    private openPositions: OpenPositionsRepository,
     private state: FootprintStateService,
     private hintContainer: HintContainerService
   ) {
@@ -198,7 +209,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
           rperiod: this.params?.rperiod ?? null,
           candlesOnly: this.params?.candlesOnly ?? null,
         }),
-        loadOpenPositionsByTicker: (ticker: string) => this.loadOpenPositionsByTicker(ticker),
+        loadOpenPositionsByTicker: (ticker: string) => this.openPositions.load(ticker),
       }
     );
   }
@@ -207,7 +218,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     return this._canvas;
   }
 
-  get ctx(): CanvasRenderingContext2D | null {
+  get ctx(): FootprintCanvasContext | null {
     return this._ctx;
   }
 
@@ -240,7 +251,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   get dragMode(): number | null {
-    return this.state.snapshot.dragMode;
+    return this.state.dragMode;
   }
 
   set dragMode(value: number | null) {
@@ -248,7 +259,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   get FPsettings(): ChartSettings {
-    return this.state.snapshot.settings;
+    return this.state.settings;
   }
 
   set FPsettings(settings: ChartSettings) {
@@ -280,7 +291,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
       : storedPreset ?? DEFAULT_THEME_PRESET;
 
     this.materialThemeService.applyPreset(preset);
-    const currentSettings = this.state.snapshot.settings;
+    const currentSettings = this.state.settings;
     if (currentSettings && currentSettings.ThemePreset !== preset) {
       currentSettings.ThemePreset = preset;
     }
@@ -293,7 +304,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   get deltaVolumes(): readonly number[] {
-    return this.state.snapshot.deltaVolumes;
+    return this.state.deltaVolumes;
   }
 
   updateDeltaVolume(index: number, value: number): void {
@@ -394,7 +405,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
 
   private get viewInitialized(): boolean {
-    return this.state.snapshot.viewInitialized;
+    return this.state.viewInitialized;
   }
 
   private markViewInitialized(): void {
@@ -416,19 +427,9 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
       Math.floor(finishPrice / this.data.priceScale) * this.data.priceScale;
     this.startPrice =
       Math.floor(startPrice / this.data.priceScale) * this.data.priceScale;
-    for (let i = 0; i < data.length; i++) {
-      const r = this.clusterRect(/*data[i].cl[0].p*/ 1, i, mtx);
-      if (
-        !(
-          r.x + r.w < this.viewsManager.clusterView.x ||
-          r.x >
-            this.viewsManager.clusterView.x + this.viewsManager.clusterView.w
-        )
-      ) {
-        this.minIndex = Math.min(this.minIndex, i);
-        this.maxIndex = Math.max(this.maxIndex, i);
-      }
-    }
+    const visible = getVisibleBars(mtx, this.viewsManager.clusterView, data.length, this.data.priceScale);
+    this.minIndex = visible.minIndex;
+    this.maxIndex = visible.maxIndex;
     if (this.FPsettings.ShrinkY)
       this.data.maxFromPeriod(this.minIndex, this.maxIndex);
   }
@@ -528,16 +529,17 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     });
 
     // Инициализация canvas и менеджеров
-    ColorsService.CanvasExt();
     const canvas: HTMLCanvasElement | null = this.canvasRef?.nativeElement;
     if (!canvas) return;
     this._canvas = canvas;
-    this._ctx = canvas.getContext('2d');
+    const context = canvas.getContext('2d');
+    if (!context) return;
+    this._ctx = installFootprintCanvas(context);
     this.mouseAndTouchManager = new MouseAndTouchManager(this);
     this.viewsManager = new ViewsManager(this, this.footprintLayoutService);
 
     try {
-      this.markupManager = new MarkUpManager(this.markupRegistry, this);
+      this.markupManager = new MarkUpManager(this.markupRegistry, this.createInteractionContext());
       this.markupEnabled = true;
     } catch (e) {
       console.warn('Markup manager initialization failed', e);
@@ -629,9 +631,16 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.resize();
   }
 
+  updatePresentation(settings: ChartSettings): void {
+    if (this.destroyed) return;
+    this.FPsettings = settings;
+    this.applyOideltaDivider();
+    this.renderScheduler.request({ resize: true, recalculate: true });
+  }
+
   saveSettings(): void {
     if (this.destroyed) return;
-    this.chartSettingsService.updateSettings(this.FPsettings).pipe(takeUntil(this.destroy$)).subscribe();
+    this.settingsSaveRequested.emit(this.FPsettings);
   }
 
   applyData(clusterData: ClusterData) {
@@ -759,279 +768,6 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     return Math.max(MIN_PANEL_HEIGHT, Math.floor(normalized));
   }
 
-  private async loadOpenPositionsByTicker(ticker: string): Promise<OpenPositionsLoadResult> {
-    if (this.destroyed) return { status: 'error', message: 'График закрыт.' };
-    const normalizedTicker = (ticker ?? '').trim().toUpperCase();
-    if (!normalizedTicker) {
-      return { status: 'error', message: 'Тикер не задан.' };
-    }
-
-    const cached = this.openPositionsLoadCache.get(normalizedTicker);
-    if (cached) {
-      return cached;
-    }
-
-    const task = this.loadOpenPositionsByTickerCore(normalizedTicker)
-      .then((result) => {
-        if (result.status === 'error') {
-          this.openPositionsLoadCache.delete(normalizedTicker);
-        }
-        return result;
-      })
-      .catch((err) => {
-        this.openPositionsLoadCache.delete(normalizedTicker);
-        const fallback = err instanceof Error ? err.message : 'Не удалось загрузить открытые позиции.';
-        return { status: 'error', message: fallback } as OpenPositionsLoadResult;
-      });
-
-    this.openPositionsLoadCache.set(normalizedTicker, task);
-    return task;
-  }
-
-  private async loadOpenPositionsByTickerCore(ticker: string): Promise<OpenPositionsLoadResult> {
-    let futureInfoAssetCode: string | null = null;
-    let futureInfoShortName: string | null = null;
-
-    try {
-      const futInfo = await this.readResource(() => this.commonService.getFutInfo(ticker));
-      futureInfoAssetCode = (futInfo?.assetCode ?? '').trim().toUpperCase() || null;
-      futureInfoShortName = (futInfo?.shortName ?? '').trim().toUpperCase() || null;
-    } catch (err) {
-      if (err instanceof HttpErrorResponse) {
-        if (err.status === 404) {
-          return {
-            status: 'notFuture',
-            message: 'Инструмент не является фьючерсом.',
-          };
-        }
-        if (err.status === 401 || err.status === 403) {
-          return {
-            status: 'forbidden',
-            message:
-              this.extractHttpErrorMessage(err) ??
-              'Данные по открытому интересу доступны по активной подписке.',
-          };
-        }
-      }
-
-      return {
-        status: 'error',
-        message: 'Не удалось определить фьючерс для индикатора открытых позиций.',
-      };
-    }
-
-    const contracts = await this.loadContracts();
-    if (this.destroyed) return { status: 'error', message: 'График закрыт.' };
-    const candidates = this.resolveContractCandidates(
-      ticker,
-      futureInfoAssetCode,
-      futureInfoShortName,
-      contracts
-    );
-
-    if (!candidates.length) {
-      return {
-        status: 'notFuture',
-        message: 'Инструмент не является фьючерсом.',
-      };
-    }
-
-    let hadNotFound = false;
-    let lastErrorMessage: string | null = null;
-
-    for (const contract of candidates) {
-      try {
-        const positions = await this.readResource(
-          () => this.dataService.getOpenPositionsByContract(contract)
-        );
-
-        if (!positions?.length) {
-          hadNotFound = true;
-          continue;
-        }
-
-        const normalized = this.normalizeOpenPositions(positions);
-        if (!normalized.length) {
-          hadNotFound = true;
-          continue;
-        }
-
-        return {
-          status: 'ok',
-          contractName: contract,
-          positions: normalized,
-        };
-      } catch (err) {
-        if (this.destroyed) return { status: 'error', message: 'График закрыт.' };
-        if (err instanceof HttpErrorResponse) {
-          if (err.status === 404) {
-            hadNotFound = true;
-            continue;
-          }
-          if (err.status === 401 || err.status === 403) {
-            return {
-              status: 'forbidden',
-              message:
-                this.extractHttpErrorMessage(err) ??
-                'Данные по открытому интересу доступны по активной подписке.',
-            };
-          }
-          lastErrorMessage = this.extractHttpErrorMessage(err) ?? err.message;
-          continue;
-        }
-
-        lastErrorMessage = err instanceof Error ? err.message : 'Не удалось загрузить открытые позиции.';
-      }
-    }
-
-    if (hadNotFound && !lastErrorMessage) {
-      return {
-        status: 'noData',
-        message: 'Нет информации по открытым позициям.',
-      };
-    }
-
-    return {
-      status: 'error',
-      message: lastErrorMessage ?? 'Не удалось загрузить открытые позиции.',
-    };
-  }
-
-  private async loadContracts(): Promise<string[]> {
-    if (this.destroyed) return [];
-    if (this.contractsCache) {
-      return this.contractsCache;
-    }
-
-    try {
-      const contracts = await this.readResource(() => this.dataService.getAllContracts());
-      if (this.destroyed) return [];
-      this.contractsCache = (contracts ?? [])
-        .map((x) => (x ?? '').trim())
-        .filter((x) => x.length > 0);
-    } catch {
-      if (this.destroyed) return [];
-      this.contractsCache = [];
-    }
-
-    return this.contractsCache;
-  }
-
-  private resolveContractCandidates(
-    ticker: string,
-    assetCode: string | null,
-    shortName: string | null,
-    contracts: string[]
-  ): string[] {
-    const result: string[] = [];
-    const seen = new Set<string>();
-    const contractsMap = new Map<string, string>();
-    for (const c of contracts) {
-      const trimmed = (c ?? '').trim();
-      if (!trimmed) {
-        continue;
-      }
-      contractsMap.set(trimmed.toUpperCase(), trimmed);
-    }
-
-    const addCandidate = (raw: string | null | undefined) => {
-      const normalized = (raw ?? '').trim().toUpperCase();
-      if (!normalized || seen.has(normalized)) {
-        return;
-      }
-      seen.add(normalized);
-
-      const known = contractsMap.get(normalized);
-      if (known) {
-        result.push(known);
-        return;
-      }
-
-      if (!contractsMap.size) {
-        result.push(normalized);
-      }
-    };
-
-    const tickerNormalized = ticker.trim().toUpperCase();
-    const tickerNoGlue = tickerNormalized.endsWith('##')
-      ? tickerNormalized.slice(0, -2)
-      : tickerNormalized;
-
-    addCandidate(assetCode);
-    addCandidate(tickerNoGlue);
-    addCandidate(shortName);
-
-    const headFromTicker = tickerNoGlue.match(/^[A-Z]+/)?.[0] ?? '';
-    if (headFromTicker) {
-      addCandidate(headFromTicker);
-      if (headFromTicker.length > 2) {
-        addCandidate(headFromTicker.slice(0, 2));
-      }
-    }
-
-    const headFromShort = (shortName ?? '').match(/^[A-Z]+/)?.[0] ?? '';
-    if (headFromShort) {
-      addCandidate(headFromShort);
-      if (headFromShort.length > 2) {
-        addCandidate(headFromShort.slice(0, 2));
-      }
-    }
-
-    if (!result.length && contractsMap.size) {
-      const prefix = (headFromTicker || tickerNoGlue).slice(0, 2);
-      if (prefix) {
-        for (const [upper, original] of contractsMap.entries()) {
-          if (upper.startsWith(prefix) && !seen.has(upper)) {
-            seen.add(upper);
-            result.push(original);
-          }
-        }
-      }
-    }
-
-    return result;
-  }
-
-  private normalizeOpenPositions(rows: any[]): OpenPositionsSnapshot[] {
-    const normalized = (rows ?? [])
-      .map((row) => {
-        const dateMs = new Date(row?.Date).getTime();
-        if (!Number.isFinite(dateMs)) {
-          return null;
-        }
-
-        return {
-          dateMs,
-          juridicalLong: Number(row?.JuridicalLong ?? 0),
-          juridicalShort: Number(row?.JuridicalShort ?? 0),
-          physicalLong: Number(row?.PhysicalLong ?? 0),
-          physicalShort: Number(row?.PhysicalShort ?? 0),
-          juridicalLongCount: Number(row?.JuridicalLongCount ?? 0),
-          juridicalShortCount: Number(row?.JuridicalShortCount ?? 0),
-          physicalLongCount: Number(row?.PhysicalLongCount ?? 0),
-          physicalShortCount: Number(row?.PhysicalShortCount ?? 0),
-        } as OpenPositionsSnapshot;
-      })
-      .filter((x): x is OpenPositionsSnapshot => !!x)
-      .sort((a, b) => a.dateMs - b.dateMs);
-
-    return normalized;
-  }
-
-  private extractHttpErrorMessage(err: HttpErrorResponse): string | null {
-    if (typeof err.error === 'string') {
-      const trimmed = err.error.trim();
-      return trimmed.length > 0 ? trimmed : null;
-    }
-
-    return err.error?.title || err.error?.message || null;
-  }
-
-  private readResource<T>(source: () => Observable<T>): Promise<T> {
-    if (this.destroyed) return Promise.reject(new Error('График закрыт.'));
-    return firstValueFrom(source().pipe(takeUntil(this.destroy$)));
-  }
-
   ngOnDestroy(): void { this.dispose(); }
 
   dispose(): void {
@@ -1039,14 +775,11 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
     this.destroyed = true;
     this.currentSessionId = null;
     this.renderScheduler.destroy();
-    this.destroy$.next();
-    this.destroy$.complete();
     this.mouseAndTouchManager?.dispose();
     this.markupManager?.dispose();
     this.viewsManager?.dispose();
     this.indicatorEngine.dispose();
-    this.openPositionsLoadCache.clear();
-    this.contractsCache = null;
+    this.openPositions.dispose();
     this.themeSubscription?.unsubscribe();
     this.hintContainer.destroy();
     this.state.setData(null);

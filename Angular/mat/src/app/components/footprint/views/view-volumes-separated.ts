@@ -8,7 +8,7 @@ import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 import { getVolumeCandleColor } from './volume-candle-color';
 
 
-export class viewVolumesSeparated extends canvasPart {
+export class viewVolumesSeparated extends canvasPart<FootPrintComponent> {
   q: number = 0;
   bq: number = 0;
   data: any;

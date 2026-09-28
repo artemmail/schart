@@ -14,7 +14,6 @@ import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FootPrintRequestParamsNew } from 'src/app/models/FootPrintPar';
 import { TickerPresetNew } from 'src/app/models/tickerpreset';
-import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { CommonService } from 'src/app/service/common.service';
 import { NavService } from 'src/app/service/nav.service';
 import { MatSidenav } from '@angular/material/sidenav';
@@ -22,7 +21,6 @@ import { MatEventEmitterService } from 'src/app/service/mat-event-emitter.servic
 import { DialogService } from 'src/app/service/DialogService.service';
 
 import { Title } from '@angular/platform-browser';
-import { FootPrintComponent } from 'src/app/components/footprint/components/footprint/footprint.component';
 import { FootprintWidgetComponent } from 'src/app/components/footprint/components/footprint-widget/footprint-widget.component';
 import { SelectListItemText } from 'src/app/models/preserts';
 import { SettingsService } from 'src/app/service/settings.service';
@@ -68,9 +66,6 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
   navData: any;
   showCsvDialog: boolean = false;
   csvDialogTitle = 'Список свечей';
-  footprintPostInit = (component: FootPrintComponent) => {
-    component.applyDefaultPostInit();
-  };
 
   private viewInitialized = false;
 
@@ -80,7 +75,6 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private commonService: CommonService,
     public navService: NavService,
-    private chartSettingsService: ChartSettingsService,
     public matEventEmitterService: MatEventEmitterService,
     public dialog: MatDialog,
     private route: ActivatedRoute,
@@ -214,7 +208,7 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
       width: 'auto',
       height: 'auto',
       panelClass: 'custom-dialog-container',
-      data: { params: { ...this.params }, fp: this.footPrint.renderer }
+      data: { params: { ...this.params }, fp: this.footPrint.controller }
     });
    
 
@@ -251,34 +245,8 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
 
 
 
-  presetChange(a: number) {
-    this.chartSettingsService.getChartSettings(a).subscribe((x) => {
-
-      if (this.isCandlestick)
-        x.CandlesOnly = true;
-
-      this.footPrint.FPsettings = x;
-
-      if (true) {
-        this.footPrint.resize();
-      } else {
-        this.footPrint.reload();
-      }
-
-      this.chartSettingsService.saveChartSettings(a).subscribe();
-    });
-  }
-
-  p(a: any) {
-    alert(JSON.stringify(a));
-    this.chartSettingsService.getChartSettings(a).subscribe((x) => {
-
-      if (this.isCandlestick)
-        x.CandlesOnly = true;
-
-      this.footPrint.FPsettings = x;
-      this.footPrint.resize();
-    });
+  presetChange(index: number): void {
+    void this.footPrint.controller.selectPreset(index, this.isCandlestick ? { candlesOnly: true } : {});
   }
 
   toggleSidenav() {
@@ -301,12 +269,12 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
 
  
   onCloseMarkUp() {
-    this.footPrint.markupManager.changeMode('Edit');
+    this.footPrint.controller.selectMarkupTool('Edit');
   }
 
   async uploadImage()
   {    
-    await this.dialogService.saveImage(this.footPrint.canvas);    
+    await this.footPrint.controller.exportImage();
   }
 
   getCsv()
@@ -315,15 +283,7 @@ export class FirstComponent1 implements OnInit, AfterViewInit, OnDestroy {
   }
 
   clearFootprintMarks(): void {
-    const renderer = this.footPrint?.renderer;
-    if (!renderer) {
-      return;
-    }
-
-    const params = this.footPrint?.params ?? this.params;
-    renderer.markupManager?.clearAll(false);
-    renderer.levelMarksService?.clearStorageForTicker(params?.ticker);
-    renderer.drawClusterView();
+    this.footPrint?.controller.clearMarks();
   }
 
   openNonModalCsvDialog() {

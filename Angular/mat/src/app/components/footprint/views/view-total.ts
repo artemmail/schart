@@ -7,7 +7,7 @@ import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { createClusterColumnContext } from '../columns/cluster-column-base';
 
-export class viewTotal extends canvasPart {
+export class viewTotal extends canvasPart<FootPrintComponent> {
   constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
     super(parent,  view, mtx, DraggableEnum.Right);
   }

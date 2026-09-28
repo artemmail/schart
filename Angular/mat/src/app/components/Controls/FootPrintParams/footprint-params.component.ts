@@ -41,8 +41,8 @@ type FootprintUiMode = Exclude<FootprintMode, 'ticks'>;
     PresetSelectorComponent1,
     ComboBoxComponent,
   ],
-  templateUrl: './footpintparmas.component.html',
-  styleUrls: ['./footpintparmas.component.css'],
+  templateUrl: './footprint-params.component.html',
+  styleUrls: ['./footprint-params.component.css'],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,

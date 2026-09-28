@@ -172,7 +172,7 @@ export class Strength extends Profile {
         ctx.textBaseline = 'middle';
         ctx.textAlign = 'left';
         for (const zone of stats.zones) {
-          const r = this.footprint.clusterRect2(zone.price, col1, col2 - col1, this.footprint.viewsManager.viewMain.mtx);
+          const r = this.footprint.clusterRect2(zone.price, col1, col2 - col1, this.footprint.viewport.mtx);
           const zTop = Math.max(innerTop, r.y);
           const zBottom = Math.min(innerBottom, r.y + r.h);
           if (zBottom <= zTop) continue;

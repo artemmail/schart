@@ -9,7 +9,7 @@ interface DeltaPoint {
   value: number;
 }
 
-export class viewDeltaRangeSet extends canvasPart {
+export class viewDeltaRangeSet extends canvasPart<FootPrintComponent> {
   constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx, DraggableEnum.Top);
   }

@@ -4,7 +4,7 @@ import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 import { ColumnEx } from '../columns/cluster-column-base';
 import { canvasPart } from '../views/canvas-part';
 import { Matrix, Point } from '../models/matrix';
-import { FormattingService } from 'src/app/service/FootPrint/Formating/formatting.service';
+import { FormattingService } from 'src/app/service/FootPrint/Formatting/formatting.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
 import { calculateWeightedAveragePrice } from './hint-vwap';
 

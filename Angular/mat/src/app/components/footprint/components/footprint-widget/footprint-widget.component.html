@@ -3,5 +3,6 @@
   [caption]="caption"
   [postInit]="postInit"
   (retryRequested)="reload()"
+  (settingsSaveRequested)="onRendererSettingsSaveRequested($event)"
   (settingsChanged)="onRendererSettingsChanged($event)"
 ></app-footprint>

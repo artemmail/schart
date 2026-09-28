@@ -1,3 +1,4 @@
+import type { FootprintCanvasContext } from '../rendering/footprint-canvas';
 import { canvasPart } from './canvas-part';
 import { Matrix, Point, Rectangle } from '../models/matrix';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
@@ -14,11 +15,11 @@ import { ColumnEx, createClusterColumnContext } from '../columns/cluster-column-
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
-import { removeUTC } from 'src/app/service/FootPrint/Formating/formatting.service';
+import { removeUTC } from 'src/app/service/FootPrint/Formatting/formatting.service';
 import { drob, hexToRgb } from 'src/app/service/FootPrint/utils';
 import * as Hammer from 'hammerjs';
 
-export class viewMain extends canvasPart {
+export class viewMain extends canvasPart<FootPrintComponent> {
 
 
 
@@ -555,7 +556,7 @@ override draw(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
   }
 
   private fitCommentText(
-    ctx: CanvasRenderingContext2D,
+    ctx: FootprintCanvasContext,
     text: string,
     baseFontSize: number,
     maxWidth: number,

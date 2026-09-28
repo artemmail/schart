@@ -8,7 +8,7 @@ import {
   ClusterData,
   ClusterDataInit,
 } from 'src/app/components/footprint/models/cluster-data';
-import { removeUTC } from '../Formating/formatting.service';
+import { removeUTC } from '../Formatting/formatting.service';
 import { environment } from 'src/app/environment';
 import {
   CandlesRangeSetParams,

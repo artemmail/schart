@@ -1,5 +1,5 @@
 import { Component, Input, HostListener } from '@angular/core';
-import { FootPrintComponent } from '../footprint/footprint.component';
+import type { FootprintController } from '../../models/footprint-controller';
 import { MarkupMode } from '../../markup/shape-type';
 import { MaterialModule } from 'src/app/material.module';
 
@@ -11,34 +11,34 @@ import { MaterialModule } from 'src/app/material.module';
   styleUrls: ['./markup-editor.component.css'],
 })
 export class MarkupEditorComponent {
-  @Input() NP: FootPrintComponent;
+  @Input() NP: FootprintController;
 
   constructor() {}
 
   get toolbarDefinitions() {
-    return this.NP?.markupManager?.listToolbarDefinitions?.() ?? [];
+    return this.NP?.markupDefinitions ?? [];
   }
 
   get activeTool(): MarkupMode {
-    return this.NP?.markupManager?.activeToolType ?? 'Edit';
+    return this.NP?.markupState.activeTool ?? 'Edit';
   }
 
   get activeDefinition() {
-    return this.NP?.markupManager?.activeDefinition ?? null;
+    return this.NP?.markupState.definition ?? null;
   }
 
   get activeParams() {
-    return this.NP?.markupManager?.activeParams ?? null;
+    return this.NP?.markupState.params ?? null;
   }
 
   get activeToolParams() {
     const type = this.activeDefinition?.type;
     if (!type) return null;
-    return this.NP?.markupManager?.getToolParams?.(type) ?? null;
+    return this.NP?.getMarkupParams(type) ?? null;
   }
 
   get canDelete(): boolean {
-    return this.NP?.markupManager?.hasSelection?.() ?? false;
+    return this.NP?.markupState.canDelete ?? false;
   }
 
   getFieldTarget(field: any) {
@@ -49,16 +49,15 @@ export class MarkupEditorComponent {
   }
 
   onToolChange(event: MarkupMode) {
-    this.NP?.markupManager?.changeMode(event);
+    this.NP?.selectMarkupTool(event);
   }
 
   onDelete(event: any) {
-    this.NP?.markupManager?.deleteCurrent();
+    this.NP?.deleteMarkup();
   }
 
   onParamsChanged(field?: any) {
-    const syncDefaults = field?.scope !== 'tool';
-    this.NP?.markupManager?.onParamsChanged?.(syncDefaults);
+    this.NP?.changeMarkupParams(this.getFieldTarget(field), field?.scope === 'tool' ? 'tool' : 'instance');
   }
 
   @HostListener('document:keydown.delete', ['$event'])

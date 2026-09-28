@@ -3,6 +3,7 @@ import { Subscription } from 'rxjs';
 import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintParameters } from 'src/app/models/Params';
 import { FootprintInitOptions } from '../models/footprint-data.types';
+import { SelectListItemNumber } from 'src/app/models/preserts';
 import { FootprintDataLoaderService } from './footprint-data-loader.service';
 import { FootprintRealtimeUpdaterService } from './footprint-realtime-updater.service';
 
@@ -36,6 +37,9 @@ export class FootprintSessionService implements OnDestroy {
 
   updateSettings(settings: ChartSettings, presetIndex?: number): void { this.loader.updateSettings(settings, presetIndex); }
   captureSettings(settings: ChartSettings): void { this.loader.captureSettings(settings); }
+  get snapshot() { return this.loader.snapshot; }
+  get currentSessionId() { return this.loader.state.sessionId; }
+  updatePresets(presets: SelectListItemNumber[], presetIndex?: number): void { this.loader.updatePresets(presets, presetIndex); }
 
   clear(): void {
     const sessionId = this.loader.state.sessionId;

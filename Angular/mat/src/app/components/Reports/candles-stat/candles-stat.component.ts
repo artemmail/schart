@@ -17,7 +17,7 @@ import {
 import { FootPrintRequestParams } from 'src/app/models/FootPrintPar';
 import { Observable, tap } from 'rxjs';
 import { CommonService } from 'src/app/service/common.service';
-import { removeUTC } from 'src/app/service/FootPrint/Formating/formatting.service';
+import { removeUTC } from 'src/app/service/FootPrint/Formatting/formatting.service';
 import { Title } from '@angular/platform-browser';
 import { MaterialModule } from 'src/app/material.module';
 import { ComboBoxComponent } from '../../Controls/ComboBox/combobox.component';

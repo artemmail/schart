@@ -5,7 +5,7 @@ import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { drob } from 'src/app/service/FootPrint/utils';
 
-export class viewHead extends canvasPart {
+export class viewHead extends canvasPart<FootPrintComponent> {
   fontSize: number = 0;
   constructor(parent: FootPrintComponent,  view: Rectangle, mtx: Matrix) {
     super(parent,  view, mtx, DraggableEnum.Top);

@@ -30,6 +30,16 @@ export class FootprintStateService {
     deltaVolumes: [0, 0, 0, 0, 0, 0, 0, 0],
   };
 
+  get data() { return this.state.data; }
+  get params() { return this.state.params; }
+  get settings() { return this.state.settings; }
+  get hiddenHint() { return this.state.hiddenHint; }
+  get selectedPrice() { return this.state.selectedPrice; }
+  get selectedPrice1() { return this.state.selectedPrice1; }
+  get dragMode() { return this.state.dragMode; }
+  get viewInitialized() { return this.state.viewInitialized; }
+  get deltaVolumes(): ReadonlyArray<number> { return this.state.deltaVolumes; }
+
   get snapshot(): FootprintComponentState {
     return { ...this.state, deltaVolumes: [...this.state.deltaVolumes] };
   }

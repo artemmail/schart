@@ -1,3 +1,4 @@
+import type { FootprintCanvasContext } from '../rendering/footprint-canvas';
 import { ColumnEx } from 'src/app/models/Column';
 import { Matrix, Rectangle } from '../models/matrix';
 
@@ -5,7 +6,7 @@ import { ChartSettings } from 'src/app/models/ChartSettings';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { ClusterData, ClusterDataRenderStats } from '../models/cluster-data';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
-import { FormattingService } from 'src/app/service/FootPrint/Formating/formatting.service';
+import { FormattingService } from 'src/app/service/FootPrint/Formatting/formatting.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
 import { StockChartPalette } from 'src/app/services/theme/theme.model';
 
@@ -14,7 +15,7 @@ export interface ClusterColumnContext {
   colorsService: ColorsService;
   formatService: FormattingService;
   palette: StockChartPalette;
-  ctx: CanvasRenderingContext2D;
+  ctx: FootprintCanvasContext;
   startPrice: number;
   finishPrice: number;
   clusterWidthScale: number;
@@ -44,7 +45,7 @@ export function createClusterColumnContext(
 }
 
 export class ClusterColumnBase {
-  protected readonly ctx: CanvasRenderingContext2D;
+  protected readonly ctx: FootprintCanvasContext;
   protected readonly view: Rectangle;
   protected readonly mtx: Matrix;
   private readonly context: ClusterColumnContext;
@@ -150,7 +151,7 @@ export class ClusterColumnBase {
     });
   }
   drawOpenClose(
-    ctx: CanvasRenderingContext2D,
+    ctx: FootprintCanvasContext,
     column: ColumnEx,
     number: number,
     mtx: Matrix
@@ -224,7 +225,7 @@ export class ClusterColumnBase {
   }
 
   drawColumnText(
-    ctx: CanvasRenderingContext2D,
+    ctx: FootprintCanvasContext,
     column: ColumnEx,
     number: number,
     mtx: Matrix
@@ -272,7 +273,7 @@ export class ClusterColumnBase {
     }
   }
   drawColumnTextTree(
-    ctx: CanvasRenderingContext2D,
+    ctx: FootprintCanvasContext,
     column: ColumnEx,
     number: number,
     mtx: Matrix
@@ -317,7 +318,7 @@ export class ClusterColumnBase {
     }
   }
   drawColumnTextDeltaTree(
-    ctx: CanvasRenderingContext2D,
+    ctx: FootprintCanvasContext,
     column: ColumnEx,
     number: number,
     mtx: Matrix

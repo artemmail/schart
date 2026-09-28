@@ -3,10 +3,10 @@ import { Matrix, Rectangle } from '../models/matrix';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { hexToRgb } from 'src/app/service/FootPrint/utils';
-import { rounder } from 'src/app/service/FootPrint/Formating/formatting.service';
+import { rounder } from 'src/app/service/FootPrint/Formatting/formatting.service';
 import { isArbitrageMode } from 'src/app/models/footprint-mode';
 
-export class viewBackgroundRange extends canvasPart {
+export class viewBackgroundRange extends canvasPart<FootPrintComponent> {
   constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx, DraggableEnum.No);
   }

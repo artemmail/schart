@@ -1,10 +1,11 @@
+import type { FootprintCanvasContext } from '../rendering/footprint-canvas';
 import { DraggableEnum } from 'src/app/models/Draggable';
 import { Matrix } from '../models/matrix';
 import { Point } from '../models/matrix';
 import { Rectangle } from '../models/matrix';
 
-import { FormattingService, rounder, rrounder } from 'src/app/service/FootPrint/Formating/formatting.service';
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import { FormattingService, rounder, rrounder } from 'src/app/service/FootPrint/Formatting/formatting.service';
+import type { RenderContext } from '../models/footprint-context';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
 import { drob, MoneyToStr } from 'src/app/service/FootPrint/utils';
 import { StockChartPalette } from 'src/app/services/theme/theme.model';
@@ -20,7 +21,7 @@ type TimeAxisLayout = {
   denseGrid: boolean;
 };
 
-export abstract class canvasPart {
+export abstract class canvasPart<T extends RenderContext = RenderContext> {
   protected readonly disposed$ = new Subject<void>();
   private disposed = false;
   get isDisposed(): boolean { return this.disposed; }
@@ -31,16 +32,16 @@ export abstract class canvasPart {
     this.disposed$.next();
     this.disposed$.complete();
   }
-  public ctx: any;
+  public ctx: FootprintCanvasContext;
   public view: Rectangle;
   public mtx: Matrix;
-  public parent: FootPrintComponent;
+  public parent: T;
   public draggable: DraggableEnum;
   public colorsService: ColorsService;
   public formatService: FormattingService;
 
   constructor(
-    parent: FootPrintComponent,  
+    parent: T,
     view: Rectangle,
     mtx: Matrix,
     draggable: DraggableEnum = DraggableEnum.No
@@ -59,7 +60,7 @@ export abstract class canvasPart {
     return this.parent.palette;
   }
 
-  protected getTimeAxisLayout(parent: FootPrintComponent, mtx: Matrix): TimeAxisLayout {
+  protected getTimeAxisLayout(parent: T, mtx: Matrix): TimeAxisLayout {
     const sscale = this.colorsService.sscale();
     const barWidth = Math.max(Math.abs(parent.getBar(mtx).w), 0.001);
     let fontSize = Math.max(
@@ -171,14 +172,14 @@ export abstract class canvasPart {
 
 
   abstract draw(
-    parent: FootPrintComponent,    
+    parent: T,
     view: Rectangle,
     mtx: Matrix
   ): void;
 
   drawVertical() {
     var parent = this.parent;
-    const point = parent.mouseAndTouchManager?.selectedPoint;
+    const point = parent.pointer;
     if (
       /*FPsettings.ToolTip +++ &&*/ !parent.hiddenHint &&
       point &&

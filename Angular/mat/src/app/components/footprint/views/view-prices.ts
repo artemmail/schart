@@ -7,7 +7,7 @@ import { drob } from 'src/app/service/FootPrint/utils';
 import { MyMouseEvent } from 'src/app/models/MyMouseEvent';
 import { MarkLineLevel } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
 
-export class viewPrices extends canvasPart {
+export class viewPrices extends canvasPart<FootPrintComponent> {
   constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx, DraggableEnum.No);
   }

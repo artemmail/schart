@@ -1,4 +1,4 @@
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { InteractionContext } from '../models/footprint-context';
 import { Point } from '../models/matrix';
 import { DEFAULT_MARKUP_COLOR, MarkupDefinition, MarkupParamSchema } from './markup-api';
 import { MarkupRegistry } from './markup-registry';
@@ -11,7 +11,7 @@ export class MarkUpManager {
   private disposed = false;
   selectedShape: ShapePoint | null;
   mouseShape: ShapePoint | null;
-  footprint: FootPrintComponent;
+  footprint: InteractionContext;
   shapeArray: Array<Shape>;
   drawingShape: Shape | null;
   private profileAuto: ProfileAuto;
@@ -39,7 +39,7 @@ export class MarkUpManager {
     this.activeParamsRef = null;
   }
 
-  constructor(private registry: MarkupRegistry, footprint: FootPrintComponent) {
+  constructor(private registry: MarkupRegistry, footprint: InteractionContext) {
     this.selectedShape = null;
     this.mouseShape = null;
     this.footprint = footprint;
@@ -89,7 +89,7 @@ export class MarkUpManager {
       this.updateToolParams(this.selectedShape.shape.type, this.activeParamsRef, 'instance');
     }
 
-    this.footprint.resize();
+    this.footprint.requestRender();
   }
 
   selectShape(point: Point): ShapePoint | null {
@@ -111,7 +111,7 @@ export class MarkUpManager {
       this.shapeArray.splice(this.shapeArray.indexOf(this.selectedShape.shape), 1);
       this.selectedShape = null;
       this.activateTool(EDIT_TOOL);
-      this.footprint.resize();
+      this.footprint.requestRender();
     }
   }
 
@@ -123,7 +123,7 @@ export class MarkUpManager {
     this.drawingShape = null;
     this.activateTool(EDIT_TOOL);
     if (shouldRedraw) {
-      this.footprint.resize();
+      this.footprint.requestRender();
     }
   }
 
@@ -161,11 +161,11 @@ export class MarkUpManager {
     if (this.disposed) return;
     if (this.selectedShape != null) {
       this.selectedShape.shape.onMovePoint(point);
-      this.footprint.resize();
+      this.footprint.requestRender();
     }
     if (this.drawingShape != null) {
       this.drawingShape.onMouseDownMove(point);
-      this.footprint.resize();
+      this.footprint.requestRender();
     }
   }
 
@@ -174,11 +174,11 @@ export class MarkUpManager {
     if (this.drawingShape != null && !this.drawingShape.isComplete()) {
       if (this.drawingShape.supportsMultiPointDraw()) {
         this.drawingShape.onMouseMove(point);
-        this.footprint.resize();
+        this.footprint.requestRender();
       }
     }
     this.mouseShape = this.selectShape(point);
-    this.footprint.canvas.style.cursor = this.resolveCursor(this.mouseShape);
+    this.footprint.setCursor(this.resolveCursor(this.mouseShape));
   }
 
   onMouseUp(point: Point): void {
@@ -203,7 +203,7 @@ export class MarkUpManager {
     if (this.disposed) return;
     if (mode === this.activeTool && mode === EDIT_TOOL) return;
     this.activateTool(mode);
-    this.footprint.resize();
+    this.footprint.requestRender();
   }
 
   allowPan(): boolean {

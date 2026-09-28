@@ -1,10 +1,9 @@
 // settings-dialog.component.ts
 import { Component, Inject, ViewChild } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { FootPrintParamsComponent } from 'src/app/components/Controls/FootPrintParams/footpintparmas.component';
-import { FootPrintComponent } from 'src/app/components/footprint/components/footprint/footprint.component';
+import { FootPrintParamsComponent } from 'src/app/components/Controls/FootPrintParams/footprint-params.component';
+import type { FootprintController } from 'src/app/components/footprint/models/footprint-controller';
 import { TickerPresetNew } from 'src/app/models/tickerpreset';
-import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { MaterialModule } from 'src/app/material.module';
 
 @Component({
@@ -23,8 +22,7 @@ export class SettingsDialogComponent {
 
   constructor(
     public dialogRef: MatDialogRef<SettingsDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { params: TickerPresetNew, fp: FootPrintComponent },
-    private chartSettingsService: ChartSettingsService
+    @Inject(MAT_DIALOG_DATA) public data: { params: TickerPresetNew, fp: FootprintController }
   ) {
     // Create a copy of the params to avoid modifying the original before applying
     this.params = { ...data.params };
@@ -34,24 +32,15 @@ export class SettingsDialogComponent {
     //this.footPrintParamsComponent.applyPreset
   }
 
-  footPrint: FootPrintComponent;
+  footPrint: FootprintController;
 
-  loadPresetItems() {
-    // Fetch preset items from the service
-    this.chartSettingsService.getPresets().subscribe((items) => {
-      this.presetItems = items;
-      // Set initial presetIndex based on params or default
-      this.presetIndex = /* this.params.presetIndex ||*/ items[0]?.Value;
-    });
+  loadPresetItems(): void {
+    this.presetItems = this.footPrint.presetItems;
+    this.presetIndex = this.footPrint.presetIndex ?? this.presetItems[0]?.Value;
   }
 
-  presetChange(a: number) {
-    this.chartSettingsService.getChartSettings(a).subscribe((x) => {
-      this.footPrint.FPsettings = x;
-      this.footPrint.resize();
-
-      this.chartSettingsService.saveChartSettings(a).subscribe();
-    });
+  async presetChange(index: number): Promise<void> {
+    await this.footPrint.selectPreset(index);
   }
 
   applySettings() {

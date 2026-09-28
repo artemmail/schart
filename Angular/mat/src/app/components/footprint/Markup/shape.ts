@@ -1,4 +1,4 @@
-import { FootPrintComponent } from '../components/footprint/footprint.component';
+import type { InteractionContext } from '../models/footprint-context';
 import { Point } from '../models/matrix';
 import { MarkUpManager } from './markup-manager';
 
@@ -8,7 +8,7 @@ export interface ShapePoint {
 }
 
 export abstract class Shape {
-  public footprint: FootPrintComponent;
+  public footprint: InteractionContext;
   public manager: MarkUpManager;
   public type: string;
   public pointArray: Array<Point>;
@@ -35,11 +35,11 @@ export abstract class Shape {
   }
 
   baseToScreen(point: Point): Point {
-    return this.footprint.viewsManager.viewMain.mtx.applyToPoint(point.x, point.y);
+    return this.footprint.viewport.mtx.applyToPoint(point.x, point.y);
   }
 
   screenToBase(point: Point): Point {
-    return this.footprint.viewsManager.viewMain.mtx.inverse().applyToPoint(point.x, point.y);
+    return this.footprint.viewport.mtx.inverse().applyToPoint(point.x, point.y);
   }
 
   screenToBaseDelta(p1: Point, p2: Point): { x: number; y: number } {

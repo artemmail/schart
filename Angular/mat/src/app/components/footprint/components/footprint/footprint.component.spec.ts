@@ -1,6 +1,7 @@
 import { ElementRef } from '@angular/core';
 import { Subject, of } from 'rxjs';
 import { FootPrintComponent } from './footprint.component';
+import { OpenPositionsRepository } from '../../services/open-positions.repository';
 import { FootprintStateService } from '../../services/footprint-state.service';
 import { FootprintLayoutService } from '../../services/footprint-layout.service';
 import { HintContainerService } from '../../services/hint-container.service';
@@ -12,11 +13,11 @@ import { viewMain } from '../../views/view-main';
 import { viewRangeSet } from '../../views/view-range-set';
 import { viewAnim } from '../../views/view-anim';
 import { ColorsService } from 'src/app/service/FootPrint/Colors/color.service';
-import { FormattingService } from 'src/app/service/FootPrint/Formating/formatting.service';
+import { FormattingService } from 'src/app/service/FootPrint/Formatting/formatting.service';
 import { ChartSettingsService } from 'src/app/service/chart-settings.service';
 import { LevelMarksService } from 'src/app/service/FootPrint/LevelMarks/level-marks.service';
 
-function rendererFixture() {
+function rendererFixture(realPainters = false, barCount = 20) {
   const pending = new Map<number, FrameRequestCallback>(); let sequence = 0;
   spyOn(window, 'requestAnimationFrame').and.callFake(callback => { pending.set(++sequence, callback); return sequence; });
   spyOn(window, 'cancelAnimationFrame').and.callFake(id => { pending.delete(id); });
@@ -37,21 +38,23 @@ function rendererFixture() {
   const dialogResult = new Subject<any>();
   const dialog = { openLevelSettings: jasmine.createSpy('openLevelSettings').and.returnValue(dialogResult) };
   const hint = new HintContainerService();
+  const repository = new OpenPositionsRepository(dataService as any, common as any);
   const renderer = new FootPrintComponent(colors, new FormattingService(),
     { readPalette: () => renderer.palette, setPreset: () => renderer.palette, themeChanged$ } as any,
     { applyPreset: () => undefined, getStoredPreset: () => 'Light' } as any,
     new ElementRef(host), {} as any, new LevelMarksService({ post: () => of({}) } as any), dialog as any, {} as any,
-    new FootprintLayoutService(colors), { updateSettings: save } as any,
-    dataService as any, common as any, new FootprintStateService(), hint);
+    new FootprintLayoutService(colors),
+    repository, new FootprintStateService(), hint);
+  renderer.settingsSaveRequested.subscribe(save);
   renderer.canvasRef = new ElementRef(canvas);
   renderer.ngAfterViewInit();
   // Exercise real layout/parts ownership; avoid testing every painter here.
-  spyOn(canvasPart.prototype, 'drawCanvas');
+  if (!realPainters) spyOn(canvasPart.prototype, 'drawCanvas');
   const paint = spyOn(renderer.viewsManager, 'renderNow').and.callThrough();
   const prepare = spyOn(renderer.indicatorEngine, 'prepare').and.callThrough();
-  const data = new ClusterData({ priceScale: 1, clusterData: Array.from({ length: 20 }, (_, index) => ({
+  const data = new ClusterData({ priceScale: 1, clusterData: Array.from({ length: barCount }, (_, index) => ({
     Number: index + 1, x: new Date(Date.UTC(2026, 8, 28, 10, index)), o: 100, h: 102, l: 99, c: 101,
-    q: 100, bq: 50, v: 10000, bv: 5000, oi: 0, cl: [],
+    q: 100, bq: 50, v: 10000, bv: 5000, oi: 0, cl: [{ p: 100, q: 100, bq: 50, ct: 5, mx: 10 }],
   })) });
   const snapshot: FootprintSnapshot = {
     sessionId: 1, params: { ticker: 'A', period: 1, priceStep: 1, candlesOnly: true },
@@ -64,7 +67,7 @@ function rendererFixture() {
   };
   const cleanup = () => { renderer.dispose(); host.remove(); };
   return { renderer, snapshot, pending, tick, cleanup, paint, prepare, canvas, hint, save,
-    themeChanged$, futInfo, contracts, positions, common, dataService, dialog, dialogResult };
+    themeChanged$, futInfo, contracts, positions, common, dataService, repository, dialog, dialogResult };
 }
 
 const flush = async () => { for (let i = 0; i < 15; i++) await Promise.resolve(); };
@@ -88,6 +91,21 @@ describe('Footprint renderer resources and frames', () => {
       expect(f.renderer.viewsManager.viewMain).toBe(main);
       expect(f.renderer.viewsManager.viewAnim).toBe(anim);
       expect(main?.isDisposed).toBe(false);
+    } finally { f.cleanup(); }
+  });
+
+  it('emits settings-save commands and preserves viewport for presentation changes', () => {
+    const f = rendererFixture();
+    try {
+      f.renderer.applySnapshot(f.snapshot); f.tick();
+      f.renderer.viewsManager.mtx = f.renderer.alignMatrix(
+        new Matrix().scale(2, 2).multiply(f.renderer.viewsManager.mtx).getTranslate(-30, 12));
+      f.renderer.drawClusterView(); f.tick();
+      const matrix = f.renderer.viewsManager.mtxMain;
+      f.renderer.updatePresentation({ ...f.snapshot.settings, Name: 'Presentation' });
+      f.renderer.saveSettings(); expect(f.save).toHaveBeenCalledOnceWith(f.renderer.FPsettings);
+      f.tick(); expect(f.renderer.viewsManager.mtxMain.applyToPoint(2, 100)).toEqual(matrix.applyToPoint(2, 100));
+      f.renderer.dispose(); f.renderer.saveSettings(); expect(f.save).toHaveBeenCalledTimes(1);
     } finally { f.cleanup(); }
   });
 
@@ -193,7 +211,7 @@ for (const stage of ['future', 'contracts', 'positions']) {
     it('cancels HTTP and prevents later requests and cache restoration', async () => {
       const f = rendererFixture();
       try {
-        const request = (f.renderer as any).loadOpenPositionsByTicker('Si'); await flush();
+        const request = f.repository.load('Si'); await flush();
         if (stage !== 'future') { f.futInfo.next({ assetCode: 'SI', shortName: 'Si' }); await flush(); }
         if (stage === 'positions') { f.contracts.next(['SI']); await flush(); }
         const source = stage === 'future' ? f.futInfo : stage === 'contracts' ? f.contracts : f.positions;
@@ -203,8 +221,8 @@ for (const stage of ['future', 'contracts', 'positions']) {
         await request; await flush();
         expect(f.dataService.getAllContracts.calls.count()).toBe(stage === 'future' ? 0 : 1);
         expect(f.dataService.getOpenPositionsByContract.calls.count()).toBe(stage === 'positions' ? 1 : 0);
-        expect((f.renderer as any).contractsCache).toBeNull();
-        expect((f.renderer as any).openPositionsLoadCache.size).toBe(0);
+        expect((f.repository as any).contractsCache).toBeNull();
+        expect((f.repository as any).openPositionsLoadCache.size).toBe(0);
         expect(f.pending.size).toBe(0);
         f.hint.show('late', { x: 0, y: 0 });
         expect(f.hint.ensureHintElement()).toBeNull();
@@ -212,3 +230,30 @@ for (const stage of ['future', 'contracts', 'positions']) {
     });
   });
 }
+
+
+describe('Footprint real painters CPU sample', () => {
+  it('paints and disposes a 10000-bar chart with indicators and records frame cost', () => {
+    const f = rendererFixture(true, 10000);
+    try {
+      const snapshot = { ...f.snapshot, settings: { ...f.snapshot.settings, Indicators: [
+        { id: 'sma', type: 'sma', params: { period: 20 }, panel: 'chart' as const },
+        { id: 'ema', type: 'ema', params: { period: 20 }, panel: 'chart' as const },
+      ] } };
+      f.renderer.applySnapshot(snapshot); f.tick();
+      const frames: number[] = [];
+      for (let i = 0; i < 25; i++) {
+        const start = performance.now(); f.renderer.drawClusterView(); f.tick();
+        if (i >= 5) frames.push(performance.now() - start);
+      }
+      frames.sort((a, b) => a - b);
+      console.log('FOOTPRINT_PROFILE ' + JSON.stringify({ bars: 10000, samples: frames.length,
+        frameMedianMs: frames[10], frameP95Ms: frames[18], width: f.canvas.width, height: f.canvas.height,
+        visibleBars: f.renderer.maxIndex - f.renderer.minIndex + 1 }));
+      expect(f.paint).toHaveBeenCalledTimes(26); expect(f.pending.size).toBe(0);
+      expect(f.renderer.indicatorEngine.getChartSeries().length).toBe(2);
+      expect(f.canvas.getContext('2d').getImageData(0, 0, f.canvas.width, f.canvas.height).data.some(value => value !== 0)).toBe(true);
+      f.renderer.dispose(); f.tick(); expect(f.pending.size).toBe(0);
+    } finally { f.cleanup(); }
+  });
+});

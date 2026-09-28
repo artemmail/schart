@@ -96,7 +96,7 @@ import { LoginComponent } from './components/Authentification/login/login.compon
 import { SubscriptionPlansComponent } from './components/pages/Tarif/subscription.component';
 import { MarketSelectorComponent } from './components/Controls/MarketSelector/market-selector.component';
 import { PresetSelectorComponent } from './components/Controls/PresetSelector/preset-selector.component';
-import { FootPrintParamsComponent } from './components/Controls/FootPrintParams/footpintparmas.component';
+import { FootPrintParamsComponent } from './components/Controls/FootPrintParams/footprint-params.component';
 import { MY_DATE_FORMATS } from './service/date-formats';
 import { MarkupEditorComponent } from './components/footprint/components/markup-editor/markup-editor.component';
 

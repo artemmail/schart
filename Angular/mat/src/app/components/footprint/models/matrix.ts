@@ -1,5 +1,5 @@
-import { Point } from 'src/app/models//Point';
-import { Rectangle } from 'src/app/models//Rectangle';
+import { Point } from '../../../models/Point';
+import { Rectangle } from '../../../models/Rectangle';
 
 class Matrix {
   private _t: any;
@@ -10,6 +10,10 @@ class Matrix {
   private e: number;
   private f: number;
   private context: any;
+
+  get xScale(): number { return this.a; }
+  get xOffset(): number { return this.e; }
+  get xShear(): number { return this.c; }
 
   constructor(a?: any) {
     this._t = this.transform;

@@ -6,7 +6,7 @@ import { environment } from '../environment';
 import { TickerPreset, TickerPresetNew } from '../models/tickerpreset';
 import { FootPrintRequestParams, FootPrintRequestParamsNew } from '../models/FootPrintPar';
 import { SelectListItemNumber, SelectListItemParams, SelectListItemText } from '../models/preserts';
-import { addUTC, removeUTC } from './FootPrint/Formating/formatting.service';
+import { addUTC, removeUTC } from './FootPrint/Formatting/formatting.service';
 
 
 export interface UnderlyingInfo {

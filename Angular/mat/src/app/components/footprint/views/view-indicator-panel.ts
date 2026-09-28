@@ -1,10 +1,11 @@
+import type { FootprintCanvasContext } from '../rendering/footprint-canvas';
 import { canvasPart } from './canvas-part';
 import { Matrix, Rectangle } from '../models/matrix';
 import { FootPrintComponent } from '../components/footprint/footprint.component';
 import { DataSeries } from '../indicators/indicator-api';
 import { DraggableEnum } from 'src/app/models/Draggable';
 
-export class viewIndicatorPanel extends canvasPart {
+export class viewIndicatorPanel extends canvasPart<FootPrintComponent> {
   constructor(
     parent: FootPrintComponent,
     view: Rectangle,
@@ -181,7 +182,7 @@ export class viewIndicatorPanel extends canvasPart {
     );
   }
 
-  private drawRightScaleBackground(ctx: CanvasRenderingContext2D, view: Rectangle): void {
+  private drawRightScaleBackground(ctx: FootprintCanvasContext, view: Rectangle): void {
     const w = this.getRightScaleWidth();
     if (w <= 0) return;
 
@@ -190,7 +191,7 @@ export class viewIndicatorPanel extends canvasPart {
   }
 
   private drawOpenPositionsLegend(
-    ctx: CanvasRenderingContext2D,
+    ctx: FootprintCanvasContext,
     parent: FootPrintComponent,
     view: Rectangle,
     series: DataSeries[]
@@ -285,7 +286,7 @@ export class viewIndicatorPanel extends canvasPart {
     return null;
   }
 
-  private drawPanelMessage(ctx: CanvasRenderingContext2D, view: Rectangle, message: string): void {
+  private drawPanelMessage(ctx: FootprintCanvasContext, view: Rectangle, message: string): void {
     ctx.save();
     ctx.fillStyle = this.palette.textMuted ?? this.palette.text;
     ctx.textAlign = 'center';
@@ -394,7 +395,7 @@ export class viewIndicatorPanel extends canvasPart {
     return { min, max };
   }
 
-  private drawLine(ctx: CanvasRenderingContext2D, parent: FootPrintComponent, mtx: Matrix, s: DataSeries): void {
+  private drawLine(ctx: FootprintCanvasContext, parent: FootPrintComponent, mtx: Matrix, s: DataSeries): void {
     const from = parent.minIndex ?? 0;
     const to = parent.maxIndex ?? Math.max(0, parent.data?.clusterData.length ?? 0);
 
@@ -422,7 +423,7 @@ export class viewIndicatorPanel extends canvasPart {
     ctx.restore();
   }
 
-  private applyLineStyle(ctx: CanvasRenderingContext2D, style?: string): void {
+  private applyLineStyle(ctx: FootprintCanvasContext, style?: string): void {
     switch (style) {
       case 'dashed':
         ctx.setLineDash([6, 4]);
@@ -438,7 +439,7 @@ export class viewIndicatorPanel extends canvasPart {
     }
   }
 
-  private drawPoints(ctx: CanvasRenderingContext2D, parent: FootPrintComponent, mtx: Matrix, s: DataSeries): void {
+  private drawPoints(ctx: FootprintCanvasContext, parent: FootPrintComponent, mtx: Matrix, s: DataSeries): void {
     const from = parent.minIndex ?? 0;
     const to = parent.maxIndex ?? Math.max(0, parent.data?.clusterData.length ?? 0);
 
@@ -496,7 +497,7 @@ export class viewIndicatorPanel extends canvasPart {
   }
 
   private drawHistogram(
-    ctx: CanvasRenderingContext2D,
+    ctx: FootprintCanvasContext,
     parent: FootPrintComponent,
     mtx: Matrix,
     view: Rectangle,
@@ -546,7 +547,7 @@ export class viewIndicatorPanel extends canvasPart {
   }
 
   private drawHistogramStacked(
-    ctx: CanvasRenderingContext2D,
+    ctx: FootprintCanvasContext,
     parent: FootPrintComponent,
     mtx: Matrix,
     view: Rectangle,

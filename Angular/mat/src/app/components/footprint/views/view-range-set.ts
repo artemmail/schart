@@ -7,7 +7,7 @@ import * as Hammer from 'hammerjs';
 import { drob } from 'src/app/service/FootPrint/utils';
 
 
-export class viewRangeSet extends canvasPart {
+export class viewRangeSet extends canvasPart<FootPrintComponent> {
   private cancelSwipeAnimation?: () => void;
   private startTime: number;
   private v0: number;

@@ -21,7 +21,7 @@ export class Ruler extends Line {
     super.drawShape();
 
     const ctx = this.footprint.ctx;
-    const view = this.footprint.viewsManager.viewMain?.view;
+    const view = this.footprint.viewport?.view;
     if (!ctx || !view) return;
 
     const label = this.buildLabel();

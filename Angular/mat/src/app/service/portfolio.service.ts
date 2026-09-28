@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Portfolio, PortfolioComparesResult, PortfolioSolution } from '../models/portfolio.model';
 import { environment } from '../environment';
-import { removeUTC } from './FootPrint/Formating/formatting.service';
+import { removeUTC } from './FootPrint/Formatting/formatting.service';
 import { SelectListItemText } from '../models/preserts';
 
 

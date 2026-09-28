@@ -4,7 +4,6 @@
     <div id="container">
       <app-footprint-widget
         [params]="params"
-        [postInit]="footprintPostInit"
         #footPrint
       ></app-footprint-widget>
     </div>
@@ -15,9 +14,9 @@
       #csvDialog
       [title]="csvDialogTitle"
       dialogKey="csvList"
-      [settings]="footPrint.renderer?.FPsettings"
+      [controller]="footPrint.controller"
     >
-      <footprint-csv-table [NP]="footPrint.renderer"></footprint-csv-table>
+      <footprint-csv-table [NP]="footPrint.controller"></footprint-csv-table>
     </app-non-modal-dialog>
   </ng-container>
 

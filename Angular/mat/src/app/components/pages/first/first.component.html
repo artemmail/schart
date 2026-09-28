@@ -43,11 +43,11 @@
             <mat-label>Выбор пресета</mat-label>
             <mat-select
               name="presetIndex"
-              [(ngModel)]="footPrint.presetIndex"
+              [ngModel]="footPrint.controller.presetIndex"
               (ngModelChange)="presetChange($event)"
             >
               <mat-option
-                *ngFor="let item of footPrint.presetItems"
+                *ngFor="let item of footPrint.controller.presetItems"
                 [value]="item.Value"
                 >{{ item.Text }}</mat-option
               >
@@ -64,8 +64,7 @@
         <div id="container">
           <app-footprint-widget
             [params]="params"
-            [postInit]="footprintPostInit"
-            #footPrint
+                #footPrint
           ></app-footprint-widget>
         </div>
       </div>
@@ -78,10 +77,10 @@
         #markupDialog
         title="Пометки"
         dialogKey="markup"
-        [settings]="footPrint.renderer?.FPsettings"
+        [controller]="footPrint.controller"
         (onCloseCallback)="onCloseMarkUp()"
       >
-        <app-markup-editor [NP]="footPrint.renderer"></app-markup-editor>
+        <app-markup-editor [NP]="footPrint.controller"></app-markup-editor>
       </app-non-modal-dialog>
     </ng-container>
   
@@ -90,12 +89,10 @@
         #settingsDialog
         title="Настройки"
         dialogKey="settings"
-        [settings]="footPrint.renderer?.FPsettings"
+        [controller]="footPrint.controller"
       >
         <app-footprint-settings-dialog
-          [fp]="footPrint.renderer"
-          [reloadData]="footPrint.reload.bind(footPrint)"
-          [reloadPresets]="footPrint.reloadPresets.bind(footPrint)"
+          [fp]="footPrint.controller"
         >
         </app-footprint-settings-dialog>
       </app-non-modal-dialog>
@@ -106,9 +103,9 @@
         #topOrdersDialog
         title="Крупнейшие сделки"
         dialogKey="topOrders"
-        [settings]="footPrint.renderer?.FPsettings"
+        [controller]="footPrint.controller"
       >
-        <footprint-top-orders [NP]="footPrint.renderer"></footprint-top-orders>
+        <footprint-top-orders [NP]="footPrint.controller"></footprint-top-orders>
       </app-non-modal-dialog>
     </ng-container>
   
@@ -117,9 +114,9 @@
         #volumeSearchDialog
         title="Volume search"
         dialogKey="volumeSearch"
-        [settings]="footPrint.renderer?.FPsettings"
+        [controller]="footPrint.controller"
       >
-        <app-volume-search-table [NP]="footPrint.renderer">
+        <app-volume-search-table [NP]="footPrint.controller">
         </app-volume-search-table>
       </app-non-modal-dialog>
     </ng-container>
@@ -129,9 +126,9 @@
         #csvDialog
         [title]="csvDialogTitle"
         dialogKey="csvList"
-        [settings]="footPrint.renderer?.FPsettings"
+        [controller]="footPrint.controller"
       >
-        <footprint-csv-table [NP]="footPrint.renderer"></footprint-csv-table>
+        <footprint-csv-table [NP]="footPrint.controller"></footprint-csv-table>
       </app-non-modal-dialog>
     </ng-container>
 
@@ -140,7 +137,7 @@
         #orderBookDialog
         title="Биржевой стакан"
         dialogKey="orderBook"
-        [settings]="footPrint.renderer?.FPsettings"
+        [controller]="footPrint.controller"
         (onCloseCallback)="onCloseOrderBook()"
       >
         <footprint-order-book [params]="footPrint.params"></footprint-order-book>
@@ -152,7 +149,7 @@
         #virtualPortfolioDialog
         title="Виртуальный портфель"
         dialogKey="virtualPortfolio"
-        [settings]="footPrint.renderer?.FPsettings"
+        [controller]="footPrint.controller"
         (onCloseCallback)="onCloseVirtualPortfolio()"
       >
         <footprint-virtual-portfolio

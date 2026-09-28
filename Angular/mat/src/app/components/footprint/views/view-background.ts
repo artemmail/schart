@@ -5,7 +5,7 @@ import { FootPrintComponent } from '../components/footprint/footprint.component'
 import { hexToRgb } from 'src/app/service/FootPrint/utils';
 import { isArbitrageMode } from 'src/app/models/footprint-mode';
 
-export class viewBackground extends canvasPart {
+export class viewBackground extends canvasPart<FootPrintComponent> {
   constructor(parent: FootPrintComponent, view: Rectangle, mtx: Matrix) {
     super(parent, view, mtx, DraggableEnum.No);
   }

@@ -1,5 +1,6 @@
 import {
   Component,
+  OnDestroy,
   Input,
   Output,
   EventEmitter,
@@ -14,8 +15,7 @@ import { TemplatePortal } from '@angular/cdk/portal';
 import { ViewContainerRef } from '@angular/core';
 import { DialogZIndexService } from 'src/app/service/dialog-zindex.service';
 import { MaterialModule } from 'src/app/material.module';
-import { ChartSettings } from 'src/app/models/ChartSettings';
-import { ChartSettingsService } from 'src/app/service/chart-settings.service';
+import type { FootprintController } from '../../footprint/models/footprint-controller';
 
 @Component({
   standalone: true,
@@ -24,10 +24,12 @@ import { ChartSettingsService } from 'src/app/service/chart-settings.service';
   templateUrl: './non-modal-dialog.component.html',
   styleUrls: ['./non-modal-dialog.component.scss'],
 })
-export class NonModalDialogComponent {
+export class NonModalDialogComponent implements OnDestroy {
+  private positionFrame?: number;
   @Input() title: string;
   @Input() dialogKey?: string;
-  @Input() settings?: ChartSettings | null;
+  @Input() controller?: FootprintController;
+  private get settings() { return this.controller?.settings; }
   @ViewChild('dialogTemplate') dialogTemplate: TemplateRef<any>;
   @ViewChild('dialogRoot') dialogRoot?: ElementRef<HTMLElement>;
   @Output() onCloseCallback = new EventEmitter<void>();
@@ -37,8 +39,7 @@ export class NonModalDialogComponent {
 
   constructor(
     private overlay: Overlay,
-    private viewContainerRef: ViewContainerRef,
-    private chartSettingsService: ChartSettingsService
+    private viewContainerRef: ViewContainerRef
   ) {}
 
   openDialog(top?: number, left?: number, forceDefaultPosition = false) {
@@ -74,7 +75,11 @@ export class NonModalDialogComponent {
     }
   }
 
+  ngOnDestroy(): void { this.closeDialog(); }
+
   closeDialog() {
+    if (this.positionFrame !== undefined) cancelAnimationFrame(this.positionFrame);
+    this.positionFrame = undefined;
     if (this.overlayRef) {
       this.overlayRef.dispose();
       this.overlayRef = null;
@@ -96,7 +101,11 @@ export class NonModalDialogComponent {
       return;
     }
 
-    requestAnimationFrame(() => {
+    const settings = this.settings;
+    if (this.positionFrame !== undefined) cancelAnimationFrame(this.positionFrame);
+    this.positionFrame = requestAnimationFrame(() => {
+      this.positionFrame = undefined;
+      if (this.settings !== settings) return;
       const rect = this.dialogRoot?.nativeElement.getBoundingClientRect();
       if (!rect) {
         return;
@@ -115,12 +124,7 @@ export class NonModalDialogComponent {
       return;
     }
 
-    if (!this.settings.DialogPositions) {
-      this.settings.DialogPositions = {};
-    }
-
-    this.settings.DialogPositions[this.dialogKey] = position;
-    this.chartSettingsService.updateSettings(this.settings).subscribe();
+    void this.controller?.saveDialogPosition(this.dialogKey, position);
   }
 
   private getSavedPosition(): { x: number; y: number } | null {

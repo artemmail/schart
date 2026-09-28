@@ -30,7 +30,7 @@ export class HorizontalLine extends Line {
     if (this.pointArray.length < 2) return null;
     const handle = this.selectedPoint_(point, this.pointArray);
     if (handle) return handle;
-    const view = this.footprint.viewsManager.viewMain?.view;
+    const view = this.footprint.viewport?.view;
     if (!view) return null;
     const y = this.baseToScreen(this.pointArray[0]).y;
     const p1 = { x: view.x, y };
@@ -44,7 +44,7 @@ export class HorizontalLine extends Line {
   override drawShape(): void {
     if (this.pointArray.length < 2) return;
     const ctx = this.footprint.ctx;
-    const view = this.footprint.viewsManager.viewMain?.view;
+    const view = this.footprint.viewport?.view;
     if (!view || !ctx) return;
     const width = typeof this.params?.width === 'number' ? this.params.width : 1;
     const color = typeof this.params?.color === 'string' ? this.params.color : this.getSelectionColor();
