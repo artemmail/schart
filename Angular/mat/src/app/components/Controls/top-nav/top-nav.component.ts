@@ -72,6 +72,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
   isVolatilityGraphSelected = false;
   isOptionCalcUserPortfolioSelected = false;
   isOptionCalcPortfolioSelected = false;
+  isBondsSelected = false;
   isFavoritesBoardSelected = false;
   isDrawerOpened = true;
   isAdmin: boolean = false; // Добавлено свойство для проверки администратора
@@ -131,6 +132,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
         this.isVolatilityGraphSelected = this.router.url.split(/[?#]/)[0] === '/VolatilityGraph';
         this.isOptionCalcUserPortfolioSelected = this.router.url.split(/[?#]/)[0] === '/OptionCalcUserPortfolio';
         this.isOptionCalcPortfolioSelected = this.router.url.split(/[?#]/)[0] === '/OptionCalcPortfolio';
+        this.isBondsSelected = this.router.url.split(/[?#]/)[0] === '/bonds';
         this.isFavoritesBoardSelected = this.isFavoritesBoardRoute(
           this.router.url
         );
@@ -140,7 +142,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
           if (!this.navService.isSidenavOpened()) {
             this.navService.openNav();
           }
-        } else if (!this.isVolatilitySmileSelected && !this.isOptionBoardSelected && !this.isVolatilityGraphSelected && !this.isOptionCalcUserPortfolioSelected && !this.isOptionCalcPortfolioSelected) {
+        } else if (!this.isVolatilitySmileSelected && !this.isOptionBoardSelected && !this.isVolatilityGraphSelected && !this.isOptionCalcUserPortfolioSelected && !this.isOptionCalcPortfolioSelected && !this.isBondsSelected) {
           // Если боковая панель открыта, закроем её
           if (this.navService.isSidenavOpened()) {
             this.navService.closeNav();

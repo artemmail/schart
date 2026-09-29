@@ -13,6 +13,7 @@ import { Ruler } from '../ruler';
 import { ArrowDownMarker, ArrowUpMarker } from '../arrow-marker';
 import { PriceLeftMarker, PriceRightMarker } from '../price-marker';
 import { Strength } from '../strength';
+import { FractalBarometer } from '../fractal-barometer';
 import { TextShape } from '../text';
 import { VerticalLine } from '../vertical-line';
 import { fontsPreset, profilePeriodsPreset, widthsPreset } from 'src/app/models/preserts';
@@ -449,6 +450,21 @@ const strengthDefinition: MarkupDefinition = {
   create: (manager, params) => new Strength(manager, params),
 };
 
+const fractalBarometerDefinition: MarkupDefinition = {
+  type: 'FractalBarometer',
+  displayName: 'Фрактальный барометр',
+  description: 'Рекомендация по свечам в прямоугольнике (от 34 свечей)',
+  icon: 'trending_up',
+  paramsSchema: {
+    dockable: {
+      type: 'bool',
+      title: 'Привязка к свечам',
+      default: true,
+    },
+  },
+  create: (manager, params) => new FractalBarometer(manager, params),
+};
+
 export const BUILTIN_MARKUP_DEFINITIONS: MarkupDefinition[] = [
   editDefinition,
   brushDefinition,
@@ -467,6 +483,7 @@ export const BUILTIN_MARKUP_DEFINITIONS: MarkupDefinition[] = [
   fanDefinition,
   textDefinition,
   profileDefinition,
+  fractalBarometerDefinition,
   strengthDefinition,
 ];
 

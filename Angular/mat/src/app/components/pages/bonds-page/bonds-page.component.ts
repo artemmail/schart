@@ -1,9 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { AfterViewInit, Component, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, ParamMap, Router, RouterModule } from '@angular/router';
 import { PageEvent } from '@angular/material/paginator';
-import { Subject, finalize, takeUntil } from 'rxjs';
+import { MatSidenav } from '@angular/material/sidenav';
+import { Subject, finalize, map, takeUntil } from 'rxjs';
 import { EChartsOption } from 'echarts';
 import {
   BondListItem,
@@ -15,6 +17,7 @@ import {
   BondsService,
 } from 'src/app/service/bonds.service';
 import { MaterialModule } from 'src/app/material.module';
+import { NavService } from 'src/app/service/nav.service';
 
 interface BondsState {
   yieldMin: number | null;
@@ -40,7 +43,9 @@ interface BondsState {
   templateUrl: './bonds-page.component.html',
   styleUrls: ['./bonds-page.component.scss'],
 })
-export class BondsPageComponent implements OnInit, OnDestroy {
+export class BondsPageComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('paramsDrawer') private paramsDrawer!: MatSidenav;
+  readonly paramsPanelMode$;
   readonly defaultMoexType = 'OFZ_BOND';
   readonly mapModes: { key: BondMapMode; label: string }[] = [
     { key: 'yield_by_duration', label: 'Доходность по сроку дюрации' },
@@ -73,8 +78,14 @@ export class BondsPageComponent implements OnInit, OnDestroy {
   constructor(
     private readonly bondsService: BondsService,
     private readonly route: ActivatedRoute,
-    private readonly router: Router
-  ) {}
+    private readonly router: Router,
+    private readonly navService: NavService,
+    breakpointObserver: BreakpointObserver
+  ) {
+    this.paramsPanelMode$ = breakpointObserver.observe('(max-width: 960px)').pipe(
+      map(({ matches }) => matches ? 'over' as const : 'side' as const)
+    );
+  }
 
   ngOnInit(): void {
     this.loadMoexTypes();
@@ -86,7 +97,12 @@ export class BondsPageComponent implements OnInit, OnDestroy {
       });
   }
 
+  ngAfterViewInit(): void {
+    this.navService.setSidenav(this.paramsDrawer);
+  }
+
   ngOnDestroy(): void {
+    this.navService.clearSidenav(this.paramsDrawer);
     this.setBodyScrollLock(false);
     this.destroy$.next();
     this.destroy$.complete();
@@ -181,21 +197,12 @@ export class BondsPageComponent implements OnInit, OnDestroy {
     return this.state.dir === 'asc' ? 'arrow_upward' : 'arrow_downward';
   }
 
-  get selectedMoexTypeIndex(): number {
-    if (this.moexTypeOptions.length === 0) {
-      return 0;
-    }
-    const current = (this.state.moexType || '').trim().toUpperCase();
-    const idx = this.moexTypeOptions.findIndex((x) => (x.key || '').trim().toUpperCase() === current);
-    return idx >= 0 ? idx : 0;
-  }
-
-  onMoexTypeTabChanged(index: number): void {
-    if (index < 0 || index >= this.moexTypeOptions.length) {
+  onMoexTypeChanged(value: string): void {
+    const nextType = (value || '').trim().toUpperCase();
+    if (!this.moexTypeOptions.some((option) => option.key === nextType)) {
       return;
     }
-    const nextType = (this.moexTypeOptions[index].key || '').trim().toUpperCase();
-    if (!nextType || nextType === this.state.moexType) {
+    if (nextType === this.state.moexType) {
       return;
     }
     const nextState: BondsState = { ...this.state, moexType: nextType, page: 1 };

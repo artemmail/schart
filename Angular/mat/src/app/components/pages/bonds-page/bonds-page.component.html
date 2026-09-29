@@ -1,56 +1,62 @@
 <div class="bonds-page">
-  <mat-card class="bonds-card">
-    <mat-card-header>
-      <mat-card-title>Облигации</mat-card-title>
-      <mat-card-subtitle>Фильтры, карта доходности и таблица котировок</mat-card-subtitle>
-    </mat-card-header>
-
-    <mat-card-content>
+  <mat-sidenav-container class="bonds-layout" [class.fullscreen-map]="isMapFullscreen">
+    <mat-sidenav
+      #paramsDrawer
+      id="bonds-params"
+      class="bonds-params"
+      position="start"
+      [mode]="(paramsPanelMode$ | async) ?? 'side'"
+      [opened]="true"
+      aria-label="Фильтры облигаций"
+    >
+      <div class="params-header">
+        <span>Параметры</span>
+        <button type="button" mat-icon-button (click)="paramsDrawer.close()" aria-label="Закрыть параметры">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
       <section class="filters">
-        <div class="moex-type-tabs-wrap" *ngIf="moexTypeOptions.length > 0">
-          <mat-tab-group
-            class="moex-type-tabs"
-            [selectedIndex]="selectedMoexTypeIndex"
-            (selectedIndexChange)="onMoexTypeTabChanged($event)"
-            animationDuration="0ms"
-            dynamicHeight="false"
-          >
-            <mat-tab *ngFor="let item of moexTypeOptions" [label]="item.label"></mat-tab>
-          </mat-tab-group>
-        </div>
-
         <div class="filters-grid">
-          <mat-form-field appearance="outline">
+          <mat-form-field appearance="fill" *ngIf="moexTypeOptions.length > 0">
+            <mat-label>Тип облигаций MOEX</mat-label>
+            <mat-select [value]="state.moexType" (selectionChange)="onMoexTypeChanged($event.value)">
+              <mat-option *ngFor="let item of moexTypeOptions" [value]="item.key">
+                {{ item.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="fill">
             <mat-label>Доходность от, %</mat-label>
             <input matInput type="number" [(ngModel)]="state.yieldMin" />
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
+          <mat-form-field appearance="fill">
             <mat-label>Доходность до, %</mat-label>
             <input matInput type="number" [(ngModel)]="state.yieldMax" />
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
+          <mat-form-field appearance="fill">
             <mat-label>Дюрация от, лет</mat-label>
             <input matInput type="number" [(ngModel)]="state.durationMin" />
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
+          <mat-form-field appearance="fill">
             <mat-label>Дюрация до, лет</mat-label>
             <input matInput type="number" [(ngModel)]="state.durationMax" />
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
+          <mat-form-field appearance="fill">
             <mat-label>Лет до погашения от</mat-label>
             <input matInput type="number" [(ngModel)]="state.yearsToMaturityMin" />
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
+          <mat-form-field appearance="fill">
             <mat-label>Лет до погашения до</mat-label>
             <input matInput type="number" [(ngModel)]="state.yearsToMaturityMax" />
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
+          <mat-form-field appearance="fill">
             <mat-label>Частота купона</mat-label>
             <mat-select multiple [(ngModel)]="state.couponFreq">
               <mat-option *ngFor="let item of couponFreqOptions" [value]="item.value">
@@ -59,7 +65,7 @@
             </mat-select>
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
+          <mat-form-field appearance="fill">
             <mat-label>Режим карты</mat-label>
             <mat-select [(ngModel)]="state.mapMode" (selectionChange)="onMapModeChanged()">
               <mat-option *ngFor="let mode of mapModes" [value]="mode.key">
@@ -78,6 +84,14 @@
           <button mat-stroked-button (click)="resetFilters()">Сбросить</button>
         </div>
       </section>
+    </mat-sidenav>
+    <mat-sidenav-content class="bonds-main">
+      <mat-card class="bonds-card">
+        <mat-card-header>
+          <mat-card-title>Облигации</mat-card-title>
+          <mat-card-subtitle>Фильтры, карта доходности и таблица котировок</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
 
       <section class="map-section" [class.fullscreen]="isMapFullscreen">
         <div class="section-head">
@@ -189,8 +203,10 @@
           (page)="onPage($event)"
         ></mat-paginator>
       </section>
-    </mat-card-content>
-  </mat-card>
+        </mat-card-content>
+      </mat-card>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
 
   <div class="page-loading-overlay" *ngIf="loading">
     <div class="page-loading-card">
