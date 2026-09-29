@@ -1,9 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { MatSidenav } from '@angular/material/sidenav';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import { MaterialModule } from 'src/app/material.module';
+import { NavService } from 'src/app/service/nav.service';
 
 type ViewPresetId =
   | 'pnl_only'
@@ -153,7 +156,9 @@ interface CalcResult {
   templateUrl: './option-calc-portfolio.component.html',
   styleUrls: ['./option-calc-portfolio.component.scss']
 })
-export class OptionCalcPortfolioComponent implements OnInit {
+export class OptionCalcPortfolioComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('paramsDrawer') private paramsDrawer!: MatSidenav;
+  readonly paramsPanelMode$;
   assets: AssetItem[] = [];
   assetTypes: string[] = [];
   expirations: string[] = [];
@@ -194,11 +199,27 @@ export class OptionCalcPortfolioComponent implements OnInit {
 
   private readonly allMetrics: ChartMetric[] = ['profit_and_loss', 'delta', 'gamma', 'vega', 'theta', 'rho'];
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(
+    private readonly http: HttpClient,
+    private readonly navService: NavService,
+    breakpointObserver: BreakpointObserver
+  ) {
+    this.paramsPanelMode$ = breakpointObserver.observe('(max-width: 960px)').pipe(
+      map(({ matches }) => matches ? 'over' as const : 'side' as const)
+    );
+  }
 
   async ngOnInit(): Promise<void> {
     await this.loadAssets();
     this.addPositionRow();
+  }
+
+  ngAfterViewInit(): void {
+    this.navService.setSidenav(this.paramsDrawer);
+  }
+
+  ngOnDestroy(): void {
+    this.navService.clearSidenav(this.paramsDrawer);
   }
 
   get currentPreset(): ViewPreset {

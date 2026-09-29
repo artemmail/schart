@@ -20,7 +20,6 @@
   --portfolio-whatif: #2e7d32;
   --portfolio-crosshair: var(--sc-crosshair, rgba(15, 23, 42, 0.6));
   --portfolio-plot: var(--mat-sys-surface, #ffffff);
-  padding: 16px 20px;
 }
 
 :host-context(.mat-dark-theme) .portfolio-page {
@@ -44,16 +43,43 @@
   color: var(--portfolio-text);
 }
 
-.portfolio-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
+.portfolio-card mat-card-header {
   margin-bottom: 16px;
 }
 
+.portfolio-layout {
+  height: calc(100dvh - 66px);
+  min-height: 420px;
+}
+
+.portfolio-params {
+  width: 270px;
+  max-width: calc(100vw - 48px);
+}
+
+.params-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 0 10px;
+  font-weight: 600;
+}
+
+.portfolio-main {
+  padding: 16px 20px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.portfolio-controls {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
 .portfolio-controls mat-form-field {
-  min-width: 180px;
+  width: 100%;
+  min-width: 0;
 }
 
 .editor-panel,
@@ -126,7 +152,7 @@
 
 .portfolio-body {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }

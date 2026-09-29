@@ -1,7 +1,7 @@
 <div class="main-container">
   <app-yandex-adv *ngIf="!isSignedIn"></app-yandex-adv>
   <mat-toolbar color="primary" class="mat-elevation-z1">
-    <button *ngIf="isFootPrintSelected || isVolatilitySmileSelected || isOptionBoardSelected || isVolatilityGraphSelected" class="btn-toggle" mat-icon-button id="menu" (click)="toggle()" aria-label="Параметры" [attr.aria-expanded]="isDrawerOpened">
+    <button *ngIf="isFootPrintSelected || isVolatilitySmileSelected || isOptionBoardSelected || isVolatilityGraphSelected || isOptionCalcUserPortfolioSelected || isOptionCalcPortfolioSelected" class="btn-toggle" mat-icon-button id="menu" (click)="toggle()" aria-label="Параметры" [attr.aria-expanded]="isDrawerOpened">
       <div class="wrapper-menu" [ngClass]="isDrawerOpened ? 'open' : 'close'">
         <div class="line-menu half start"></div>
         <div class="line-menu"></div>

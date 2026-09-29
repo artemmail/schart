@@ -1,15 +1,22 @@
 <div class="portfolio-page">
-  <mat-card class="portfolio-card">
-    <mat-card-header>
-      <mat-card-title>Опционный портфель (конструктор)</mat-card-title>
-      <mat-card-subtitle>
-        Ручная сборка портфеля и графики PnL/греков через Options Calculator API.
-      </mat-card-subtitle>
-    </mat-card-header>
-
-    <mat-card-content>
+  <mat-sidenav-container class="portfolio-layout">
+    <mat-sidenav
+      #paramsDrawer
+      id="portfolio-params"
+      class="portfolio-params"
+      position="start"
+      [mode]="(paramsPanelMode$ | async) ?? 'side'"
+      [opened]="true"
+      aria-label="Параметры конструктора опционного портфеля"
+    >
+      <div class="params-header">
+        <span>Параметры</span>
+        <button type="button" mat-icon-button (click)="paramsDrawer.close()" aria-label="Закрыть параметры">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
       <div class="portfolio-controls">
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="fill">
           <mat-label>Базовый актив</mat-label>
           <mat-select [(ngModel)]="selectedAsset" (selectionChange)="onAssetChange()">
             <mat-option *ngFor="let asset of assets" [value]="asset.code">
@@ -18,7 +25,7 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="fill">
           <mat-label>Тип актива</mat-label>
           <mat-select [(ngModel)]="selectedAssetType" (selectionChange)="onAssetTypeChange()">
             <mat-option *ngFor="let type of assetTypes" [value]="type">
@@ -27,7 +34,7 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="fill">
           <mat-label>Экспирация</mat-label>
           <mat-select [(ngModel)]="selectedExpiration" (selectionChange)="onExpirationChange()">
             <mat-option *ngFor="let exp of expirations" [value]="exp">
@@ -36,7 +43,7 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="fill">
           <mat-label>Фильтр цепочки</mat-label>
           <mat-select [(ngModel)]="optionFilter" (selectionChange)="onOptionFilterChange()">
             <mat-option value="ALL">Calls + Puts</mat-option>
@@ -45,7 +52,7 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="fill">
           <mat-label>View preset</mat-label>
           <mat-select [(ngModel)]="viewPresetId" (selectionChange)="onPresetChange()">
             <mat-option *ngFor="let preset of viewPresets" [value]="preset.id">
@@ -54,12 +61,12 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="fill">
           <mat-label>What-if Δσ</mat-label>
           <input matInput type="number" [(ngModel)]="whatIfDeltaSigma" placeholder="Напр. -10">
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="fill">
           <mat-label>What-if дата</mat-label>
           <input matInput type="date" [(ngModel)]="whatIfDate">
         </mat-form-field>
@@ -72,6 +79,16 @@
           Рассчитать
         </button>
       </div>
+    </mat-sidenav>
+    <mat-sidenav-content class="portfolio-main">
+      <mat-card class="portfolio-card">
+        <mat-card-header>
+          <mat-card-title>Опционный портфель (конструктор)</mat-card-title>
+          <mat-card-subtitle>
+            Ручная сборка портфеля и графики PnL/греков через Options Calculator API.
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
 
       <div class="editor-panel">
         <div class="panel-header">
@@ -402,7 +419,9 @@
           </div>
         </div>
       </div>
-    </mat-card-content>
-  </mat-card>
+        </mat-card-content>
+      </mat-card>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
 </div>
 
