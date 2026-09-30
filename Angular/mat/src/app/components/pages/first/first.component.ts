@@ -46,6 +46,7 @@ import {
   resolveFootprintMode,
 } from 'src/app/models/footprint-mode';
 import { normalizeFootprintQueryParams } from 'src/app/models/footprint-query-params';
+import { RelatedAssetsDialogComponent } from './related-assets-dialog.component';
 
 import { Title } from '@angular/platform-browser';
 
@@ -244,6 +245,28 @@ export class FirstComponent implements OnInit, AfterViewInit, AfterViewChecked {
 
     this.footPrintParamsComponent?.onTickerSelected(ticker);
     this.requestFootprint();
+  }
+
+  openRelatedAssets(): void {
+    const ticker = this.footPrint?.params?.ticker || this.params?.ticker;
+    if (!ticker) return;
+    this.dialog.open<RelatedAssetsDialogComponent, { ticker: string }, string>(RelatedAssetsDialogComponent, {
+      width: '1120px', maxWidth: '95vw', autoFocus: false, data: { ticker },
+    }).afterClosed().subscribe(selected => {
+      if (!selected || selected.toUpperCase() === ticker.toUpperCase()) return;
+      this.commonService.getControlsNew({ ticker: selected }).subscribe({
+        next: controls => {
+          this.params.minStep = controls.minStep;
+          this.params.priceStep = controls.priceStep;
+          this.footPrintParamsComponent?.onTickerSelected(selected);
+          this.requestFootprint();
+        },
+        error: () => {
+          this.footPrintParamsComponent?.onTickerSelected(selected);
+          this.requestFootprint();
+        },
+      });
+    });
   }
 
   openModalPortfolioCompare(): void {

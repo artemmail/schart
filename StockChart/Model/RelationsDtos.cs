@@ -3,6 +3,7 @@ namespace StockChart.Model
     public sealed class InstrumentRelationItemDto
     {
         public int DictionaryId { get; set; }
+        public bool CanOpenChart { get; set; } = true;
         public string SecurityId { get; set; } = string.Empty;
         public string? Shortname { get; set; }
         public byte? Market { get; set; }
@@ -16,6 +17,12 @@ namespace StockChart.Model
         public string? PrimaryBoardId { get; set; }
         public decimal? CurrentYield { get; set; }
         public decimal? CurrentPrice { get; set; }
+        public DateTime? ExpirationDate { get; set; }
+        public int? LotSize { get; set; }
+        public string? OptionType { get; set; }
+        public decimal? Strike { get; set; }
+        public decimal? Volatility { get; set; }
+        public long? OpenInterest { get; set; }
     }
 
     public sealed class InstrumentRelationsDto

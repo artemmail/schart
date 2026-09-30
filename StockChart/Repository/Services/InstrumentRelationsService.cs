@@ -50,8 +50,12 @@ namespace StockChart.Repository.Services
                 return null;
             }
 
+            return await GetRelationsAsync(stock, cancellationToken);
+        }
+
+        public async Task<InstrumentRelationsDto> GetRelationsAsync(DictionaryEntity stock, CancellationToken cancellationToken = default)
+        {
             var today = DateTime.Today;
-            var baseCode = ResolveBaseCode(stock.Securityid);
 
             var links = await _db.SecurityLinks
                 .AsNoTracking()
@@ -82,7 +86,7 @@ namespace StockChart.Repository.Services
                         continue;
                     }
 
-                    if (link.LinkType == LinkSameIssuer)
+                    if (link.LinkType == LinkSameIssuer && dic.Market == MarketBonds)
                     {
                         if (!bondDicts.ContainsKey(dic.Id))
                         {
@@ -111,7 +115,7 @@ namespace StockChart.Repository.Services
                 }
             }
 
-            if (bondDicts.Count == 0 && stock.EmitentId.HasValue)
+            if (stock.EmitentId.HasValue)
             {
                 var bonds = await _db.Dictionaries
                     .AsNoTracking()
@@ -127,119 +131,45 @@ namespace StockChart.Repository.Services
                 }
             }
 
-            if (futureDicts.Count == 0 || optionDicts.Count == 0)
-            {
-                var mappedAssets = await _db.UnderlyingMaps
-                    .AsNoTracking()
-                    .Where(m => m.SpotSecId == stock.Securityid)
-                    .Select(m => m.AssetCode)
-                    .ToListAsync(cancellationToken);
+            var mappedAssets = await _db.UnderlyingMaps.AsNoTracking()
+                .Where(m => m.SpotSecId == stock.Securityid)
+                .Select(m => m.AssetCode).ToListAsync(cancellationToken);
+            var linkedFutureIds = futureDicts.Keys.ToList();
+            var linkedOptionIds = optionDicts.Keys.ToList();
+            var linkedFutureAssets = await _db.FutureSpecs.AsNoTracking()
+                .Where(f => linkedFutureIds.Contains(f.DictionaryId) && f.AssetCode != null)
+                .Select(f => f.AssetCode!).ToListAsync(cancellationToken);
+            var linkedOptionAssets = await _db.OptionSpecs.AsNoTracking()
+                .Where(o => linkedOptionIds.Contains(o.DictionaryId) && o.AssetCode != null)
+                .Select(o => o.AssetCode!).ToListAsync(cancellationToken);
+            var assets = mappedAssets.Concat(linkedFutureAssets).Concat(linkedOptionAssets)
+                // Mirror the resolver's exchange convention for perpetual asset codes.
+                .Append(stock.Securityid).Append(stock.Securityid + "F")
+                .Where(a => !string.IsNullOrWhiteSpace(a))
+                .Select(a => a.Trim().ToUpperInvariant()).Distinct().ToList();
 
-                var assetSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                foreach (var code in mappedAssets)
-                {
-                    if (!string.IsNullOrWhiteSpace(code))
-                    {
-                        assetSet.Add(code.Trim());
-                    }
-                }
+            // Use actual exchange family codes, never the first characters of a ticker.
+            var futures = await (from f in _db.FutureSpecs.AsNoTracking()
+                                 join d in _db.Dictionaries.AsNoTracking() on f.DictionaryId equals d.Id
+                                 where d.Market == MarketFutures && f.AssetCode != null
+                                       && assets.Contains(f.AssetCode)
+                                 select d).ToListAsync(cancellationToken);
+            foreach (var future in futures) futureDicts[future.Id] = future;
 
-                if (!string.IsNullOrWhiteSpace(stock.Securityid))
-                {
-                    assetSet.Add(stock.Securityid.Trim());
-                }
-
-                if (!string.IsNullOrWhiteSpace(baseCode))
-                {
-                    assetSet.Add(baseCode);
-                }
-
-                var normalizedAssets = assetSet
-                    .Where(a => !string.IsNullOrWhiteSpace(a))
-                    .Select(a => a.Trim().ToUpperInvariant())
-                    .ToList();
-
-                if (normalizedAssets.Count > 0)
-                {
-                    if (futureDicts.Count == 0)
-                    {
-                        var futures = await (from f in _db.FutureSpecs.AsNoTracking()
-                                             join d in _db.Dictionaries.AsNoTracking() on f.DictionaryId equals d.Id
-                                             where d.Market == MarketFutures
-                                                   && f.AssetCode != null
-                                                   && normalizedAssets.Contains(f.AssetCode)
-                                                   && (!f.ExpirationDate.HasValue || f.ExpirationDate.Value >= today)
-                                             select d)
-                            .ToListAsync(cancellationToken);
-
-                        foreach (var fut in futures)
-                        {
-                            if (!futureDicts.ContainsKey(fut.Id))
-                            {
-                                futureDicts[fut.Id] = fut;
-                            }
-                        }
-                    }
-
-                    if (optionDicts.Count == 0)
-                    {
-                        var options = await (from o in _db.OptionSpecs.AsNoTracking()
-                                             join d in _db.Dictionaries.AsNoTracking() on o.DictionaryId equals d.Id
-                                             where d.Market == MarketOptions
-                                                   && o.AssetCode != null
-                                                   && normalizedAssets.Contains(o.AssetCode)
-                                                   && (!o.ExpirationDate.HasValue || o.ExpirationDate.Value >= today)
-                                             select d)
-                            .ToListAsync(cancellationToken);
-
-                        foreach (var opt in options)
-                        {
-                            if (!optionDicts.ContainsKey(opt.Id))
-                            {
-                                optionDicts[opt.Id] = opt;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (futureDicts.Count == 0 && !string.IsNullOrWhiteSpace(baseCode))
-            {
-                var futures = await (from f in _db.FutureSpecs.AsNoTracking()
-                                     join d in _db.Dictionaries.AsNoTracking() on f.DictionaryId equals d.Id
-                                     where d.Market == MarketFutures
-                                           && d.Securityid.StartsWith(baseCode)
-                                           && (!f.ExpirationDate.HasValue || f.ExpirationDate.Value >= today)
-                                     select d)
-                    .ToListAsync(cancellationToken);
-
-                foreach (var fut in futures)
-                {
-                    if (!futureDicts.ContainsKey(fut.Id))
-                    {
-                        futureDicts[fut.Id] = fut;
-                    }
-                }
-            }
-
-            if (optionDicts.Count == 0 && !string.IsNullOrWhiteSpace(baseCode))
-            {
-                var options = await (from o in _db.OptionSpecs.AsNoTracking()
-                                     join d in _db.Dictionaries.AsNoTracking() on o.DictionaryId equals d.Id
-                                     where d.Market == MarketOptions
-                                           && d.Securityid.StartsWith(baseCode)
-                                           && (!o.ExpirationDate.HasValue || o.ExpirationDate.Value >= today)
-                                     select d)
-                    .ToListAsync(cancellationToken);
-
-                foreach (var opt in options)
-                {
-                    if (!optionDicts.ContainsKey(opt.Id))
-                    {
-                        optionDicts[opt.Id] = opt;
-                    }
-                }
-            }
+            // Options can refer either to the family or to a specific futures series.
+            var familyFutureIds = futureDicts.Keys.ToList();
+            var familyOptionIds = await _db.SecurityLinks.AsNoTracking()
+                .Where(l => l.LinkType == LinkUnderlying && familyFutureIds.Contains(l.FromDictionaryId))
+                .Select(l => l.ToDictionaryId).ToListAsync(cancellationToken);
+            var optionAssets = assets.Concat(futureDicts.Values.Select(d => d.Securityid)).Distinct().ToList();
+            var options = await (from d in _db.Dictionaries.AsNoTracking()
+                                 join o in _db.OptionSpecs.AsNoTracking() on d.Id equals o.DictionaryId into specs
+                                 from o in specs.DefaultIfEmpty()
+                                 where d.Market == MarketOptions &&
+                                       (familyOptionIds.Contains(d.Id) ||
+                                        (o != null && o.AssetCode != null && optionAssets.Contains(o.AssetCode)))
+                                 select d).ToListAsync(cancellationToken);
+            foreach (var option in options) optionDicts[option.Id] = option;
 
             var bondIds = bondDicts.Keys.ToList();
             var bondSpecMap = bondIds.Count == 0
@@ -248,27 +178,6 @@ namespace StockChart.Repository.Services
                     .AsNoTracking()
                     .Where(b => bondIds.Contains(b.DictionaryId))
                     .ToDictionaryAsync(b => b.DictionaryId, cancellationToken);
-            var bondsWithCandles = bondIds.Count == 0
-                ? new HashSet<int>()
-                : new HashSet<int>(await _db.DayCandles
-                    .AsNoTracking()
-                    .Where(c => bondIds.Contains(c.Id))
-                    .Select(c => c.Id)
-                    .Distinct()
-                    .ToListAsync(cancellationToken));
-
-            var bondsWithTrades = bondIds.Count == 0
-                ? new HashSet<int>()
-                : new HashSet<int>(await _db.MaxTrades
-                    .AsNoTracking()
-                    .Where(t => bondIds.Contains(t.Id) && t.MaxNumber > 0)
-                    .Select(t => t.Id)
-                    .Distinct()
-                    .ToListAsync(cancellationToken));
-
-            var bondsKeep = new HashSet<int>(bondsWithTrades);
-            bondsKeep.UnionWith(bondsWithCandles);
-
             var futureIds = futureDicts.Keys.ToList();
             var futureSpecMap = futureIds.Count == 0
                 ? new Dictionary<int, FutureSpec>()
@@ -285,9 +194,20 @@ namespace StockChart.Repository.Services
                     .Where(o => optionIds.Contains(o.DictionaryId))
                     .ToDictionaryAsync(o => o.DictionaryId, cancellationToken);
 
+            var futurePriceMap = futureIds.Count == 0
+                ? new Dictionary<int, decimal?>()
+                : await _db.DayCandles.AsNoTracking()
+                    .Where(c => futureIds.Contains(c.Id))
+                    .GroupBy(c => c.Id)
+                    .Select(g => new
+                    {
+                        Id = g.Key,
+                        Price = g.OrderByDescending(c => c.Period).Select(c => (decimal?)c.ClsPrice).FirstOrDefault()
+                    })
+                    .ToDictionaryAsync(x => x.Id, x => x.Price, cancellationToken);
+
             var bondsForOutput = bondDicts.Values
-                .Where(dic => bondsKeep.Contains(dic.Id)
-                              && (!dic.ToDate.HasValue || dic.ToDate.Value.Date >= today.Date))
+                .Where(dic => !dic.ToDate.HasValue || dic.ToDate.Value.Date >= today.Date)
                 .ToList();
 
             var bondPriceMap = await LoadBondLastPricesAsync(bondsForOutput, cancellationToken);
@@ -334,14 +254,39 @@ namespace StockChart.Repository.Services
                 .ToList();
 
             var futuresResult = futureDicts.Values
-                .Where(dic => !futureSpecMap.TryGetValue(dic.Id, out var spec) || !spec.ExpirationDate.HasValue || spec.ExpirationDate.Value >= today)
-                .Select(MapItem)
+                .Where(dic => (!dic.ToDate.HasValue || dic.ToDate.Value.Date >= today.Date)
+                              && (!futureSpecMap.TryGetValue(dic.Id, out var spec) || !spec.ExpirationDate.HasValue || spec.ExpirationDate.Value >= today))
+                .Select(dic =>
+                {
+                    var item = MapItem(dic);
+                    if (futureSpecMap.TryGetValue(dic.Id, out var spec))
+                    {
+                        item.ExpirationDate = spec.ExpirationDate;
+                        item.LotSize = spec.LotSize;
+                    }
+                    if (futurePriceMap.TryGetValue(dic.Id, out var price)) item.CurrentPrice = price;
+                    return item;
+                })
                 .OrderBy(f => f.SecurityId)
                 .ToList();
 
             var optionsResult = optionDicts.Values
-                .Where(dic => !optionSpecMap.TryGetValue(dic.Id, out var spec) || !spec.ExpirationDate.HasValue || spec.ExpirationDate.Value >= today)
-                .Select(MapItem)
+                .Where(dic => (!dic.ToDate.HasValue || dic.ToDate.Value.Date >= today.Date)
+                              && (!optionSpecMap.TryGetValue(dic.Id, out var spec) || !spec.ExpirationDate.HasValue || spec.ExpirationDate.Value >= today))
+                .Select(dic =>
+                {
+                    var item = MapItem(dic);
+                    if (optionSpecMap.TryGetValue(dic.Id, out var spec))
+                    {
+                        item.ExpirationDate = spec.ExpirationDate;
+                        item.CurrentPrice = spec.Last ?? spec.TheorPrice;
+                        item.OptionType = spec.OptionType;
+                        item.Strike = spec.Strike;
+                        item.Volatility = spec.Volat;
+                        item.OpenInterest = spec.OpenPosition;
+                    }
+                    return item;
+                })
                 .OrderBy(o => o.SecurityId)
                 .ToList();
 
@@ -352,22 +297,6 @@ namespace StockChart.Repository.Services
                 Futures = futuresResult,
                 Options = optionsResult
             };
-        }
-
-        private static string? ResolveBaseCode(string? securityId)
-        {
-            if (string.IsNullOrWhiteSpace(securityId))
-            {
-                return null;
-            }
-
-            var trimmed = securityId.Trim().ToUpperInvariant();
-            if (trimmed.Length <= 2)
-            {
-                return trimmed;
-            }
-
-            return trimmed.Substring(0, 2);
         }
 
         private async Task<Dictionary<int, decimal>> LoadBondLastPricesAsync(
@@ -460,6 +389,7 @@ namespace StockChart.Repository.Services
             return new InstrumentRelationItemDto
             {
                 DictionaryId = dic.Id,
+                CanOpenChart = dic.Id > 0,
                 SecurityId = dic.Securityid,
                 Shortname = dic.Shortname,
                 Market = dic.Market,

@@ -1,0 +1,88 @@
+<h2 mat-dialog-title>Связанные активы</h2>
+<mat-dialog-content class="asset-tree">
+  <p *ngIf="loading">Загружаем связанные инструменты…</p>
+  <p *ngIf="error" class="asset-error">{{ error }}</p>
+  <ng-container *ngIf="stock">
+    <div class="table-scroll">
+      <table class="asset-table stock-table">
+        <thead><tr><th>Базовый актив</th><th>Название</th><th>Цена</th></tr></thead>
+        <tbody><tr [class.selected]="isCurrent(stock.ticker)">
+          <td><button *ngIf="stock.canOpenChart !== false; else assetCode" type="button" class="ticker" (click)="choose(stock.ticker)">{{ stock.ticker }}</button><ng-template #assetCode><span title="Для базового актива нет отдельного графика">{{ stock.ticker }}</span></ng-template><span *ngIf="isCurrent(stock.ticker)" class="current-label">На графике</span></td>
+          <td class="name-cell">{{ stock.name || '—' }}</td>
+          <td>{{ stock.price != null ? (stock.price | number:'1.0-4') : '—' }}</td>
+        </tr></tbody>
+      </table>
+    </div>
+
+    <section class="branch">
+      <button type="button" class="branch-title" (click)="expanded.futures = !expanded.futures" [attr.aria-expanded]="expanded.futures">
+        <mat-icon>{{ expanded.futures ? 'expand_more' : 'chevron_right' }}</mat-icon>Фьючерсы <span>({{ futures.length }})</span>
+      </button>
+      <div *ngIf="expanded.futures" class="table-scroll">
+        <table class="asset-table futures-table">
+          <thead><tr><th>Тикер</th><th>Название</th><th>Цена</th><th>Экспирация</th><th>До экспирации</th><th>Базис</th><th>Ставка</th><th>Лот</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let row of futures" [class.selected]="isCurrent(row.ticker)">
+              <td><button type="button" class="ticker" (click)="choose(row.ticker)">{{ row.ticker }}</button><span *ngIf="isCurrent(row.ticker)" class="current-label">На графике</span></td>
+              <td class="name-cell">{{ row.name || '—' }}</td>
+              <td>{{ row.price != null ? (row.price | number:'1.0-4') : '—' }}</td>
+              <td>{{ row.expiration || '—' }}</td>
+              <td>{{ row.days != null ? row.days + ' дн.' : '—' }}</td>
+              <td>{{ row.basis || '—' }}</td>
+              <td>{{ row.impliedRate || '—' }}</td>
+              <td>{{ row.lot != null ? (row.lot | number:'1.0-0') : '—' }}</td>
+            </tr>
+            <tr *ngIf="!futures.length"><td colspan="8" class="empty">Нет связанных инструментов</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="branch">
+      <button type="button" class="branch-title" (click)="expanded.options = !expanded.options" [attr.aria-expanded]="expanded.options">
+        <mat-icon>{{ expanded.options ? 'expand_more' : 'chevron_right' }}</mat-icon>Опционы <span>({{ options.length }})</span>
+      </button>
+      <div *ngIf="expanded.options" class="table-scroll">
+        <table class="asset-table options-table">
+          <thead><tr><th>Тикер</th><th>Название</th><th>Цена</th><th>Тип</th><th>Страйк</th><th>Экспирация</th><th>IV</th><th>ОИ</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let row of options" [class.selected]="isCurrent(row.ticker)">
+              <td><button type="button" class="ticker" (click)="choose(row.ticker)">{{ row.ticker }}</button><span *ngIf="isCurrent(row.ticker)" class="current-label">На графике</span></td>
+              <td class="name-cell">{{ row.name || '—' }}</td>
+              <td>{{ row.price != null ? (row.price | number:'1.0-4') : '—' }}</td>
+              <td>{{ row.optionType || '—' }}</td>
+              <td>{{ row.strike != null ? (row.strike | number:'1.0-4') : '—' }}</td>
+              <td>{{ row.expiration || '—' }}</td>
+              <td>{{ row.volatility || '—' }}</td>
+              <td>{{ row.openInterest != null ? (row.openInterest | number:'1.0-0') : '—' }}</td>
+            </tr>
+            <tr *ngIf="!options.length"><td colspan="8" class="empty">Нет связанных инструментов</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="branch">
+      <button type="button" class="branch-title" (click)="expanded.bonds = !expanded.bonds" [attr.aria-expanded]="expanded.bonds">
+        <mat-icon>{{ expanded.bonds ? 'expand_more' : 'chevron_right' }}</mat-icon>Облигации <span>({{ bonds.length }})</span>
+      </button>
+      <div *ngIf="expanded.bonds" class="table-scroll">
+        <table class="asset-table bonds-table">
+          <thead><tr><th>Тикер</th><th>Название</th><th>Цена</th><th>Доходность</th><th>Погашение</th><th>След. купон</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let row of bonds" [class.selected]="isCurrent(row.ticker)">
+              <td><button type="button" class="ticker" (click)="choose(row.ticker)">{{ row.ticker }}</button><span *ngIf="isCurrent(row.ticker)" class="current-label">На графике</span></td>
+              <td class="name-cell">{{ row.name || '—' }}</td>
+              <td>{{ row.price != null ? (row.price | number:'1.0-4') : '—' }}{{ row.price != null && row.priceIsPercent ? '%' : '' }}</td>
+              <td>{{ row.yield || '—' }}</td>
+              <td>{{ row.expiration || '—' }}</td>
+              <td>{{ row.nextCouponDate || '—' }}</td>
+            </tr>
+            <tr *ngIf="!bonds.length"><td colspan="6" class="empty">Нет связанных инструментов</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </ng-container>
+</mat-dialog-content>
+<mat-dialog-actions align="end"><button mat-button mat-dialog-close>Закрыть</button></mat-dialog-actions>

@@ -1,0 +1,22 @@
+.asset-tree { min-width: min(1040px, 85vw); max-height: 72vh; }
+.branch { border-top: 1px solid var(--mat-sys-outline-variant); }
+.branch-title { display: flex; align-items: center; gap: 6px; width: 100%; padding: 12px 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.branch-title span { opacity: .65; font-weight: 400; }
+.table-scroll { width: 100%; overflow-x: auto; }
+.asset-table { width: 100%; min-width: 760px; border-collapse: collapse; table-layout: fixed; }
+.futures-table { min-width: 1050px; }
+.options-table { min-width: 950px; }
+.asset-table th, .asset-table td { padding: 9px 8px; border-bottom: 1px solid var(--mat-sys-outline-variant); text-align: center; vertical-align: middle; }
+.asset-table th { font-size: .82em; font-weight: 600; white-space: nowrap; }
+.asset-table td { font-size: .9em; }
+.asset-table th:first-child, .asset-table td:first-child { width: 140px; }
+.asset-table th:nth-child(2), .asset-table td:nth-child(2) { width: 180px; }
+.stock-table { min-width: 0; }
+.stock-table th:first-child, .stock-table td:first-child { width: 160px; }
+.stock-table th:nth-child(2), .stock-table td:nth-child(2) { width: auto; }
+.asset-table tr.selected { background: var(--mat-sys-primary-container); }
+.ticker { border: 0; padding: 0; background: none; color: var(--mat-sys-primary); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.selected .ticker { font-weight: 800; }
+.name-cell { overflow-wrap: anywhere; }
+.current-label { display: block; margin-top: 3px; color: var(--mat-sys-on-primary-container); font-size: .75em; }
+.empty, .asset-error { opacity: .72; }
