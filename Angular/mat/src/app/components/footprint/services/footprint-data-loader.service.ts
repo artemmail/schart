@@ -156,8 +156,10 @@ export class FootprintDataLoaderService implements OnDestroy {
     this.cancelPending();
     this.levelMarksService.invalidateLoad();
     this.currentSnapshot = null;
+    const paymentRequired = error instanceof HttpErrorResponse && error.status === 403 &&
+      typeof error.error === 'string' && /<a\b[^>]*href=["']\/Payment["'][^>]*>/i.test(error.error);
     this.stateSubject.next({ status: 'error', sessionId,
-      params: this.activeRequest!.params, message: this.errorMessage(error) });
+      params: this.activeRequest!.params, message: this.errorMessage(error), paymentRequired });
   }
 
   updateSettings(settings: ChartSettings, presetIndex?: number): void {

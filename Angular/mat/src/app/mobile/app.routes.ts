@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { FootprintAccessGuard } from '../service/footprint-access.guard';
 import { MarketMapComponent } from './MarketMap/marketmap.component';
 import { LeadersComponent } from './Leaders/leaders.component';
 
@@ -45,7 +46,7 @@ export const routes: Routes = [
     component: FilteredDataChartComponent
   },
 
-  { path: 'FootPrint', component: FirstComponent1 },
+  { path: 'FootPrint', component: FirstComponent1, canActivate: [FootprintAccessGuard], runGuardsAndResolvers: 'paramsOrQueryParamsChange' },
   { path: 'CandlestickChart', component: FirstComponent1 },
   { path: 'CandlestickChart/PairTrading', component: FirstComponent1 },
   

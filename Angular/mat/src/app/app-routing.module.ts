@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { FootprintAccessGuard } from './service/footprint-access.guard';
 import { BarometerComponent } from './components/Reports/barometer/barometer.component';
 import { UserTopicsTableComponent } from './components/tables/user-topics-table/user-topics-table.component';
 import { SeasonalityComponent } from './components/Reports/seasonality/seasonality.component';
@@ -98,7 +99,7 @@ const routes: Routes = [
   { path: 'ServiceNews/Blogs', component: UserTopicsTableComponent },
   { path: 'Seasonality', component: SeasonalityComponent },
   
-  { path: 'FootPrint', component: FirstComponent },
+  { path: 'FootPrint', component: FirstComponent, canActivate: [FootprintAccessGuard], runGuardsAndResolvers: 'paramsOrQueryParamsChange' },
   { path: 'CandlestickChart', component: FirstComponent },
   { path: 'CandlestickChart/PairTrading', component: FirstComponent },
 

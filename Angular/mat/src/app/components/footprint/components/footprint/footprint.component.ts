@@ -84,6 +84,25 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   @Output() settingsChanged = new EventEmitter<ChartSettings>();
   @Output() settingsSaveRequested = new EventEmitter<ChartSettings>();
   @Output() retryRequested = new EventEmitter<void>();
+
+  openCandles(): void {
+    if (this.loadState.status !== 'error') return;
+    const params = this.loadState.params;
+    void this.router.navigate(['/FootPrint'], {
+      queryParams: {
+        ...this.router.parseUrl(this.router.url).queryParams,
+        ticker: params.ticker,
+        period: Number.isFinite(params.period) && params.period > 0 ? params.period : 1,
+        rperiod: params.rperiod,
+        priceStep: params.priceStep,
+        mode: 'candles',
+        candlesOnly: true,
+        type: null,
+        ticker1: null,
+        ticker2: null,
+      },
+    });
+  }
   private currentSessionId: number | null = null;
   private applyingSnapshot = false;
 

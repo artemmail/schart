@@ -46,7 +46,7 @@ export interface FootprintSnapshot extends FootprintPreparedSession {
 export type FootprintLoadState =
   | { status: 'idle'; sessionId: number }
   | { status: 'loading'; sessionId: number; params: Readonly<FootPrintParameters> }
-  | { status: 'error'; sessionId: number; params: Readonly<FootPrintParameters>; message: string }
+  | { status: 'error'; sessionId: number; params: Readonly<FootPrintParameters>; message: string; paymentRequired?: boolean }
   | { status: 'ready' | 'empty'; sessionId: number; snapshot: FootprintSnapshot };
 
 /** Keep caller-owned dates and form objects outside the active session. */

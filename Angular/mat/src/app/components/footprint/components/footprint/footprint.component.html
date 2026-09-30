@@ -6,8 +6,13 @@
 }
 @if (loadState.status === 'error') {
   <div class="footprint-status" role="alert">
-    <span>{{ loadState.message }}</span>
-    <button type="button" (click)="retryRequested.emit()">Повторить загрузку</button>
+    @if (loadState.paymentRequired) {
+      <span [innerHTML]="loadState.message"></span>
+      <button type="button" (click)="openCandles()">Перейти на свечной</button>
+    } @else {
+      <span>{{ loadState.message }}</span>
+      <button type="button" (click)="retryRequested.emit()">Повторить загрузку</button>
+    }
   </div>
 }
 @if (loadState.status === 'empty') {
