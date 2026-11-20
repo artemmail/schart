@@ -1,1 +1,14 @@
-<div #container  class="container"></div>
+@if (charts$ | async; as charts) {
+  @if (charts.length) {
+    <div class="container">
+      @for (params of charts; track params.ticker) {
+        <app-footprint-widget class="footprint-item" [params]="params"
+          [minimode]="true" [presetIndex]="2326"></app-footprint-widget>
+      }
+    </div>
+  } @else {
+    <p role="status">Не удалось определить действующие контракты.</p>
+  }
+} @else {
+  <p role="status">Загрузка действующих контрактов…</p>
+}

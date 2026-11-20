@@ -1,13 +1,22 @@
-<table mat-table [dataSource]="dataSource" [trackBy]="trackByTicker" matSort class="custom-table" #leaderboardTable>
+@if (previewEnabled) {
+  <app-ticker-preview [queryParams]="previewParams"></app-ticker-preview>
+}
+
+<table mat-table [dataSource]="dataSource" [trackBy]="trackByTicker" matSort class="custom-table"
+  [class.preview-enabled]="previewEnabled" #leaderboardTable>
   <!-- Ticker Column -->
   <ng-container matColumnDef="ticker">
     <th mat-header-cell *matHeaderCellDef mat-sort-header>Бумага</th>
     <td mat-cell *matCellDef="let element">
-      
-      <a [routerLink]="['/FootPrint']" [queryParams]="{ ticker: element?.ticker, period: 5, rperiod: 'day' }">
-        {{ element?.name ? element.name.substring(0, 25) : '' }}
-      </a>
-     
+      @if (previewEnabled && element?.ticker) {
+        <button class="ticker-button" type="button" [attr.aria-pressed]="element.ticker === previewParams?.ticker">
+          {{ element.name?.substring(0, 25) || element.ticker }}
+        </button>
+      } @else {
+        <a [routerLink]="['/FootPrint']" [queryParams]="chartParams(element?.ticker)">
+          {{ element?.name ? element.name.substring(0, 25) : '' }}
+        </a>
+      }
     </td>
   </ng-container>
 
@@ -48,5 +57,8 @@
   <tr
     mat-row
     *matRowDef="let row; columns: displayedColumns"
+    [class.selected-ticker]="row.ticker === previewParams?.ticker"
+    (click)="row.ticker && selectTicker(row.ticker, $event)"
+    (dblclick)="row.ticker && openTicker(row.ticker)"
   ></tr>
 </table>

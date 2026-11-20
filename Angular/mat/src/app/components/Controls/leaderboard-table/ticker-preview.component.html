@@ -1,0 +1,21 @@
+<div class="periods" role="group" aria-label="Период миниграфика">
+  @for (range of ranges; track range.value) {
+    <button type="button" [title]="range.title" [attr.aria-label]="range.title"
+      [attr.aria-pressed]="range === selectedRange" (click)="selectRange(range)">
+      {{ range.label }}
+    </button>
+  }
+</div>
+
+<div class="chart">
+  @if (chartParams; as params) {
+    <app-footprint-widget #widget [params]="params" [minimode]="true" [fitRange]="true"></app-footprint-widget>
+    @if (widget.loadState.status === 'ready') {
+      <a class="chart-link" routerLink="/FootPrint" [queryParams]="queryParams"
+        [attr.aria-label]="'Открыть график ' + params.ticker"
+        [title]="'Открыть график ' + params.ticker"></a>
+    }
+  } @else {
+    <div class="status" role="status">{{ status }}</div>
+  }
+</div>

@@ -1,0 +1,26 @@
+<div class="catalog-page">
+  <header><span class="eyebrow">StockChart</span><h1>Инструменты и бумаги</h1><p>Найдите нужный раздел или введите название компании и тикер.</p></header>
+  <mat-form-field appearance="outline" class="search-field">
+    <mat-label>Поиск: карта, объёмы, SBER…</mat-label><mat-icon matPrefix>search</mat-icon>
+    <input matInput [formControl]="search" type="search" autocomplete="off">
+    <button *ngIf="search.value" mat-icon-button matSuffix (click)="search.setValue('')" aria-label="Очистить поиск"><mat-icon>close</mat-icon></button>
+  </mat-form-field>
+  <nav class="group-filters" aria-label="Группы инструментов">
+    <button mat-stroked-button [class.selected]="!group" [attr.aria-pressed]="!group" (click)="selectGroup('')">Все</button>
+    <button mat-stroked-button *ngFor="let item of groups" [class.selected]="group === item" [attr.aria-pressed]="group === item" (click)="selectGroup(item)">{{ item }}</button>
+  </nav>
+  <section *ngIf="search.value" class="ticker-results" aria-live="polite">
+    <h2>Бумаги</h2>
+    <p *ngIf="searching">Ищем бумаги…</p>
+    <p *ngIf="searchError">Поиск бумаг временно недоступен. <button mat-button (click)="retrySearch()">Повторить</button></p>
+    <p *ngIf="!searching && !searchError && !tickers.length">Бумаги не найдены. Попробуйте тикер или другое название.</p>
+    <div class="ticker-links"><a mat-stroked-button *ngFor="let ticker of tickers" routerLink="/FootPrint" [queryParams]="{ ticker: ticker.Value, mode: 'candles', period: 5, rperiod: 'day' }">{{ ticker.Text }} · {{ ticker.Value }}</a></div>
+  </section>
+  <h2>Разделы <span class="count">{{ filteredTools.length }}</span></h2>
+  <p *ngIf="!filteredTools.length">Разделы не найдены. Измените запрос или выберите другую группу.</p>
+  <div class="tool-grid">
+    <a class="tool-card" *ngFor="let tool of filteredTools" [routerLink]="tool.path" [queryParams]="tool.query">
+      <mat-icon>{{ tool.icon }}</mat-icon><span class="tool-body"><small>{{ tool.group }}</small><strong>{{ tool.title }}</strong><span>{{ tool.description }}</span></span><mat-icon class="arrow">arrow_forward</mat-icon>
+    </a>
+  </div>
+</div>

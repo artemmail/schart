@@ -9,17 +9,21 @@ import {
   AfterViewInit,
   DestroyRef,
   inject,
-  Inject
+  Inject,
+  OnChanges,
+  SimpleChanges
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { MatTable, MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSort, MatSortModule } from '@angular/material/sort';
-import { BehaviorSubject, EMPTY, interval, Observable } from 'rxjs';
+import { BehaviorSubject, EMPTY, interval, merge, Observable, Subject } from 'rxjs';
 import { startWith, switchMap, distinctUntilChanged, tap } from 'rxjs/operators';
 import { Leader } from 'src/app/models/Leaders';
 import { environment } from 'src/app/environment';
+import { FootPrintRequestParamsNew } from 'src/app/models/FootPrintPar';
+import { TickerPreviewComponent } from './ticker-preview.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MoneyToStrPipe } from 'src/app/pipes/money-to-str.pipe';
 import { CostToStrPipe } from 'src/app/pipes/cost-to-str.pipe copy';
@@ -30,20 +34,23 @@ import { blendOverlayWithBase, resolveBaseTextColor } from 'src/app/utils/color-
   selector: 'app-leaderboard-table',
   templateUrl: './leaderboard-table.component.html',
   styleUrls: ['./leaderboard-table.component.css'],
-  imports: [CommonModule, MatTableModule, MatSortModule, RouterModule, MoneyToStrPipe, CostToStrPipe],
+  imports: [CommonModule, MatTableModule, MatSortModule, RouterModule, MoneyToStrPipe, CostToStrPipe, TickerPreviewComponent],
 })
-export class LeaderboardTableComponent implements OnInit, OnDestroy, AfterViewInit {
+export class LeaderboardTableComponent implements OnInit, OnChanges, OnDestroy, AfterViewInit {
   @Input() market: number = 0;
   @Input() type: number = 1;
   @Input() instanceId: string = 'leaderboard'; // Уникальный идентификатор для trackBy
+  @Input() previewEnabled = false;
 
   displayedColumns: string[] = ['ticker', 'cls', 'volume', 'percent'];
   dataSource: MatTableDataSource<Leader> = new MatTableDataSource<Leader>([]);
   isLoading = true;
+  previewParams: FootPrintRequestParamsNew | null = null;
   private baseTextColor = '#000000';
 
   private intersectionObserver: IntersectionObserver;
   private readonly visibility$ = new BehaviorSubject<boolean>(false);
+  private readonly marketChanged$ = new Subject<void>();
   private readonly destroyRef = inject(DestroyRef);
 
   @ViewChild(MatTable) table: MatTable<Leader>;
@@ -53,11 +60,20 @@ export class LeaderboardTableComponent implements OnInit, OnDestroy, AfterViewIn
   constructor(
     private cdr: ChangeDetectorRef,
     private el: ElementRef,
+    private router: Router,
     @Inject(DOCUMENT) private document: Document
   ) {}
 
   ngOnInit() {
     // nothing yet
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (this.previewEnabled && changes['market'] && !changes['market'].firstChange) {
+      this.previewParams = null;
+      this.dataSource.data = [];
+      this.marketChanged$.next();
+    }
   }
 
   ngAfterViewInit() {
@@ -94,7 +110,7 @@ export class LeaderboardTableComponent implements OnInit, OnDestroy, AfterViewIn
         distinctUntilChanged(),
         switchMap((visible) =>
           visible
-            ? interval(2000).pipe(startWith(0), switchMap(() => this.fetchData()))
+            ? merge(interval(2000), this.marketChanged$).pipe(startWith(0), switchMap(() => this.fetchData()))
             : EMPTY
         ),
         takeUntilDestroyed(this.destroyRef)
@@ -118,6 +134,22 @@ export class LeaderboardTableComponent implements OnInit, OnDestroy, AfterViewIn
   private attachSort() {
     if (this.sort) {
       this.dataSource.sort = this.sort;
+    }
+  }
+
+  chartParams(ticker: string): FootPrintRequestParamsNew {
+    return { ticker, period: 5, rperiod: 'day' };
+  }
+
+  selectTicker(ticker: string, event: MouseEvent): void {
+    if (this.previewEnabled && event.detail < 2) {
+      this.previewParams = this.chartParams(ticker);
+    }
+  }
+
+  openTicker(ticker: string): void {
+    if (this.previewEnabled) {
+      this.router.navigate(['/FootPrint'], { queryParams: this.chartParams(ticker) });
     }
   }
 
@@ -147,9 +179,9 @@ export class LeaderboardTableComponent implements OnInit, OnDestroy, AfterViewIn
     }));
   }
 
-  trackByTicker(index: number, leader: Leader): string {
-    return `${this.instanceId}-${this.market}-${this.type}-${leader?.ticker ?? 'row'}-${index}`;
-  }
+  readonly trackByTicker = (index: number, leader: Leader): string => {
+    return `${this.instanceId}-${this.market}-${this.type}-${leader?.ticker ?? index}`;
+  };
 
   private refreshBaseTextColor(): void {
     this.baseTextColor = resolveBaseTextColor(this.document);

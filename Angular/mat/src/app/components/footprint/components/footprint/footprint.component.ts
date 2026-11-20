@@ -79,6 +79,7 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
   }
   @Input() minimode: boolean = false;
   @Input() deltamode: boolean = false;
+  @Input() fitRange = false;
   @Input() caption: string | null = null;
   @Input() loadState: FootprintLoadState = { status: 'idle', sessionId: 0 };
   @Output() settingsChanged = new EventEmitter<ChartSettings>();
@@ -424,7 +425,8 @@ export class FootPrintComponent implements AfterViewInit, OnDestroy {
       view,
       data,
       this.FPsettings,
-      this.params
+      this.params,
+      this.fitRange
     );
   }
 

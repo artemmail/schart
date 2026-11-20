@@ -124,7 +124,16 @@
       </mat-card-content>
     </mat-card>
 
-
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>
+          <a [routerLink]="['/MultiCandles']">Мультиграфики</a>
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <app-multi></app-multi>
+      </mat-card-content>
+    </mat-card>
 
     <app-topic-list></app-topic-list>
 
@@ -153,44 +162,21 @@
         <mat-tab-group>
           <mat-tab label="Топ торгов">
             <app-leaderboard-table [market]="selectedMarket" [type]="0"
-              [instanceId]="'leaderboard1'"></app-leaderboard-table>
+              [instanceId]="'leaderboard1'" [previewEnabled]="true"></app-leaderboard-table>
           </mat-tab>
           <mat-tab label="Топ роста">
             <app-leaderboard-table [market]="selectedMarket" [type]="1"
-              [instanceId]="'leaderboard1'"></app-leaderboard-table>
+              [instanceId]="'leaderboard1'" [previewEnabled]="true"></app-leaderboard-table>
           </mat-tab>
           <mat-tab label="Топ падения">
             <app-leaderboard-table [market]="selectedMarket" [type]="2"
-              [instanceId]="'leaderboard1'"></app-leaderboard-table>
+              [instanceId]="'leaderboard1'" [previewEnabled]="true"></app-leaderboard-table>
           </mat-tab>
         </mat-tab-group>
         <br>
       </mat-card-content>
     </mat-card>
 
-
-
-
-
-
-
-    <mat-card>
-      <mat-card-header>
-
-
-        <mat-card-title>
-          <a [routerLink]="['/MultiCandles']">Мультиграфики</a>
-        </mat-card-title>
-
-      </mat-card-header>
-      <mat-card-content>
-        <div>
-
-
-          <app-multi></app-multi>
-        </div>
-      </mat-card-content>
-    </mat-card>
     <mat-card>
       <mat-card-header>
         <mat-card-title>
@@ -206,13 +192,13 @@
     <mat-card>
       <mat-tab-group>
         <mat-tab label="Фьючерсы">
-          <app-leaderboard-table [market]="1" [type]="0" [instanceId]="'leaderboard1'"></app-leaderboard-table>
+          <app-leaderboard-table [market]="1" [type]="0" [instanceId]="'leaderboard1'" [previewEnabled]="true"></app-leaderboard-table>
         </mat-tab>
         <mat-tab label="Валюта">
-          <app-leaderboard-table [market]="3" [type]="0" [instanceId]="'leaderboard11'"></app-leaderboard-table>
+          <app-leaderboard-table [market]="3" [type]="0" [instanceId]="'leaderboard11'" [previewEnabled]="true"></app-leaderboard-table>
         </mat-tab>
         <mat-tab label="Binance">
-          <app-leaderboard-table [market]="20" [type]="0" [instanceId]="'leaderboard1'"></app-leaderboard-table>
+          <app-leaderboard-table [market]="20" [type]="0" [instanceId]="'leaderboard1'" [previewEnabled]="true"></app-leaderboard-table>
         </mat-tab>
       </mat-tab-group>
       <br>

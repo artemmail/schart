@@ -22,3 +22,25 @@
 .right-align {
   text-align: right;
 }
+
+.preview-enabled .mat-mdc-row {
+  cursor: pointer;
+}
+
+.preview-enabled .mat-mdc-row:hover {
+  background: var(--mat-sys-surface-container-high, #f5f8fc);
+}
+
+.preview-enabled .mat-mdc-row.selected-ticker {
+  background: var(--mat-sys-secondary-container, #eaf1fc);
+}
+
+.ticker-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}

@@ -47,6 +47,7 @@ export class FootprintWidgetComponent
   @Input() params: FootPrintParameters;
   @Input() minimode: boolean = false;
   @Input() deltamode: boolean = false;
+  @Input() fitRange = false;
   @Input() caption: string | null = null;
 
   presetItems: SelectListItemNumber[] = [];

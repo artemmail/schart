@@ -348,7 +348,8 @@ export class FootprintLayoutService {
     view: Rectangle,
     data: ClusterData,
     settings: ChartSettings,
-    params: FootPrintParameters
+    params: FootPrintParameters,
+    fitRange = false
   ) {
     if (settings.ShrinkY && data.clusterData.length > 0) {
       data.maxFromPeriod(0, data.clusterData.length - 1);
@@ -361,7 +362,7 @@ export class FootprintLayoutService {
       settings.CompressToCandles === 'Always' || params.candlesOnly
         ? Math.max(len, 1)
         : Math.max(len2, 1);
-    let firstCol = Math.max(totalLength - windowSize, 0);
+    let firstCol = fitRange ? 0 : Math.max(totalLength - windowSize, 0);
     if (firstCol >= totalLength) {
       firstCol = Math.max(totalLength - 1, 0);
     }
